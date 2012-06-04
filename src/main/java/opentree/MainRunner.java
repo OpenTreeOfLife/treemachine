@@ -25,13 +25,28 @@ public class MainRunner {
 		TaxonomyExplorer te =  new TaxonomyExplorer(graphname);
 		if(args[0].compareTo("comptaxtree") == 0){
 			System.out.println("constructing a comprehensive tax tree of "+query);
-			te.querySomeData(query);
+			te.buildTaxonomyTree(query);
 		}else{
 			System.err.println("ERROR: not a known command");
 			te.shutdownDB();
 			printHelp();
 		}
 		te.shutdownDB();
+	}
+	
+	public void graphImporterParser(String [] args){
+		String filename = args[1];
+		String graphname = args[2];
+		GraphImporter gi = new GraphImporter(graphname);
+		if(args[0].compareTo("addtree") == 0){
+			System.out.println("adding a tree to the graph: "+ filename);
+			gi.preProcessTree(filename);
+		}else{
+			System.err.println("ERROR: not a known command");
+			gi.shutdownDB();
+			printHelp();
+		}
+		gi.shutdownDB();
 	}
 	
 	public static void printHelp(){
@@ -44,6 +59,8 @@ public class MainRunner {
 		System.out.println("\taddtax <filename> <graphdbfolder>");
 		System.out.println("---query---");
 		System.out.println("\tcomptaxtree <name> <graphdbfolder>");
+		System.out.println("---process---");
+		System.out.println("\taddtree <filename> <graphdbfolder>");
 		System.exit(0);
 	}
 	/**
@@ -66,6 +83,8 @@ public class MainRunner {
 				mr.taxonomyLoadParser(args);
 			}else if(args[0].compareTo("comptaxtree") == 0){
 				mr.taxonomyQueryParser(args);
+			}else if(args[0].compareTo("addtree") == 0){
+				mr.graphImporterParser(args);
 			}
 		}
 	}

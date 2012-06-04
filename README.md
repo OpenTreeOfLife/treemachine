@@ -15,3 +15,7 @@ then
 	
 	mvn clean compile assembly:single
 
+Usage
+--------------
+### Taxonomy Loading
+### Taxonomy Query

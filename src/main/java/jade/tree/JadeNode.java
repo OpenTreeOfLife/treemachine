@@ -150,6 +150,21 @@ public class JadeNode {
     	return ret;
     }
     
+    public ArrayList<JadeNode> getTips(){
+    	ArrayList<JadeNode> children = new ArrayList<JadeNode>();
+    	Stack<JadeNode> nodes = new Stack<JadeNode>();
+    	nodes.push(this);
+    	while(nodes.isEmpty()==false){
+    		JadeNode jt = nodes.pop();
+    		for (int i=0;i<jt.getChildCount();i++){
+    			nodes.push(jt.getChild(i));
+    		}
+    		if (jt.isExternal()==true)
+    			children.add(jt);
+    	}
+    	return children;
+    }
+    
     public JadeNode getParent(){return parent;}
     
     public int getChildCount(){return children.size();}

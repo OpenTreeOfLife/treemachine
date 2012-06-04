@@ -1,10 +1,18 @@
 package opentree;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.HashMap;
+
+import jade.tree.JadeNode;
+import jade.tree.JadeTree;
 import opentree.TaxonomyBase.RelTypes;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.index.Index;
@@ -20,7 +28,13 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		nodeIndex = graphDb.index().forNodes( "nodes" );
 	}
 	
-	public void querySomeData(String name){
+	
+	/*
+	 * This essentially uses every relationship and constructs a newick tree (hardcoded to taxtree.tre file)
+	 * 
+	 * It would be trivial to only include certain relationship sources
+	 */
+	public void buildTaxonomyTree(String name){
 		IndexHits<Node> hits = nodeIndex.get("name", name);
 		Node firstNode = hits.getSingle();
 		hits.close();
@@ -31,20 +45,43 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
 		        .relationships( RelTypes.CHILDOF,Direction.INCOMING );
 		System.out.println(firstNode.getProperty("name"));
+		JadeNode root = new JadeNode();
+		root.setName(((String) firstNode.getProperty("name")).replace(" ", "_"));
+		HashMap<Node,JadeNode> nodes = new HashMap<Node,JadeNode>();
+		nodes.put(firstNode, root);
 		int count =0;
-		for(Node friendNd : CHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
+		for(Relationship friendrel : CHILDOF_TRAVERSAL.traverse(firstNode).relationships()){
 			count += 1;
-//			if(friendNd.hasProperty("name"))
-//				System.out.println(friendNd.getProperty("name"));
+			if (nodes.containsKey(friendrel.getStartNode())==false){
+				JadeNode node = new JadeNode();
+				node.setName(((String) friendrel.getStartNode().getProperty("name")).replace(" ", "_").replace(",", "_").replace(")", "_").replace("(", "_").replace(":", "_"));
+				nodes.put(friendrel.getStartNode(), node);
+			}
+			if(nodes.containsKey(friendrel.getEndNode())==false){
+				JadeNode node = new JadeNode();
+				node.setName(((String)friendrel.getEndNode().getProperty("name")).replace(" ", "_").replace(",", "_").replace(")", "_").replace("(", "_").replace(":", "_"));
+				nodes.put(friendrel.getEndNode(),node);
+			}
+			nodes.get(friendrel.getEndNode()).addChild(nodes.get(friendrel.getStartNode()));
 			if (count % 100000 == 0)
 				System.out.println(count);
+		}
+		JadeTree tree = new JadeTree(root);
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter("taxtree.tre"));
+			outFile.write(tree.getRoot().getNewick(false));
+			outFile.write(";\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
 	
 	
 	public void runittest(){
-		querySomeData("Lonicera");
+		buildTaxonomyTree("Lonicera");
 		shutdownDB();
 	}
 	

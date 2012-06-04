@@ -117,7 +117,8 @@ public class TaxonomyLoader extends TaxonomyBase{
 								rel.setProperty("childid",temppar.get(i));
 								rel.setProperty("parentid",parents.get(temppar.get(i)));
 							}catch(java.lang.IllegalArgumentException io){
-								System.out.println(temppar.get(i));
+//								System.out.println(temppar.get(i));
+								continue;
 							}
 						}
 						tx.success();
@@ -136,7 +137,8 @@ public class TaxonomyLoader extends TaxonomyBase{
 						rel.setProperty("childid",temppar.get(i));
 						rel.setProperty("parentid",parents.get(temppar.get(i)));
 					}catch(java.lang.IllegalArgumentException io){
-						System.out.println(temppar.get(i));
+//						System.out.println(temppar.get(i));
+						continue;
 					}
 				}
 				tx.success();
@@ -154,7 +156,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 			int count2 = 0;
 			for (int j=0; j< list1.size();j++){
 				count2 += 1;
-			    if (list1.get(j) == keylist.get(i)){
+			    if (list1.get(j).compareTo(keylist.get(i))==0){
 			    	ret.add(count1);ret.add(count2);
 			    	return ret;
 			    }
@@ -230,28 +232,37 @@ public class TaxonomyLoader extends TaxonomyBase{
 		try{
 			count = 0;
 			BufferedReader br = new BufferedReader(new FileReader(filename));
+			boolean verbose = false;
 			while((str = br.readLine())!=null){
 				count += 1;
 				String[] spls = str.split(",");
 				String strname = spls[2];
+//				if (strname.compareTo("Centipeda minima") == 0)
+//					verbose = true;
+//				else
+//					verbose = false;
 				String strparentname = "";
 				if(spls[1].compareTo("0") != 0)
 					strparentname = ndnames.get(spls[1]);
 				if (spls[1].compareTo("0") == 0)
 					continue;
+				if (verbose)
+					System.out.println(str);
 				ArrayList<String> path1 = new ArrayList<String>();
 				boolean going = true;
 				boolean badpath = false;
 				String cur = parents.get(spls[0]);
-				int tc = 0;
+				if(verbose)
+					System.out.println("parent:"+cur);
 				while(going == true){
-					tc += 1;
 					if(cur == null){
 						going = false;
 						badpath = true;
 					}else if (cur.compareTo("0")==0){
 						going = false;
 					}else{
+						if (verbose)
+							System.out.println("-parent:"+cur);
 						path1.add(ndnames.get(cur));
 						cur = parents.get(cur);
 					}
@@ -260,7 +271,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 					continue;
 				Node matchnode = null;
 				HashMap<Node,ArrayList<Integer>> itemcounts = new HashMap<Node,ArrayList<Integer>>();
-				int bestcount = LARGE;
+				int bestcount = LARGE+LARGE;
 				Node bestitem = null;
 				ArrayList<String> bestpath = null;
 				ArrayList<Node> bestpathitems= null;
@@ -273,21 +284,31 @@ public class TaxonomyLoader extends TaxonomyBase{
 						path2 = new ArrayList<String> ();
 						path2items = new ArrayList<Node> ();
 						for(Node currentNode : CHILDOF_TRAVERSAL.traverse(node).nodes()){
-							if(currentNode.getProperty("name") != strname){
+							if(verbose)
+								System.out.println("+"+((String) currentNode.getProperty("name")));
+							if(((String) currentNode.getProperty("name")).compareTo(strname) != 0){
 								path2.add((String)currentNode.getProperty("name"));
 								path2items.add(currentNode);
+								if (verbose)
+									System.out.println((String)currentNode.getProperty("name"));
 							}
 						}
 						itemcounts.put(node, stepsToMatch(path1,path2));
+						if(verbose)
+							System.out.println(sum(itemcounts.get(node)));
 						if(sum(itemcounts.get(node)) < bestcount || first == true){
 							first = false;//sets these all to not null and at least the first one
 							bestcount = sum(itemcounts.get(node));
 							bestitem = node;
-							bestpath = path2;
-							bestpathitems = path2items;
+							bestpath = new ArrayList<String>(path2);
+							bestpathitems = new ArrayList<Node>(path2items);
 						}
 						path2.clear();
 						path2items.clear();
+						if(verbose)
+							System.out.println(bestcount);
+						if(verbose)
+							System.out.println("after:"+bestpath.get(1));
 					}
 				}finally{
 					hits.close();
@@ -297,8 +318,12 @@ public class TaxonomyLoader extends TaxonomyBase{
 				if(spls[1].compareTo("0") != 0){
 					Node matchnodeparent = null;
 					for(int i=0;i<bestpath.size();i++){
-						if(bestpath.get(i) == strparentname)
+						if(bestpath.get(i).compareTo(strparentname) == 0){
 							matchnodeparent = bestpathitems.get(i);
+//							break;
+						}
+						if(verbose)
+							System.out.println("="+bestpath.get(i)+" "+strparentname);
 					}
 					if(matchnodeparent == null){
 						IndexHits<Node> hits2 = nodeIndex.get("name", strparentname);
