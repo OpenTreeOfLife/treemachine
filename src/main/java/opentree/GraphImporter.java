@@ -58,18 +58,17 @@ public class GraphImporter extends GraphBase{
 			for (int j=0;j<nds.size();j++){
 //				nds_names.add(nds.get(j).getName());
 				IndexHits<Node> hits = nodeIndex.get("name", nds.get(j).getName().replace("_"," "));
-				hit_nodes.add( hits.getSingle());
-				hits.close();
-			}
-			if (hit_nodes.size() > 8){
+//				hit_nodes.add( hits.getSingle());
+				Node tnode1 = hits.getSingle();
 				expander = Traversal.expanderForTypes(RelTypes.CHILDOF, Direction.OUTGOING);
 				PathFinder<Path> pathfinder = GraphAlgoFactory.shortestPath(expander, jt.getInternalNodeCount()+jt.getInternalNodeCount()+1);
-				Iterable<Path> paths = pathfinder.findAllPaths(hit_nodes.get(0),graphDb.getNodeById(1));
-				for(Path path: paths){
+				Path path = pathfinder.findSinglePath(tnode1,graphDb.getNodeById(1));
+				//for(Path path: paths){
 					for (Node node: path.nodes())
 						System.out.println(node.getProperty("name"));
 					System.out.println("----");
-				}
+				//}
+				hits.close();
 			}
 		}
 	}
