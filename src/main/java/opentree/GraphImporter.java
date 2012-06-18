@@ -1,8 +1,6 @@
 package opentree;
 
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
-import jade.tree.TreeReader;
+import jade.tree.*;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -58,9 +56,9 @@ public class GraphImporter extends GraphBase{
 			for (int j=0;j<nds.size();j++){
 //				nds_names.add(nds.get(j).getName());
 				IndexHits<Node> hits = nodeIndex.get("name", nds.get(j).getName().replace("_"," "));
-//				hit_nodes.add( hits.getSingle());
+				hit_nodes.add( hits.getSingle());
 				Node tnode1 = hits.getSingle();
-				expander = Traversal.expanderForTypes(RelTypes.CHILDOF, Direction.OUTGOING);
+/*				expander = Traversal.expanderForTypes(RelTypes.CHILDOF, Direction.OUTGOING);
 				PathFinder<Path> pathfinder = GraphAlgoFactory.shortestPath(expander, jt.getInternalNodeCount()+jt.getInternalNodeCount()+1);
 				Path path = pathfinder.findSinglePath(tnode1,graphDb.getNodeById(1));
 				//for(Path path: paths){
@@ -68,8 +66,14 @@ public class GraphImporter extends GraphBase{
 						System.out.println(node.getProperty("name"));
 					System.out.println("----");
 				//}
+*/
 				hits.close();
 			}
+			expander = Traversal.expanderForTypes(RelTypes.CHILDOF, Direction.OUTGOING);
+			Node ancestor = AncestorUtil.lowestCommonAncestor( hit_nodes, expander);
+			System.out.println(ancestor.getProperty("name"));
+//			GraphAlgoFactory.
+			
 		}
 	}
 	

@@ -313,6 +313,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 				}finally{
 					hits.close();
 				}
+
 				itemcounts.clear();
 				matchnode = bestitem;
 				if(spls[1].compareTo("0") != 0){
@@ -340,6 +341,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 					rel_cid.add(spls[0]);
 					rel_pid.add(spls[1]);
 				}
+
 				if(count % transaction_iter == 0){
 					System.out.println(count);
 					tx = graphDb.beginTx();
