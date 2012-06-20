@@ -41,6 +41,11 @@ public class MainRunner {
 		if(args[0].compareTo("addtree") == 0){
 			System.out.println("adding a tree to the graph: "+ filename);
 			gi.preProcessTree(filename);
+			gi.processMRCAS();
+		}else if(args[0].compareTo("inittree")==0){
+			System.out.println("initializing the database with a tree" + filename);
+			gi.preProcessTree(filename);
+			gi.initializeGraphDB();
 		}else{
 			System.err.println("ERROR: not a known command");
 			gi.shutdownDB();
@@ -60,6 +65,7 @@ public class MainRunner {
 		System.out.println("---query---");
 		System.out.println("\tcomptaxtree <name> <graphdbfolder>");
 		System.out.println("---process---");
+		System.out.println("\tinittree <filename> <graphdbfolder>");
 		System.out.println("\taddtree <filename> <graphdbfolder>");
 		System.exit(0);
 	}
@@ -83,7 +89,7 @@ public class MainRunner {
 				mr.taxonomyLoadParser(args);
 			}else if(args[0].compareTo("comptaxtree") == 0){
 				mr.taxonomyQueryParser(args);
-			}else if(args[0].compareTo("addtree") == 0){
+			}else if(args[0].compareTo("inittree") == 0 || args[0].compareTo("addtree")==0){
 				mr.graphImporterParser(args);
 			}
 		}

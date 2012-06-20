@@ -43,7 +43,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 			return;
 		}
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-		        .relationships( RelTypes.CHILDOF,Direction.INCOMING );
+		        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
 		System.out.println(firstNode.getProperty("name"));
 		JadeNode root = new JadeNode();
 		root.setName(((String) firstNode.getProperty("name")).replace(" ", "_"));

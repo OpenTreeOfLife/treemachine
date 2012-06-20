@@ -22,7 +22,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 	int transaction_iter = 100000;
 	int LARGE = 100000000;
 	final TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-	        .relationships( RelTypes.CHILDOF,Direction.OUTGOING );
+	        .relationships( RelTypes.TAXCHILDOF,Direction.OUTGOING );
 	
 	public TaxonomyLoader(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
@@ -112,7 +112,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 					try{
 						for (int i=0;i<temppar.size();i++){
 							try {
-								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.CHILDOF);
+								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
 								rel.setProperty("source", filename);
 								rel.setProperty("childid",temppar.get(i));
 								rel.setProperty("parentid",parents.get(temppar.get(i)));
@@ -132,7 +132,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 			try{
 				for (int i=0;i<temppar.size();i++){
 					try {
-						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.CHILDOF);
+						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
 						rel.setProperty("source", filename);
 						rel.setProperty("childid",temppar.get(i));
 						rel.setProperty("parentid",parents.get(temppar.get(i)));
@@ -237,10 +237,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 				count += 1;
 				String[] spls = str.split(",");
 				String strname = spls[2];
-//				if (strname.compareTo("Centipeda minima") == 0)
-//					verbose = true;
-//				else
-//					verbose = false;
 				String strparentname = "";
 				if(spls[1].compareTo("0") != 0)
 					strparentname = ndnames.get(spls[1]);
@@ -258,6 +254,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 					if(cur == null){
 						going = false;
 						badpath = true;
+						System.out.println("-bad path start:"+spls[0]);
 					}else if (cur.compareTo("0")==0){
 						going = false;
 					}else{
@@ -347,7 +344,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 					tx = graphDb.beginTx();
 					try{
 						for(int i=0;i<rel_nd.size();i++){
-							Relationship rel = rel_nd.get(i).createRelationshipTo(rel_pnd.get(i), RelTypes.CHILDOF);
+							Relationship rel = rel_nd.get(i).createRelationshipTo(rel_pnd.get(i), RelTypes.TAXCHILDOF);
 							rel.setProperty("source", filename);
 							rel.setProperty("childid", rel_cid.get(i));
 							rel.setProperty("parentid", rel_pid.get(i));
@@ -366,7 +363,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 			tx = graphDb.beginTx();
 			try{
 				for(int i=0;i<rel_nd.size();i++){
-					Relationship rel = rel_nd.get(i).createRelationshipTo(rel_pnd.get(i), RelTypes.CHILDOF);
+					Relationship rel = rel_nd.get(i).createRelationshipTo(rel_pnd.get(i), RelTypes.TAXCHILDOF);
 					rel.setProperty("source", filename);
 					rel.setProperty("childid", rel_cid.get(i));
 					rel.setProperty("parentid", rel_pid.get(i));

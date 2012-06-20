@@ -7,6 +7,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import opentree.TaxonomyBase.RelTypes;
+
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphalgo.WeightedPath;
@@ -14,7 +16,9 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipExpander;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
@@ -44,10 +48,42 @@ public class GraphImporter extends GraphBase{
 		}catch(IOException ioe){}
 		tr.setTree(ts);
 		jt = tr.readTree();
-		processMRCAS();
+		System.out.println("tree read");
+		System.exit(0);
 	}
 	
-	private void processMRCAS(){
+	/*
+	 * assumes that the tree has been read by the preProcessTree
+	 */
+	public void initializeGraphDB(){
+		assert jt != null;
+		Transaction	tx = graphDb.beginTx();
+		try{
+			postOrderInitializeNode(jt.getRoot(),tx);
+			tx.success();
+		}finally{
+			tx.finish();
+		}
+	}
+	
+	private void postOrderInitializeNode(JadeNode inode,Transaction tx){
+		for(int i=0;i<inode.getChildCount();i++){
+			postOrderInitializeNode(inode.getChild(i),tx);
+		}
+		//initialize the nodes
+		//is a tip record the name, otherwise , don't record the name [could do a label]
+		Node dbnode = graphDb.createNode();
+		if (inode.getName().length()>0){
+			dbnode.setProperty("name", inode.getName());
+			nodeIndex.add( dbnode, "name", inode.getName() );
+		}
+		inode.assocObject("dbnode", dbnode);
+		for(int i=0;i<inode.getChildCount();i++){
+			Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
+		}
+	}
+	
+	public void processMRCAS(){
 		for (int i=0;i<jt.getInternalNodeCount();i++){
 			JadeNode tnode = jt.getInternalNode(i);
 			ArrayList<JadeNode> nds = tnode.getTips();
@@ -69,7 +105,7 @@ public class GraphImporter extends GraphBase{
 */
 				hits.close();
 			}
-			expander = Traversal.expanderForTypes(RelTypes.CHILDOF, Direction.OUTGOING);
+			expander = Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING);
 			Node ancestor = AncestorUtil.lowestCommonAncestor( hit_nodes, expander);
 			System.out.println(ancestor.getProperty("name"));
 //			GraphAlgoFactory.

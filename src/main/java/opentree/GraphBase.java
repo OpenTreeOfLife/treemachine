@@ -10,7 +10,8 @@ public abstract class GraphBase {
 	protected static Index<Node> nodeIndex;
 	
 	protected static enum RelTypes implements RelationshipType{
-	    KNOWS,
+	    MRCACHILDOF,
+	    TAXCHILDOF,
 	    CHILDOF
 	}
 	
