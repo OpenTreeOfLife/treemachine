@@ -26,6 +26,9 @@ public class MainRunner {
 		if(args[0].compareTo("comptaxtree") == 0){
 			System.out.println("constructing a comprehensive tax tree of "+query);
 			te.buildTaxonomyTree(query);
+		}else if(args[0].compareTo("findcycles")==0){
+			System.out.println("finding taxonomic cycles for " + query);
+			te.findTaxonomyCycles(query);
 		}else{
 			System.err.println("ERROR: not a known command");
 			te.shutdownDB();
@@ -64,6 +67,7 @@ public class MainRunner {
 		System.out.println("\taddtax <filename> <graphdbfolder>");
 		System.out.println("---query---");
 		System.out.println("\tcomptaxtree <name> <graphdbfolder>");
+		System.out.println("\tfindcycles <name> <graphdbfolder>");
 		System.out.println("---process---");
 		System.out.println("\tinittree <filename> <graphdbfolder>");
 		System.out.println("\taddtree <filename> <graphdbfolder>");
@@ -87,7 +91,7 @@ public class MainRunner {
 			}
 			if(args[0].compareTo("inittax")==0 || args[0].compareTo("addtax")==0){
 				mr.taxonomyLoadParser(args);
-			}else if(args[0].compareTo("comptaxtree") == 0){
+			}else if(args[0].compareTo("comptaxtree") == 0 || args[0].compareTo("findcycles")==0){
 				mr.taxonomyQueryParser(args);
 			}else if(args[0].compareTo("inittree") == 0 || args[0].compareTo("addtree")==0){
 				mr.graphImporterParser(args);

@@ -150,6 +150,27 @@ public class JadeNode {
     	return ret;
     }
     
+    public String getJSON(boolean bl){
+    	String ret = "{";
+    	if (name !=null)
+    		ret += " \"name\": \""+this.getName()+"\"";
+    	else
+    		ret += " \"name\": \"\"";
+    	for(int i=0;i<this.getChildCount();i++){
+    		if(i==0)
+    			ret += "\n, \"children\": [\n";
+    		ret += this.getChild(i).getJSON(bl);
+    		if(i == this.getChildCount()-1)
+    			ret += "]\n";
+    		else
+    			ret += ",\n";
+    	}
+    	if (bl == true)
+    		ret += ", \"size\": "+this.getBL();
+    	ret += "}";
+    	return ret;
+    }
+    
     public ArrayList<JadeNode> getTips(){
     	ArrayList<JadeNode> children = new ArrayList<JadeNode>();
     	Stack<JadeNode> nodes = new Stack<JadeNode>();

@@ -3,6 +3,7 @@ package opentree;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import jade.tree.JadeNode;
@@ -12,14 +13,18 @@ import opentree.TaxonomyBase.RelTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
+import org.neo4j.kernel.Uniqueness;
 
 public class TaxonomyExplorer extends TaxonomyBase{
 	
@@ -78,6 +83,40 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		}
 	}
 	
+	/*
+	 * Given a Taxonomic name (as name), this will attempt to find cycles which should be conflicting taxonomies
+	 */
+	public void findTaxonomyCycles(String name){
+		IndexHits<Node> hits = nodeIndex.get("name", name);
+		Node firstNode = hits.getSingle();
+		hits.close();
+		if (firstNode == null){
+			System.out.println("name not found");
+			return;
+		}
+		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
+		        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
+		System.out.println(firstNode.getProperty("name"));
+		for(Node friendnode : CHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
+			int count = 0;
+			boolean conflict = false;
+			String endNode = "";
+			for(Relationship rel : friendnode.getRelationships(Direction.OUTGOING)){
+				if (endNode == "")
+					endNode = (String) rel.getEndNode().getProperty("name");
+				if ((String)rel.getEndNode().getProperty("name") != endNode){
+					conflict = true;
+				}
+				count += 1;
+			}
+			if (count > 1 && conflict){
+				for(Relationship rel : friendnode.getRelationships(Direction.OUTGOING)){
+					System.out.println(rel.getStartNode().getProperty("name")+" "+rel.getEndNode().getProperty("name")+" "+rel.getProperty("source"));
+				}
+				System.out.println(friendnode.getProperty("name")+" "+count);
+			}
+		}
+	}
 	
 	
 	public void runittest(){
