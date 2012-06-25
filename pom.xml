@@ -8,7 +8,7 @@
   	<dependency>
   		<groupId>org.neo4j</groupId>
   		<artifactId>neo4j</artifactId>
-  		<version>1.8.M02</version>
+  		<version>1.8.M04</version>
   	</dependency>
   </dependencies>
   <build>

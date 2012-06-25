@@ -116,6 +116,56 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		}
 	}
 	
+	/*
+	 * given a taxonomic name, construct a json object of the graph surrounding that name
+	 */
+	public void constructJSONGraph(String name){
+		IndexHits<Node> hits = nodeIndex.get("name",name);
+		Node firstNode = hits.getSingle();
+		hits.close();
+		if(firstNode == null){
+			System.out.println("name not found");
+			return;
+		}
+		System.out.println(firstNode.getProperty("name"));
+		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
+		        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
+		HashMap<Node,Integer> nodenumbers = new HashMap<Node,Integer>();
+		HashMap<Integer,Node> numbernodes = new HashMap<Integer,Node>();
+		int count = 0;
+		for(Node friendnode: CHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
+			if (friendnode.hasRelationship(Direction.INCOMING)){
+				nodenumbers.put(friendnode, count);
+				numbernodes.put(count,friendnode);
+				count += 1;
+			}
+		}
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter("graph_data.js"));
+			outFile.write("{\"nodes\":[");
+			for(int i=0; i<count;i++){
+				Node tnode = numbernodes.get(i);
+				outFile.write("{\"name\":\""+tnode.getProperty("name")+"");
+				outFile.write("\",\"group\":"+nodenumbers.get(tnode)+"");
+				outFile.write("},");
+			}
+			outFile.write("],\"links\":[");
+			for(Node tnode: nodenumbers.keySet()){
+				for(Relationship trel : tnode.getRelationships(Direction.OUTGOING)){
+					outFile.write("{\"source\":"+nodenumbers.get(trel.getStartNode())+"");
+					outFile.write(",\"target\":"+nodenumbers.get(trel.getEndNode())+"");
+					outFile.write(",\"value\":"+1+"");
+					outFile.write("},");
+				}
+			}
+			outFile.write("]");
+			outFile.write("}\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	public void runittest(){
 		buildTaxonomyTree("Lonicera");
