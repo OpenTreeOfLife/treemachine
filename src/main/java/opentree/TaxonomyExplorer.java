@@ -97,6 +97,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
 		        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
 		System.out.println(firstNode.getProperty("name"));
+		ArrayList<Node> conflictingnodes = new ArrayList<Node>();
 		for(Node friendnode : CHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
 			int count = 0;
 			boolean conflict = false;
@@ -110,10 +111,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 				count += 1;
 			}
 			if (count > 1 && conflict){
-				for(Relationship rel : friendnode.getRelationships(Direction.OUTGOING)){
-					System.out.println(rel.getStartNode().getProperty("name")+" "+rel.getEndNode().getProperty("name")+" "+rel.getProperty("source"));
-				}
-				System.out.println(friendnode.getProperty("name")+" "+count);
+				conflictingnodes.add(friendnode);
 			}
 		}
 	}
