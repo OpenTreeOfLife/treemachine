@@ -49,7 +49,7 @@ public class GraphImporter extends GraphBase{
 		tr.setTree(ts);
 		jt = tr.readTree();
 		System.out.println("tree read");
-		System.exit(0);
+		//System.exit(0);
 	}
 	
 	/*
@@ -78,9 +78,43 @@ public class GraphImporter extends GraphBase{
 			nodeIndex.add( dbnode, "name", inode.getName() );
 		}
 		inode.assocObject("dbnode", dbnode);
-		for(int i=0;i<inode.getChildCount();i++){
-			Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
+		if(inode.getChildCount()>0){
+			for(int i=0;i<inode.getChildCount();i++){
+				Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
+			}
+			newNodeAddMRCAArray(dbnode);
+		}else{
+			ArrayList<Long> mrcas = new ArrayList<Long>();
+			mrcas.add(dbnode.getId());
+			long[] ret = new long[mrcas.size()];
+		    for (int i=0; i < ret.length; i++)
+		    {
+		        ret[i] = mrcas.get(i).longValue();
+		    }
+			dbnode.setProperty("mrca",ret);
 		}
+	}
+	
+	private void newNodeAddMRCAArray(Node dbnode){
+		//traversal incoming and record all the names
+		ArrayList<Long> mrcas = new ArrayList<Long> ();
+		for(Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)){
+			Node tnode = rel.getStartNode();
+			if(tnode.hasProperty("mrca")){//need to add what to do if it doesn't have it which just means walking
+				long[] tmrcas = (long[])tnode.getProperty("mrca");
+				for(int j=0;j<tmrcas.length;j++){
+					if (mrcas.contains(tmrcas[j])==false){
+						mrcas.add(tmrcas[j]);
+					}
+				}
+			}
+		}
+		long[] ret = new long[mrcas.size()];
+	    for (int i=0; i < ret.length; i++)
+	    {
+	        ret[i] = mrcas.get(i).longValue();
+	    }
+		dbnode.setProperty("mrca", ret);
 	}
 	
 	public void processMRCAS(){
