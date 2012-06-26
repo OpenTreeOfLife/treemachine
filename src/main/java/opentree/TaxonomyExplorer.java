@@ -1,5 +1,7 @@
 package opentree;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -8,6 +10,7 @@ import java.util.HashMap;
 
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
+import jade.tree.TreeReader;
 import opentree.TaxonomyBase.RelTypes;
 
 import org.neo4j.graphdb.Direction;
@@ -30,7 +33,8 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	
 	public TaxonomyExplorer(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
-		nodeIndex = graphDb.index().forNodes( "nodes" );
+		taxNodeIndex = graphDb.index().forNodes( "taxNamedNodes" );
+		graphNodeIndex = graphDb.index().forNodes("graphNamedNodes");
 	}
 	
 	
@@ -40,7 +44,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	 * It would be trivial to only include certain relationship sources
 	 */
 	public void buildTaxonomyTree(String name){
-		IndexHits<Node> hits = nodeIndex.get("name", name);
+		IndexHits<Node> hits = taxNodeIndex.get("name", name);
 		Node firstNode = hits.getSingle();
 		hits.close();
 		if (firstNode == null){
@@ -87,7 +91,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	 * Given a Taxonomic name (as name), this will attempt to find cycles which should be conflicting taxonomies
 	 */
 	public void findTaxonomyCycles(String name){
-		IndexHits<Node> hits = nodeIndex.get("name", name);
+		IndexHits<Node> hits = taxNodeIndex.get("name", name);
 		Node firstNode = hits.getSingle();
 		hits.close();
 		if (firstNode == null){
@@ -120,7 +124,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	 * given a taxonomic name, construct a json object of the graph surrounding that name
 	 */
 	public void constructJSONGraph(String name){
-		IndexHits<Node> hits = nodeIndex.get("name",name);
+		IndexHits<Node> hits = taxNodeIndex.get("name",name);
 		Node firstNode = hits.getSingle();
 		hits.close();
 		if(firstNode == null){
@@ -170,6 +174,30 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	public void runittest(){
 		buildTaxonomyTree("Lonicera");
 		shutdownDB();
+	}
+	
+	public void checkNamesInTree(String treefilename){
+		TreeReader tr = new TreeReader();
+		String ts = "";
+		try{
+			BufferedReader br = new BufferedReader(new FileReader(treefilename));
+			ts = br.readLine();
+			br.close();
+		}catch(IOException ioe){
+			System.out.println("problem reading tree");
+		}
+		tr.setTree(ts);
+		JadeTree jt = tr.readTree();
+		System.out.println("tree read");
+		for(int i=0;i<jt.getExternalNodeCount();i++){
+			IndexHits<Node> hits = taxNodeIndex.get("name", jt.getExternalNode(i).getName().replace("_"," "));
+			int numh = hits.size();
+			hits.close();
+			if (numh == 0)
+				System.out.println(jt.getExternalNode(i).getName()+" gets no hits");
+			if (numh > 1)
+				System.out.println(jt.getExternalNode(i).getName()+" gets "+numh+" hits");
+		}
 	}
 	
 	/**

@@ -26,7 +26,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 	
 	public TaxonomyLoader(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
-		nodeIndex = graphDb.index().forNodes( "nodes" );
+		taxNodeIndex = graphDb.index().forNodes( "taxNamedNodes" );
 	}
 	
 	private Integer sum(ArrayList<Integer> si){
@@ -50,7 +50,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 			try{
 				Node node = graphDb.createNode();
 				node.setProperty("name", "root");
-				nodeIndex.add( node, "name", "root" );
+				taxNodeIndex.add( node, "name", "root" );
 				dbnodes.put("0", node);
 				tx.success();
 			}finally{
@@ -70,7 +70,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 							if (spls[1].length() > 0){
 								Node tnode = graphDb.createNode();
 								tnode.setProperty("name", spls[2]);
-								nodeIndex.add( tnode, "name", spls[2] );
+								taxNodeIndex.add( tnode, "name", spls[2] );
 								parents.put(spls[0], spls[1]);
 								dbnodes.put(spls[0], tnode);
 							}
@@ -91,7 +91,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 					if (spls[1].length() > 0){
 						Node tnode = graphDb.createNode();
 						tnode.setProperty("name", spls[2]);
-						nodeIndex.add( tnode, "name", spls[2] );
+						taxNodeIndex.add( tnode, "name", spls[2] );
 						parents.put(spls[0], spls[1]);
 						dbnodes.put(spls[0], tnode);
 					}
@@ -184,7 +184,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 				parents.put(spls[0], spls[1]);
 				String strname = spls[2];
 				ndnames.put(spls[0], strname);
-				IndexHits<Node> ih = nodeIndex.get("name", strname);
+				IndexHits<Node> ih = taxNodeIndex.get("name", strname);
 				try{
 					if(ih.size()==0){
 						addnodes.add(strname);
@@ -202,7 +202,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 						for(int i=0;i<addnodes.size();i++){
 							Node tnode = graphDb.createNode();
 							tnode.setProperty("name", addnodes.get(i));
-							nodeIndex.add( tnode, "name", addnodes.get(i) );
+							taxNodeIndex.add( tnode, "name", addnodes.get(i) );
 						}
 						addnodes.clear();
 						tx.success();
@@ -218,7 +218,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 			for(int i=0;i<addnodes.size();i++){
 				Node tnode = graphDb.createNode();
 				tnode.setProperty("name", addnodes.get(i));
-				nodeIndex.add( tnode, "name", addnodes.get(i) );
+				taxNodeIndex.add( tnode, "name", addnodes.get(i) );
 			}
 			addnodes.clear();
 			tx.success();
@@ -274,7 +274,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 				Node bestitem = null;
 				ArrayList<String> bestpath = null;
 				ArrayList<Node> bestpathitems= null;
-				IndexHits<Node> hits = nodeIndex.get("name", strname);
+				IndexHits<Node> hits = taxNodeIndex.get("name", strname);
 				ArrayList<String> path2 = null;
 				ArrayList<Node> path2items = null;
 				boolean first = true;
@@ -326,7 +326,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 							System.out.println("="+bestpath.get(i)+" "+strparentname);
 					}
 					if(matchnodeparent == null){
-						IndexHits<Node> hits2 = nodeIndex.get("name", strparentname);
+						IndexHits<Node> hits2 = taxNodeIndex.get("name", strparentname);
 						try{
 							for(Node node2 : hits2){
 								matchnodeparent = node2;
