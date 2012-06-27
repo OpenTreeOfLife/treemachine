@@ -65,6 +65,22 @@ public class MainRunner {
 		gi.shutdownDB();
 	}
 	
+	public void graphExplorerParser(String [] args){
+		GraphExplorer gi = null;
+		if(args[0].compareTo("jsgol") == 0){
+			String name = args[1];
+			String graphname = args[2];
+			gi = new GraphExplorer(graphname);
+			System.out.println("constructing a json for: "+ name);
+			gi.constructJSONGraph(name);
+		}else{
+			System.err.println("ERROR: not a known command");
+			gi.shutdownDB();
+			printHelp();
+		}
+		gi.shutdownDB();
+	}
+	
 	public static void printHelp(){
 		System.out.println("==========================");
 		System.out.println("usage: treemachine command options");
@@ -81,6 +97,7 @@ public class MainRunner {
 		System.out.println("---graphoflife---");
 		System.out.println("\tinittree <graphdbfolder> (currently defaulting to NCBI branches)");
 		System.out.println("\taddtree <filename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.exit(0);
 	}
 	/**
@@ -105,6 +122,8 @@ public class MainRunner {
 				mr.taxonomyQueryParser(args);
 			}else if(args[0].compareTo("inittree") == 0 || args[0].compareTo("addtree")==0){
 				mr.graphImporterParser(args);
+			}else if(args[0].compareTo("jsgol") == 0){
+				mr.graphExplorerParser(args);
 			}
 		}
 	}
