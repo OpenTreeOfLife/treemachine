@@ -157,6 +157,7 @@ public class GraphImporter extends GraphBase{
 		}
 		if(cur_tran_iter % transaction_iter == 0){
 			tx.success();
+			tx.finish();
 			tx = graphDb.beginTx();
 			System.out.println(cur_tran_iter);
 		}
