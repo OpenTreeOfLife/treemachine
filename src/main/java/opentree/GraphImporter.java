@@ -26,8 +26,10 @@ import org.neo4j.kernel.Traversal;
 import scala.actors.threadpool.Arrays;
 
 public class GraphImporter extends GraphBase{
-	
+	private int transaction_iter = 100000;
+	private int cur_tran_iter = 0;
 	private JadeTree jt;
+	Transaction tx;
 	private RelationshipExpander expander;
 	
 	public GraphImporter(String graphname){
@@ -62,7 +64,7 @@ public class GraphImporter extends GraphBase{
 	 */
 	public void initializeGraphDB(){
 		assert jt != null;
-		Transaction	tx = graphDb.beginTx();
+		tx = graphDb.beginTx();
 		try{
 			postOrderInitializeNode(jt.getRoot(),tx);
 			tx.success();
@@ -109,26 +111,27 @@ public class GraphImporter extends GraphBase{
 	 * and therefore the graph is initialized, in this case, with the ncbi relationships
 	 */
 	public void initializeGraphDBfromNCBI(){
-		Transaction tx = graphDb.beginTx();
+		tx = graphDb.beginTx();
 		//start from the node called root
 		try{
 			//root should be the ncbi startnode
-			Node startnode = (taxNodeIndex.get("name", "Magnoliophyta")).next();
-			postOrderInitializeNodefromNCBI(startnode,tx);
+			Node startnode = (taxNodeIndex.get("name", "root")).next();
+			postOrderInitializeNodefromNCBI(startnode);
 			tx.success();
 		}finally{
 			tx.finish();
 		}
 	}
 	
-	private void postOrderInitializeNodefromNCBI(Node inode, Transaction tx){
+	private void postOrderInitializeNodefromNCBI(Node inode){
 		int ncount= 0;
 		for(Relationship rel: inode.getRelationships(Direction.INCOMING, RelTypes.TAXCHILDOF)){
 			if (((String)rel.getProperty("source")).compareTo("ncbi_no_env_samples.txt") == 0){
 				ncount += 1;
-				postOrderInitializeNodefromNCBI(rel.getStartNode(),tx);
+				postOrderInitializeNodefromNCBI(rel.getStartNode());
 			}
 		}
+		cur_tran_iter += 1;
 		//if leaf, just make the new graph node and the called relationship
 		Node newnode = graphDb.createNode();
 		newnode.createRelationshipTo(inode, RelTypes.ISCALLED);
@@ -149,8 +152,14 @@ public class GraphImporter extends GraphBase{
 			}
 			newNodeAddMRCAArray(newnode);
 		}
-		if (ncount > 1000)
+		if (ncount > 1000){
 			System.out.println(inode.getProperty("name")+" "+ncount);
+		}
+		if(cur_tran_iter % transaction_iter == 0){
+			tx.success();
+			tx = graphDb.beginTx();
+			System.out.println(cur_tran_iter);
+		}
 	}
 	
 	private void newNodeAddMRCAArray(Node dbnode){
