@@ -217,9 +217,9 @@ public class GraphImporter extends GraphBase{
 				hit_nodes.add( hits.getSingle());
 				hits.close();
 				ndids.add(hit_nodes.get(j).getId());
-				System.out.print(nds.get(j).getName()+" ");
+//				System.out.print(nds.get(j).getName()+" ");
 			}
-			System.out.println();
+//			System.out.println();
 			inode.assocObject("ndids", ndids);
 			expander = Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING);
 			Node ancestor = AncestorUtil.lowestCommonAncestor( hit_nodes, expander);
@@ -227,7 +227,7 @@ public class GraphImporter extends GraphBase{
 			if(testIsMRCA(ancestor,root,inode)){
 				inode.assocObject("dbnode", ancestor);
 			}else{
-				System.out.println("need to make a new node");
+//				System.out.println("need to make a new node");
 				//make a node
 				//steps
 				//1. create a node
@@ -250,9 +250,9 @@ public class GraphImporter extends GraphBase{
 				        ret[i] = tal.get(i).longValue();
 				    }
 					dbnode.setProperty("mrca", ret);
-					for(int i=0;i<inode.getChildCount();i++){
-						Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
-					}
+//					for(int i=0;i<inode.getChildCount();i++){
+//						Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
+//					}
 					tx.success();
 				}finally{
 					tx.finish();
@@ -264,6 +264,15 @@ public class GraphImporter extends GraphBase{
 				for(int i=0;i<inode.getChildCount();i++){
 					Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.STREECHILDOF);
 					rel.setProperty("source", "TESTING");
+					boolean there = false;
+					for(Relationship trel: ((Node)inode.getChild(i).getObject("dbnode")).getRelationships(Direction.OUTGOING,RelTypes.MRCACHILDOF)){
+						if (trel.getOtherNode((Node)inode.getChild(i).getObject("dbnode")).getId() == ((Node)inode.getObject("dbnode")).getId()){
+							there = true;
+						}
+					}
+					if(there == false){
+						Relationship rel2 = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
+					}
 				}
 				tx.success();
 			}finally{
@@ -283,9 +292,9 @@ public class GraphImporter extends GraphBase{
 		ArrayList<Long> rootids = new ArrayList<Long>((ArrayList<Long>) root.getObject("ndids"));
 		@SuppressWarnings("unchecked")
 		ArrayList<Long> inodeids =(ArrayList<Long>) inode.getObject("ndids");
-		System.out.println(rootids.size());
+//		System.out.println(rootids.size());
 		rootids.removeAll(inodeids);
-		System.out.println(rootids.size());
+//		System.out.println(rootids.size());
 		for(int i=0;i<dbnodei.length;i++){
 			if (rootids.contains(dbnodei[i]))
 				ret = false;

@@ -36,7 +36,7 @@ public class GraphExplorer extends GraphBase{
 		}
 		//System.out.println(firstNode.getProperty("name"));
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-		        .relationships( RelTypes.STREECHILDOF,Direction.INCOMING );
+		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
 		HashMap<Node,Integer> nodenumbers = new HashMap<Node,Integer>();
 		HashMap<Integer,Node> numbernodes = new HashMap<Integer,Node>();
 		int count = 0;
@@ -65,7 +65,7 @@ public class GraphExplorer extends GraphBase{
 			outFile.write("],\"links\":[");
 			String outs = "";
 			for(Node tnode: nodenumbers.keySet()){
-				Iterable<Relationship> it = tnode.getRelationships(RelTypes.STREECHILDOF,Direction.OUTGOING);
+				Iterable<Relationship> it = tnode.getRelationships(RelTypes.MRCACHILDOF,Direction.OUTGOING);
 				for(Relationship trel : it){
 					if(nodenumbers.get(trel.getStartNode())!= null && nodenumbers.get(trel.getEndNode())!=null){
 						outs+="{\"source\":"+nodenumbers.get(trel.getStartNode())+"";
