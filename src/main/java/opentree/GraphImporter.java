@@ -43,7 +43,7 @@ public class GraphImporter extends GraphBase{
 	 * This currently reads a tree from a file but this will need to be changed to 
 	 * another form later
 	 */
-	public void preProcessTree(String filename){
+	public void preProcessTree(String filename,String sourcename){
 		//read the tree from a file
 		TreeReader tr = new TreeReader();
 		String ts = "";
@@ -54,6 +54,7 @@ public class GraphImporter extends GraphBase{
 		}catch(IOException ioe){}
 		tr.setTree(ts);
 		jt = tr.readTree();
+		jt.assocObject("sourcename", sourcename);
 		System.out.println("tree read");
 		//System.exit(0);
 	}
@@ -193,19 +194,20 @@ public class GraphImporter extends GraphBase{
 		ArrayList<Long> ndids = new ArrayList<Long>();
 		for (int j=0;j<nds.size();j++){
 			IndexHits<Node> hits = graphNodeIndex.get("name", nds.get(j).getName().replace("_"," "));
+			System.out.println(nds.get(j).getName());
 			ndids.add(hits.getSingle().getId());
 			hits.close();
 		}
 		jt.getRoot().assocObject("ndids", ndids);
-		postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot());
+		postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),jt);
 		//generate the relationships between the stored nodes
 		
 		//store the mrcas for the new nodes that don't have mrcas
 	}
 	
-	private void postOrderaddProcessedTreeToGraph(JadeNode inode,JadeNode root){
+	private void postOrderaddProcessedTreeToGraph(JadeNode inode,JadeNode root, JadeTree intree){
 		for(int i=0;i<inode.getChildCount();i++){
-			postOrderaddProcessedTreeToGraph(inode.getChild(i),root);
+			postOrderaddProcessedTreeToGraph(inode.getChild(i),root,intree);
 		}
 		if(inode.getChildCount()>0){
 			ArrayList<JadeNode> nds = inode.getTips();
@@ -263,7 +265,7 @@ public class GraphImporter extends GraphBase{
 			try{
 				for(int i=0;i<inode.getChildCount();i++){
 					Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.STREECHILDOF);
-					rel.setProperty("source", "TESTING");
+					rel.setProperty("source", (String)intree.getObject("sourcename"));
 					boolean there = false;
 					for(Relationship trel: ((Node)inode.getChild(i).getObject("dbnode")).getRelationships(Direction.OUTGOING,RelTypes.MRCACHILDOF)){
 						if (trel.getOtherNode((Node)inode.getChild(i).getObject("dbnode")).getId() == ((Node)inode.getObject("dbnode")).getId()){

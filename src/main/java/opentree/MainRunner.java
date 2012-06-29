@@ -2,15 +2,20 @@ package opentree;
 
 public class MainRunner {
 	public void taxonomyLoadParser(String [] args){
+		if(args.length != 4){
+			System.out.println("arguments should be: filename sourcename graphdbfolder");
+			return;
+		}
 		String filename = args[1];
-		String graphname = args[2] ;
+		String sourcename = args[2];
+		String graphname = args[3] ;
 		TaxonomyLoader tl = new TaxonomyLoader(graphname);
 		if (args[0].compareTo("inittax") == 0){
 			System.out.println("initializing taxonomy from "+filename+" to "+graphname);
-			tl.addInitialTaxonomyTableIntoGraph(filename);
+			tl.addInitialTaxonomyTableIntoGraph(filename, sourcename);
 		}else if(args[0].compareTo("addtax") == 0){
 			System.out.println("adding taxonomy from "+filename+" to "+graphname);
-			tl.addAdditionalTaxonomyTableIntoGraph(filename);
+			tl.addAdditionalTaxonomyTableIntoGraph(filename,sourcename);
 		}else{
 			System.err.println("ERROR: not a known command");
 			tl.shutdownDB();
@@ -20,6 +25,10 @@ public class MainRunner {
 	}
 	
 	public void taxonomyQueryParser(String [] args){
+		if(args.length!=3){
+			System.out.println("arguments should be: query graphdbfolder");
+			return;
+		}
 		String query = args[1];
 		String graphname = args[2];
 		TaxonomyExplorer te =  new TaxonomyExplorer(graphname);
@@ -46,11 +55,16 @@ public class MainRunner {
 	public void graphImporterParser(String [] args){
 		GraphImporter gi = null;
 		if(args[0].compareTo("addtree") == 0){
+			if(args.length != 4){
+				System.out.println("arguments should be: filename sourcename graphdbfolder");
+				return;
+			}
 			String filename = args[1];
-			String graphname = args[2];
+			String sourcename = args[2];
+			String graphname = args[3];
 			gi = new GraphImporter(graphname);
 			System.out.println("adding a tree to the graph: "+ filename);
-			gi.preProcessTree(filename);
+			gi.preProcessTree(filename,sourcename);
 			gi.addProcessedTreeToGraph();
 		}else if(args[0].compareTo("inittree")==0){
 			System.out.println("initializing the database with NCBI tax");
@@ -66,6 +80,10 @@ public class MainRunner {
 	}
 	
 	public void graphExplorerParser(String [] args){
+		if(args.length != 3){
+			System.out.println("arguments should be: name graphdbfolder");
+			return;
+		}
 		GraphExplorer gi = null;
 		if(args[0].compareTo("jsgol") == 0){
 			String name = args[1];
@@ -87,8 +105,9 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("commands");
 		System.out.println("---taxonomy---");
-		System.out.println("\tinittax <filename> <graphdbfolder> (initializes the tax graph with a tax list)");
-		System.out.println("\taddtax <filename> <graphdbfolder> (adds a tax list into the tax graph)");
+		System.out.println("\tinittax <filename> <sourcename> <graphdbfolder> (initializes the tax graph with a tax list)");
+		System.out.println("\taddtax <filename> <sourcename> <graphdbfolder> (adds a tax list into the tax graph)");
+		System.out.println("\tupdatetax <filename> <sourcename> <graphdbfolder> (updates a specific source taxonomy)");
 		System.out.println("---taxquery---");
 		System.out.println("\tcomptaxtree <name> <graphdbfolder> (construct a comprehensive tax newick)");
 		System.out.println("\tfindcycles <name> <graphdbfolder> (find cycles in tax graph)");
@@ -96,8 +115,9 @@ public class MainRunner {
 		System.out.println("\tchecktree <filename> <graphdbfolder> (checks names in tree against tax graph)");
 		System.out.println("---graphoflife---");
 		System.out.println("\tinittree <graphdbfolder> (currently defaulting to NCBI branches)");
-		System.out.println("\taddtree <filename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddtree <filename> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
+		System.out.println("\tfulltree <name> <preferred sources> <graphdbfolder> (constructs a newick file from a particular node)");
 		System.exit(0);
 	}
 	/**
@@ -122,7 +142,7 @@ public class MainRunner {
 				mr.taxonomyQueryParser(args);
 			}else if(args[0].compareTo("inittree") == 0 || args[0].compareTo("addtree")==0){
 				mr.graphImporterParser(args);
-			}else if(args[0].compareTo("jsgol") == 0){
+			}else if(args[0].compareTo("jsgol") == 0 || args[0].compareTo("fulltree") == 0){
 				mr.graphExplorerParser(args);
 			}
 		}

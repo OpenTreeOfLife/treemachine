@@ -36,9 +36,8 @@ public class TaxonomyLoader extends TaxonomyBase{
 		return ret;
 	}
 	
-	public void addInitialTaxonomyTableIntoGraph(String filename){
+	public void addInitialTaxonomyTableIntoGraph(String filename, String sourcename){
     	String str = "";
-    	String shortfilename = filename.split("/")[filename.split("/").length-1];
     	int count = 0;
     	HashMap<String, Node> dbnodes = new HashMap<String, Node>();
     	HashMap<String, String> parents = new HashMap<String, String>();
@@ -114,7 +113,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 						for (int i=0;i<temppar.size();i++){
 							try {
 								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
-								rel.setProperty("source", shortfilename);
+								rel.setProperty("source", sourcename);
 								rel.setProperty("childid",temppar.get(i));
 								rel.setProperty("parentid",parents.get(temppar.get(i)));
 							}catch(java.lang.IllegalArgumentException io){
@@ -134,7 +133,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 				for (int i=0;i<temppar.size();i++){
 					try {
 						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
-						rel.setProperty("source", shortfilename);
+						rel.setProperty("source", sourcename);
 						rel.setProperty("childid",temppar.get(i));
 						rel.setProperty("parentid",parents.get(temppar.get(i)));
 					}catch(java.lang.IllegalArgumentException io){
@@ -167,9 +166,8 @@ public class TaxonomyLoader extends TaxonomyBase{
 		return ret;
 	}
 	
-	public void addAdditionalTaxonomyTableIntoGraph(String filename){
+	public void addAdditionalTaxonomyTableIntoGraph(String filename,String sourcename){
 		String str = "";
-		String shortfilename = filename.split("/")[filename.split("/").length-1];
     	int count = 0;
     	HashMap<String, String> ndnames = new HashMap<String, String>();
     	HashMap<String, String> parents = new HashMap<String, String>();
@@ -347,7 +345,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 					try{
 						for(int i=0;i<rel_nd.size();i++){
 							Relationship rel = rel_nd.get(i).createRelationshipTo(rel_pnd.get(i), RelTypes.TAXCHILDOF);
-							rel.setProperty("source", shortfilename);
+							rel.setProperty("source", sourcename);
 							rel.setProperty("childid", rel_cid.get(i));
 							rel.setProperty("parentid", rel_pid.get(i));
 						}
@@ -366,7 +364,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 			try{
 				for(int i=0;i<rel_nd.size();i++){
 					Relationship rel = rel_nd.get(i).createRelationshipTo(rel_pnd.get(i), RelTypes.TAXCHILDOF);
-					rel.setProperty("source", shortfilename);
+					rel.setProperty("source", sourcename);
 					rel.setProperty("childid", rel_cid.get(i));
 					rel.setProperty("parentid", rel_pid.get(i));
 				}
@@ -384,9 +382,9 @@ public class TaxonomyLoader extends TaxonomyBase{
 	
 	public void runittest(String filename,String filename2){
 		System.out.println("adding initial taxonomy");
-		addInitialTaxonomyTableIntoGraph(filename);
+		addInitialTaxonomyTableIntoGraph(filename,"test");
 		System.out.println("adding additional taxonomies");
-		addAdditionalTaxonomyTableIntoGraph(filename2);
+		addAdditionalTaxonomyTableIntoGraph(filename2,"test");
 		shutdownDB();
 	}
 	

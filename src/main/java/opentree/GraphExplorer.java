@@ -84,4 +84,20 @@ public class GraphExplorer extends GraphBase{
 			e.printStackTrace();
 		}
 	}
+	
+	/*
+	 * given a taxonomic name, construct a newick string, breaking ties based on a source name
+	 * this is just one example of one type of synthesis
+	 */
+	public void constructNewickSourceTieBreaker(String taxname, String sourcename){
+		IndexHits<Node> hits = graphNodeIndex.get("name",taxname);
+		Node firstNode = hits.getSingle();
+		hits.close();
+		if(firstNode == null){
+			System.out.println("name not found");
+			return;
+		}
+		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+		
+	}
 }
