@@ -80,17 +80,28 @@ public class MainRunner {
 	}
 	
 	public void graphExplorerParser(String [] args){
-		if(args.length != 3){
-			System.out.println("arguments should be: name graphdbfolder");
-			return;
-		}
 		GraphExplorer gi = null;
 		if(args[0].compareTo("jsgol") == 0){
+			if(args.length != 3){
+				System.out.println("arguments should be: name graphdbfolder");
+				return;
+			}
 			String name = args[1];
 			String graphname = args[2];
 			gi = new GraphExplorer(graphname);
 			System.out.println("constructing a json for: "+ name);
 			gi.constructJSONGraph(name);
+		}else if (args[0].compareTo("fulltree") == 0){
+			if(args.length != 4){
+				System.out.println("arguments should be: name preferredsource graphdbfolder");
+				return;
+			}
+			String name = args[1];
+			String sourcename = args[2];
+			String graphname = args[3];
+			gi = new GraphExplorer(graphname);
+			System.out.println("constructing a full tree for: "+name+" with cycles resolved by "+sourcename);
+			gi.constructNewickSourceTieBreaker(name, sourcename);
 		}else{
 			System.err.println("ERROR: not a known command");
 			gi.shutdownDB();

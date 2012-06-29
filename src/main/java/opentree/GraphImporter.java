@@ -20,6 +20,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipExpander;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 
@@ -110,57 +111,99 @@ public class GraphImporter extends GraphBase{
 	/*
 	 * assumes the structure of the graphdb where the taxonomy is stored alongside the graph of life
 	 * and therefore the graph is initialized, in this case, with the ncbi relationships
+	 * 
+	 * for a more general implementation, could just go through and work on the preferred nodes
 	 */
 	public void initializeGraphDBfromNCBI(){
 		tx = graphDb.beginTx();
 		//start from the node called root
+		Node graphstart = null;
 		try{
 			//root should be the ncbi startnode
 			Node startnode = (taxNodeIndex.get("name", "root")).next();
-			postOrderInitializeNodefromNCBI(startnode);
+			graphstart = graphDb.createNode();
+			graphstart.createRelationshipTo(startnode, RelTypes.ISCALLED);
+			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
+			        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
+			for(Node friendnode: CHILDOF_TRAVERSAL.traverse(startnode).nodes()){
+				boolean good = false;
+				Node taxparent = null;
+				for (Relationship rel: friendnode.getRelationships(RelTypes.TAXCHILDOF,Direction.OUTGOING)){
+					if (((String)rel.getProperty("source")).compareTo("ncbi") == 0){
+						taxparent = rel.getEndNode();
+						good = true;
+						break;
+					}
+				}
+				if (good == true){
+					int ncount = 0;
+					for (Relationship rel: friendnode.getRelationships(RelTypes.TAXCHILDOF,Direction.INCOMING)){
+						if (((String)rel.getProperty("source")).compareTo("ncbi") == 0){
+							ncount += 1;//just need one to see if it is a tip
+							break;
+						}
+					}
+					Node newnode = graphDb.createNode();
+					newnode.createRelationshipTo(friendnode, RelTypes.ISCALLED);
+					graphNodeIndex.add(newnode, "name", friendnode.getProperty("name"));
+					if(ncount == 0){//leaf
+						long [] tmrcas = {newnode.getId()};
+						newnode.setProperty("mrca", tmrcas);			
+					}
+					if(startnode != friendnode){//not the root
+						Node graphparent = taxparent.getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode();
+						Relationship trel = newnode.createRelationshipTo(graphparent, RelTypes.MRCACHILDOF);
+						Relationship trel2 = newnode.createRelationshipTo(graphparent, RelTypes.STREECHILDOF);
+						trel2.setProperty("source", "ncbi");
+						sourceRelIndex.add(trel2, "source", "ncbi");
+					}
+					cur_tran_iter += 1;
+					if(cur_tran_iter % transaction_iter == 0){
+//						tx.success();
+//						tx.finish();
+//						tx = graphDb.beginTx();
+						System.out.println("cur transaction: "+cur_tran_iter);
+					}
+				}
+			}
+			tx.success();
+		}finally{
+			tx.finish();
+		}
+		//start the mrcas
+		System.out.println("calculating mrcas");
+		try{
+			tx = graphDb.beginTx();
+			postordernewNodeAddMRCAArray(graphstart);
 			tx.success();
 		}finally{
 			tx.finish();
 		}
 	}
 	
-	private void postOrderInitializeNodefromNCBI(Node inode){
-		int ncount= 0;
-		for(Relationship rel: inode.getRelationships(Direction.INCOMING, RelTypes.TAXCHILDOF)){
-			if (((String)rel.getProperty("source")).compareTo("ncbi_no_env_samples.txt") == 0){
-				ncount += 1;
-				postOrderInitializeNodefromNCBI(rel.getStartNode());
-			}
+	private void postordernewNodeAddMRCAArray(Node dbnode){
+		//traversal incoming and record all the names
+		for(Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)){
+			Node tnode = rel.getStartNode();
+			postordernewNodeAddMRCAArray(tnode);
 		}
-		cur_tran_iter += 1;
-		//if leaf, just make the new graph node and the called relationship
-		Node newnode = graphDb.createNode();
-		newnode.createRelationshipTo(inode, RelTypes.ISCALLED);
-		graphNodeIndex.add(newnode, "name", inode.getProperty("name"));
-		if(ncount == 0){//leaf
-			long [] tmrcas = {newnode.getId()};
-			newnode.setProperty("mrca", tmrcas);
-		}else{//internal
-			for (Relationship rel: inode.getRelationships(Direction.INCOMING, RelTypes.TAXCHILDOF)){
-				if (((String)rel.getProperty("source")).compareTo("ncbi_no_env_samples.txt") == 0){
-					//get the node related to is called
-					Node tnode = rel.getStartNode().getRelationships(Direction.INCOMING,RelTypes.ISCALLED).iterator().next().getStartNode();
-					Relationship trel = tnode.createRelationshipTo(newnode, RelTypes.MRCACHILDOF);
-					Relationship trel2 = tnode.createRelationshipTo(newnode, RelTypes.STREECHILDOF);
-					trel2.setProperty("source", "ncbi");
-					sourceRelIndex.add(trel2, "source", "ncbi");
+		ArrayList<Long> mrcas = new ArrayList<Long> ();
+		if(dbnode.hasProperty("mrca")==false){
+			System.out.println(dbnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+			for(Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)){
+				Node tnode = rel.getStartNode();
+				long[] tmrcas = (long[])tnode.getProperty("mrca");
+				for(int j=0;j<tmrcas.length;j++){
+					if (mrcas.contains(tmrcas[j])==false){
+						mrcas.add(tmrcas[j]);
+					}
 				}
 			}
-			newNodeAddMRCAArray(newnode);
-		}
-		if (ncount > 1000){
-			System.out.println(inode.getProperty("name")+" "+ncount);
-		}
-		if(cur_tran_iter % transaction_iter == 0){
-			tx.success();
-			tx.finish();
-			tx = graphDb.beginTx();
-			System.out.println(cur_tran_iter);
+			long[] ret = new long[mrcas.size()];
+			for (int i=0; i < ret.length; i++){
+				ret[i] = mrcas.get(i).longValue();
+			}
+			dbnode.setProperty("mrca", ret);
 		}
 	}
 	

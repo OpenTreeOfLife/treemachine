@@ -1,8 +1,12 @@
 package opentree;
 
+import jade.tree.JadeNode;
+import jade.tree.JadeTree;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.swing.text.html.HTMLDocument.Iterator;
@@ -97,7 +101,71 @@ public class GraphExplorer extends GraphBase{
 			System.out.println("name not found");
 			return;
 		}
+		JadeNode root = null;
 		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
+		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
+		ArrayList<JadeNode> treenodes = new ArrayList<JadeNode>();
+		HashMap<Node,JadeNode> treemap = new HashMap<Node,JadeNode>();
+		HashMap<JadeNode,Node> parentnodes = new HashMap<JadeNode,Node>();
+		for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
+			int count = 0;
+			boolean conflict = false;
+			Node endNode = null;
+			for(Relationship rel : friendnode.getRelationships(Direction.OUTGOING)){
+				if (endNode == null)
+					endNode = rel.getEndNode();
+				if (rel.getEndNode().getId() != endNode.getId()){
+					conflict = true;
+				}
+				count += 1;
+			}
+			if (count > 1 && conflict){
+				boolean good = false;
+				Node pnode = null;
+				for(Relationship rel: friendnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
+					System.out.println(((String)rel.getProperty("source")));
+					if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
+						good = true;
+						pnode = rel.getEndNode();
+					}
+				}
+				if (good == true){
+					JadeNode newnode = new JadeNode();
+					if(friendnode.hasRelationship(RelTypes.ISCALLED))
+						newnode.setName((String)friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+					treenodes.add(newnode);
+					treemap.put(friendnode, newnode);
+					if(firstNode != friendnode){
+						parentnodes.put(newnode,pnode);
+					}else{
+						root = newnode;
+					}
+				}
+			}else{
+				JadeNode newnode = new JadeNode();
+				if(friendnode.hasRelationship(RelTypes.ISCALLED))
+					newnode.setName((String)friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+				treenodes.add(newnode);
+				treemap.put(friendnode,newnode);
+				if(firstNode != friendnode){
+					parentnodes.put(newnode,friendnode.getSingleRelationship(RelTypes.MRCACHILDOF, Direction.OUTGOING).getEndNode());
+				}else{
+					root = newnode;
+				}
+			}
+		}
+		
+		JadeTree tree = new JadeTree(root);
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter(taxname+".tre"));
+			outFile.write(tree.getRoot().getNewick(false));
+			outFile.write(";\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 	}
 }
