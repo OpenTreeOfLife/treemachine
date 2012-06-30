@@ -108,11 +108,13 @@ public class GraphExplorer extends GraphBase{
 		ArrayList<JadeNode> treenodes = new ArrayList<JadeNode>();
 		HashMap<Node,JadeNode> treemap = new HashMap<Node,JadeNode>();
 		HashMap<JadeNode,Node> parentnodes = new HashMap<JadeNode,Node>();
+		int tcount = 0;
 		for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
+			tcount += 1;
 			int count = 0;
 			boolean conflict = false;
 			Node endNode = null;
-			for(Relationship rel : friendnode.getRelationships(Direction.OUTGOING)){
+			for(Relationship rel : friendnode.getRelationships(Direction.OUTGOING,RelTypes.MRCACHILDOF)){
 				if (endNode == null)
 					endNode = rel.getEndNode();
 				if (rel.getEndNode().getId() != endNode.getId()){
@@ -120,14 +122,22 @@ public class GraphExplorer extends GraphBase{
 				}
 				count += 1;
 			}
+			if(conflict == true)
+				System.out.println("conflict");
 			if (count > 1 && conflict){
+				System.out.println(" in conflict");
 				boolean good = false;
 				Node pnode = null;
 				for(Relationship rel: friendnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
-					System.out.println(((String)rel.getProperty("source")));
+					if(rel.getStartNode().getId() == rel.getEndNode().getId())
+						continue;
+					if (friendnode.hasRelationship(RelTypes.ISCALLED, Direction.OUTGOING)){
+						System.out.println(friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+					}
 					if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
 						good = true;
 						pnode = rel.getEndNode();
+						System.out.println(good);
 					}
 				}
 				if (good == true){
@@ -153,6 +163,17 @@ public class GraphExplorer extends GraphBase{
 				}else{
 					root = newnode;
 				}
+			}
+		}
+		System.out.println("traversed "+tcount+" nodes");
+		System.out.println(treenodes.size());
+		System.out.println(treemap.size());
+		System.out.println(parentnodes.size());
+		for(JadeNode tnode: parentnodes.keySet()){
+			tnode.setName(tnode.getName().replace("(", "_").replace(")", "_").replace(",", "_"));
+			treemap.get(parentnodes.get(tnode)).addChild(tnode);
+			if(tnode.getName()=="Lonicera"){
+				System.out.println("LONICERA");
 			}
 		}
 		

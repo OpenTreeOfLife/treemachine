@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import opentree.TaxonomyBase.RelTypes;
 
@@ -44,7 +45,7 @@ public class GraphImporter extends GraphBase{
 	 * This currently reads a tree from a file but this will need to be changed to 
 	 * another form later
 	 */
-	public void preProcessTree(String filename,String sourcename){
+	public void preProcessTree(String filename){
 		//read the tree from a file
 		TreeReader tr = new TreeReader();
 		String ts = "";
@@ -55,7 +56,6 @@ public class GraphImporter extends GraphBase{
 		}catch(IOException ioe){}
 		tr.setTree(ts);
 		jt = tr.readTree();
-		jt.assocObject("sourcename", sourcename);
 		System.out.println("tree read");
 		//System.exit(0);
 	}
@@ -181,6 +181,9 @@ public class GraphImporter extends GraphBase{
 		}
 	}
 	
+	/*
+	 * for initial taxonomy to tree processing
+	 */
 	private void postordernewNodeAddMRCAArray(Node dbnode){
 		//traversal incoming and record all the names
 		for(Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)){
@@ -194,9 +197,10 @@ public class GraphImporter extends GraphBase{
 				Node tnode = rel.getStartNode();
 				long[] tmrcas = (long[])tnode.getProperty("mrca");
 				for(int j=0;j<tmrcas.length;j++){
-					if (mrcas.contains(tmrcas[j])==false){
+					//can take this out as long as this is really the first addition and this is a tree structure going in
+//					if (mrcas.contains(tmrcas[j])==false){
 						mrcas.add(tmrcas[j]);
-					}
+//					}
 				}
 			}
 			long[] ret = new long[mrcas.size()];
@@ -231,37 +235,73 @@ public class GraphImporter extends GraphBase{
 	/*
 	 * this should be done as a preorder traversal
 	 */
-	public void addProcessedTreeToGraph(){
+	public void addProcessedTreeToGraph(String focalgroup,String sourcename){
+		IndexHits<Node> hits2 = taxNodeIndex.get("name", focalgroup);
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
+		Node focalnode = hits2.getSingle();
+		hits2.close();
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 		//store at the root all the nd ids for the matches
 		ArrayList<Long> ndids = new ArrayList<Long>();
+		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
 		for (int j=0;j<nds.size();j++){
-			IndexHits<Node> hits = graphNodeIndex.get("name", nds.get(j).getName().replace("_"," "));
-			System.out.println(nds.get(j).getName());
-			ndids.add(hits.getSingle().getId());
+			//find all the tip taxa and with doubles pick the taxon closest to the focal group
+			Node hitnode = null;
+			IndexHits<Node> hits = taxNodeIndex.get("name", nds.get(j).getName().replace("_"," "));
+			int numh = hits.size();
+			if(numh == 0){
+				System.err.println("the taxon "+nds.get(j).getName().replace("_", " ")+" is not found");
+			}
+			if (numh == 1){
+				hitnode = (hits.getSingle().getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode());
+			}else if (numh > 1){
+				System.out.println(nds.get(j).getName().replace("_"," ")+" gets "+numh+" hits");
+				int shortest = 1000;//this is shortest to the focal, could reverse this
+				Node shortn = null;
+				for(Node tnode : hits){
+					Path tpath = pf.findSinglePath(tnode, focalnode);
+					if (tpath!= null){
+						if (shortn == null)
+							shortn = tnode;
+						if(tpath.length()<shortest){
+							shortest = tpath.length();
+							shortn = tnode;
+						}
+					}else{
+						System.out.println("one taxon is not within "+focalgroup);
+					}
+				}
+				hitnode = shortn.getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode();
+			}
 			hits.close();
+			ndids.add(hitnode.getId());
+			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
 		jt.getRoot().assocObject("ndids", ndids);
-		postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),jt);
+		jt.getRoot().assocObject("hashnodeids",hashnodeids);
+		postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),sourcename);
 		//generate the relationships between the stored nodes
 		
 		//store the mrcas for the new nodes that don't have mrcas
 	}
 	
-	private void postOrderaddProcessedTreeToGraph(JadeNode inode,JadeNode root, JadeTree intree){
+	private void postOrderaddProcessedTreeToGraph(JadeNode inode,JadeNode root, String sourcename){
 		for(int i=0;i<inode.getChildCount();i++){
-			postOrderaddProcessedTreeToGraph(inode.getChild(i),root,intree);
+			postOrderaddProcessedTreeToGraph(inode.getChild(i),root,sourcename);
 		}
 		if(inode.getChildCount()>0){
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			//store the hits for each of the nodes in the tips
 			ArrayList<Long> ndids = new ArrayList<Long>();
+			@SuppressWarnings("unchecked")
+			HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
 			for (int j=0;j<nds.size();j++){
-				IndexHits<Node> hits = graphNodeIndex.get("name", nds.get(j).getName().replace("_"," "));
-				hit_nodes.add( hits.getSingle());
-				hits.close();
-				ndids.add(hit_nodes.get(j).getId());
+//				IndexHits<Node> hits = graphNodeIndex.get("name", nds.get(j).getName().replace("_"," "));
+//				hit_nodes.add( hits.getSingle());
+//				hits.close();
+				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
+				ndids.add(roothash.get(nds.get(j)));
 //				System.out.print(nds.get(j).getName()+" ");
 			}
 //			System.out.println();
@@ -308,7 +348,7 @@ public class GraphImporter extends GraphBase{
 			try{
 				for(int i=0;i<inode.getChildCount();i++){
 					Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.STREECHILDOF);
-					rel.setProperty("source", (String)intree.getObject("sourcename"));
+					rel.setProperty("source", sourcename);
 					boolean there = false;
 					for(Relationship trel: ((Node)inode.getChild(i).getObject("dbnode")).getRelationships(Direction.OUTGOING,RelTypes.MRCACHILDOF)){
 						if (trel.getOtherNode((Node)inode.getChild(i).getObject("dbnode")).getId() == ((Node)inode.getObject("dbnode")).getId()){
@@ -324,9 +364,9 @@ public class GraphImporter extends GraphBase{
 				tx.finish();
 			}
 		}else{
-			IndexHits<Node> hits = graphNodeIndex.get("name", inode.getName().replace("_"," "));
-			inode.assocObject("dbnode",hits.getSingle());
-			hits.close();
+			@SuppressWarnings("unchecked")
+			HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
+			inode.assocObject("dbnode",graphDb.getNodeById(roothash.get(inode)));
 		}
 	}
 	

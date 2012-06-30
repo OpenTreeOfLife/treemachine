@@ -13,11 +13,14 @@ import jade.tree.JadeTree;
 import jade.tree.TreeReader;
 import opentree.TaxonomyBase.RelTypes;
 
+import org.neo4j.graphalgo.GraphAlgoFactory;
+import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipExpander;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.index.Index;
@@ -176,7 +179,11 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		shutdownDB();
 	}
 	
-	public void checkNamesInTree(String treefilename){
+	public void checkNamesInTree(String treefilename,String focalgroup){
+		IndexHits<Node> hits2 = taxNodeIndex.get("name", focalgroup);
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 100);
+		Node focalnode = hits2.getSingle();
+		hits2.close();
 		TreeReader tr = new TreeReader();
 		String ts = "";
 		try{
@@ -192,11 +199,19 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		for(int i=0;i<jt.getExternalNodeCount();i++){
 			IndexHits<Node> hits = taxNodeIndex.get("name", jt.getExternalNode(i).getName().replace("_"," "));
 			int numh = hits.size();
-			hits.close();
 			if (numh == 0)
 				System.out.println(jt.getExternalNode(i).getName()+" gets no hits");
-			if (numh > 1)
+			if (numh > 1){
 				System.out.println(jt.getExternalNode(i).getName()+" gets "+numh+" hits");
+				for(Node tnode : hits){
+					Path tpath = pf.findSinglePath(tnode, focalnode);
+					if (tpath!= null)
+						System.out.println("path length: " +tpath.length());
+					else 
+						System.out.println("null path");
+				}
+			}
+			hits.close();
 		}
 	}
 	
