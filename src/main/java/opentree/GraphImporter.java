@@ -32,7 +32,6 @@ public class GraphImporter extends GraphBase{
 	private int cur_tran_iter = 0;
 	private JadeTree jt;
 	Transaction tx;
-	private RelationshipExpander expander;
 	
 	public GraphImporter(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
