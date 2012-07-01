@@ -32,6 +32,7 @@ public class GraphImporter extends GraphBase{
 	private int cur_tran_iter = 0;
 	private JadeTree jt;
 	Transaction tx;
+	private RelationshipExpander expander;
 	
 	public GraphImporter(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
@@ -57,54 +58,6 @@ public class GraphImporter extends GraphBase{
 		jt = tr.readTree();
 		System.out.println("tree read");
 		//System.exit(0);
-	}
-	
-	/*
-	 * @deprecated
-	 * assumes that the tree has been read by the preProcessTree
-	 */
-	public void initializeGraphDB(){
-		assert jt != null;
-		tx = graphDb.beginTx();
-		try{
-			postOrderInitializeNode(jt.getRoot(),tx);
-			tx.success();
-		}finally{
-			tx.finish();
-		}
-	}
-	
-	/*
-	 * @deprecated
-	 * initializes a graph from a tree
-	 */
-	private void postOrderInitializeNode(JadeNode inode,Transaction tx){
-		for(int i=0;i<inode.getChildCount();i++){
-			postOrderInitializeNode(inode.getChild(i),tx);
-		}
-		//initialize the nodes
-		//is a tip record the name, otherwise , don't record the name [could do a label]
-		Node dbnode = graphDb.createNode();
-		if (inode.getName().length()>0){
-			dbnode.setProperty("name", inode.getName());
-			graphNodeIndex.add( dbnode, "name", inode.getName() );
-		}
-		inode.assocObject("dbnode", dbnode);
-		if(inode.getChildCount()>0){
-			for(int i=0;i<inode.getChildCount();i++){
-				Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
-			}
-			newNodeAddMRCAArray(dbnode);
-		}else{
-			ArrayList<Long> mrcas = new ArrayList<Long>();
-			mrcas.add(dbnode.getId());
-			long[] ret = new long[mrcas.size()];
-		    for (int i=0; i < ret.length; i++)
-		    {
-		        ret[i] = mrcas.get(i).longValue();
-		    }
-			dbnode.setProperty("mrca",ret);
-		}
 	}
 	
 	/*
@@ -158,9 +111,9 @@ public class GraphImporter extends GraphBase{
 					}
 					cur_tran_iter += 1;
 					if(cur_tran_iter % transaction_iter == 0){
-//						tx.success();
-//						tx.finish();
-//						tx = graphDb.beginTx();
+						tx.success();
+						tx.finish();
+						tx = graphDb.beginTx();
 						System.out.println("cur transaction: "+cur_tran_iter);
 					}
 				}
@@ -208,27 +161,6 @@ public class GraphImporter extends GraphBase{
 			}
 			dbnode.setProperty("mrca", ret);
 		}
-	}
-	
-	private void newNodeAddMRCAArray(Node dbnode){
-		//traversal incoming and record all the names
-		ArrayList<Long> mrcas = new ArrayList<Long> ();
-		for(Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)){
-			Node tnode = rel.getStartNode();
-			if(tnode.hasProperty("mrca")){//need to add what to do if it doesn't have it which just means walking
-				long[] tmrcas = (long[])tnode.getProperty("mrca");
-				for(int j=0;j<tmrcas.length;j++){
-					if (mrcas.contains(tmrcas[j])==false){
-						mrcas.add(tmrcas[j]);
-					}
-				}
-			}
-		}
-		long[] ret = new long[mrcas.size()];
-	    for (int i=0; i < ret.length; i++){
-	        ret[i] = mrcas.get(i).longValue();
-	    }
-		dbnode.setProperty("mrca", ret);
 	}
 	
 	/*
@@ -279,9 +211,6 @@ public class GraphImporter extends GraphBase{
 		jt.getRoot().assocObject("ndids", ndids);
 		jt.getRoot().assocObject("hashnodeids",hashnodeids);
 		postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),sourcename);
-		//generate the relationships between the stored nodes
-		
-		//store the mrcas for the new nodes that don't have mrcas
 	}
 	
 	private void postOrderaddProcessedTreeToGraph(JadeNode inode,JadeNode root, String sourcename){
@@ -392,6 +321,78 @@ public class GraphImporter extends GraphBase{
 	public static void main(String[] args) {
 		System.out.println("Something!");
 		
+	}
+	
+	/*
+	 * @deprecated
+	 * assumes that the tree has been read by the preProcessTree
+	 */
+	public void initializeGraphDB(){
+		assert jt != null;
+		tx = graphDb.beginTx();
+		try{
+			postOrderInitializeNode(jt.getRoot(),tx);
+			tx.success();
+		}finally{
+			tx.finish();
+		}
+	}
+	
+	/*
+	 * @deprecated
+	 * initializes a graph from a tree
+	 */
+	private void postOrderInitializeNode(JadeNode inode,Transaction tx){
+		for(int i=0;i<inode.getChildCount();i++){
+			postOrderInitializeNode(inode.getChild(i),tx);
+		}
+		//initialize the nodes
+		//is a tip record the name, otherwise , don't record the name [could do a label]
+		Node dbnode = graphDb.createNode();
+		if (inode.getName().length()>0){
+			dbnode.setProperty("name", inode.getName());
+			graphNodeIndex.add( dbnode, "name", inode.getName() );
+		}
+		inode.assocObject("dbnode", dbnode);
+		if(inode.getChildCount()>0){
+			for(int i=0;i<inode.getChildCount();i++){
+				Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
+			}
+			newNodeAddMRCAArray(dbnode);
+		}else{
+			ArrayList<Long> mrcas = new ArrayList<Long>();
+			mrcas.add(dbnode.getId());
+			long[] ret = new long[mrcas.size()];
+		    for (int i=0; i < ret.length; i++)
+		    {
+		        ret[i] = mrcas.get(i).longValue();
+		    }
+			dbnode.setProperty("mrca",ret);
+		}
+	}
+	
+	/*
+	 * @deprecated 
+	 */
+	private void newNodeAddMRCAArray(Node dbnode){
+		//traversal incoming and record all the names
+		ArrayList<Long> mrcas = new ArrayList<Long> ();
+		for(Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)){
+			Node tnode = rel.getStartNode();
+			if(tnode.hasProperty("mrca")){//need to add what to do if it doesn't have it which just means walking
+				long[] tmrcas = (long[])tnode.getProperty("mrca");
+				for(int j=0;j<tmrcas.length;j++){
+					if (mrcas.contains(tmrcas[j])==false){
+						mrcas.add(tmrcas[j]);
+					}
+				}
+			}
+		}
+		long[] ret = new long[mrcas.size()];
+	    for (int i=0; i < ret.length; i++){
+	        ret[i] = mrcas.get(i).longValue();
+	    }
+		dbnode.setProperty("mrca", ret);
 	}
 
 }
