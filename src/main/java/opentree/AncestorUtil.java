@@ -58,7 +58,6 @@ public class AncestorUtil {
         Iterator<Relationship> relIterator = expander.expand(node).iterator();
 
         while (relIterator.hasNext()) {
-
             Relationship rel = relIterator.next();
             node = rel.getOtherNode(node);       
 
@@ -77,7 +76,6 @@ public class AncestorUtil {
             RelationshipExpander expander) {
 
         while (currentNode != null) {
-
             for (int i = 0; i < commonAncestors.size(); i++) {
                 Node node = commonAncestors.get(i);
                 if (node.getId() == currentNode.getId()) {

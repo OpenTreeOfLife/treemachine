@@ -129,8 +129,10 @@ public class GraphExplorer extends GraphBase{
 				boolean good = false;
 				Node pnode = null;
 				for(Relationship rel: friendnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
-					if(rel.getStartNode().getId() == rel.getEndNode().getId())
+					if(rel.getStartNode().getId() == rel.getEndNode().getId()){
+						System.out.println("seems to be a problem with relationship pointing to itself");
 						continue;
+					}
 					if (friendnode.hasRelationship(RelTypes.ISCALLED, Direction.OUTGOING)){
 						System.out.println(friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 					}
@@ -138,6 +140,7 @@ public class GraphExplorer extends GraphBase{
 						good = true;
 						pnode = rel.getEndNode();
 						System.out.println(good);
+						continue;
 					}
 				}
 				if (good == true){
@@ -170,13 +173,13 @@ public class GraphExplorer extends GraphBase{
 		System.out.println(treemap.size());
 		System.out.println(parentnodes.size());
 		for(JadeNode tnode: parentnodes.keySet()){
-			tnode.setName(tnode.getName().replace("(", "_").replace(")", "_").replace(",", "_"));
-			treemap.get(parentnodes.get(tnode)).addChild(tnode);
-			if(tnode.getName()=="Lonicera"){
-				System.out.println("LONICERA");
+			try{
+				tnode.setName(tnode.getName().replace("(", "_").replace(")", "_").replace(",", "_"));
+				treemap.get(parentnodes.get(tnode)).addChild(tnode);
+			}catch(java.lang.Exception ex){
+				continue;
 			}
 		}
-		
 		JadeTree tree = new JadeTree(root);
 		PrintWriter outFile;
 		try {
