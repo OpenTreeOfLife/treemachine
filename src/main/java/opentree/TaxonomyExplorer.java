@@ -200,15 +200,11 @@ public class TaxonomyExplorer extends TaxonomyBase{
 			IndexHits<Node> hits = taxNodeIndex.get("name", jt.getExternalNode(i).getName().replace("_"," "));
 			int numh = hits.size();
 			if (numh == 0)
-				System.out.println(jt.getExternalNode(i).getName()+" gets no hits");
+				System.out.println(jt.getExternalNode(i).getName()+" gets NO hits");
 			if (numh > 1){
 				System.out.println(jt.getExternalNode(i).getName()+" gets "+numh+" hits");
 				for(Node tnode : hits){
 					Path tpath = pf.findSinglePath(tnode, focalnode);
-					if (tpath!= null)
-						System.out.println("path length: " +tpath.length());
-					else 
-						System.out.println("null path");
 				}
 			}
 			hits.close();

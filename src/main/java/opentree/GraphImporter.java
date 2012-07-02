@@ -291,7 +291,11 @@ public class GraphImporter extends GraphBase{
 						}
 						System.exit(0);
 					}
+					//METADATA ENTRY
 					rel.setProperty("source", sourcename);
+					if(inode.getChild(i).getBL() > 0.0){
+						rel.setProperty("branch_length", inode.getChild(i).getBL());
+					}
 					boolean there = false;
 					for(Relationship trel: ((Node)inode.getChild(i).getObject("dbnode")).getRelationships(Direction.OUTGOING,RelTypes.MRCACHILDOF)){
 						if (trel.getOtherNode((Node)inode.getChild(i).getObject("dbnode")).getId() == ((Node)inode.getObject("dbnode")).getId()){

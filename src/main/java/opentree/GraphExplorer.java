@@ -129,10 +129,8 @@ public class GraphExplorer extends GraphBase{
 						JadeNode newnode = new JadeNode();
 						if(curnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
 							newnode.setName((String)curnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-							newnode.setName(newnode.getName().replace("(", "_").replace(")","_"));
+							newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
 						}
-						nodejademap.put(curnode, newnode);
-						visited.add(curnode);
 						Relationship keep = null;
 						for(Relationship rel: curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
 							if(keep == null)
@@ -145,6 +143,11 @@ public class GraphExplorer extends GraphBase{
 								keep = rel;
 							}
 						}
+						if(keep.hasProperty("branch_length")){
+							newnode.setBL((Double)keep.getProperty("branch_length"));
+						}
+						nodejademap.put(curnode, newnode);
+						visited.add(curnode);
 						keepers.add(keep);
 						if(pf.findSinglePath(keep.getEndNode(), firstNode) != null){
 							curnode = keep.getEndNode();
@@ -162,7 +165,7 @@ public class GraphExplorer extends GraphBase{
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(taxname+".tre"));
-			outFile.write(tree.getRoot().getNewick(false));
+			outFile.write(tree.getRoot().getNewick(true));
 			outFile.write(";\n");
 			outFile.close();
 		} catch (IOException e) {
