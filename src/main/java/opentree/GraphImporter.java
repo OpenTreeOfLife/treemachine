@@ -199,7 +199,7 @@ public class GraphImporter extends GraphBase{
 							shortest = tpath.length();
 							shortn = tnode;
 						}
-						System.out.println(shortest+" "+tpath.length());
+//						System.out.println(shortest+" "+tpath.length());
 					}else{
 						System.out.println("one taxon is not within "+focalgroup);
 					}
@@ -216,11 +216,11 @@ public class GraphImporter extends GraphBase{
 	}
 	
 	private void postOrderaddProcessedTreeToGraph(JadeNode inode,JadeNode root, String sourcename){
-		System.out.println("adding node");
+//		System.out.println("adding node");
 		for(int i=0;i<inode.getChildCount();i++){
 			postOrderaddProcessedTreeToGraph(inode.getChild(i),root,sourcename);
 		}
-		System.out.println("children: "+inode.getChildCount());
+//		System.out.println("children: "+inode.getChildCount());
 		if(inode.getChildCount()>0){
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
@@ -234,18 +234,18 @@ public class GraphImporter extends GraphBase{
 //				hits.close();
 				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
 				ndids.add(roothash.get(nds.get(j)));
-				System.out.print(nds.get(j).getName()+" ");
+//				System.out.print(nds.get(j).getName()+" ");
 			}
-			System.out.println("finished names");
+//			System.out.println("finished names");
 			inode.assocObject("ndids", ndids);
 			expander = Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING);
 			Node ancestor = AncestorUtil.lowestCommonAncestor( hit_nodes, expander);
-			System.out.println("ancestor "+ancestor);
+//			System.out.println("ancestor "+ancestor);
 			//System.out.println(ancestor.getProperty("name"));
 			if(testIsMRCA(ancestor,root,inode)){
 				inode.assocObject("dbnode", ancestor);
 			}else{
-				System.out.println("need to make a new node");
+//				System.out.println("need to make a new node");
 				//make a node
 				//steps
 				//1. create a node
@@ -290,7 +290,6 @@ public class GraphImporter extends GraphBase{
 							}
 						}
 						System.exit(0);
-
 					}
 					rel.setProperty("source", sourcename);
 					boolean there = false;
@@ -307,7 +306,6 @@ public class GraphImporter extends GraphBase{
 								System.out.println(inode.getTips().get(j).getName());
 							}
 							System.exit(0);
-
 						}
 					}
 				}
@@ -336,7 +334,7 @@ public class GraphImporter extends GraphBase{
 			if (rootids.contains(dbnodei[i]))
 				ret = false;
 		}
-		System.out.println("testisMRCA "+ret);
+//		System.out.println("testisMRCA "+ret);
 		return ret;
 	}
 	

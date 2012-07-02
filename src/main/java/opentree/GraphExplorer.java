@@ -13,8 +13,11 @@ import javax.swing.text.html.HTMLDocument.Iterator;
 
 import opentree.GraphBase.RelTypes;
 
+import org.neo4j.graphalgo.GraphAlgoFactory;
+import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -95,90 +98,65 @@ public class GraphExplorer extends GraphBase{
 	 */
 	public void constructNewickSourceTieBreaker(String taxname, String sourcename){
 		IndexHits<Node> hits = graphNodeIndex.get("name",taxname);
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
 		Node firstNode = hits.getSingle();
 		hits.close();
 		if(firstNode == null){
 			System.out.println("name not found");
 			return;
 		}
-		JadeNode root = null;
+		JadeNode root = new JadeNode();
 		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
 		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
-		ArrayList<JadeNode> treenodes = new ArrayList<JadeNode>();
-		HashMap<Node,JadeNode> treemap = new HashMap<Node,JadeNode>();
-		HashMap<JadeNode,Node> parentnodes = new HashMap<JadeNode,Node>();
-		int tcount = 0;
+		ArrayList<Node> visited = new ArrayList<Node>();
+		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
+		HashMap<Node,JadeNode> nodejademap = new HashMap<Node,JadeNode>();
+		HashMap<JadeNode,Node> jadeparentmap = new HashMap<JadeNode,Node>();
+		visited.add(firstNode);
+		nodejademap.put(firstNode, root);
 		for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
-			tcount += 1;
-			int count = 0;
-			boolean conflict = false;
-			Node endNode = null;
-			for(Relationship rel : friendnode.getRelationships(Direction.OUTGOING,RelTypes.MRCACHILDOF)){
-				if (endNode == null)
-					endNode = rel.getEndNode();
-				if (rel.getEndNode().getId() != endNode.getId()){
-					conflict = true;
-				}
-				count += 1;
-			}
-			if(conflict == true)
-				System.out.println("conflict");
-			if (count > 1 && conflict){
-				System.out.println(" in conflict");
-				boolean good = false;
-				Node pnode = null;
-				for(Relationship rel: friendnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
-					if(rel.getStartNode().getId() == rel.getEndNode().getId()){
-						System.out.println("seems to be a problem with relationship pointing to itself");
-						continue;
-					}
-					if (friendnode.hasRelationship(RelTypes.ISCALLED, Direction.OUTGOING)){
-						System.out.println(friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-					}
-					if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
-						good = true;
-						pnode = rel.getEndNode();
-						System.out.println(good);
-						continue;
-					}
-				}
-				if (good == true){
-					JadeNode newnode = new JadeNode();
-					if(friendnode.hasRelationship(RelTypes.ISCALLED))
-						newnode.setName((String)friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-					treenodes.add(newnode);
-					treemap.put(friendnode, newnode);
-					if(firstNode != friendnode){
-						parentnodes.put(newnode,pnode);
+			//if it is a tip, move back, 
+			if(friendnode.hasRelationship(Direction.INCOMING, RelTypes.MRCACHILDOF))
+				continue;
+			else{
+				Node curnode = friendnode;
+				while(curnode.hasRelationship(Direction.OUTGOING, RelTypes.MRCACHILDOF)){
+					//if it is visited continue
+					if (visited.contains(curnode)){
+						break;
 					}else{
-						root = newnode;
+						JadeNode newnode = new JadeNode();
+						if(curnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
+							newnode.setName((String)curnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+							newnode.setName(newnode.getName().replace("(", "_").replace(")","_"));
+						}
+						nodejademap.put(curnode, newnode);
+						visited.add(curnode);
+						Relationship keep = null;
+						for(Relationship rel: curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
+							if(keep == null)
+								keep = rel;
+							if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
+								keep = rel;
+								break;
+							}
+							if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){
+								keep = rel;
+							}
+						}
+						keepers.add(keep);
+						if(pf.findSinglePath(keep.getEndNode(), firstNode) != null){
+							curnode = keep.getEndNode();
+							jadeparentmap.put(newnode, curnode);
+						}else
+							break;
 					}
-				}
-			}else{
-				JadeNode newnode = new JadeNode();
-				if(friendnode.hasRelationship(RelTypes.ISCALLED))
-					newnode.setName((String)friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-				treenodes.add(newnode);
-				treemap.put(friendnode,newnode);
-				if(firstNode != friendnode){
-					parentnodes.put(newnode,friendnode.getSingleRelationship(RelTypes.MRCACHILDOF, Direction.OUTGOING).getEndNode());
-				}else{
-					root = newnode;
 				}
 			}
 		}
-		System.out.println("traversed "+tcount+" nodes");
-		System.out.println(treenodes.size());
-		System.out.println(treemap.size());
-		System.out.println(parentnodes.size());
-		for(JadeNode tnode: parentnodes.keySet()){
-			try{
-				tnode.setName(tnode.getName().replace("(", "_").replace(")", "_").replace(",", "_"));
-				treemap.get(parentnodes.get(tnode)).addChild(tnode);
-			}catch(java.lang.Exception ex){
-				continue;
-			}
+		for(JadeNode jn:jadeparentmap.keySet()){
+			nodejademap.get(jadeparentmap.get(jn)).addChild(jn);
 		}
 		JadeTree tree = new JadeTree(root);
 		PrintWriter outFile;
