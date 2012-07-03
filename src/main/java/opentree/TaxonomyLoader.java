@@ -22,7 +22,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 	int transaction_iter = 100000;
 	int LARGE = 100000000;
 	final TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-	        .relationships( RelTypes.TAXCHILDOF,Direction.OUTGOING );
+			.relationships( RelTypes.TAXCHILDOF,Direction.OUTGOING );
 	
 	public TaxonomyLoader(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
@@ -36,12 +36,23 @@ public class TaxonomyLoader extends TaxonomyBase{
 		return ret;
 	}
 	
+	/**
+	 * Reads a taxonomy file with rows formatted as:
+	 *	taxon_id,parent_id,Name with spaces allowed\n
+	 * Creates the nodes and TAXCHILDOF relationship for a taxonomy tree
+	 * Node objects will get a "name" property.
+	 * The relationships will get "source", "childid", and "parentid" properties
+	 * Nodes are indexed in taxNamedNodes with their name as the value for a "name" key.
+	 * 
+	 * @param filename file path to the taxonomy file
+	 * @param sourcename this becomes the value of a "source" property in every relationship between the taxonomy nodes
+	 */
 	public void addInitialTaxonomyTableIntoGraph(String filename, String sourcename){
-    	String str = "";
-    	int count = 0;
-    	HashMap<String, Node> dbnodes = new HashMap<String, Node>();
-    	HashMap<String, String> parents = new HashMap<String, String>();
-    	Transaction tx;
+		String str = "";
+		int count = 0;
+		HashMap<String, Node> dbnodes = new HashMap<String, Node>();
+		HashMap<String, String> parents = new HashMap<String, String>();
+		Transaction tx;
 		ArrayList<String> templines = new ArrayList<String>();
 		try{
 			//create the root node
@@ -148,6 +159,18 @@ public class TaxonomyLoader extends TaxonomyBase{
 		}catch(IOException ioe){}
 	}
 	
+	/**
+	 * Returns a pair of integers that reflect the indices of element in the lists
+	 * 	that match (lowest index of an element in keylist, and its match in
+	 *	list1). 
+	 * 
+	 * @param keylist first array of strings to search
+	 * @param list1 second array of strings to search
+	 * @return pair of ints [i, j] where i is 1 + the index of the first 
+	 *		element in keylist that has a match in list1, and j is 1 + the
+	 *		lowest index for any element in list1 that matches the element in 
+	 *		keylist. Returns [LARGE, LARGE] if no matching strings are found.
+	 */
 	private ArrayList<Integer> stepsToMatch(ArrayList<String> keylist, ArrayList<String> list1){
 		int count1 = 0;
 		ArrayList<Integer> ret = new ArrayList<Integer>();
@@ -156,23 +179,43 @@ public class TaxonomyLoader extends TaxonomyBase{
 			int count2 = 0;
 			for (int j=0; j< list1.size();j++){
 				count2 += 1;
-			    if (list1.get(j).compareTo(keylist.get(i))==0){
-			    	ret.add(count1);ret.add(count2);
-			    	return ret;
-			    }
+				if (list1.get(j).compareTo(keylist.get(i))==0){
+					ret.add(count1);ret.add(count2);
+					return ret;
+				}
 			}
 		}
 		ret.add(LARGE);ret.add(LARGE);
 		return ret;
 	}
 	
+	/**
+	 * See addInitialTaxonomyTableIntoGraph 
+	 * This function acts like addInitialTaxonomyTableIntoGraph but it 
+	 *	can be called for a taxonomy that is not the first taxonomy in the graph
+	 * 
+	 * Rather than each line resulting in a new node, only names that have not
+	 *		 been encountered before will result in new node objects.
+	 *
+	 * To connect a subtree from the new taxonomy to the taxonomy tree the 
+	 *	taxNodeIndex of the existing graph is checked the new name. If multiple
+	 *	nodes have been assigned the name, then the one with the lowest score
+	 *	is assumed to be the closest match (the score is calculated by counting
+	 *	the number of nodes traversed in the path new->anc* + the number of 
+	 *	nodes in old->anc* where "anc*" denotes the lowest ancestor in
+	 *	the new taxon's ancestor path that has a match in the old graph (and
+	 *	the TAXCHILDOF is the relationship on the path).
+	 *	
+	 * @param filename file path to the taxonomy file
+	 * @param sourcename this becomes the value of a "source" property in every relationship between the taxonomy nodes
+	 */
 	public void addAdditionalTaxonomyTableIntoGraph(String filename,String sourcename){
 		String str = "";
-    	int count = 0;
-    	HashMap<String, String> ndnames = new HashMap<String, String>();
-    	HashMap<String, String> parents = new HashMap<String, String>();
-    	Transaction tx;
-    	ArrayList<String> addnodes = new ArrayList<String>();
+		int count = 0;
+		HashMap<String, String> ndnames = new HashMap<String, String>();
+		HashMap<String, String> parents = new HashMap<String, String>();
+		Transaction tx;
+		ArrayList<String> addnodes = new ArrayList<String>();
 		//first, need to get what nodes are new
 		try{
 			BufferedReader br = new BufferedReader(new FileReader(filename));
@@ -388,14 +431,14 @@ public class TaxonomyLoader extends TaxonomyBase{
 		shutdownDB();
 	}
 	
-    public static void main( String[] args ){
-        System.out.println( "unit testing taxonomy loader" );
-        String DB_PATH ="/home/smitty/Dropbox/projects/AVATOL/graphtests/neo4j-community-1.8.M02/data/graph.db";
-        TaxonomyLoader a = new TaxonomyLoader(DB_PATH);
-        //String filename = "/media/data/Dropbox/projects/AVATOL/graphtests/taxonomies/union4.txt";
-        String filename =  "/home/smitty/Dropbox/projects/AVATOL/graphtests/taxonomies/col_acc.txt";
-        String filename2 = "/home/smitty/Dropbox/projects/AVATOL/graphtests/taxonomies/ncbi_no_env_samples.txt";
-        a.runittest(filename,filename2);
-        System.exit(0);
-    }
+	public static void main( String[] args ){
+		System.out.println( "unit testing taxonomy loader" );
+		String DB_PATH ="/home/smitty/Dropbox/projects/AVATOL/graphtests/neo4j-community-1.8.M02/data/graph.db";
+		TaxonomyLoader a = new TaxonomyLoader(DB_PATH);
+		//String filename = "/media/data/Dropbox/projects/AVATOL/graphtests/taxonomies/union4.txt";
+		String filename =  "/home/smitty/Dropbox/projects/AVATOL/graphtests/taxonomies/col_acc.txt";
+		String filename2 = "/home/smitty/Dropbox/projects/AVATOL/graphtests/taxonomies/ncbi_no_env_samples.txt";
+		a.runittest(filename,filename2);
+		System.exit(0);
+	}
 }
