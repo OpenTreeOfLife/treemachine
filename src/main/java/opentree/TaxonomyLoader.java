@@ -36,6 +36,17 @@ public class TaxonomyLoader extends TaxonomyBase{
 		return ret;
 	}
 	
+	/**
+	 * Reads a taxonomy file with rows formatted as:
+	 *	taxon_id,parent_id,Name with spaces allowed\n
+	 * Creates the nodes and TAXCHILDOF relationship for a taxonomy tree
+	 * Node objects will get a "name" property.
+	 * The relationships will get "source", "childid", and "parentid" properties
+	 * Nodes are indexed in taxNamedNodes with their name as the value for a "name" key.
+	 * 
+	 * @param filename file path to the taxonomy file
+	 * @param sourcename this becomes the value of a "source" property in every relationship between the taxonomy nodes
+	 */
 	public void addInitialTaxonomyTableIntoGraph(String filename, String sourcename){
 		String str = "";
 		int count = 0;
@@ -148,6 +159,18 @@ public class TaxonomyLoader extends TaxonomyBase{
 		}catch(IOException ioe){}
 	}
 	
+	/**
+	 * Returns a pair of integers that reflect the indices of element in the lists
+	 * 	that match (lowest index of an element in keylist, and its match in
+	 *	list1). 
+	 * 
+	 * @param keylist first array of strings to search
+	 * @param list1 second array of strings to search
+	 * @return pair of ints [i, j] where i is 1 + the index of the first 
+	 *		element in keylist that has a match in list1, and j is 1 + the
+	 *		lowest index for any element in list1 that matches the element in 
+	 *		keylist. Returns [LARGE, LARGE] if no matching strings are found.
+	 */
 	private ArrayList<Integer> stepsToMatch(ArrayList<String> keylist, ArrayList<String> list1){
 		int count1 = 0;
 		ArrayList<Integer> ret = new ArrayList<Integer>();
@@ -166,6 +189,26 @@ public class TaxonomyLoader extends TaxonomyBase{
 		return ret;
 	}
 	
+	/**
+	 * See addInitialTaxonomyTableIntoGraph 
+	 * This function acts like addInitialTaxonomyTableIntoGraph but it 
+	 *	can be called for a taxonomy that is not the first taxonomy in the graph
+	 * 
+	 * Rather than each line resulting in a new node, only names that have not
+	 *		 been encountered before will result in new node objects.
+	 *
+	 * To connect a subtree from the new taxonomy to the taxonomy tree the 
+	 *	taxNodeIndex of the existing graph is checked the new name. If multiple
+	 *	nodes have been assigned the name, then the one with the lowest score
+	 *	is assumed to be the closest match (the score is calculated by counting
+	 *	the number of nodes traversed in the path new->anc* + the number of 
+	 *	nodes in old->anc* where "anc*" denotes the lowest ancestor in
+	 *	the new taxon's ancestor path that has a match in the old graph (and
+	 *	the TAXCHILDOF is the relationship on the path).
+	 *	
+	 * @param filename file path to the taxonomy file
+	 * @param sourcename this becomes the value of a "source" property in every relationship between the taxonomy nodes
+	 */
 	public void addAdditionalTaxonomyTableIntoGraph(String filename,String sourcename){
 		String str = "";
 		int count = 0;
