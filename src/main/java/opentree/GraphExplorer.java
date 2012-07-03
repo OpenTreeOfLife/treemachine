@@ -181,6 +181,8 @@ public class GraphExplorer extends GraphBase{
 	 * works like , "altparents": [{"name": "Adoxaceae",nodeid:"nodeid"}, {"name":"Caprifoliaceae",nodeid:"nodeid"}]
 	 */
 	public void constructJSONTreeWithAltParents(String taxname){
+		String sourcename = "ATOL_III_ML_CP"; 
+		sourcename = "dipsacales_matK";
 		IndexHits<Node> hits = graphNodeIndex.get("name",taxname);
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
 		Node firstNode = hits.getSingle();
@@ -191,6 +193,7 @@ public class GraphExplorer extends GraphBase{
 		}
 		JadeNode root = new JadeNode();
 		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+		root.setName((String)firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
 		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
 		ArrayList<Node> visited = new ArrayList<Node>();
@@ -220,10 +223,10 @@ public class GraphExplorer extends GraphBase{
 						for(Relationship rel: curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
 							if(keep == null)
 								keep = rel;
-//							if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
-//								keep = rel;
-//								break;
-//							}
+							if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
+								keep = rel;
+								break;
+							}
 							if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){
 								keep = rel;
 							}
@@ -232,8 +235,10 @@ public class GraphExplorer extends GraphBase{
 						ArrayList<Node> conflictnodes = new ArrayList<Node>();
 						for(Relationship rel:curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
 							if(rel.getEndNode().getId() != keep.getEndNode().getId() && conflictnodes.contains(rel.getEndNode())==false){
-								conflictnodes.add(rel.getEndNode());
-							}
+								//check for nested conflicts
+	//							if(pf.findSinglePath(keep.getEndNode(), rel.getEndNode())==null)
+									conflictnodes.add(rel.getEndNode());
+	//						}
 						}
 						newnode.assocObject("conflictnodes", conflictnodes);
 						nodejademap.put(curnode, newnode);
@@ -270,6 +275,7 @@ public class GraphExplorer extends GraphBase{
 			nodejademap.get(jadeparentmap.get(jn)).addChild(jn);
 		}
 		JadeTree tree = new JadeTree(root);
+		root.assocObject("nodedepth", root.getNodeMaxDepth());
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(taxname+".json"));

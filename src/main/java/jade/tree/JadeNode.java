@@ -171,7 +171,12 @@ public class JadeNode {
     		ret += ", \"size\": "+this.getBL();
     	if((this.getObject("jsonprint"))!=null)
     		ret += this.getObject("jsonprint");
-    	ret += ", \"n_children\": "+this.getTips().size();
+    	if(this.getObject("nodedepth")!=null)
+    		ret += ", \"maxnodedepth\": "+this.getObject("nodedepth");
+    	if(this.isInternal())
+    		ret += ", \"n_children\": "+this.getTips().size();
+    	else
+    		ret += ", \"n_children\": 0";
     	ret += "}";
     	return ret;
     }
@@ -189,6 +194,22 @@ public class JadeNode {
     			children.add(jt);
     	}
     	return children;
+    }
+    
+    public int getNodeMaxDepth(){
+    	int maxnodedepth=0;
+    	ArrayList<JadeNode> tips = this.getTips();
+    	for(int i = 0;i<tips.size();i++){
+    		JadeNode curnode = tips.get(i);
+    		int tnodedepth = 0;
+    		while(curnode != this){
+    			tnodedepth += 1;
+    			curnode = curnode.getParent();
+    		}
+    		if (tnodedepth > maxnodedepth)
+    			maxnodedepth = tnodedepth;
+    	}
+    	return maxnodedepth;
     }
     
     public JadeNode getParent(){return parent;}
