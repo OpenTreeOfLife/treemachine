@@ -171,6 +171,114 @@ public class GraphExplorer extends GraphBase{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+	}
+
+	/*
+	 * this constructs a json with tie breaking and puts the alt parents
+	 * in the assocOBjects for printing
+	 * 
+	 * need to be guided by some source in order to walk a particular tree
+	 * works like , "altparents": [{"name": "Adoxaceae",nodeid:"nodeid"}, {"name":"Caprifoliaceae",nodeid:"nodeid"}]
+	 */
+	public void constructJSONTreeWithAltParents(String taxname){
+		IndexHits<Node> hits = graphNodeIndex.get("name",taxname);
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
+		Node firstNode = hits.getSingle();
+		hits.close();
+		if(firstNode == null){
+			System.out.println("name not found");
+			return;
+		}
+		JadeNode root = new JadeNode();
+		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
+		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
+		ArrayList<Node> visited = new ArrayList<Node>();
+		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
+		HashMap<Node,JadeNode> nodejademap = new HashMap<Node,JadeNode>();
+		HashMap<JadeNode,Node> jadeparentmap = new HashMap<JadeNode,Node>();
+		visited.add(firstNode);
+		nodejademap.put(firstNode, root);
+		root.assocObject("nodeid", firstNode.getId());
+		for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
+			//if it is a tip, move back, 
+			if(friendnode.hasRelationship(Direction.INCOMING, RelTypes.MRCACHILDOF))
+				continue;
+			else{
+				Node curnode = friendnode;
+				while(curnode.hasRelationship(Direction.OUTGOING, RelTypes.MRCACHILDOF)){
+					//if it is visited continue
+					if (visited.contains(curnode)){
+						break;
+					}else{
+						JadeNode newnode = new JadeNode();
+						if(curnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
+							newnode.setName((String)curnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+							newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
+						}
+						Relationship keep = null;
+						for(Relationship rel: curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
+							if(keep == null)
+								keep = rel;
+//							if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
+//								keep = rel;
+//								break;
+//							}
+							if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){
+								keep = rel;
+							}
+						}
+						newnode.assocObject("nodeid", curnode.getId());
+						ArrayList<Node> conflictnodes = new ArrayList<Node>();
+						for(Relationship rel:curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
+							if(rel.getEndNode().getId() != keep.getEndNode().getId() && conflictnodes.contains(rel.getEndNode())==false){
+								conflictnodes.add(rel.getEndNode());
+							}
+						}
+						newnode.assocObject("conflictnodes", conflictnodes);
+						nodejademap.put(curnode, newnode);
+						visited.add(curnode);
+						keepers.add(keep);
+						if(pf.findSinglePath(keep.getEndNode(), firstNode) != null){
+							curnode = keep.getEndNode();
+							jadeparentmap.put(newnode, curnode);
+						}else
+							break;
+					}
+				}
+			}
+		}
+		for(JadeNode jn:jadeparentmap.keySet()){
+			if(jn.getObject("conflictnodes")!=null){
+				String confstr = "";
+				@SuppressWarnings("unchecked")
+				ArrayList<Node> cn = (ArrayList<Node>)jn.getObject("conflictnodes");
+				if(cn.size()>0){
+					confstr += ", \"altparents\": [";
+					for(int i=0;i<cn.size();i++){
+						String namestr = "";
+						if(cn.get(i).hasRelationship(RelTypes.ISCALLED))
+							namestr = (String) cn.get(i).getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
+						confstr += "{\"name\": \""+namestr+"\",\"nodeid\":\""+cn.get(i).getId()+"\"}";
+						if(i+1 != cn.size())
+							confstr += ",";
+					}
+					confstr += "]\n";
+					jn.assocObject("jsonprint", confstr);
+				}
+			}
+			nodejademap.get(jadeparentmap.get(jn)).addChild(jn);
+		}
+		JadeTree tree = new JadeTree(root);
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter(taxname+".json"));
+			outFile.write("[\n");
+			outFile.write(tree.getRoot().getJSON(false));
+			outFile.write("]\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
 	}
 }

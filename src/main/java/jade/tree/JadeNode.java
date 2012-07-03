@@ -156,6 +156,8 @@ public class JadeNode {
     		ret += " \"name\": \""+this.getName()+"\"";
     	else
     		ret += " \"name\": \"\"";
+    	if(this.getObject("nodeid")!=null)
+    		ret += "\n, \"nodeid\": \""+this.getObject("nodeid")+"\"";
     	for(int i=0;i<this.getChildCount();i++){
     		if(i==0)
     			ret += "\n, \"children\": [\n";
@@ -167,6 +169,9 @@ public class JadeNode {
     	}
     	if (bl == true)
     		ret += ", \"size\": "+this.getBL();
+    	if((this.getObject("jsonprint"))!=null)
+    		ret += this.getObject("jsonprint");
+    	ret += ", \"n_children\": "+this.getTips().size();
     	ret += "}";
     	return ret;
     }

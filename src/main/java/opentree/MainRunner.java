@@ -105,7 +105,8 @@ public class MainRunner {
 			String graphname = args[2];
 			gi = new GraphExplorer(graphname);
 			System.out.println("constructing a json for: "+ name);
-			gi.constructJSONGraph(name);
+//			gi.constructJSONGraph(name);
+			gi.constructJSONTreeWithAltParents(name);
 		}else if (args[0].compareTo("fulltree") == 0){
 			if(args.length != 4){
 				System.out.println("arguments should be: name preferredsource graphdbfolder");
