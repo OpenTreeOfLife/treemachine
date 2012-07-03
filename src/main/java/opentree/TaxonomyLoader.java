@@ -22,7 +22,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 	int transaction_iter = 100000;
 	int LARGE = 100000000;
 	final TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-	        .relationships( RelTypes.TAXCHILDOF,Direction.OUTGOING );
+			.relationships( RelTypes.TAXCHILDOF,Direction.OUTGOING );
 	
 	public TaxonomyLoader(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
@@ -37,11 +37,11 @@ public class TaxonomyLoader extends TaxonomyBase{
 	}
 	
 	public void addInitialTaxonomyTableIntoGraph(String filename, String sourcename){
-    	String str = "";
-    	int count = 0;
-    	HashMap<String, Node> dbnodes = new HashMap<String, Node>();
-    	HashMap<String, String> parents = new HashMap<String, String>();
-    	Transaction tx;
+		String str = "";
+		int count = 0;
+		HashMap<String, Node> dbnodes = new HashMap<String, Node>();
+		HashMap<String, String> parents = new HashMap<String, String>();
+		Transaction tx;
 		ArrayList<String> templines = new ArrayList<String>();
 		try{
 			//create the root node
@@ -156,10 +156,10 @@ public class TaxonomyLoader extends TaxonomyBase{
 			int count2 = 0;
 			for (int j=0; j< list1.size();j++){
 				count2 += 1;
-			    if (list1.get(j).compareTo(keylist.get(i))==0){
-			    	ret.add(count1);ret.add(count2);
-			    	return ret;
-			    }
+				if (list1.get(j).compareTo(keylist.get(i))==0){
+					ret.add(count1);ret.add(count2);
+					return ret;
+				}
 			}
 		}
 		ret.add(LARGE);ret.add(LARGE);
@@ -168,11 +168,11 @@ public class TaxonomyLoader extends TaxonomyBase{
 	
 	public void addAdditionalTaxonomyTableIntoGraph(String filename,String sourcename){
 		String str = "";
-    	int count = 0;
-    	HashMap<String, String> ndnames = new HashMap<String, String>();
-    	HashMap<String, String> parents = new HashMap<String, String>();
-    	Transaction tx;
-    	ArrayList<String> addnodes = new ArrayList<String>();
+		int count = 0;
+		HashMap<String, String> ndnames = new HashMap<String, String>();
+		HashMap<String, String> parents = new HashMap<String, String>();
+		Transaction tx;
+		ArrayList<String> addnodes = new ArrayList<String>();
 		//first, need to get what nodes are new
 		try{
 			BufferedReader br = new BufferedReader(new FileReader(filename));
@@ -388,14 +388,14 @@ public class TaxonomyLoader extends TaxonomyBase{
 		shutdownDB();
 	}
 	
-    public static void main( String[] args ){
-        System.out.println( "unit testing taxonomy loader" );
-        String DB_PATH ="/home/smitty/Dropbox/projects/AVATOL/graphtests/neo4j-community-1.8.M02/data/graph.db";
-        TaxonomyLoader a = new TaxonomyLoader(DB_PATH);
-        //String filename = "/media/data/Dropbox/projects/AVATOL/graphtests/taxonomies/union4.txt";
-        String filename =  "/home/smitty/Dropbox/projects/AVATOL/graphtests/taxonomies/col_acc.txt";
-        String filename2 = "/home/smitty/Dropbox/projects/AVATOL/graphtests/taxonomies/ncbi_no_env_samples.txt";
-        a.runittest(filename,filename2);
-        System.exit(0);
-    }
+	public static void main( String[] args ){
+		System.out.println( "unit testing taxonomy loader" );
+		String DB_PATH ="/home/smitty/Dropbox/projects/AVATOL/graphtests/neo4j-community-1.8.M02/data/graph.db";
+		TaxonomyLoader a = new TaxonomyLoader(DB_PATH);
+		//String filename = "/media/data/Dropbox/projects/AVATOL/graphtests/taxonomies/union4.txt";
+		String filename =  "/home/smitty/Dropbox/projects/AVATOL/graphtests/taxonomies/col_acc.txt";
+		String filename2 = "/home/smitty/Dropbox/projects/AVATOL/graphtests/taxonomies/ncbi_no_env_samples.txt";
+		a.runittest(filename,filename2);
+		System.exit(0);
+	}
 }
