@@ -238,7 +238,7 @@ public class GraphExplorer extends GraphBase{
 								//check for nested conflicts
 	//							if(pf.findSinglePath(keep.getEndNode(), rel.getEndNode())==null)
 									conflictnodes.add(rel.getEndNode());
-	//						}
+							}
 						}
 						newnode.assocObject("conflictnodes", conflictnodes);
 						nodejademap.put(curnode, newnode);
