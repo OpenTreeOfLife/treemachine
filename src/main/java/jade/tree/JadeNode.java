@@ -174,9 +174,9 @@ public class JadeNode {
     	if(this.getObject("nodedepth")!=null)
     		ret += ", \"maxnodedepth\": "+this.getObject("nodedepth");
     	if(this.isInternal())
-    		ret += ", \"n_children\": "+this.getTips().size();
+    		ret += ", \"nleaves\": "+this.getTips().size();
     	else
-    		ret += ", \"n_children\": 0";
+    		ret += ", \"nleaves\": 0";
     	ret += "}";
     	return ret;
     }
