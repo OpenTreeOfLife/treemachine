@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
+import opentree.GraphExplorer;
+
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
@@ -35,98 +37,33 @@ public class GetJsons extends ServerPlugin {
 	    ISCALLED // is called ,from node in graph of life to node in tax graph 
 	}
 	
-	@Description( "Find the nodes with the name given." )
+	@Description( "Return a JSON with alternative parents presented" )
 	@PluginTarget( Node.class )
     public String getConflictJson(@Source Node source){
-		String sourcename = "ATOL_III_ML_CP"; 
-//		sourcename = "dipsacales_matK";
-		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
 		Node firstNode = source;
-		JadeNode root = new JadeNode();
-		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-		root.setName((String)firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
-		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
-		ArrayList<Node> visited = new ArrayList<Node>();
-		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
-		HashMap<Node,JadeNode> nodejademap = new HashMap<Node,JadeNode>();
-		HashMap<JadeNode,Node> jadeparentmap = new HashMap<JadeNode,Node>();
-		visited.add(firstNode);
-		nodejademap.put(firstNode, root);
-		root.assocObject("nodeid", firstNode.getId());
-		for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(firstNode).nodes()){
-			//if it is a tip, move back, 
-			if(friendnode.hasRelationship(Direction.INCOMING, RelTypes.MRCACHILDOF))
-				continue;
-			else{
-				Node curnode = friendnode;
-				while(curnode.hasRelationship(Direction.OUTGOING, RelTypes.MRCACHILDOF)){
-					//if it is visited continue
-					if (visited.contains(curnode)){
-						break;
-					}else{
-						JadeNode newnode = new JadeNode();
-						if(curnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
-							newnode.setName((String)curnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-							newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
-						}
-						Relationship keep = null;
-						for(Relationship rel: curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
-							if(keep == null)
-								keep = rel;
-							if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
-								keep = rel;
-								break;
-							}
-							if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){
-								keep = rel;
-							}
-						}
-						newnode.assocObject("nodeid", curnode.getId());
-						ArrayList<Node> conflictnodes = new ArrayList<Node>();
-						for(Relationship rel:curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
-							if(rel.getEndNode().getId() != keep.getEndNode().getId() && conflictnodes.contains(rel.getEndNode())==false){
-								//check for nested conflicts
-	//							if(pf.findSinglePath(keep.getEndNode(), rel.getEndNode())==null)
-									conflictnodes.add(rel.getEndNode());
-							}
-						}
-						newnode.assocObject("conflictnodes", conflictnodes);
-						nodejademap.put(curnode, newnode);
-						visited.add(curnode);
-						keepers.add(keep);
-						if(pf.findSinglePath(keep.getEndNode(), firstNode) != null){
-							curnode = keep.getEndNode();
-							jadeparentmap.put(newnode, curnode);
-						}else
-							break;
-					}
-				}
-			}
+		GraphExplorer ge = new GraphExplorer();
+		return ge.constructJSONAltParents(firstNode);
+	}
+	
+	@Description ("Return a JSON with alternative TAXONOMIC relationships noted and returned")
+	@PluginTarget (Node.class)
+	public String getConflictTaxJsonAltRel(@Source Node source,
+			@Description( "The dominant source.")
+			@Parameter(name = "domsource", optional = true) String domsource,
+			@Description( "The list of alternative relationships to prefer." )
+			@Parameter( name = "altrels", optional = true ) Long[] altrels,
+			@Description( "A new relationship nub." )
+    		@Parameter( name = "nubrel", optional = true ) Long nubrel ){
+		String retst="";
+		GraphExplorer ge = new GraphExplorer();
+		if(nubrel != null){
+			Relationship rel = source.getGraphDatabase().getRelationshipById(nubrel);
+		}else{
+			ArrayList<Long> rels = new ArrayList<Long>();
+			if(altrels != null)
+				for (int i=0;i<altrels.length;i++){rels.add(altrels[i]);}
+			retst = ge.constructJSONAltRels(source,domsource,rels);
 		}
-		for(JadeNode jn:jadeparentmap.keySet()){
-			if(jn.getObject("conflictnodes")!=null){
-				String confstr = "";
-				@SuppressWarnings("unchecked")
-				ArrayList<Node> cn = (ArrayList<Node>)jn.getObject("conflictnodes");
-				if(cn.size()>0){
-					confstr += ", \"altparents\": [";
-					for(int i=0;i<cn.size();i++){
-						String namestr = "";
-						if(cn.get(i).hasRelationship(RelTypes.ISCALLED))
-							namestr = (String) cn.get(i).getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
-						confstr += "{\"name\": \""+namestr+"\",\"nodeid\":\""+cn.get(i).getId()+"\"}";
-						if(i+1 != cn.size())
-							confstr += ",";
-					}
-					confstr += "]\n";
-					jn.assocObject("jsonprint", confstr);
-				}
-			}
-			nodejademap.get(jadeparentmap.get(jn)).addChild(jn);
-		}
-		JadeTree tree = new JadeTree(root);
-		root.assocObject("nodedepth", root.getNodeMaxDepth());
-		return "["+tree.getRoot().getJSON(false)+"]";
+		return retst;
 	}
 }

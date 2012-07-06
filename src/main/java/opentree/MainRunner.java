@@ -103,10 +103,11 @@ public class MainRunner {
 			}
 			String name = args[1];
 			String graphname = args[2];
-			gi = new GraphExplorer(graphname);
+			gi = new GraphExplorer();
+			gi.setEmbeddedDB(graphname);
 			System.out.println("constructing a json for: "+ name);
 //			gi.constructJSONGraph(name);
-			gi.constructJSONTreeWithAltParents(name);
+			gi.writeJSONWithAltParentsToFile(name);
 		}else if (args[0].compareTo("fulltree") == 0){
 			if(args.length != 4){
 				System.out.println("arguments should be: name preferredsource graphdbfolder");
@@ -115,7 +116,8 @@ public class MainRunner {
 			String name = args[1];
 			String sourcename = args[2];
 			String graphname = args[3];
-			gi = new GraphExplorer(graphname);
+			gi = new GraphExplorer();
+			gi.setEmbeddedDB(graphname);
 			System.out.println("constructing a full tree for: "+name+" with cycles resolved by "+sourcename);
 			gi.constructNewickSourceTieBreaker(name, sourcename);
 		}else{

@@ -19,15 +19,22 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 
 public class GraphExplorer extends GraphBase{
-	public GraphExplorer (String graphname){
-		graphDb = new EmbeddedGraphDatabase( graphname );
+	public GraphExplorer (){
+
+	}
+	
+	public void setEmbeddedDB(String graphname){
+		graphDb = new EmbeddedGraphDatabase( graphname ) ;
 		graphNodeIndex = graphDb.index().forNodes("graphNamedNodes");
+		taxNodeIndex = graphDb.index().forNodes("taxNamedNodes");
 	}
 	
 	/*
@@ -180,17 +187,39 @@ public class GraphExplorer extends GraphBase{
 	 * need to be guided by some source in order to walk a particular tree
 	 * works like , "altparents": [{"name": "Adoxaceae",nodeid:"nodeid"}, {"name":"Caprifoliaceae",nodeid:"nodeid"}]
 	 */
-	public void constructJSONTreeWithAltParents(String taxname){
-		String sourcename = "ATOL_III_ML_CP"; 
-		sourcename = "dipsacales_matK";
-		IndexHits<Node> hits = graphNodeIndex.get("name",taxname);
-		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
+	
+	public void writeJSONWithAltParentsToFile(String taxname){
+//		IndexHits<Node> hits = graphNodeIndex.get("name",taxname);
+		IndexHits<Node> hits = taxNodeIndex.get("name",taxname);
 		Node firstNode = hits.getSingle();
 		hits.close();
 		if(firstNode == null){
 			System.out.println("name not found");
 			return;
 		}
+//		String tofile = constructJSONAltParents(firstNode);
+		ArrayList<Long>alt = new ArrayList<Long>();
+		String tofile = constructJSONAltRels(firstNode,null,alt);
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter(taxname+".json"));
+			outFile.write(tofile);
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/*
+	 * Used for creating a JSON string with a dominant tree, but with alternative 
+	 * parents noted.
+	 * For now the dominant source is hardcoded for testing. This needs to be an option
+	 * once we can list and choose sources
+	 */
+	public String constructJSONAltParents(Node firstNode){
+		String sourcename = "ATOL_III_ML_CP"; 
+//		sourcename = "dipsacales_matK";
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
 		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 		root.setName((String)firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
@@ -276,15 +305,181 @@ public class GraphExplorer extends GraphBase{
 		}
 		JadeTree tree = new JadeTree(root);
 		root.assocObject("nodedepth", root.getNodeMaxDepth());
-		PrintWriter outFile;
-		try {
-			outFile = new PrintWriter(new FileWriter(taxname+".json"));
-			outFile.write("[\n");
-			outFile.write(tree.getRoot().getJSON(false));
-			outFile.write("]\n");
-			outFile.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}	
+		String ret = "[\n";
+		ret += tree.getRoot().getJSON(false);
+		ret += "]\n";
+		return ret;
 	}
+	
+	/*
+	 * This is similar to the JSON alt parents but differs in that it takes
+	 * a dominant source string, and the alternative relationships in an
+	 * array.
+	 * 
+	 * Also this presents a max depth and doesn't show species unless the firstnode 
+	 * is the direct parent of a species
+	 * 
+	 * Limits the depth to 5
+	 * 
+	 * Goes back one parent
+	 * 
+	 * Should work with taxonomy or with the graph and determines this based on relationships
+	 * around the node
+	 */
+	public String constructJSONAltRels(Node firstNode, String domsource, ArrayList<Long> altrels){
+		int maxdepth = 4;
+		boolean taxonomy = true;
+		RelationshipType defaultchildtype = RelTypes.TAXCHILDOF;
+		RelationshipType defaultsourcetype = RelTypes.TAXCHILDOF;
+		String sourcename = "ncbi";
+		if(firstNode.hasRelationship(RelTypes.MRCACHILDOF)){
+			taxonomy = false;
+			defaultchildtype = RelTypes.MRCACHILDOF;
+			defaultsourcetype = RelTypes.STREECHILDOF;
+			sourcename = "ATOL_III_ML_CP";
+		}
+		if(domsource != null)
+			sourcename = domsource;
+		
+		//get the parent
+		for(Relationship rels : firstNode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
+			if(((String)rels.getProperty("source")).compareTo(sourcename) == 0)
+				firstNode = rels.getEndNode();
+		}
+		
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(defaultchildtype, Direction.OUTGOING), 100);
+		JadeNode root = new JadeNode();
+		if(taxonomy == false)
+			root.setName((String)firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+		else
+			root.setName((String)firstNode.getProperty("name"));
+		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
+		        .relationships( defaultchildtype,Direction.INCOMING );
+		ArrayList<Node> visited = new ArrayList<Node>();
+		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
+		HashMap<Node,JadeNode> nodejademap = new HashMap<Node,JadeNode>();
+		HashMap<JadeNode,Node> jadeparentmap = new HashMap<JadeNode,Node>();
+		visited.add(firstNode);
+		nodejademap.put(firstNode, root);
+		root.assocObject("nodeid", firstNode.getId());
+		//These are the altrels that actually made it in the tree
+		ArrayList<Long> returnrels = new ArrayList<Long>();
+		//TODO:
+		//need to set this up better, so that you end on tips and just traverse those
+		for(Node friendnode : CHILDOF_TRAVERSAL.evaluator(Evaluators.toDepth(maxdepth)).traverse(firstNode).nodes()){
+			//if it is a tip, move back, 
+			if(friendnode.hasRelationship(Direction.INCOMING, defaultchildtype))
+				continue;
+			else{
+				Node curnode = friendnode;
+				while(curnode.hasRelationship(Direction.OUTGOING, defaultchildtype)){
+					//if it is visited continue
+					if (visited.contains(curnode)){
+						break;
+					}else{
+						//don't draw tips
+						//is not tip
+						JadeNode newnode = new JadeNode();
+						if(taxonomy == false){
+							if(curnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
+								newnode.setName((String)curnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+								newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
+							}
+						}else{
+							newnode.setName(((String)curnode.getProperty("name")).replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
+						}
+
+						Relationship keep = null;
+						Relationship spreferred = null;
+						Relationship preferred = null;
+						for(Relationship rel: curnode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
+							if(preferred == null)
+								preferred = rel;
+							if(altrels.contains(rel.getId())){
+								keep = rel;
+								returnrels.add(rel.getId());
+								break;
+							}else{
+								if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
+									spreferred = rel;
+								}
+								if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){
+									preferred = rel;
+								}
+							}
+						}
+						if(keep == null){
+							keep = spreferred;//prefer the source rel after an alt
+							if(keep == null){
+								keep = preferred;//fall back on anything
+							}
+						}
+						//try to skip all the tips
+						if(curnode.hasRelationship(Direction.INCOMING, defaultsourcetype)==false){
+							visited.add(curnode);
+							curnode = keep.getEndNode();
+							for(Relationship trel: curnode.getRelationships(Direction.INCOMING, defaultsourcetype)){
+								if(trel.getStartNode().hasRelationship(Direction.INCOMING, defaultsourcetype)==false)
+									visited.add(trel.getStartNode());
+							}
+							continue;
+						}
+
+						newnode.assocObject("nodeid", curnode.getId());
+
+						ArrayList<Node> conflictnodes = new ArrayList<Node>();
+						for(Relationship rel:curnode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
+							if(rel.getEndNode().getId() != keep.getEndNode().getId() && conflictnodes.contains(rel.getEndNode())==false){
+								//check for nested conflicts
+								//							if(pf.findSinglePath(keep.getEndNode(), rel.getEndNode())==null)
+								conflictnodes.add(rel.getEndNode());
+							}
+						}
+						newnode.assocObject("conflictnodes", conflictnodes);
+						nodejademap.put(curnode, newnode);
+						keepers.add(keep);
+
+						visited.add(curnode);
+						if(pf.findSinglePath(keep.getEndNode(), firstNode) != null){
+							curnode = keep.getEndNode();
+							jadeparentmap.put(newnode, curnode);
+						}else
+							break;
+					}
+				}
+			}
+		}
+		for(JadeNode jn:jadeparentmap.keySet()){
+			if(jn.getObject("conflictnodes")!=null){
+				String confstr = "";
+				@SuppressWarnings("unchecked")
+				ArrayList<Node> cn = (ArrayList<Node>)jn.getObject("conflictnodes");
+				if(cn.size()>0){
+					confstr += ", \"altparents\": [";
+					for(int i=0;i<cn.size();i++){
+						String namestr = "";
+						if(taxonomy == false){
+							if(cn.get(i).hasRelationship(RelTypes.ISCALLED))
+								namestr = (String) cn.get(i).getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
+						}else{
+							namestr = (String)cn.get(i).getProperty("name");
+						}
+						confstr += "{\"name\": \""+namestr+"\",\"nodeid\":\""+cn.get(i).getId()+"\"}";
+						if(i+1 != cn.size())
+							confstr += ",";
+					}
+					confstr += "]\n";
+					jn.assocObject("jsonprint", confstr);
+				}
+			}
+			nodejademap.get(jadeparentmap.get(jn)).addChild(jn);
+		}
+		JadeTree tree = new JadeTree(root);
+		root.assocObject("nodedepth", root.getNodeMaxDepth());
+		String ret = "[\n";
+		ret += tree.getRoot().getJSON(false);
+		ret += "]\n";
+		return ret;
+	}
+	
 }
