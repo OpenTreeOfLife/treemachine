@@ -13,7 +13,11 @@ Once Maven v. 2 is installed, you can
 
 then 
 	
-	mvn clean compile assembly:single
+	sh mvn_cmdline.sh
+	
+To compile and package what is necessary for the server plugins
+
+	sh mvn_serverplugins.sh
 
 Usage
 --------------
