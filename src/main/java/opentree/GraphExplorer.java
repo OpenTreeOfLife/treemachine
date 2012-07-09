@@ -27,8 +27,13 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 
 public class GraphExplorer extends GraphBase{
+	private SpeciesEvaluator se;
+	private ChildNumberEvaluator cne;
+	
 	public GraphExplorer (){
-
+		cne = new ChildNumberEvaluator();
+		cne.setChildThreshold(100);
+		se = new SpeciesEvaluator();
 	}
 	
 	public void setEmbeddedDB(String graphname){
@@ -327,7 +332,7 @@ public class GraphExplorer extends GraphBase{
 	 * around the node
 	 */
 	public String constructJSONAltRels(Node firstNode, String domsource, ArrayList<Long> altrels){
-		int maxdepth = 4;
+		int maxdepth = 3;
 		boolean taxonomy = true;
 		RelationshipType defaultchildtype = RelTypes.TAXCHILDOF;
 		RelationshipType defaultsourcetype = RelTypes.TAXCHILDOF;
@@ -340,13 +345,7 @@ public class GraphExplorer extends GraphBase{
 		}
 		if(domsource != null)
 			sourcename = domsource;
-		
-		//get the parent
-		for(Relationship rels : firstNode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
-			if(((String)rels.getProperty("source")).compareTo(sourcename) == 0)
-				firstNode = rels.getEndNode();
-		}
-		
+
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(defaultchildtype, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
 		if(taxonomy == false)
@@ -359,123 +358,132 @@ public class GraphExplorer extends GraphBase{
 		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
 		HashMap<Node,JadeNode> nodejademap = new HashMap<Node,JadeNode>();
 		HashMap<JadeNode,Node> jadeparentmap = new HashMap<JadeNode,Node>();
-		visited.add(firstNode);
 		nodejademap.put(firstNode, root);
 		root.assocObject("nodeid", firstNode.getId());
 		//These are the altrels that actually made it in the tree
 		ArrayList<Long> returnrels = new ArrayList<Long>();
-		//TODO:
-		//need to set this up better, so that you end on tips and just traverse those
-		for(Node friendnode : CHILDOF_TRAVERSAL.evaluator(Evaluators.toDepth(maxdepth)).traverse(firstNode).nodes()){
-			//if it is a tip, move back, 
-			if(friendnode.hasRelationship(Direction.INCOMING, defaultchildtype))
+		for(Node friendnode : CHILDOF_TRAVERSAL.depthFirst().evaluator(Evaluators.toDepth(maxdepth)).evaluator(cne).evaluator(se).traverse(firstNode).nodes()){
+//			System.out.println("visiting: "+friendnode.getProperty("name"));
+			if (friendnode == firstNode)
 				continue;
-			else{
-				Node curnode = friendnode;
-				while(curnode.hasRelationship(Direction.OUTGOING, defaultchildtype)){
-					//if it is visited continue
-					if (visited.contains(curnode)){
+			Relationship keep = null;
+			Relationship spreferred = null;
+			Relationship preferred = null;
+			
+			for(Relationship rel: friendnode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
+				if(preferred == null)
+					preferred = rel;
+				if(altrels.contains(rel.getId())){
+					keep = rel;
+					returnrels.add(rel.getId());
+					break;
+				}else{
+					if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
+						spreferred = rel;
 						break;
-					}else{
-						//don't draw tips
-						//is not tip
-						JadeNode newnode = new JadeNode();
-						if(taxonomy == false){
-							if(curnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
-								newnode.setName((String)curnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-								newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
-							}
-						}else{
-							newnode.setName(((String)curnode.getProperty("name")).replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
-						}
-
-						Relationship keep = null;
-						Relationship spreferred = null;
-						Relationship preferred = null;
-						for(Relationship rel: curnode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
-							if(preferred == null)
-								preferred = rel;
-							if(altrels.contains(rel.getId())){
-								keep = rel;
-								returnrels.add(rel.getId());
-								break;
-							}else{
-								if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
-									spreferred = rel;
-								}
-								if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){
-									preferred = rel;
-								}
-							}
-						}
-						if(keep == null){
-							keep = spreferred;//prefer the source rel after an alt
-							if(keep == null){
-								keep = preferred;//fall back on anything
-							}
-						}
-						//try to skip all the tips
-						if(curnode.hasRelationship(Direction.INCOMING, defaultsourcetype)==false){
-							visited.add(curnode);
-							curnode = keep.getEndNode();
-							for(Relationship trel: curnode.getRelationships(Direction.INCOMING, defaultsourcetype)){
-								if(trel.getStartNode().hasRelationship(Direction.INCOMING, defaultsourcetype)==false)
-									visited.add(trel.getStartNode());
-							}
-							continue;
-						}
-
-						newnode.assocObject("nodeid", curnode.getId());
-
-						ArrayList<Node> conflictnodes = new ArrayList<Node>();
-						for(Relationship rel:curnode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
-							if(rel.getEndNode().getId() != keep.getEndNode().getId() && conflictnodes.contains(rel.getEndNode())==false){
-								//check for nested conflicts
-								//							if(pf.findSinglePath(keep.getEndNode(), rel.getEndNode())==null)
-								conflictnodes.add(rel.getEndNode());
-							}
-						}
-						newnode.assocObject("conflictnodes", conflictnodes);
-						nodejademap.put(curnode, newnode);
-						keepers.add(keep);
-
-						visited.add(curnode);
-						if(pf.findSinglePath(keep.getEndNode(), firstNode) != null){
-							curnode = keep.getEndNode();
-							jadeparentmap.put(newnode, curnode);
-						}else
-							break;
 					}
+					/*just for last ditch efforts
+					 * if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){
+						preferred = rel;
+					}*/
 				}
 			}
+			if(keep == null){
+				keep = spreferred;//prefer the source rel after an alt
+				if(keep == null){
+					continue;//if the node is not part of the main source just continue without making it
+//					keep = preferred;//fall back on anything
+				}
+			}
+			JadeNode newnode = new JadeNode();
+			if(taxonomy == false){
+				if(friendnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
+					newnode.setName((String)friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+					newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
+				}
+			}else{
+				newnode.setName(((String)friendnode.getProperty("name")).replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
+			}
+
+			newnode.assocObject("nodeid", friendnode.getId());
+			
+			ArrayList<Relationship> conflictrels = new ArrayList<Relationship>();
+			for(Relationship rel:friendnode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
+				if(rel.getEndNode().getId() != keep.getEndNode().getId() && conflictrels.contains(rel)==false){
+					//check for nested conflicts
+					//							if(pf.findSinglePath(keep.getEndNode(), rel.getEndNode())==null)
+					conflictrels.add(rel);
+				}
+			}
+			newnode.assocObject("conflictrels",conflictrels);
+			nodejademap.put(friendnode, newnode);
+			keepers.add(keep);
+			visited.add(friendnode);
+			if(firstNode != friendnode && pf.findSinglePath(keep.getStartNode(), firstNode) != null){
+				jadeparentmap.put(newnode, keep.getEndNode());
+			}
 		}
+		//build tree and work with conflicts
+		System.out.println("root "+root.getChildCount());
 		for(JadeNode jn:jadeparentmap.keySet()){
-			if(jn.getObject("conflictnodes")!=null){
+			if(jn.getObject("conflictrels")!=null){
 				String confstr = "";
 				@SuppressWarnings("unchecked")
-				ArrayList<Node> cn = (ArrayList<Node>)jn.getObject("conflictnodes");
-				if(cn.size()>0){
-					confstr += ", \"altparents\": [";
-					for(int i=0;i<cn.size();i++){
+				ArrayList<Relationship> cr = (ArrayList<Relationship>)jn.getObject("conflictrels");
+				if(cr.size()>0){
+					confstr += ", \"altrels\": [";
+					for(int i=0;i<cr.size();i++){
 						String namestr = "";
 						if(taxonomy == false){
-							if(cn.get(i).hasRelationship(RelTypes.ISCALLED))
-								namestr = (String) cn.get(i).getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
+							if(cr.get(i).getEndNode().hasRelationship(RelTypes.ISCALLED))
+								namestr = (String) cr.get(i).getEndNode().getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
 						}else{
-							namestr = (String)cn.get(i).getProperty("name");
+							namestr = (String)cr.get(i).getEndNode().getProperty("name");
 						}
-						confstr += "{\"name\": \""+namestr+"\",\"nodeid\":\""+cn.get(i).getId()+"\"}";
-						if(i+1 != cn.size())
+						confstr += "{\"parentname\": \""+namestr+"\",\"parentid\":\""+cr.get(i).getEndNode().getId()+"\",\"altrelid\":\""+cr.get(i).getId()+"\",\"source\":\""+cr.get(i).getProperty("source")+"\"}";
+						if(i+1 != cr.size())
 							confstr += ",";
 					}
 					confstr += "]\n";
 					jn.assocObject("jsonprint", confstr);
 				}
 			}
-			nodejademap.get(jadeparentmap.get(jn)).addChild(jn);
+			try{
+//				System.out.println(jn.getName()+" "+nodejademap.get(jadeparentmap.get(jn)).getName());
+				nodejademap.get(jadeparentmap.get(jn)).addChild(jn);
+			}catch(java.lang.NullPointerException npe){
+				continue;
+			}
 		}
-		JadeTree tree = new JadeTree(root);
-		root.assocObject("nodedepth", root.getNodeMaxDepth());
+		System.out.println("root "+root.getChildCount());
+		
+		//get the parent so we can move back one node
+		Node parFirstNode = null;
+		for(Relationship rels : firstNode.getRelationships(Direction.OUTGOING, defaultsourcetype)){
+			if(((String)rels.getProperty("source")).compareTo(sourcename) == 0){
+				parFirstNode = rels.getEndNode();
+				break;
+			}
+		}
+		JadeNode beforeroot = new JadeNode();
+		if(parFirstNode != null){
+			String namestr = "";
+			if(taxonomy == false){
+				if(parFirstNode.hasRelationship(RelTypes.ISCALLED))
+					namestr = (String) parFirstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
+			}else{
+				namestr = (String)parFirstNode.getProperty("name");
+			}
+			beforeroot.assocObject("nodeid", parFirstNode.getId());
+			beforeroot.setName(namestr);
+			beforeroot.addChild(root);
+		}else{
+			beforeroot = root;
+		}
+		beforeroot.assocObject("nodedepth", beforeroot.getNodeMaxDepth());
+		
+		//construct the final string
+		JadeTree tree = new JadeTree(beforeroot);
 		String ret = "[\n";
 		ret += tree.getRoot().getJSON(false);
 		ret += "]\n";
