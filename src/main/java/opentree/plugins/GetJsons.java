@@ -58,6 +58,10 @@ public class GetJsons extends ServerPlugin {
 		GraphExplorer ge = new GraphExplorer();
 		if(nubrel != null){
 			Relationship rel = source.getGraphDatabase().getRelationshipById(nubrel);
+			ArrayList<Long> rels = new ArrayList<Long>();
+			if(altrels != null)
+				for (int i=0;i<altrels.length;i++){rels.add(altrels[i]);}
+			ge.constructJSONAltRels(rel.getEndNode(), (String)rel.getProperty("source"),rels);
 		}else{
 			ArrayList<Long> rels = new ArrayList<Long>();
 			if(altrels != null)
