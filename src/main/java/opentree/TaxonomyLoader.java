@@ -15,25 +15,25 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * Hello world!
+ * TaxonomyLoader is intended to control the initial creation 
+ * and addition of taxonomies to the taxonomy graph.
  *
  */
 public class TaxonomyLoader extends TaxonomyBase{
 	int transaction_iter = 100000;
 	int LARGE = 100000000;
+	
+	//basic traversal method
 	final TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
 			.relationships( RelTypes.TAXCHILDOF,Direction.OUTGOING );
 	
+	/**
+	 * Initializer assume that the graph is being used as embedded
+	 * @param graphname directory path to embedded graph
+	 */
 	public TaxonomyLoader(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
 		taxNodeIndex = graphDb.index().forNodes( "taxNamedNodes" );
-	}
-	
-	private Integer sum(ArrayList<Integer> si){
-		Integer ret = 0;
-		for(int i=0;i<si.size();i++)
-			ret += si.get(i);
-		return ret;
 	}
 	
 	/**
@@ -307,8 +307,30 @@ public class TaxonomyLoader extends TaxonomyBase{
 						cur = parents.get(cur);
 					}
 				}
-				if(badpath == true)
+				/*
+				 * if the nodes that don't lead to the root don't have
+				 * other relationships, delete the nodes
+				 * TODO: test this!
+				 */
+				if(badpath == true){
+					IndexHits<Node> hits = taxNodeIndex.get("name", strname);
+					try{
+						for(Node nd : hits){
+							if(nd.hasRelationship()==false){
+								tx = graphDb.beginTx();
+								try{
+									nd.delete();
+									tx.success();
+								}finally{
+									tx.finish();
+								}
+							}
+						}
+					}finally{
+						hits.close();
+					}
 					continue;
+				}
 				Node matchnode = null;
 				HashMap<Node,ArrayList<Integer>> itemcounts = new HashMap<Node,ArrayList<Integer>>();
 				int bestcount = LARGE+LARGE;
@@ -335,10 +357,10 @@ public class TaxonomyLoader extends TaxonomyBase{
 						}
 						itemcounts.put(node, stepsToMatch(path1,path2));
 						if(verbose)
-							System.out.println(sum(itemcounts.get(node)));
-						if(sum(itemcounts.get(node)) < bestcount || first == true){
+							System.out.println(GeneralUtils.sum_ints(itemcounts.get(node)));
+						if(GeneralUtils.sum_ints(itemcounts.get(node)) < bestcount || first == true){
 							first = false;//sets these all to not null and at least the first one
-							bestcount = sum(itemcounts.get(node));
+							bestcount = GeneralUtils.sum_ints(itemcounts.get(node));
 							bestitem = node;
 							bestpath = new ArrayList<String>(path2);
 							bestpathitems = new ArrayList<Node>(path2items);
