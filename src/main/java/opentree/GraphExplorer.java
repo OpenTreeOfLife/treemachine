@@ -332,6 +332,9 @@ public class GraphExplorer extends GraphBase{
 	 * around the node
 	 */
 	public String constructJSONAltRels(Node firstNode, String domsource, ArrayList<Long> altrels){
+		cne.setStartNode(firstNode);
+		cne.setChildThreshold(200);
+		se.setStartNode(firstNode);
 		int maxdepth = 3;
 		boolean taxonomy = true;
 		RelationshipType defaultchildtype = RelTypes.TAXCHILDOF;
@@ -486,7 +489,7 @@ public class GraphExplorer extends GraphBase{
 		JadeTree tree = new JadeTree(beforeroot);
 		String ret = "[\n";
 		ret += tree.getRoot().getJSON(false);
-		ret += "]\n";
+		ret += ",{\"domsource\":\""+sourcename+"\"}]\n";
 		return ret;
 	}
 	
