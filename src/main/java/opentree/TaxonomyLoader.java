@@ -208,14 +208,17 @@ public class TaxonomyLoader extends TaxonomyBase{
 	 *	
 	 * @param filename file path to the taxonomy file
 	 * @param sourcename this becomes the value of a "source" property in every relationship between the taxonomy nodes
+	 * @param rootthresh the threshold from the root of the input taxonomy where we consider a matched name to be new (lower number = more conservative)
 	 */
-	public void addAdditionalTaxonomyTableIntoGraph(String filename,String sourcename){
+	public void addAdditionalTaxonomyTableIntoGraph(String filename,String sourcename, int rootthresh){
 		String str = "";
 		int count = 0;
 		HashMap<String, String> ndnames = new HashMap<String, String>();
 		HashMap<String, String> parents = new HashMap<String, String>();
 		Transaction tx;
 		ArrayList<String> addnodes = new ArrayList<String>();
+		ArrayList<String> addnodesids = new ArrayList<String>();
+		HashMap<String,Node> addednodes = new HashMap<String,Node>();
 		//first, need to get what nodes are new
 		try{
 			BufferedReader br = new BufferedReader(new FileReader(filename));
@@ -229,6 +232,8 @@ public class TaxonomyLoader extends TaxonomyBase{
 				try{
 					if(ih.size()==0){
 						addnodes.add(strname);
+						addnodesids.add(spls[0]);
+						System.out.println("first added "+spls[0]);
 					}
 				}finally{
 					ih.close();
@@ -244,8 +249,11 @@ public class TaxonomyLoader extends TaxonomyBase{
 							Node tnode = graphDb.createNode();
 							tnode.setProperty("name", addnodes.get(i));
 							taxNodeIndex.add( tnode, "name", addnodes.get(i) );
+							addednodes.put(addnodesids.get(i) , tnode);
+							System.out.println("added "+addnodesids.get(i));
 						}
 						addnodes.clear();
+						addnodesids.clear();
 						tx.success();
 					}finally{
 						tx.finish();
@@ -260,8 +268,11 @@ public class TaxonomyLoader extends TaxonomyBase{
 				Node tnode = graphDb.createNode();
 				tnode.setProperty("name", addnodes.get(i));
 				taxNodeIndex.add( tnode, "name", addnodes.get(i) );
+				addednodes.put(addnodesids.get(i) , tnode);
+				System.out.println("added "+addnodesids.get(i));
 			}
 			addnodes.clear();
+			addnodesids.clear();
 			tx.success();
 		}finally{
 			tx.finish();
@@ -274,11 +285,14 @@ public class TaxonomyLoader extends TaxonomyBase{
 		ArrayList<String> rel_pid = new ArrayList<String>();
 		try{
 			count = 0;
+			int dcount = 0;
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			boolean verbose = false;
 			while((str = br.readLine())!=null){
-				count += 1;
 				String[] spls = str.split(",");
+				count += 1;
+				String nameid = spls[0];
+				String strparentid = spls[1];
 				String strname = spls[2];
 				String strparentname = "";
 				if(spls[1].compareTo("0") != 0)
@@ -292,7 +306,8 @@ public class TaxonomyLoader extends TaxonomyBase{
 				boolean badpath = false;
 				String cur = parents.get(spls[0]);
 				if(verbose)
-					System.out.println("parent:"+cur);
+					System.out.println("parent:"+cur +" "+ndnames.get(cur));
+				//get full path to the root of the input taxonomy
 				while(going == true){
 					if(cur == null){
 						going = false;
@@ -302,7 +317,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 						going = false;
 					}else{
 						if (verbose)
-							System.out.println("-parent:"+cur);
+							System.out.println("parent:"+cur +" "+ndnames.get(cur));
 						path1.add(ndnames.get(cur));
 						cur = parents.get(cur);
 					}
@@ -332,51 +347,75 @@ public class TaxonomyLoader extends TaxonomyBase{
 					continue;
 				}
 				Node matchnode = null;
-				HashMap<Node,ArrayList<Integer>> itemcounts = new HashMap<Node,ArrayList<Integer>>();
-				int bestcount = LARGE+LARGE;
+				int bestcount = LARGE;
 				Node bestitem = null;
 				ArrayList<String> bestpath = null;
 				ArrayList<Node> bestpathitems= null;
 				IndexHits<Node> hits = taxNodeIndex.get("name", strname);
 				ArrayList<String> path2 = null;
 				ArrayList<Node> path2items = null;
-				boolean first = true;
-				try{
-					for(Node node: hits){
-						path2 = new ArrayList<String> ();
-						path2items = new ArrayList<Node> ();
-						for(Node currentNode : CHILDOF_TRAVERSAL.traverse(node).nodes()){
-							if(verbose)
-								System.out.println("+"+((String) currentNode.getProperty("name")));
-							if(((String) currentNode.getProperty("name")).compareTo(strname) != 0){
-								path2.add((String)currentNode.getProperty("name"));
-								path2items.add(currentNode);
-								if (verbose)
-									System.out.println((String)currentNode.getProperty("name"));
+				/*
+				 * get the best hit by walking the parents
+				 */
+				if(addednodes.containsKey((String)nameid) == false){//name was not added this time around
+					try{
+						for(Node node: hits){
+							path2 = new ArrayList<String> ();
+							path2items = new ArrayList<Node> ();
+							//get shortest path
+							for(Node currentNode : CHILDOF_TRAVERSAL.traverse(node).nodes()){
+								if(verbose)
+									System.out.println("+"+((String) currentNode.getProperty("name")));
+								if(((String) currentNode.getProperty("name")).compareTo(strname) != 0){
+									path2.add((String)currentNode.getProperty("name"));
+									path2items.add(currentNode);
+									if (verbose)
+										System.out.println((String)currentNode.getProperty("name"));
+								}
 							}
+							ArrayList<Integer> itemcounts = stepsToMatch(path1,path2);
+							//if(GeneralUtils.sum_ints(itemcounts.get(node)) < bestcount || first == true){
+							if(itemcounts.get(0) < bestcount){
+								bestcount = itemcounts.get(0);
+								bestitem = node;
+								bestpath = new ArrayList<String>(path2);
+								bestpathitems = new ArrayList<Node>(path2items);
+							}
+							path2.clear();
+							path2items.clear();
+							if(verbose)
+								System.out.println(bestcount);
+							//if(verbose)
+							//	System.out.println("after:"+bestpath.get(1));
 						}
-						itemcounts.put(node, stepsToMatch(path1,path2));
-						if(verbose)
-							System.out.println(GeneralUtils.sum_ints(itemcounts.get(node)));
-						if(GeneralUtils.sum_ints(itemcounts.get(node)) < bestcount || first == true){
-							first = false;//sets these all to not null and at least the first one
-							bestcount = GeneralUtils.sum_ints(itemcounts.get(node));
-							bestitem = node;
-							bestpath = new ArrayList<String>(path2);
-							bestpathitems = new ArrayList<Node>(path2items);
-						}
-						path2.clear();
-						path2items.clear();
-						if(verbose)
-							System.out.println(bestcount);
-						if(verbose)
-							System.out.println("after:"+bestpath.get(1));
+					}finally{
+						hits.close();
 					}
-				}finally{
-					hits.close();
+					//if the match is worse than the threshold, make a new node
+					if (bestitem == null || path1.size()-bestcount <= rootthresh){
+						System.out.println("adding duplicate "+strname);
+						tx = graphDb.beginTx();
+						try{
+							Node tnode = graphDb.createNode();
+							tnode.setProperty("name", strname);
+							taxNodeIndex.add( tnode, "name", strname);
+							bestitem = tnode;
+							bestpath = new ArrayList<String>();
+							bestpathitems = new ArrayList<Node>();
+							tx.success();
+							addednodes.put(nameid, tnode);
+						}finally{
+							tx.finish();
+						}
+						dcount += 1;
+					}
+				}//name was added this time around
+				else{
+					bestitem = addednodes.get(nameid);
+					bestpath = new ArrayList<String>();
+					bestpathitems = new ArrayList<Node>();
 				}
-
-				itemcounts.clear();
+				
 				matchnode = bestitem;
 				if(spls[1].compareTo("0") != 0){
 					Node matchnodeparent = null;
@@ -388,15 +427,66 @@ public class TaxonomyLoader extends TaxonomyBase{
 						if(verbose)
 							System.out.println("="+bestpath.get(i)+" "+strparentname);
 					}
-					if(matchnodeparent == null){
-						IndexHits<Node> hits2 = taxNodeIndex.get("name", strparentname);
+					//do the same as above with the parent
+					if(matchnodeparent == null && addednodes.containsKey(strparentid) == false){
+						path1.remove(0);
+						bestcount = LARGE;
+						bestitem = null;
+						hits = taxNodeIndex.get("name", strparentname);
+						path2 = null;
+						path2items = null;
+						/*
+						 * get the best hit by walking the parents
+						 */
 						try{
-							for(Node node2 : hits2){
-								matchnodeparent = node2;
+							for(Node node: hits){
+								path2 = new ArrayList<String> ();
+								path2items = new ArrayList<Node> ();
+								//get shortest path
+								for(Node currentNode : CHILDOF_TRAVERSAL.traverse(node).nodes()){
+									if(((String) currentNode.getProperty("name")).compareTo(strparentname) != 0){
+										path2.add((String)currentNode.getProperty("name"));
+										if(verbose)
+											System.out.println("path2: "+(String)currentNode.getProperty("name"));
+										path2items.add(currentNode);
+									}
+								}
+								ArrayList<Integer> itemcounts = stepsToMatch(path1,path2);
+								if(verbose)
+									System.out.println(itemcounts.get(0));
+								if(itemcounts.get(0) < bestcount){
+									bestcount = itemcounts.get(0);
+									bestitem = node;
+								}
+								path2.clear();
+								path2items.clear();
+								if(verbose)
+									System.out.println(bestcount);
 							}
 						}finally{
-							hits2.close();
+							hits.close();
 						}
+						//if the match is worse than the threshold, make a new node
+						if (verbose)
+							System.out.println(path1.size()+" "+(path1.size()-bestcount));
+						if (bestitem == null || path1.size()-bestcount <= rootthresh){
+							System.out.println("adding duplicate parent "+strparentname);
+							tx = graphDb.beginTx();
+							try{
+								Node tnode = graphDb.createNode();
+								tnode.setProperty("name", strparentname);
+								taxNodeIndex.add( tnode, "name", strparentname);
+								bestitem = tnode;
+								tx.success();
+								addednodes.put(strparentid, tnode);
+							}finally{
+								tx.finish();
+							}
+							dcount += 1;
+						}
+						matchnodeparent = bestitem;
+					}else if (addednodes.containsKey(strparentid) == true){
+						matchnodeparent = addednodes.get(strparentid);
 					}
 					rel_nd.add(matchnode);
 					rel_pnd.add(matchnodeparent);
@@ -409,10 +499,16 @@ public class TaxonomyLoader extends TaxonomyBase{
 					tx = graphDb.beginTx();
 					try{
 						for(int i=0;i<rel_nd.size();i++){
+							try{
 							Relationship rel = rel_nd.get(i).createRelationshipTo(rel_pnd.get(i), RelTypes.TAXCHILDOF);
 							rel.setProperty("source", sourcename);
 							rel.setProperty("childid", rel_cid.get(i));
 							rel.setProperty("parentid", rel_pid.get(i));
+							}catch(java.lang.Exception jle){
+								System.out.println(rel_cid.get(i) +" "+rel_pid.get(i));
+								System.out.println(rel_nd.get(i).getProperty("name")+" "+rel_pnd.get(i).getProperty("name"));
+								System.exit(0);
+							}
 						}
 						rel_nd.clear();
 						rel_pnd.clear();
@@ -449,7 +545,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 		System.out.println("adding initial taxonomy");
 		addInitialTaxonomyTableIntoGraph(filename,"test");
 		System.out.println("adding additional taxonomies");
-		addAdditionalTaxonomyTableIntoGraph(filename2,"test");
+		addAdditionalTaxonomyTableIntoGraph(filename2,"test",1);
 		shutdownDB();
 	}
 	

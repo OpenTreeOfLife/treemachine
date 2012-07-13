@@ -2,7 +2,7 @@ package opentree;
 
 public class MainRunner {
 	public void taxonomyLoadParser(String [] args){
-		if(args.length != 4){
+		if(args.length < 4){
 			System.out.println("arguments should be: filename sourcename graphdbfolder");
 			return;
 		}
@@ -14,8 +14,13 @@ public class MainRunner {
 			System.out.println("initializing taxonomy from "+filename+" to "+graphname);
 			tl.addInitialTaxonomyTableIntoGraph(filename, sourcename);
 		}else if(args[0].compareTo("addtax") == 0){
-			System.out.println("adding taxonomy from "+filename+" to "+graphname);
-			tl.addAdditionalTaxonomyTableIntoGraph(filename,sourcename);
+			if(args.length != 5){
+				System.out.println("arguments should be: filename sourcename graphdbfolder taxthreshold");
+				return;
+			}
+			int taxthresh = Integer.parseInt(args[4]);
+			System.out.println("adding taxonomy from "+filename+" to "+graphname +" with threshold "+taxthresh);
+			tl.addAdditionalTaxonomyTableIntoGraph(filename,sourcename,taxthresh);
 		}else{
 			System.err.println("ERROR: not a known command");
 			tl.shutdownDB();
