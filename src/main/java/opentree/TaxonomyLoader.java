@@ -233,7 +233,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 					if(ih.size()==0){
 						addnodes.add(strname);
 						addnodesids.add(spls[0]);
-						System.out.println("first added "+spls[0]);
 					}
 				}finally{
 					ih.close();
@@ -250,7 +249,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 							tnode.setProperty("name", addnodes.get(i));
 							taxNodeIndex.add( tnode, "name", addnodes.get(i) );
 							addednodes.put(addnodesids.get(i) , tnode);
-							System.out.println("added "+addnodesids.get(i));
 						}
 						addnodes.clear();
 						addnodesids.clear();
@@ -269,7 +267,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 				tnode.setProperty("name", addnodes.get(i));
 				taxNodeIndex.add( tnode, "name", addnodes.get(i) );
 				addednodes.put(addnodesids.get(i) , tnode);
-				System.out.println("added "+addnodesids.get(i));
 			}
 			addnodes.clear();
 			addnodesids.clear();
