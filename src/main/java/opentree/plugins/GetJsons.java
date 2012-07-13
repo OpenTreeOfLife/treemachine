@@ -15,6 +15,7 @@ import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.Expander;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
@@ -26,6 +27,7 @@ import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
+import org.neo4j.tooling.GlobalGraphOperations;
 
 import jade.tree.*;
 
@@ -58,11 +60,37 @@ public class GetJsons extends ServerPlugin {
 		GraphExplorer ge = new GraphExplorer();
 		if(nubrel != null){
 			Relationship rel = source.getGraphDatabase().getRelationshipById(nubrel);
+			ArrayList<Long> rels = new ArrayList<Long>();
+			if(altrels != null)
+				for (int i=0;i<altrels.length;i++){rels.add(altrels[i]);}
+			retst = ge.constructJSONAltRels(rel.getEndNode(), (String)rel.getProperty("source"),rels);
 		}else{
 			ArrayList<Long> rels = new ArrayList<Long>();
 			if(altrels != null)
 				for (int i=0;i<altrels.length;i++){rels.add(altrels[i]);}
 			retst = ge.constructJSONAltRels(source,domsource,rels);
+		}
+		return retst;
+	}
+	
+	@Description ("Return a JSON with the node id given a name")
+	@PluginTarget (GraphDatabaseService.class)
+	public String getNodeIDJSONFromName(@Source GraphDatabaseService graphDb,
+			@Description("Name of node to find.")
+			@Parameter( name = "nodename", optional= true ) String nodename ){
+		String retst = "";
+		System.out.println(nodename);
+		IndexHits<Node> hits = graphDb.index().forNodes("taxNamedNodes").get("name",nodename);
+		try{
+			Node firstNode = hits.next();
+			hits.close();
+			if(firstNode == null){
+				retst = "[]";
+			}else{
+				retst="[{\"nodeid\":"+firstNode.getId()+"}]";
+			}
+		}catch(java.lang.Exception jle){
+			retst = "[]";
 		}
 		return retst;
 	}
