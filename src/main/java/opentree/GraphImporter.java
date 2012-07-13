@@ -41,7 +41,9 @@ public class GraphImporter extends GraphBase{
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 	}
 	
-	/*
+	/**
+	 * Sets the jt member by reading a JadeTree from filename.
+	 *
 	 * This currently reads a tree from a file but this will need to be changed to 
 	 * another form later
 	 */
@@ -74,7 +76,7 @@ public class GraphImporter extends GraphBase{
 			//root should be the ncbi startnode
 			Node startnode = (taxNodeIndex.get("name", "root")).next();
 			graphstart = graphDb.createNode();
-			graphstart.createRelationshipTo(startnode, RelTypes.ISCALLED);
+			graphstart.createRelationshipTo(startnode, RelTypes.ISCALLED); //@MTH: Do we need no add a source property to this relationship
 			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
 			        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
 			for(Node friendnode: CHILDOF_TRAVERSAL.traverse(startnode).nodes()){
@@ -96,7 +98,7 @@ public class GraphImporter extends GraphBase{
 						}
 					}
 					Node newnode = graphDb.createNode();
-					newnode.createRelationshipTo(friendnode, RelTypes.ISCALLED);
+					newnode.createRelationshipTo(friendnode, RelTypes.ISCALLED); //@MTH: Do we need no add a "source" property to this relationship
 					graphNodeIndex.add(newnode, "name", friendnode.getProperty("name"));
 					if(ncount == 0){//leaf
 						long [] tmrcas = {newnode.getId()};
@@ -133,8 +135,14 @@ public class GraphImporter extends GraphBase{
 		}
 	}
 	
-	/*
-	 * for initial taxonomy to tree processing
+	/**
+	 * for initial taxonomy to tree processing.  adds a mrca->long[]  property
+	 *	to the node and its children (where the elements of the array are the ids
+	 *	of graph of life nodes). The property is is the union of the mrca properties
+	 *	for the subtree. So the leaves of the tree must already have their mrca property
+	 *	filled in!
+	 *
+	 * @param dbnode should be a node in the graph-of-life (has incoming MRCACHILDOF relationship)
 	 */
 	private void postordernewNodeAddMRCAArray(Node dbnode){
 		//traversal incoming and record all the names

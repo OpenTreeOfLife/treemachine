@@ -41,10 +41,12 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	}
 	
 	
-	/*
+	/**
 	 * This essentially uses every relationship and constructs a newick tree (hardcoded to taxtree.tre file)
 	 * 
 	 * It would be trivial to only include certain relationship sources
+	 * @ name the name of the internal node that will be the root of the subtree 
+	 * that is written
 	 */
 	public void buildTaxonomyTree(String name){
 		IndexHits<Node> hits = taxNodeIndex.get("name", name);
