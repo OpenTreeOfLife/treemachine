@@ -16,8 +16,8 @@ if __name__ == "__main__":
         pnum = spls[1]
         parents.append(pnum)
         name = spls[3]
-        if spls[3] == "Unassigned":
-            name = spls[4]
+#        if spls[3] == "Unassigned":
+#            name = spls[4]
         names.append(name)
         count += 1
         if count % 100000 == 0:
@@ -44,11 +44,12 @@ if __name__ == "__main__":
         num = spls[0]
         pnum = spls[1]
         name = spls[3]
-        if spls[3] == "Unassigned":
-            name = spls[4]
+ #       if spls[3] == "Unassigned":
+ #           name = spls[4]
         if name in dnames:
-            if num in dparents:
-                outfile.write(num+","+pnum+","+name+"\n")
+            #if num in dparents:
+	    #may need to add this back for null parents
+            outfile.write(num+","+pnum+","+name+"\n")
         else:
             outfile.write(num+","+pnum+","+name+"\n")
         count += 1
