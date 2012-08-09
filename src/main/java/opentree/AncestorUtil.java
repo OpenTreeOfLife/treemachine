@@ -107,13 +107,8 @@ public class AncestorUtil {
             for (int i = 0; i < commonAncestors.size(); i++) {
                 Node node = commonAncestors.get(i);
                 if (node.getId() == currentNode.getId()) {
-                    /** @MTH I think the preferred Java idiom for this is subList(start, end).clear()   See http://stackoverflow.com/questions/2289183/why-is-javas-abstractlists-removerange-method-protected
                     if (i > 0) {
                         commonAncestors.subList(0, i).clear();
-                    }
-                    */
-                    for (int j = 0; j < i; j++) {
-                        commonAncestors.pollFirst();
                     }
                     return true;
                 }
