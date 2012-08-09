@@ -4,24 +4,41 @@
   <artifactId>treemachine</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>treemachine</name>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
   <dependencies>
-  	<dependency>
-  		<groupId>org.neo4j</groupId>
-  		<artifactId>neo4j</artifactId>
-  		<version>1.8.M05</version>
-  	</dependency>
-	<dependency>
+    <dependency>
+        <groupId>org.neo4j</groupId>
+        <artifactId>neo4j</artifactId>
+        <version>1.8.M05</version>
+    </dependency>
+    <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>server-api</artifactId>
       <version>1.8.M05</version>
     </dependency>
-  </dependencies>
+    <dependency>
+        <groupId>org.neo4j</groupId>
+        <artifactId>neo4j-kernel</artifactId>
+        <version>1.8.M05</version>
+        <type>test-jar</type>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.1</version>
+      <scope>test</scope>
+    </dependency>
+</dependencies>
   <build>
-  	<plugins>
-  		<plugin>
-  			<groupId>org.apache.maven.plugins</groupId>
-  			<artifactId>maven-assembly-plugin</artifactId>
-			<configuration>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <configuration>
                 <archive>
                     <manifest>
                         <mainClass>opentree.MainRunner</mainClass>
@@ -31,16 +48,16 @@
                     <descriptorRef>jar-with-dependencies</descriptorRef>
                 </descriptorRefs>
             </configuration>
-  		</plugin>
-  		<plugin>
-  			<groupId>org.apache.maven.plugins</groupId>
-  			<artifactId>maven-compiler-plugin</artifactId>
-  			<version>2.5</version>
-			<configuration>
-				<source>1.6</source>
-				<target>1.6</target>
-			</configuration>
-  		</plugin>
-  	</plugins>
+        </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>2.5</version>
+            <configuration>
+                <source>1.6</source>
+                <target>1.6</target>
+            </configuration>
+        </plugin>
+    </plugins>
   </build>
 </project>
