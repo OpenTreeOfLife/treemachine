@@ -147,4 +147,14 @@ public class AncestorUtilTest {
 		assertNotNull(anc);
 		assertEquals(anc.getProperty("name"), "hcgo_anc");
 	}
+
+	@Test
+	public void testNoAnc() throws Exception {
+		LinkedList<Node> leaf_list = new LinkedList<Node>();
+		leaf_list.add(human);
+		leaf_list.add(bogus);
+		RelationshipExpander expander = Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING);
+		Node anc = AncestorUtil.lowestCommonAncestor( leaf_list, expander);
+		assertNull(anc);
+	}
 }
