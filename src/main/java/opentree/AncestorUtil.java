@@ -19,10 +19,11 @@ import org.neo4j.graphdb.RelationshipExpander;
 public class AncestorUtil {
 
     /**
-     * 
+     * Return the lowest common ancestor of the nodes in `nodeSet` or null (if they do not share a common ancestor).
+     *
      * @param nodeSet Set of nodes for which the LCA will be found.
-     * @param relationshipType Relationship type used to look for the LCA
-     * @param relationshipDirection Direction of the relationships used (seen from the descendant node)
+     * @param expander RelationshipExpander which determines which relationships 
+     *      will be traversed when looking for the least common ancestor
      * @return The LCA node if there's one, null otherwise.
      */
     public static Node lowestCommonAncestor(List<Node> nodeSet,
@@ -37,7 +38,9 @@ public class AncestorUtil {
 
             for (int i = 1; i < nodeSet.size() && !firstAncestors.isEmpty(); i++) {
                 Node currentNode = nodeSet.get(i);
-                lookForCommonAncestor(firstAncestors, currentNode, expander);                
+                if(!lookForCommonAncestor(firstAncestors, currentNode, expander)) {
+                    return null; // If we do not find a common ancestor, we should return null
+                }
             }
             
             if(!firstAncestors.isEmpty()){
@@ -49,6 +52,19 @@ public class AncestorUtil {
         return lowerCommonAncestor;
     }
 
+    /**
+     * Returns a list of nodes starting at `node` and including every node 
+     *  in the "first" path created using the RelationshipExpander to the root.
+     *
+     * For instance if `expander` was created using Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING)
+     *  then this function will return `node` and all of its ancestors.
+     *
+     * @param node starting Node
+     * @param expander RelationshipExpander wraps a relationship that should not contain any cycles
+     * @return LinkedList of nodes whichi starts with `node` and includes
+     *      each first node returned by the iterator created by calling  
+     *      expander.expand(node).iterator();
+     */
     private static LinkedList<Node> getAncestorsPlusSelf(Node node,
             RelationshipExpander expander) {
         
@@ -71,33 +87,47 @@ public class AncestorUtil {
 
     }
 
-    private static void lookForCommonAncestor(LinkedList<Node> commonAncestors,
+    /**
+     * Shortens the commonAncestors list, such that it starts with the first
+     * element of commonAncestors which is an ancestor of currentNode.
+     * If none of the 
+     * @param commonAncestors LinkedList of Nodes that should represent a node -> root path
+     * @param expander RelationshipExpander wraps a relationship that should not contain 
+            any cycles (e.g. the node->root path via a Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING) )
+     * @return true if a common ancestor is found, or false indicating that `commonAncestors` 
+     *      did not have a node in the path that started with `currentNode'
+     */
+    private static boolean lookForCommonAncestor(LinkedList<Node> commonAncestors,
             Node currentNode,
             RelationshipExpander expander) {
 
         while (currentNode != null) {
+
+            // If we find the current node in commonAncestors, we removed the preceding elements from commonAncestors and return true
             for (int i = 0; i < commonAncestors.size(); i++) {
                 Node node = commonAncestors.get(i);
                 if (node.getId() == currentNode.getId()) {
+                    /** @MTH I think the preferred Java idiom for this is subList(start, end).clear()   See http://stackoverflow.com/questions/2289183/why-is-javas-abstractlists-removerange-method-protected
+                    if (i > 0) {
+                        commonAncestors.subList(0, i).clear();
+                    }
+                    */
                     for (int j = 0; j < i; j++) {
                         commonAncestors.pollFirst();
                     }
-                    return;
+                    return true;
                 }
             }
 
+            // iterator to the next "ancestor" 
             Iterator<Relationship> relIt = expander.expand(currentNode).iterator();
-
             if (relIt.hasNext()) {
-                
                 Relationship rel = relIt.next();
-                
                 currentNode = rel.getOtherNode(currentNode); 
-                
             }else{
                 currentNode = null;
             }
         }
-
+    return false;
     }
 }
