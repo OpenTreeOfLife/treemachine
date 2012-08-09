@@ -48,16 +48,14 @@ public class AncestorUtilTest {
 	 */
 	// START SNIPPET: beforeTest
 	@Before
-	public void prepareTestDatabase()
-	{
+	public void prepareTestDatabase() {
 		graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase();
 
 		// START SNIPPET: unitTest
         Transaction tx = graphDb.beginTx();
 
         Node n = null;
-        try
-        {
+        try {
             human = graphDb.createNode();
             human.setProperty("name", "human");
             chimp = graphDb.createNode();
@@ -82,17 +80,12 @@ public class AncestorUtilTest {
             bogus.setProperty("name", "bogus");
             tx.success();
         }
-        catch ( Exception e )
-        {
-			System.err.println("Exception in prepareTestDatabase");
+        catch ( Exception e ) {
             tx.failure();
         }
-        finally
-        {
+        finally {
             tx.finish();
         }		
-		
-		System.err.println("In prepareTestDatabase");
 	}
 	// END SNIPPET: beforeTest
 
@@ -101,8 +94,7 @@ public class AncestorUtilTest {
 	 */
 	// START SNIPPET: afterTest
 	@After
-	public void destroyTestDatabase()
-	{
+	public void destroyTestDatabase() {
 		graphDb.shutdown();
 		System.err.println("In destroyTestDatabase");
 	}
