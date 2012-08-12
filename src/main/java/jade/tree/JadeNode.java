@@ -13,7 +13,7 @@ public class JadeNode {
 	private String name;
 	private JadeNode parent;
 	private ArrayList<JadeNode> children;
-	private ArrayList<NodeObject> assoc;
+	private ArrayList<NodeObject> assoc; // @note might need to make this a HashMap<String, Object> or TreeMap<String,Object>
 	
 	/*
 	 * constructors
@@ -211,7 +211,17 @@ public class JadeNode {
 	
 	public void setDistanceToTip(double inh){this.distance_to_tip = inh;}
 	
+	/**
+	 * Adds or a replace a mapping of key->obj for this node
+	 * @note this in an example of an O(N) routine that would be constant time
+	 * 		or O(log(N)) if we change the assoc datatype.
+	 * @param key
+	 * @param obj Object to be storted
+	 */
 	public void assocObject(String key, Object obj){
+		// @todo This is written as if there could be multiple elements in assoc that
+		//		have the same key. I don't think this is true. (we should probably
+		//		return on finding a match, rather than set a test=true flag).
 		boolean test = false;
 		for(int i = 0; i < this.assoc.size(); i++){
 			if(this.assoc.get(i).getName().compareTo(key) == 0){
@@ -225,7 +235,17 @@ public class JadeNode {
 		}
 	}
 	
+	/**
+	 * @return Object associated with this node and key through a previous call
+	 *		to assocObject, or null
+	 * @note this in an example of an O(N) routine that would be constant time
+	 * 		or O(log(N)) if we change the assoc datatype.
+	 * @param key
+	 */
 	public Object getObject(String key){
+		// @todo This is written as if there could be multiple elements in assoc that
+		//		have the same key. I don't think this is true. (we should probably
+		//		return on finding a match, rather than set a test=true flag).
 		Object a = null;
 		for(int i = 0; i < this.assoc.size(); i++){
 			if(this.assoc.get(i).getName().compareTo(key) == 0){
