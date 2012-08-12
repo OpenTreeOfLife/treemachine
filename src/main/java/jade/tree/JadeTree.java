@@ -238,7 +238,7 @@ public class JadeTree {
 	 * Assumes that the current root has outdegree 2 (and that it is not a cherry).
 	 * @todo the name of the removed node is lost (other code associated with rerooting the tree moves internal node names (see exchangeInfo)
 	 */
-	public void tritomyRoot(JadeNode toberoot) {
+	private void tritomyRoot(JadeNode toberoot) {
 		JadeNode curroot = this.getRoot();
 		assert curroot != null;
 		assert curroot.getChildCount() == 2;
