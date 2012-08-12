@@ -9,8 +9,8 @@ public class NodeObject {
 		this.obj = obj;
 	}
 	
-	public Object getObject(){return obj;}
-	public String getName(){return name;}
+	public Object getObject(){return this.obj;}
+	public String getName(){return this.name;}
 	public void setObject(Object obj){this.obj = obj;}
-	public void setName(String name){ this.name = name;}
+	public void setName(String name){this.name = name;}
 }
