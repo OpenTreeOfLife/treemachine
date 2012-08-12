@@ -49,15 +49,14 @@ public class GraphImporter extends GraphBase{
 	 */
 	public void preProcessTree(String filename){
 		//read the tree from a file
-		TreeReader tr = new TreeReader();
 		String ts = "";
 		try{
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			ts = br.readLine();
 			br.close();
 		}catch(IOException ioe){}
-		tr.setTree(ts);
-		jt = tr.readTree();
+		TreeReader tr = new TreeReader();
+		jt = tr.readTree(ts);
 		System.out.println("tree read");
 		//System.exit(0);
 	}

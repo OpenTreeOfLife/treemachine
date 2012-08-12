@@ -8,31 +8,14 @@ package jade.tree;
  *
  */
 public class TreeReader {
-	private String treeString;
-
-	private JadeTree tree;
-
 	/*
 	 * constructor
 	 */
 	public TreeReader() {
 	}
 
-	/*
-	 * read from the newick format
-	 */
-	public TreeReader(String tree) {
-		treeString = tree;
-	}
-
-	public void setTree(String tree) {
-		treeString = tree;
-	}
-	
-	public JadeTree getTree(){return tree;}
-	
-	public JadeTree readTree() {
-		tree = new JadeTree();
+	public JadeTree readTree(String treeString) {
+		JadeTree tree = new JadeTree();
 		String pb = treeString;
 		int x = 0;
 		char nextChar = pb.charAt(x);
@@ -60,7 +43,7 @@ public class TreeReader {
 				String nam = "";
 				boolean goingName = true;
 				if (nextChar == ',' || nextChar == ')' || nextChar == ':'
-				        || nextChar == ';'|| nextChar == '[') {
+						|| nextChar == ';'|| nextChar == '[') {
 					goingName = false;
 				}
 				while (goingName == true) {
@@ -68,7 +51,7 @@ public class TreeReader {
 					x++;
 					nextChar = pb.charAt(x);
 					if (nextChar == ',' || nextChar == ')' || nextChar == ':'
-					        || nextChar == ';'|| nextChar == '[') {
+							|| nextChar == ';'|| nextChar == '[') {
 						goingName = false;
 						break;
 					}
@@ -91,7 +74,7 @@ public class TreeReader {
 					x++;
 					nextChar = pb.charAt(x);
 					if (nextChar == ',' || nextChar == ')' || nextChar == ':'
-					        || nextChar == ';'|| nextChar == '[') {
+							|| nextChar == ';'|| nextChar == '[') {
 						goingName = false;
 						break;
 					}

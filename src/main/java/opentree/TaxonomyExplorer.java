@@ -186,7 +186,6 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 100);
 		Node focalnode = hits2.getSingle();
 		hits2.close();
-		TreeReader tr = new TreeReader();
 		String ts = "";
 		try{
 			BufferedReader br = new BufferedReader(new FileReader(treefilename));
@@ -195,8 +194,8 @@ public class TaxonomyExplorer extends TaxonomyBase{
 		}catch(IOException ioe){
 			System.out.println("problem reading tree");
 		}
-		tr.setTree(ts);
-		JadeTree jt = tr.readTree();
+		TreeReader tr = new TreeReader();
+		JadeTree jt = tr.readTree(ts);
 		System.out.println("tree read");
 		for(int i=0;i<jt.getExternalNodeCount();i++){
 			IndexHits<Node> hits = taxNodeIndex.get("name", jt.getExternalNode(i).getName().replace("_"," "));
