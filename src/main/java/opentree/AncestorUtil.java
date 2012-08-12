@@ -21,6 +21,8 @@ public class AncestorUtil {
     /**
      * Return the lowest common ancestor of the nodes in `nodeSet` or null (if they do not share a common ancestor).
      *
+     * @todo This could be made more efficient, if necessary (by walking back from each node until coalescence; a bit of a bookkeeping nightmare, though).
+     *
      * @param nodeSet Set of nodes for which the LCA will be found.
      * @param expander RelationshipExpander which determines which relationships 
      *      will be traversed when looking for the least common ancestor
