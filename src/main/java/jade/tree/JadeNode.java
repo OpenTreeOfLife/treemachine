@@ -110,72 +110,83 @@ public class JadeNode {
 	 */
 	public String getNewick(boolean bl){
 		String ret = "";
-		for(int i=0;i<this.getChildCount();i++){
-			if(i==0)
-				ret = ret+"(";
-			ret = ret+this.getChild(i).getNewick(bl);
-			if(bl==true)
-				ret = ret +":"+this.getChild(i).getBL();
+		for(int i = 0; i < this.getChildCount(); i++){
+			if(i == 0)
+				ret = ret + "(";
+			ret = ret + this.getChild(i).getNewick(bl);
+			if(bl)
+				ret = ret + ":" + this.getChild(i).getBL();
 			if(i == this.getChildCount()-1)
-				ret =ret +")";
+				ret =ret + ")";
 			else
-				ret = ret+",";
+				ret = ret + ",";
 		}
-		if(name!=null)
-			ret = ret + name;
+		if(this.name != null)
+			ret = ret + this.name;
 		return ret;
 	}
 	
+	/**
+	 * @param bl should be true to include branch lengths
+	 * @return string with JSON representation of the subtree rooted at this node
+	 */
 	public String getJSON(boolean bl){
 		String ret = "{";
-		if (name !=null)
-			ret += " \"name\": \""+this.getName()+"\"";
+		if (this.name != null)
+			ret += " \"name\": \"" + this.getName() + "\"";
 		else
 			ret += " \"name\": \"\"";
-		if(this.getObject("nodeid")!=null)
-			ret += "\n, \"nodeid\": \""+this.getObject("nodeid")+"\"";
-		for(int i=0;i<this.getChildCount();i++){
-			if(i==0)
+		if(this.getObject("nodeid") != null)
+			ret += "\n, \"nodeid\": \"" + this.getObject("nodeid") + "\"";
+		for(int i = 0; i < this.getChildCount(); i++){
+			if(i == 0)
 				ret += "\n, \"children\": [\n";
 			ret += this.getChild(i).getJSON(bl);
-			if(i == this.getChildCount()-1)
+			if(i == this.getChildCount() - 1)
 				ret += "]\n";
 			else
 				ret += ",\n";
 		}
-		if (bl == true)
-			ret += ", \"size\": "+this.getBL();
-		if((this.getObject("jsonprint"))!=null)
+		if (bl)
+			ret += ", \"size\": " + this.getBL();
+		if((this.getObject("jsonprint")) != null)
 			ret += this.getObject("jsonprint");
-		if(this.getObject("nodedepth")!=null)
-			ret += ", \"maxnodedepth\": "+this.getObject("nodedepth");
+		if(this.getObject("nodedepth") != null)
+			ret += ", \"maxnodedepth\": " + this.getObject("nodedepth");
 		if(this.isInternal())
-			ret += ", \"nleaves\": "+this.getTips().size();
+			ret += ", \"nleaves\": " + this.getTips().size();
 		else
 			ret += ", \"nleaves\": 0";
 		ret += "}";
 		return ret;
 	}
 	
+	/**
+	 * @return Returns all of the tips in the subtree rooted at `this`
+	 */
 	public ArrayList<JadeNode> getTips(){
 		ArrayList<JadeNode> children = new ArrayList<JadeNode>();
 		Stack<JadeNode> nodes = new Stack<JadeNode>();
 		nodes.push(this);
-		while(nodes.isEmpty()==false){
+		while(nodes.isEmpty() == false){
 			JadeNode jt = nodes.pop();
-			for (int i=0;i<jt.getChildCount();i++){
+			for (int i = 0; i < jt.getChildCount(); i++){
 				nodes.push(jt.getChild(i));
 			}
-			if (jt.isExternal()==true)
+			if (jt.isExternal())
 				children.add(jt);
 		}
 		return children;
 	}
 	
+	/**
+	 * @return Returns the maximum number of edges between `this` and a tip
+	 *		that is a descendant of `this`
+	 */
 	public int getNodeMaxDepth(){
-		int maxnodedepth=0;
+		int maxnodedepth = 0;
 		ArrayList<JadeNode> tips = this.getTips();
-		for(int i = 0;i<tips.size();i++){
+		for(int i = 0; i < tips.size(); i++){
 			JadeNode curnode = tips.get(i);
 			int tnodedepth = 0;
 			while(curnode != this){
@@ -188,37 +199,37 @@ public class JadeNode {
 		return maxnodedepth;
 	}
 	
-	public JadeNode getParent(){return parent;}
+	public JadeNode getParent(){return this.parent;}
 	
-	public int getChildCount(){return children.size();}
+	public int getChildCount(){return this.children.size();}
 	
-	public double getDistanceFromTip(){return distance_from_tip;}
+	public double getDistanceFromTip(){return this.distance_from_tip;}
 	
-	public void setDistanceFromTip(double inh){distance_from_tip = inh;}
+	public void setDistanceFromTip(double inh){this.distance_from_tip = inh;}
 	
-	public double getDistanceToTip(){return distance_to_tip;}
+	public double getDistanceToTip(){return this.distance_to_tip;}
 	
-	public void setDistanceToTip(double inh){distance_to_tip = inh;}
+	public void setDistanceToTip(double inh){this.distance_to_tip = inh;}
 	
-	public void assocObject(String name, Object obj){
+	public void assocObject(String key, Object obj){
 		boolean test = false;
-		for(int i=0;i<assoc.size();i++){
-			if(assoc.get(i).getName().compareTo(name)==0){
+		for(int i = 0; i < this.assoc.size(); i++){
+			if(this.assoc.get(i).getName().compareTo(key) == 0){
 				test = true;
-				assoc.get(i).setObject(obj);
+				this.assoc.get(i).setObject(obj);
 			}
 		}
 		if(test == false){
-			NodeObject no = new NodeObject(name, obj);
-			assoc.add(no);
+			NodeObject no = new NodeObject(key, obj);
+			this.assoc.add(no);
 		}
 	}
 	
-	public Object getObject(String name){
+	public Object getObject(String key){
 		Object a = null;
-		for(int i=0;i<assoc.size();i++){
-			if(assoc.get(i).getName().compareTo(name)==0){
-				a = assoc.get(i).getObject();
+		for(int i = 0; i < this.assoc.size(); i++){
+			if(this.assoc.get(i).getName().compareTo(key) == 0){
+				a = this.assoc.get(i).getObject();
 			}
 		}
 		return a;
