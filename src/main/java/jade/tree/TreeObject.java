@@ -1,5 +1,9 @@
 package jade.tree;
 
+/**
+ * Like NodeObject this class is just a (String, Object) pair. 
+ * @todo Could use the same class for this as NodeObject (or could refactor the assoc elements of JadeNode and JadeTree)
+ */
 public class TreeObject {
 	private String name;
 	private Object obj;
