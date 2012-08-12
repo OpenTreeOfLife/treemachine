@@ -6,7 +6,7 @@ public class JadeNode {
 	/*
 	 * common associations
 	 */
-	private double BL;//branch lengths
+	private double BL; //branch lengths
 	private double distance_to_tip;
 	private double distance_from_tip;
 	private int number;
@@ -19,91 +19,69 @@ public class JadeNode {
 	 * constructors
 	 */
 	public JadeNode(){
-		BL = 0.0;
-		distance_to_tip = 0.0;
-		distance_from_tip = 0.0;
-		number = 0;
-		name = "";
-		parent = null;
-		children = new ArrayList<JadeNode> ();
-		assoc = new ArrayList<NodeObject>();
+		this.BL = 0.0;
+		this.distance_to_tip = 0.0;
+		this.distance_from_tip = 0.0;
+		this.number = 0;
+		this.name = "";
+		this.parent = null;
+		this.children = new ArrayList<JadeNode> ();
+		this.assoc = new ArrayList<NodeObject>();
 	}
 	
 	public JadeNode(JadeNode parent){
-		BL = 0.0;
-		distance_to_tip = 0.0;
-		distance_from_tip = 0.0;
-		number = 0;
-		name = "";
+		this.BL = 0.0;
+		this.distance_to_tip = 0.0;
+		this.distance_from_tip = 0.0;
+		this.number = 0;
+		this.name = "";
 		this.parent = parent;
-		children = new ArrayList<JadeNode> ();
-		assoc = new ArrayList<NodeObject>();
+		this.children = new ArrayList<JadeNode> ();
+		this.assoc = new ArrayList<NodeObject>();
 	}
 	
 	public JadeNode(double BL, int number, String name, JadeNode parent){
 		this.BL = BL;
-		distance_to_tip = 0.0;
-		distance_from_tip = 0.0;
+		this.distance_to_tip = 0.0;
+		this.distance_from_tip = 0.0;
 		this.number = number;
 		this.name = name;
 		this.parent = parent;
-		children = new ArrayList<JadeNode> ();
-		assoc = new ArrayList<NodeObject>();
+		this.children = new ArrayList<JadeNode> ();
+		this.assoc = new ArrayList<NodeObject>();
 	}
 
 	/*
 	 * public methods
 	 */
 	
-	public JadeNode [] getChildrenArr(){return (JadeNode[])children.toArray();}
+	public JadeNode [] getChildrenArr(){return (JadeNode[])this.children.toArray();}
 	
-	public ArrayList<JadeNode> getChildren(){return children;}
+	public ArrayList<JadeNode> getChildren(){return this.children;}
 	
-	public boolean isExternal(){
-		if(children.size()<1)
-			return true;
-		else
-			return false;
-	}
+	public boolean isExternal(){return (this.children.size() < 1);}
 	
-	public boolean isInternal(){
-		if(children.size()<1)
-			return false;
-		else
-			return true;
-	}
+	public boolean isInternal(){return (this.children.size() > 0);}
 	
-	public boolean isTheRoot(){
-		if(parent == null)
-			return true;
-		else
-			return false;
-	}
+	public boolean isTheRoot(){return (this.parent == null);}
 	
-	public boolean hasParent(){
-		if(parent == null)
-			return false;
-		else
-			return true;
-	}
+	public boolean hasParent(){return (this.parent != null);}
 	
 	public void setParent(JadeNode p){this.parent = p;}
 	
-	public int getNumber(){return number;}
+	public int getNumber(){return this.number;}
 	
-	public void setNumber(int n){number = n;}
+	public void setNumber(int n){this.number = n;}
 	
-	public double getBL(){return BL;}
+	public double getBL(){return this.BL;}
 	
-	public void setBL(double b){BL=b;}
+	public void setBL(double b){this.BL = b;}
 	
-	public boolean hasChild(JadeNode test){
-		return children.contains((JadeNode)test);
-	}
+	public boolean hasChild(JadeNode test){return this.children.contains((JadeNode)test);}
 	
 	public boolean addChild(JadeNode c){
-		if(hasChild(c)==false){
-			children.add(c);
+		if(this.hasChild(c)==false){
+			this.children.add(c);
 			c.setParent(this);
 			return true;
 		}else{
@@ -112,26 +90,24 @@ public class JadeNode {
 	}
 	
 	public boolean removeChild(JadeNode c){
-		if(hasChild(c)==true){
-			children.remove(c);
+		if(this.hasChild(c)){
+			this.children.remove(c);
 			return true;
 		}else{
 			return false;
 		}
 	}
 
-	public JadeNode getChild(int c){return children.get(c);}
+	public JadeNode getChild(int c){return this.children.get(c);}
 	
-	public void setName(String s){name = s;}
+	public void setName(String s){this.name = s;}
 	
-	public String getName(){
-		//if(name != ""){
-			return name;
-		//}else{
-		//	return this.getNewick(false);
-		//}
-	}
+	public String getName(){return this.name;}
 	
+	/**
+	 * @param bl should be true to include branch lengths
+	 * @return string with newick representation of the subtree rooted at this node
+	 */
 	public String getNewick(boolean bl){
 		String ret = "";
 		for(int i=0;i<this.getChildCount();i++){
