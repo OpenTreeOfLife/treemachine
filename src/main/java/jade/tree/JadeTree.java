@@ -4,7 +4,7 @@ import java.util.*;
 
 public class JadeTree {
 	/*
-	 * private 
+	 * private
 	 */
 	private JadeNode root;
 
@@ -72,7 +72,7 @@ public class JadeTree {
 
 	/**
 	 * Adds `tn` to the this.externalNodes and uses setNumber to tell the node its index
-	 * @todo it is unclear why we can't just make num a local variable that it eaqual to the initial externalNodes.size(); 
+	 * @todo it is unclear why we can't just make num a local variable that it eaqual to the initial externalNodes.size();
 	 */
 	public void addExternalNode(JadeNode tn, int num) {
 		externalNodes.add(tn);
@@ -84,7 +84,7 @@ public class JadeTree {
 
 	/**
 	 * Adds `tn` to the this.internalNodes and uses setNumber to tell the node its index
-	 * @todo it is unclear why we can't just make num a local variable that it eaqual to the initial internalNodes.size(); 
+	 * @todo it is unclear why we can't just make num a local variable that it eaqual to the initial internalNodes.size();
 	 */
 	public void addInternalNode(JadeNode tn, int num) {
 		internalNodes.add(tn);
@@ -197,7 +197,11 @@ public class JadeTree {
 	}
 	
 	/**
-	 * just need to verify that the rerooting treats the branch lengths correctly
+	 * Reroots the tree by:
+	 *		1. adding a new Node object halfway between `inRoot` and it parent, and
+	 *		2. rooting the tree at this new node.
+	 * @todo just need to verify that the rerooting treats the branch lengths correctly
+	 * @todo should probably be renamed to "addRootBelow(JadeNode inRootChild)"
 	 */
 	public void reRoot(JadeNode inRoot) {
 		processRoot();
@@ -232,6 +236,7 @@ public class JadeTree {
 	 *		does not make this node the new root, it is just passed in to avoid
 	 *		deleting the node that was intended to be the root of the tree).
 	 * Assumes that the current root has outdegree 2 (and that it is not a cherry).
+	 * @todo the name of the removed node is lost (other code associated with rerooting the tree moves internal node names (see exchangeInfo)
 	 */
 	public void tritomyRoot(JadeNode toberoot) {
 		JadeNode curroot = this.getRoot();
@@ -285,48 +290,52 @@ public class JadeTree {
 		}
 	}
 
+	/**
+	 * @return the node in the tree that is the most recent common ancestor of all of the leaves specified
+	 * @param innodes an array of leaf node names
+	 * @todo this could be optimized (by not calling getMRCATraverse repeatedly)
+	 */
 	public JadeNode getMRCA(String [] innodes){
-		JadeNode mrca = null;
-    	if(innodes.length == 1)
+		if(innodes.length == 1)
     		return this.getExternalNode(innodes[0]);
-    	else{
-    		ArrayList <String> outgroup = new ArrayList<String>();
-    		for(int i=0;i<innodes.length;i++){outgroup.add(innodes[i]);}
-    		JadeNode cur1 = this.getExternalNode(outgroup.get(0));
-    		outgroup.remove(0);
-    		JadeNode cur2 = null;
-    		JadeNode tempmrca = null;
-    		while(outgroup.size()>0){
-    			cur2 = this.getExternalNode(outgroup.get(0));
-    			outgroup.remove(0);
-    			tempmrca = getMRCATraverse(cur1,cur2);
-    			cur1 = tempmrca;
-    		}
-    		mrca = cur1;
-    	}
-    	return mrca;
+		ArrayList <String> outgroup = new ArrayList<String>();
+		for(int i = 0;i < innodes.length; i++){
+			outgroup.add(innodes[i]);
+		}
+		JadeNode cur1 = this.getExternalNode(outgroup.get(0));
+		outgroup.remove(0);
+		JadeNode cur2 = null;
+		JadeNode tempmrca = null;
+		while(outgroup.size() > 0){
+			cur2 = this.getExternalNode(outgroup.get(0));
+			outgroup.remove(0);
+			tempmrca = getMRCATraverse(cur1, cur2);
+			cur1 = tempmrca;
+		}
+		return cur1;
     }
 	
+	/**
+	 * @return the node in the tree that is the most recent common ancestor of all of the leaves specified
+	 * @param innodes an array of leaf node names
+	 * @todo this could be optimized (by not calling getMRCATraverse repeatedly)
+	 */
 	public JadeNode getMRCA(ArrayList<String> innodes){
-		JadeNode mrca = null;
     	if(innodes.size() == 1)
     		return this.getExternalNode(innodes.get(0));
-    	else{
-    		ArrayList <String> outgroup = new ArrayList<String>();
-    		for(int i=0;i<innodes.size();i++){outgroup.add(innodes.get(i));}
-    		JadeNode cur1 = this.getExternalNode(outgroup.get(0));
-    		outgroup.remove(0);
-    		JadeNode cur2 = null;
-    		JadeNode tempmrca = null;
-    		while(outgroup.size()>0){
-    			cur2 = this.getExternalNode(outgroup.get(0));
-    			outgroup.remove(0);
-    			tempmrca = getMRCATraverse(cur1,cur2);
-    			cur1 = tempmrca;
-    		}
-    		mrca = cur1;
-    	}
-    	return mrca;
+		ArrayList <String> outgroup = new ArrayList<String>();
+		for(int i=0;i<innodes.size();i++){outgroup.add(innodes.get(i));}
+		JadeNode cur1 = this.getExternalNode(outgroup.get(0));
+		outgroup.remove(0);
+		JadeNode cur2 = null;
+		JadeNode tempmrca = null;
+		while(outgroup.size()>0){
+			cur2 = this.getExternalNode(outgroup.get(0));
+			outgroup.remove(0);
+			tempmrca = getMRCATraverse(cur1,cur2);
+			cur1 = tempmrca;
+		}
+		return cur1;
     }
 	
 	/**
@@ -349,8 +358,10 @@ public class JadeTree {
 		parent.setParent(node);
 	}
 
-	/*
-	 * swap info
+	/**
+	 * Swaps name and branch length of `node1` and `node2`
+	 * @todo swapping internal node names implicitly treats a node name as
+	 *		a name attached to the edge under a node.
 	 */
 	private void exchangeInfo(JadeNode node1, JadeNode node2) {
 		String swaps;
@@ -382,8 +393,9 @@ public class JadeTree {
 		}
 	}
 
-	/*
-	 * prune external node
+	/**
+	 * prunes `node` from the tree, if `node` is external
+	 * @todo doesn't yet take care if node.parent == root or is a polytomy
 	 */
 	public void pruneExternalNode(JadeNode node){
 		if(node.isInternal()){
@@ -391,20 +403,17 @@ public class JadeTree {
 		}
 		/*
 		 * how this works
-		 * 
+		 *
 		 * get the parent = parent
 		 * get the parent of the parent = mparent
 		 * remove parent from mparent
 		 * add !node from parent to mparent
-		 * 
-		 * doesn't yet take care if node.parent == root
-		 * or polytomy
 		 */
 		double bl = 0;
 		JadeNode parent = node.getParent();
 		JadeNode other = null;
-		for(int i=0;i<parent.getChildCount();i++){
-			if(parent.getChild(i)!=node){
+		for(int i = 0; i < parent.getChildCount(); i++) {
+			if (parent.getChild(i) != node){
 				other = parent.getChild(i);
 			}
 		}
@@ -424,36 +433,27 @@ public class JadeTree {
 	}
 	
 	/*
-	 * get the MRCA of the array of strings
-	 * 
+	 * @returns the MRCA of two nodes in a tree. Returns null if the two nodes
+	 *		do not have a common ancestor
+	 *
 	 */
-
-	private JadeNode getMRCATraverse(JadeNode curn1, JadeNode curn2) {
+	private static JadeNode getMRCATraverse(JadeNode curn1, JadeNode curn2) {
 		JadeNode mrca = null;
 		//get path to root for first node
 		ArrayList<JadeNode> path1 = new ArrayList<JadeNode>();
 		JadeNode parent = curn1;
-		path1.add(parent);
 		while (parent != null) {
 			path1.add(parent);
-			if (parent.getParent() != null)
-				parent = parent.getParent();
-			else
-				break;
+			parent = parent.getParent();
 		}
 		//find first match between this node and the first one
 		parent = curn2;
-		boolean x = true;
-		while (x == true) {
-			for (int i = 0; i < path1.size(); i++) {
-				if (parent == path1.get(i)) {
-					mrca = parent;
-					x = false;
-					break;
-				}
+		while (parent != null) {
+			if (path1.contains(parent)) {
+				return parent;
 			}
 			parent = parent.getParent();
 		}
-		return mrca;
+		return null;
 	}
 }
