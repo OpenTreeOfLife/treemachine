@@ -8,7 +8,7 @@ public class JadeNode {
 	 */
 	private double BL; //branch lengths
 	private double distance_to_tip;
-	private double distance_from_tip;
+	private double distance_from_tip; // distance from the root to a tip (not set automatically)
 	private int number;
 	private String name;
 	private JadeNode parent;
