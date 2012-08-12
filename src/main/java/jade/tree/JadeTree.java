@@ -8,17 +8,17 @@ public class JadeTree {
 	 */
 	private JadeNode root;
 
-	private ArrayList<JadeNode> nodes;
+	private ArrayList<JadeNode> nodes; // @todo this does not appear to be used (and it is just the union of internalNodes and externalNodes, but it does provide a preorder traversal)
 
-	private ArrayList<JadeNode> internalNodes;
+	private ArrayList<JadeNode> internalNodes; // stored in preorder
 
 	private ArrayList<JadeNode> externalNodes;
 
-	private ArrayList<TreeObject> assoc;
+	private ArrayList<TreeObject> assoc; //@todo as with JavaNode.assoc, this could be changed to a HashMap or TreeMap, if needed
 
-	private int internalNodeCount;
+	private int internalNodeCount;  // @todo could be removed by relying on internalNodes.size()
 
-	private int externalNodeCount;
+	private int externalNodeCount; // @todo could be removed by relying on externalNodes.size()
 
 	/*
 	 * constructors
@@ -35,6 +35,9 @@ public class JadeTree {
 		processRoot();
 	}
 
+	/**
+	 * Initializes data members based on current root.
+	 */
 	public void processRoot() {
 		nodes = new ArrayList<JadeNode>();
 		internalNodes = new ArrayList<JadeNode>();
@@ -46,12 +49,20 @@ public class JadeTree {
 		postOrderProcessRoot(root);
 	}
 
+	/**
+	 * Adds `tn` to the this.externalNodes, but does not tell the node its number
+	 *	@todo Is this deprecated? it is not usesd within opentree-treemachine code
+	 */
 	public void addExternalNode(JadeNode tn) {
 		externalNodes.add(tn);
 		externalNodeCount = externalNodes.size();
 		nodes.add(tn);
 	}
 
+	/**
+	 * Adds `tn` to the this.internalNodeCount, but does not tell the node its number
+	 *	@todo Is this deprecated? it is not usesd within opentree-machine code
+	 */
 	public void addInternalNode(JadeNode tn) {
 		internalNodes.add(tn);
 		internalNodeCount = internalNodes.size();
@@ -59,6 +70,10 @@ public class JadeTree {
 		nodes.add(tn);
 	}
 
+	/**
+	 * Adds `tn` to the this.externalNodes and uses setNumber to tell the node its index
+	 * @todo it is unclear why we can't just make num a local variable that it eaqual to the initial externalNodes.size(); 
+	 */
 	public void addExternalNode(JadeNode tn, int num) {
 		externalNodes.add(tn);
 		externalNodeCount = externalNodes.size();
@@ -67,6 +82,10 @@ public class JadeTree {
 		tn.setNumber(num);
 	}
 
+	/**
+	 * Adds `tn` to the this.internalNodes and uses setNumber to tell the node its index
+	 * @todo it is unclear why we can't just make num a local variable that it eaqual to the initial internalNodes.size(); 
+	 */
 	public void addInternalNode(JadeNode tn, int num) {
 		internalNodes.add(tn);
 		internalNodeCount = internalNodes.size();
@@ -74,67 +93,101 @@ public class JadeTree {
 		tn.setNumber(num);
 	}
 
-	public JadeNode getExternalNode(int num) {
+	/**
+	 * @return a leaf with the index `num` from the externalNodes or throw IndexOutOfBoundsException.
+	 */
+	public JadeNode getExternalNode(int num) throws IndexOutOfBoundsException {
 		return externalNodes.get(num);
 	}
 
+	/**
+	 * @return a leaf with name `name` or null
+	 * O(N) lookup.
+	 */
 	public JadeNode getExternalNode(String name) {
-		JadeNode retNode = null;
 		Iterator go = externalNodes.iterator();
 		while (go.hasNext()) {
 			JadeNode ne = (JadeNode) go.next();
 			if (ne.getName().compareTo(name) == 0) {
-				retNode = ne;
-				break;
+				return ne;
 			}
 		}
-		return retNode;
+		return null;
 	}
 
-	public JadeNode getInternalNode(int num) {
+	/**
+	 * @return an internal node with the index `num` from the internalNodes or throw IndexOutOfBoundsException.
+	 * Calling this with arguments in the order 0 -> internalNodeCount will be a preorder traversal
+	 */
+	public JadeNode getInternalNode(int num) throws IndexOutOfBoundsException {
 		return internalNodes.get(num);
 	}
 
+	/**
+	 * @return an internal node with name `name` or null
+	 * O(N) lookup.
+	 */
 	public JadeNode getInternalNode(String name) {
-		JadeNode retNode = null;
 		Iterator go = internalNodes.iterator();
 		while (go.hasNext()) {
 			JadeNode ne = (JadeNode) go.next();
 			if (ne.getName().compareTo(name) == 0) {
-				retNode = ne;
-				break;
+				return ne;
 			}
 		}
-		return retNode;
+		return null;
 	}
 	
+	/**
+	 * @return size of externalNodes.
+	 * NOTE: this disagrees with externalNodesCount during tree construction methods!
+	 */
 	public int getExternalNodeCount(){return externalNodes.size();}
+	/**
+	 * @return size of internalNodes.
+	 * NOTE: this disagrees with internalNodesCount during tree construction methods!
+	 */
 	public int getInternalNodeCount(){return internalNodes.size();}
 	
-	public JadeNode getRoot() {
-		return root;
-	}
+	public JadeNode getRoot() {return root;}
 
-	public void setRoot(JadeNode root) {
-		this.root = root;
-	}
+	public void setRoot(JadeNode root) {this.root = root;}
 
-	public void assocObject(String name, Object obj) {
-		TreeObject no = new TreeObject(name, obj);
+	/**
+	 * Adds a mapping of key->obj for this tree. Unlike the JavaNode version,
+	 *	this method does NOT guard against multiple keys being added. Note
+	 *	that only the last object associated with a key will be accessible via
+	 *	getObject
+	 * @note this in an example of an O(N) routine that would be constant time
+	 * 		or O(log(N)) if we change the assoc datatype.
+	 * @param key
+	 * @param obj Object to be storted
+	 */
+	public void assocObject(String key, Object obj) {
+		TreeObject no = new TreeObject(key, obj);
 		assoc.add(no);
 	}
 
-	public Object getObject(String name) {
+	/**
+	 * Returns the object associated with the last call of assocObject with this key
+	 * @note this in an example of an O(N) routine that would be constant time
+	 * 		or O(log(N)) if we change the assoc datatype.
+	 * @param key
+	 */
+	public Object getObject(String key) {
 		Object a = null;
 		for (int i = 0; i < assoc.size(); i++) {
-			if (assoc.get(i).getName().compareTo(name) == 0) {
+			if (assoc.get(i).getName().compareTo(key) == 0) {
 				a = assoc.get(i);
 			}
 		}
 		return a;
 	}
 
-	//need to check
+	/**
+	 * @todo need to check
+	 * @todo we should probably have a boolean flag to indicate whether or not the tree should be treated as rooted
+	 */
 	public void unRoot(JadeNode inRoot){
 		processRoot();
 		if (this.getRoot().getChildCount() < 3) {
@@ -143,7 +196,7 @@ public class JadeTree {
 		processRoot();
 	}
 	
-	/*
+	/**
 	 * just need to verify that the rerooting treats the branch lengths correctly
 	 */
 	public void reRoot(JadeNode inRoot) {
@@ -170,8 +223,22 @@ public class JadeTree {
 		}
 	}
 
+	/**
+	 * Converts a root with outdegree 2 to a root of outdegree 3 by deleting a child
+	 *	of the root. It guards against removing toberoot.
+	 *
+	 * just need to verify that the rerooting treats the branch lengths correctly
+	 * @param toberoot the node that will be the next root of the tree (NOTE: this
+	 *		does not make this node the new root, it is just passed in to avoid
+	 *		deleting the node that was intended to be the root of the tree).
+	 * Assumes that the current root has outdegree 2 (and that it is not a cherry).
+	 */
 	public void tritomyRoot(JadeNode toberoot) {
 		JadeNode curroot = this.getRoot();
+		assert curroot != null;
+		assert curroot.getChildCount() == 2;
+		
+	 	// @todo code duplication could be lessened by using a pair of ints: toBeDeletedIndex, toGetExtraBLIndex set to (0,1) or (1,0)
 		if (toberoot == null) {
 			if (curroot.getChild(0).isInternal()) {
 				JadeNode currootCH = curroot.getChild(0);
@@ -184,6 +251,7 @@ public class JadeTree {
 				}
 			} else {
 				JadeNode currootCH = curroot.getChild(1);
+				assert currootCH.isInternal();
 				double nbl = currootCH.getBL();
 				curroot.getChild(0).setBL(curroot.getChild(0).getBL() + nbl);
 				curroot.removeChild(currootCH);
@@ -195,6 +263,7 @@ public class JadeTree {
 		} else {
 			if (curroot.getChild(1) == toberoot) {
 				JadeNode currootCH = curroot.getChild(0);
+				assert currootCH.isInternal();
 				double nbl = currootCH.getBL();
 				curroot.getChild(1).setBL(curroot.getChild(1).getBL() + nbl);
 				curroot.removeChild(currootCH);
@@ -204,6 +273,7 @@ public class JadeTree {
 				}
 			} else {
 				JadeNode currootCH = curroot.getChild(1);
+				assert currootCH.isInternal();
 				double nbl = currootCH.getBL();
 				curroot.getChild(0).setBL(curroot.getChild(0).getBL() + nbl);
 				curroot.removeChild(currootCH);
@@ -259,6 +329,10 @@ public class JadeTree {
     	return mrca;
     }
 	
+	/**
+	 * Changes the direction of the arc connecting node to it's parent
+	 * @todo uses recursion.
+	 */
 	private void ProcessReRoot(JadeNode node) {
 		if (node.isTheRoot() || node.isExternal()) {
 			return;
@@ -290,12 +364,15 @@ public class JadeTree {
 		node2.setBL(swapd);
 	}
 
+	/**
+	 * Adds node and its descendants to the appropriate list (externalNodes or internalNodes)
+	 */
 	private void postOrderProcessRoot(JadeNode node) {
 		if (node == null)
 			return;
 		if (node.getChildCount() > 0) {
 			for (int i = 0; i < node.getChildCount(); i++) {
-				postOrderProcessRoot(node.getChild(i));
+				postOrderProcessRoot(node.getChild(i)); //@todo recursion could be a problem for big trees...
 			}
 		}
 		if (node.isExternal()) {

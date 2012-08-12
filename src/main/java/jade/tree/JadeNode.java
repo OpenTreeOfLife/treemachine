@@ -98,7 +98,12 @@ public class JadeNode {
 		}
 	}
 
-	public JadeNode getChild(int c){return this.children.get(c);}
+	/**
+	 * @return the c-th child or throw IndexOutOfBoundsException.
+	 */
+	public JadeNode getChild(int c) throws IndexOutOfBoundsException {
+		return this.children.get(c);
+	}
 	
 	public void setName(String s){this.name = s;}
 	
