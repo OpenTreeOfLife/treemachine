@@ -7,6 +7,10 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 
+/**
+ * Neo4j Traversal Evaluator whith prunes paths when it finds a node with 
+ *  an indegree greater or equal the threshold set in `setChildThreshold`
+ */
 public class ChildNumberEvaluator implements Evaluator{
 	int child_threshold = 100;
 	Node startNode = null;
@@ -20,6 +24,7 @@ public class ChildNumberEvaluator implements Evaluator{
 	public Evaluation evaluate(Path arg0) {
 		boolean tthresh = false;
 		int count = 0;
+		// @query Do we need to specify the type of relationship?
 		for(Relationship rel: arg0.endNode().getRelationships(Direction.INCOMING)){
 			count += 1;
 			if (count >= child_threshold){
