@@ -9,6 +9,11 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 
+/**
+ * A Neo4j Traversal Evaluator which include:
+ *		paths that end with a TAXCHILDOF startNode, and
+ *		paths are the TAX parent of other nodes.
+ */
 public class SpeciesEvaluator implements Evaluator{
 	Node startNode = null;
 	public void setStartNode(Node n){

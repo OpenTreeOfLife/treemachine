@@ -8,7 +8,7 @@ import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 
 /**
- * Neo4j Traversal Evaluator whith prunes paths when it finds a node with 
+ * Neo4j Traversal Evaluator which prunes paths when it finds a node with 
  *  an indegree greater or equal the threshold set in `setChildThreshold`
  */
 public class ChildNumberEvaluator implements Evaluator{

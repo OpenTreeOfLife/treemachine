@@ -6,6 +6,9 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.Index;
 
+/** 
+ *  @todo Currently this code is identical to the code base in GraphBase
+ */
 public abstract class TaxonomyBase {
 	GraphDatabaseService graphDb;
 	protected static Index<Node> taxNodeIndex;
