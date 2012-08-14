@@ -1,5 +1,8 @@
 package opentree;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
 public class MainRunner {
 	public void taxonomyLoadParser(String [] args){
 		if(args.length < 4){
@@ -158,6 +161,7 @@ public class MainRunner {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+	    PropertyConfigurator.configure(System.getProperties());
 		System.out.println("treemachine version alpha.alpha.prealpha");
 		if(args.length < 2){
 			printHelp();

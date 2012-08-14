@@ -7,7 +7,7 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.*;
-import jade.tree.*;
+import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +20,7 @@ import java.util.Map;
  *
  */
 public class TaxonomyLoader extends TaxonomyBase{
+	static Logger _LOG = Logger.getLogger(TaxonomyLoader.class);
 	int transaction_iter = 100000;
 	int LARGE = 100000000;
 	
@@ -189,6 +190,25 @@ public class TaxonomyLoader extends TaxonomyBase{
 		return ret;
 	}
 	
+	private void addBatchOfNewNodes(ArrayList<String> addnodes, ArrayList<String> addnodesids, HashMap<String,Node> addednodes) {
+		Transaction tx;
+		tx = graphDb.beginTx();
+		try{
+			for(int i = 0; i < addnodes.size(); i++){
+				Node tnode = graphDb.createNode();
+				tnode.setProperty("name", addnodes.get(i));
+				taxNodeIndex.add( tnode, "name", addnodes.get(i));
+				_LOG.debug("Added " + addnodes.get(i));
+				addednodes.put(addnodesids.get(i), tnode);
+			}
+			addnodes.clear();
+			addnodesids.clear();
+			tx.success();
+		}finally{
+			tx.finish();
+		}
+	}
+	
 	/**
 	 * See addInitialTaxonomyTableIntoGraph 
 	 * This function acts like addInitialTaxonomyTableIntoGraph but it 
@@ -213,8 +233,8 @@ public class TaxonomyLoader extends TaxonomyBase{
 	public void addAdditionalTaxonomyTableIntoGraph(String filename,String sourcename, int rootthresh){
 		String str = "";
 		int count = 0;
-		HashMap<String, String> ndnames = new HashMap<String, String>();
-		HashMap<String, String> parents = new HashMap<String, String>();
+		HashMap<String, String> ndnames = new HashMap<String, String>(); // node number -> name
+		HashMap<String, String> parents = new HashMap<String, String>(); // node number -> parent's number
 		Transaction tx;
 		ArrayList<String> addnodes = new ArrayList<String>();
 		ArrayList<String> addnodesids = new ArrayList<String>();
@@ -233,6 +253,8 @@ public class TaxonomyLoader extends TaxonomyBase{
 					if(ih.size()==0){
 						addnodes.add(strname);
 						addnodesids.add(spls[0]);
+					}else {
+						_LOG.debug(strname + " already in db");
 					}
 				}finally{
 					ih.close();
@@ -242,38 +264,13 @@ public class TaxonomyLoader extends TaxonomyBase{
 					System.out.print(" ");
 					System.out.print(addnodes.size());
 					System.out.print("\n");
-					tx = graphDb.beginTx();
-					try{
-						for(int i=0;i<addnodes.size();i++){
-							Node tnode = graphDb.createNode();
-							tnode.setProperty("name", addnodes.get(i));
-							taxNodeIndex.add( tnode, "name", addnodes.get(i) );
-							addednodes.put(addnodesids.get(i) , tnode);
-						}
-						addnodes.clear();
-						addnodesids.clear();
-						tx.success();
-					}finally{
-						tx.finish();
-					}
+					addBatchOfNewNodes(addnodes, addnodesids, addednodes);
 				}
 			}
 			br.close();
 		}catch(IOException ioe){}
-		tx = graphDb.beginTx();
-		try{
-			for(int i=0;i<addnodes.size();i++){
-				Node tnode = graphDb.createNode();
-				tnode.setProperty("name", addnodes.get(i));
-				taxNodeIndex.add( tnode, "name", addnodes.get(i) );
-				addednodes.put(addnodesids.get(i) , tnode);
-			}
-			addnodes.clear();
-			addnodesids.clear();
-			tx.success();
-		}finally{
-			tx.finish();
-		}
+		addBatchOfNewNodes(addnodes, addnodesids, addednodes);
+		
 		System.out.println("second pass through file for relationships");
 		//GET NODE
 		ArrayList<Node> rel_nd = new ArrayList<Node>();

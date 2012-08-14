@@ -21,5 +21,30 @@ To compile and package what is necessary for the server plugins
 
 Usage
 --------------
+To see the help message run:
+
+	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+
+After you have loaded content into your db, you can run the neo4j http server
+with the command:
+
+	neo4j start
+	
+This requires having the full neo4j installation from http://neo4j.org/download 
+Note that the file $(NEO4J_HOME)/conf/neo4j-server.properties will have to be
+modified slightly. Typically, you'll just have to put the full path of the db
+directory that you are using with the opentree-treemachine as the value for the
+org.neo4j.server.database.location setting.
+
 ### Taxonomy Loading
+Full description on loading the taxonomies for the full ToL at 
+https://docs.google.com/document/d/1J82ZvgqMwv9Y43SqSGcw1ZjqWEPHaFQww5deuFFV7Js/edit
+
+As an example of usage, you can load the Primate subset of these taxonomies 
+in a test.db with:
+
+	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar inittax example/col_primates.txt col test.db
+	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addtax example/ncbi_primates.txt ncbi test.db 3
+
+
 ### Taxonomy Query

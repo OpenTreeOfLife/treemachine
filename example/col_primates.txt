@@ -1,0 +1,324 @@
+2362871,2362755,Primates
+2362883,2362871,Hylobatidae
+2436804,2362883,Hylobates
+6873734,2436804,Hylobates syndactylus
+6873726,2436804,Hylobates gabriellae
+6873728,2436804,Hylobates klossii
+6873727,2436804,Hylobates hoolock
+6873729,2436804,Hylobates lar
+6873725,2436804,Hylobates concolor
+6873724,2436804,Hylobates agilis
+6873730,2436804,Hylobates leucogenys
+6873731,2436804,Hylobates moloch
+6873732,2436804,Hylobates muelleri
+6873733,2436804,Hylobates pileatus
+2362885,2362871,Galagonidae
+2436765,2362885,Galago
+6873546,2436765,Galago gallarum
+6873545,2436765,Galago alleni
+6873547,2436765,Galago matschiei
+6873549,2436765,Galago senegalensis
+6873548,2436765,Galago moholi
+2436766,2362885,Galagoides
+6873550,2436766,Galagoides demidoff
+6873551,2436766,Galagoides zanzibaricus
+2436764,2362885,Euoticus
+6873544,2436764,Euoticus pallidus
+6873543,2436764,Euoticus elegantulus
+2436767,2362885,Otolemur
+6873553,2436767,Otolemur garnettii
+6873552,2436767,Otolemur crassicaudatus
+2362890,2362871,Callitrichidae
+2436769,2362890,Callimico
+6873559,2436769,Callimico goeldii
+2436770,2362890,Callithrix
+6873568,2436770,Callithrix penicillata
+6873563,2436770,Callithrix geoffroyi
+6873560,2436770,Callithrix argentata
+6873561,2436770,Callithrix aurita
+6873567,2436770,Callithrix pygmaea
+6873565,2436770,Callithrix jacchus
+6873566,2436770,Callithrix kuhlii
+6873562,2436770,Callithrix flaviceps
+6873564,2436770,Callithrix humeralifera
+2436771,2362890,Leontopithecus
+6873571,2436771,Leontopithecus chrysopygus
+6873569,2436771,Leontopithecus chrysomelas
+6873572,2436771,Leontopithecus caissara
+6873573,2436771,Leontopithecus rosalia
+2436773,2362890,Saguinus
+6873578,2436773,Saguinus inustus
+6873582,2436773,Saguinus mystax
+6873575,2436773,Saguinus fuscicollis
+6873585,2436773,Saguinus tripartitus
+6873583,2436773,Saguinus nigricollis
+6873576,2436773,Saguinus geoffroyi
+6873574,2436773,Saguinus bicolor
+6873580,2436773,Saguinus leucopus
+6873581,2436773,Saguinus midas
+6873579,2436773,Saguinus labiatus
+6873577,2436773,Saguinus imperator
+6873584,2436773,Saguinus oedipus
+2362879,2362871,Lemuridae
+2436753,2362879,Lemur
+6873522,2436753,Lemur catta
+2436754,2362879,Varecia
+6873523,2436754,Varecia variegata
+2436750,2362879,Eulemur
+6873514,2436750,Eulemur coronatus
+6873517,2436750,Eulemur rubriventer
+6873513,2436750,Eulemur fulvus
+6873516,2436750,Eulemur mongoz
+6873515,2436750,Eulemur macaco
+2436751,2362879,Hapalemur
+6873518,2436751,Hapalemur aureus
+6873521,2436751,Hapalemur simus
+6873520,2436751,Hapalemur griseus
+2362872,2362871,Tarsiidae
+2436768,2362872,Tarsius
+6873555,2436768,Tarsius dianae
+6873558,2436768,Tarsius syrichta
+6873557,2436768,Tarsius spectrum
+6873554,2436768,Tarsius bancanus
+6873556,2436768,Tarsius pumilus
+2362884,2362871,Hominidae
+2436806,2362884,Pan
+6873737,2436806,Pan troglodytes
+6873736,2436806,Pan paniscus
+2417802,2362884,Homo
+6850099,2417802,Homo sapiens
+2436805,2362884,Gorilla
+6873735,2436805,Gorilla gorilla
+2436807,2362884,Pongo
+6873738,2436807,Pongo pygmaeus
+2362882,2362871,Indridae
+2436758,2362882,Propithecus
+6873533,2436758,Propithecus diadema
+6873534,2436758,Propithecus tattersalli
+6873535,2436758,Propithecus verreauxi
+2436757,2362882,Indri
+6873532,2436757,Indri indri
+2436756,2362882,Avahi
+6873531,2436756,Avahi laniger
+2362886,2362871,Daubentoniidae
+2436759,2362886,Daubentonia
+6873536,2436759,Daubentonia madagascariensis
+2362889,2362871,Cebidae
+2436774,2362889,Alouatta
+6873592,2436774,Alouatta sara
+6873590,2436774,Alouatta palliata
+6873587,2436774,Alouatta caraya
+6873586,2436774,Alouatta belzebul
+6873593,2436774,Alouatta seniculus
+6873588,2436774,Alouatta coibensis
+6873591,2436774,Alouatta pigra
+6873589,2436774,Alouatta fusca
+2436777,2362889,Ateles
+6873609,2436777,Ateles fusciceps
+6873608,2436777,Ateles marginatus
+6873605,2436777,Ateles paniscus
+6873607,2436777,Ateles chamek
+6873606,2436777,Ateles belzebuth
+6873610,2436777,Ateles geoffroyi
+2436775,2362889,Aotus
+6873603,2436775,Aotus trivirgatus
+6873594,2436775,Aotus azarai
+6873599,2436775,Aotus infulatus
+6873598,2436775,Aotus miconax
+6873596,2436775,Aotus nancymaae
+6873604,2436775,Aotus vociferans
+6873595,2436775,Aotus brumbacki
+6873600,2436775,Aotus lemurinus
+6873597,2436775,Aotus nigriceps
+6873602,2436775,Aotus hershkovitzi
+2436781,2362889,Saimiri
+6873631,2436781,Saimiri boliviensis
+6850100,2436781,Saimiri sciureus
+6873635,2436781,Saimiri vanzolinii
+6873634,2436781,Saimiri ustus
+6873633,2436781,Saimiri oerstedii
+2436778,2362889,Brachyteles
+6873611,2436778,Brachyteles arachnoides
+2436779,2362889,Lagothrix
+6873612,2436779,Lagothrix lagotricha
+6873613,2436779,Lagothrix flavicauda
+2436780,2362889,Cebus
+6873629,2436780,Cebus capucinus
+6873627,2436780,Cebus albifrons
+6873628,2436780,Cebus apella
+6873630,2436780,Cebus olivaceus
+2362888,2362871,Cercopithecidae
+2436792,2362888,Mandrillus
+6873685,2436792,Mandrillus sphinx
+6873684,2436792,Mandrillus leucophaeus
+2419349,2362888,Chlorocebus
+6862878,2419349,Chlorocebus aethiops
+2436797,2362888,Nasalis
+6873694,2436797,Nasalis larvatus
+6873693,2436797,Nasalis concolor
+2436800,2362888,Pygathrix
+6873708,2436800,Pygathrix avunculus
+6873709,2436800,Pygathrix bieti
+6873711,2436800,Pygathrix nemaeus
+6873710,2436800,Pygathrix brelichi
+6873712,2436800,Pygathrix roxellana
+2436794,2362888,Papio
+6873687,2436794,Papio hamadryas
+2436798,2362888,Presbytis
+6873695,2436798,Presbytis comata
+6873701,2436798,Presbytis rubicunda
+6873699,2436798,Presbytis melalophos
+6873697,2436798,Presbytis frontata
+6873698,2436798,Presbytis hosei
+6873702,2436798,Presbytis thomasi
+6873696,2436798,Presbytis femoralis
+6873700,2436798,Presbytis potenziani
+2436801,2362888,Semnopithecus
+6873713,2436801,Semnopithecus entellus
+2436790,2362888,Erythrocebus
+6873669,2436790,Erythrocebus patas
+2436791,2362888,Lophocebus
+6873670,2436791,Lophocebus albigena
+6919429,2436791,Lophocebus kipunji
+2436795,2362888,Theropithecus
+6873688,2436795,Theropithecus gelada
+2436788,2362888,Cercopithecus
+6873667,2436788,Cercopithecus solatus
+6873662,2436788,Cercopithecus petaurista
+6873664,2436788,Cercopithecus pogonias
+6873652,2436788,Cercopithecus diana
+6873655,2436788,Cercopithecus erythrotis
+6873654,2436788,Cercopithecus erythrogaster
+6873656,2436788,Cercopithecus hamlyni
+6873659,2436788,Cercopithecus mona
+6873661,2436788,Cercopithecus nictitans
+6873666,2436788,Cercopithecus preussi
+6873650,2436788,Cercopithecus campbelli
+6873649,2436788,Cercopithecus ascanius
+6873660,2436788,Cercopithecus neglectus
+6873657,2436788,Cercopithecus lhoesti
+6873668,2436788,Cercopithecus sclateri
+6873658,2436788,Cercopithecus mitis
+6873665,2436788,Cercopithecus wolfi
+6873651,2436788,Cercopithecus cephus
+6873653,2436788,Cercopithecus dryas
+2377521,2362888,Macaca
+6873678,2377521,Macaca radiata
+6850102,2377521,Macaca mulatta
+6850101,2377521,Macaca fascicularis
+6873681,2377521,Macaca sylvanus
+6873676,2377521,Macaca nigra
+6873679,2377521,Macaca silenus
+6873682,2377521,Macaca thibetana
+6873671,2377521,Macaca arctoides
+6873680,2377521,Macaca sinica
+6873672,2377521,Macaca assamensis
+6865072,2377521,Macaca fuscata
+6873673,2377521,Macaca cyclopis
+6873677,2377521,Macaca ochreata
+6873674,2377521,Macaca maura
+6873675,2377521,Macaca nemestrina
+6873683,2377521,Macaca tonkeana
+2436787,2362888,Cercocebus
+6873647,2436787,Cercocebus galeritus
+6873648,2436787,Cercocebus torquatus
+6873646,2436787,Cercocebus agilis
+2436796,2362888,Colobus
+6873691,2436796,Colobus polykomos
+6873689,2436796,Colobus angolensis
+6873692,2436796,Colobus satanas
+6873690,2436796,Colobus guereza
+2436793,2362888,Miopithecus
+6873686,2436793,Miopithecus talapoin
+2436786,2362888,Allenopithecus
+6873645,2436786,Allenopithecus nigroviridis
+2436803,2362888,Trachypithecus
+6873723,2436803,Trachypithecus vetulus
+6873718,2436803,Trachypithecus geei
+6873717,2436803,Trachypithecus francoisi
+6873715,2436803,Trachypithecus auratus
+6873716,2436803,Trachypithecus cristatus
+6873721,2436803,Trachypithecus phayrei
+6873719,2436803,Trachypithecus johnii
+6873720,2436803,Trachypithecus obscurus
+6873722,2436803,Trachypithecus pileatus
+2436799,2362888,Procolobus
+6873707,2436799,Procolobus verus
+6873703,2436799,Procolobus badius
+6873704,2436799,Procolobus pennantii
+6873705,2436799,Procolobus preussi
+6873706,2436799,Procolobus rufomitratus
+2362878,2362871,Loridae
+2436761,2362878,Loris
+6873539,2436761,Loris tardigradus
+2436760,2362878,Arctocebus
+6873537,2436760,Arctocebus aureus
+6873538,2436760,Arctocebus calabarensis
+2436763,2362878,Perodicticus
+6873542,2436763,Perodicticus potto
+2436762,2362878,Nycticebus
+6873541,2436762,Nycticebus pygmaeus
+6873540,2436762,Nycticebus coucang
+2362887,2362871,Cheirogaleidae
+2436747,2362887,Cheirogaleus
+6873508,2436747,Cheirogaleus medius
+6873507,2436747,Cheirogaleus major
+2436748,2362887,Microcebus
+6873510,2436748,Microcebus murinus
+6873509,2436748,Microcebus coquereli
+6873511,2436748,Microcebus rufus
+2436749,2362887,Phaner
+6873512,2436749,Phaner furcifer
+2436746,2362887,Allocebus
+6873506,2436746,Allocebus trichotis
+2362876,2362871,Pitheciidae
+2436784,2362876,Chiropotes
+6873638,2436784,Chiropotes albinasus
+6873639,2436784,Chiropotes satanas
+2436785,2362876,Pithecia
+6873643,2436785,Pithecia monachus
+6873644,2436785,Pithecia pithecia
+6873641,2436785,Pithecia albicans
+6873640,2436785,Pithecia aequatorialis
+6873642,2436785,Pithecia irrorata
+2419842,2362876,Callicebus
+6873616,2419842,Callicebus modestus
+6873619,2419842,Callicebus oenanthe
+6873623,2419842,Callicebus cupreus
+6873620,2419842,Callicebus cinerascens
+6901122,2419842,Callicebus lucifer
+6901116,2419842,Callicebus nigrifrons
+6873621,2419842,Callicebus hoffmannsi
+6873625,2419842,Callicebus dubius
+6873624,2419842,Callicebus caligatus
+6901124,2419842,Callicebus purinus
+6873622,2419842,Callicebus brunneus
+6901117,2419842,Callicebus ornatus
+6901120,2419842,Callicebus stephennashi
+6901118,2419842,Callicebus pallescens
+6901121,2419842,Callicebus discolor
+6901110,2419842,Callicebus baptista
+6901113,2419842,Callicebus medemi
+6901125,2419842,Callicebus regulus
+6901111,2419842,Callicebus barbarabrownae
+6901123,2419842,Callicebus lugens
+6901114,2419842,Callicebus melanochir
+6901119,2419842,Callicebus bernhardi
+6901112,2419842,Callicebus coimbrai
+6873618,2419842,Callicebus olallae
+6873617,2419842,Callicebus donacophilus
+6873626,2419842,Callicebus torquatus
+6873614,2419842,Callicebus personatus
+6873615,2419842,Callicebus moloch
+2436783,2362876,Cacajao
+6873637,2436783,Cacajao melanocephalus
+6873636,2436783,Cacajao calvus
+2362877,2362871,Megaladapidae
+2436755,2362877,Lepilemur
+6873526,2436755,Lepilemur leucopus
+6873530,2436755,Lepilemur septentrionalis
+6873527,2436755,Lepilemur microdon
+6873524,2436755,Lepilemur dorsalis
+6873528,2436755,Lepilemur mustelinus
+6873529,2436755,Lepilemur ruficaudatus
+6873525,2436755,Lepilemur edwardsi
