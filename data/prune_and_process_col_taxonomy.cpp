@@ -204,9 +204,20 @@ int main(int argc, char * argv[]) {
             par->children.push_back(nd);
         }
     }
+    if (root->children.empty()) {
+        std::cerr << "Taxon \"" << taxon << "\" has no children. That is not much of a tree!\n";
+        return 1;
+    }
     std::cerr << "back from read_names. " << dup_names.size() << " non unique names\n";
     std::stack<Node *> nd_stack;
-    Node * curr_nd = root;
+    outfile << root->taxon_index << "," << 0 << "," << root->name << "\n"; // zero out the ancestor for our pseudo-root node
+    std::list<Node *>::reverse_iterator rcIt = root->children.rbegin();
+    for (; rcIt != root->children.rend(); ++rcIt) {
+        nd_stack.push(*rcIt);
+    }
+    Node * curr_nd = nd_stack.top();
+    nd_stack.pop();
+
     unsigned num_written=0;
     for (;;) {
         ++num_written;
@@ -215,17 +226,15 @@ int main(int argc, char * argv[]) {
             if (nd_stack.empty()) {
                 break;
             }
-            curr_nd = nd_stack.top();
-            nd_stack.pop();
         }
         else {
-            std::list<Node *>::iterator cIt = curr_nd->children.begin();
-            const std::list<Node *>::iterator endIt = curr_nd->children.end();
-            curr_nd = *cIt++;
-            for (; cIt != endIt; ++cIt) {
+            std::list<Node *>::reverse_iterator cIt = curr_nd->children.rbegin();
+            for (; cIt != curr_nd->children.rend(); ++cIt) {
                 nd_stack.push(*cIt);
             }
         }
+        curr_nd = nd_stack.top();
+        nd_stack.pop();
     }
 
     std::cerr << num_written << " taxonomic names written.\n";
