@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
@@ -19,6 +20,8 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.StopEvaluator;
+import org.neo4j.graphdb.ReturnableEvaluator;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipExpander;
 import org.neo4j.graphdb.RelationshipType;
@@ -31,8 +34,11 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 import org.neo4j.kernel.Uniqueness;
+import org.apache.log4j.Logger;
+
 
 public class TaxonomyExplorer extends TaxonomyBase{
+	static Logger _LOG = Logger.getLogger(TaxonomyExplorer.class);
 	
 	public TaxonomyExplorer(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
@@ -41,6 +47,72 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	}
 	
 	
+	/**
+	 * Writes a dot file for the taxonomy graph that is rooted at `clade_name`
+	 * 
+	 * @param clade_name - the name of the internal node in taxNodeIndex that will be
+	 * 		the root of the subtree that is written
+	 * @param out_filepath - the filepath to create
+	 * @todo support other graph file formats
+	 */
+	public void exportGraphForClade(String clade_name, String out_filepath){
+		IndexHits<Node> hits = taxNodeIndex.get("name", clade_name);
+		Node firstNode = hits.getSingle();
+		hits.close();
+		if (firstNode == null){
+			_LOG.error("name \"" + clade_name + "\" not found");
+			return;
+		}
+		//TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.TAXCHILDOF,Direction.INCOMING );
+		_LOG.info("Constructing graph file for " + firstNode.getProperty("name"));
+		PrintWriter out_file;
+		try {
+			out_file = new PrintWriter(new FileWriter(out_filepath));
+			out_file.write("strict digraph  {\n\trankdir = RL ;\n");
+			HashMap<String, String> src2style = new HashMap<String, String>();
+			HashMap<Node, String> nd2dot_name = new HashMap<Node, String>();
+			int count = 0;
+			for (Node nd : firstNode.traverse(Traverser.Order.BREADTH_FIRST, 
+											  StopEvaluator.END_OF_GRAPH,
+											  ReturnableEvaluator.ALL,
+											  RelTypes.TAXCHILDOF,
+											  Direction.INCOMING)) {
+				for(Relationship rel : nd.getRelationships(RelTypes.TAXCHILDOF,Direction.INCOMING)) {
+					count += 1;
+					Node rel_start = rel.getStartNode();
+					String rel_start_name = ((String) rel_start.getProperty("name"));
+					String rel_start_dot_name = nd2dot_name.get(rel_start);
+					if (rel_start_dot_name == null){
+						rel_start_dot_name = "n" + (1 + nd2dot_name.size());
+						nd2dot_name.put(rel_start, rel_start_dot_name);
+						out_file.write("\t" + rel_start_dot_name + " [label=\"" + rel_start_name + "\"] ;\n");
+					}
+					Node rel_end = rel.getEndNode();
+					String rel_end_name = ((String) rel_end.getProperty("name"));
+					String rel_end_dot_name = nd2dot_name.get(rel_end);
+					if (rel_end_dot_name == null){
+						rel_end_dot_name = "n" + (1 + nd2dot_name.size());
+						nd2dot_name.put(rel_end, rel_end_dot_name);
+						out_file.write("\t" + rel_end_dot_name + " [label=\"" + rel_end_name + "\"] ;\n");
+					}
+					String rel_source = ((String) rel.getProperty("source"));
+					String edge_style = src2style.get(rel_source);
+					if (edge_style == null) {
+						edge_style = "color=black"; // @TMP
+						src2style.put(rel_source, edge_style);
+					}
+					out_file.write("\t" + rel_start_dot_name + " -> " + rel_end_dot_name + " [" + edge_style + "] ;\n");
+					if (count % 100000 == 0)
+						_LOG.info(count + " edges written");
+				}
+			}
+			out_file.write("}\n");
+			out_file.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	/**
 	 * This essentially uses every relationship and constructs a newick tree (hardcoded to taxtree.tre file)
 	 * 

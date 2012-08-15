@@ -33,11 +33,18 @@ public class MainRunner {
 	}
 	
 	public void taxonomyQueryParser(String [] args){
-		if(args[0].compareTo("checktree")!= 0 && args.length!=3){
+		if (args[0].equals("checktree")) {
+		    if (args.length != 4) {
+                System.out.println("arguments should be: treefile focalgroup graphdbfolder");
+                return;
+            }
+		} else if (args[0].equals("comptaxgraph")) {
+		    if (args.length != 4) {
+                System.out.println("arguments should be: comptaxgraph query graphdbfolder outfile");
+                return;
+            }
+		} else if(args.length != 3){
 			System.out.println("arguments should be: query graphdbfolder");
-			return;
-		}else if(args[0].compareTo("checktree")==0 && args.length!=4){
-			System.out.println("arguments should be: treefile focalgroup graphdbfolder");
 			return;
 		}
 		TaxonomyExplorer te = null;
@@ -47,6 +54,12 @@ public class MainRunner {
 			te =  new TaxonomyExplorer(graphname);
 			System.out.println("constructing a comprehensive tax tree of "+query);
 			te.buildTaxonomyTree(query);
+		}else if(args[0].compareTo("comptaxgraph") == 0){
+			String query = args[1];
+			String graphname = args[2];
+			String outname = args[3];
+			te =  new TaxonomyExplorer(graphname);
+			te.exportGraphForClade(query, outname);
 		}else if(args[0].compareTo("findcycles")==0){
 			String query = args[1];
 			String graphname = args[2];
@@ -74,6 +87,7 @@ public class MainRunner {
 		te.shutdownDB();
 	}
 	
+
 	public void graphImporterParser(String [] args){
 		GraphImporter gi = null;
 		if(args[0].compareTo("addtree") == 0){
@@ -147,6 +161,7 @@ public class MainRunner {
 		System.out.println("\tupdatetax <filename> <sourcename> <graphdbfolder> (updates a specific source taxonomy)");
 		System.out.println("---taxquery---");
 		System.out.println("\tcomptaxtree <name> <graphdbfolder> (construct a comprehensive tax newick)");
+		System.out.println("\tcomptaxgraph <name> <graphdbfolder> <outdotfile> (construct a comprehensive taxonomy in dot)");
 		System.out.println("\tfindcycles <name> <graphdbfolder> (find cycles in tax graph)");
 		System.out.println("\tjsgraph <name> <graphdbfolder> (constructs a json file from tax graph)");
 		System.out.println("\tchecktree <filename> <focalgroup> <graphdbfolder> (checks names in tree against tax graph)");
@@ -176,7 +191,11 @@ public class MainRunner {
 			}
 			if(args[0].compareTo("inittax")==0 || args[0].compareTo("addtax")==0){
 				mr.taxonomyLoadParser(args);
-			}else if(args[0].compareTo("comptaxtree") == 0 || args[0].compareTo("findcycles")==0 || args[0].compareTo("jsgraph") == 0 || args[0].compareTo("checktree") == 0){
+			}else if(args[0].compareTo("comptaxtree") == 0 
+			        || args[0].compareTo("comptaxgraph") == 0
+			        || args[0].compareTo("findcycles") == 0
+			        || args[0].compareTo("jsgraph") == 0 
+			        || args[0].compareTo("checktree") == 0){
 				mr.taxonomyQueryParser(args);
 			}else if(args[0].compareTo("inittree") == 0 || args[0].compareTo("addtree")==0){
 				mr.graphImporterParser(args);
