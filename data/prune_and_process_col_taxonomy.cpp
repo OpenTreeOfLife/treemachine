@@ -210,7 +210,8 @@ int main(int argc, char * argv[]) {
     }
     std::cerr << "back from read_names. " << dup_names.size() << " non unique names\n";
     std::stack<Node *> nd_stack;
-    outfile << root->taxon_index << "," << 0 << "," << root->name << "\n"; // zero out the ancestor for our pseudo-root node
+    outfile << "1,0,root\n";
+    outfile << root->taxon_index << "," << 1 << "," << root->name << "\n"; // zero out the ancestor for our pseudo-root node
     std::list<Node *>::reverse_iterator rcIt = root->children.rbegin();
     for (; rcIt != root->children.rend(); ++rcIt) {
         nd_stack.push(*rcIt);

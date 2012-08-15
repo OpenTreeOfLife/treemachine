@@ -190,25 +190,47 @@ public class TaxonomyLoader extends TaxonomyBase{
 		return ret;
 	}
 	
-	private void addBatchOfNewNodes(ArrayList<String> addnodes, ArrayList<String> addnodesids, HashMap<String,Node> addednodes) {
+	/**
+	 * Helper function used by addAdditionalTaxonomyTableIntoGraph
+	 * adds the nodes as new Node objects into this.graphDb
+	 * addnodes and addnodesids are matched lists of the node names and node ids
+	 *
+	 * @param addnodes list of names to added
+	 * @param addnodesids list of ids associated with the nodes to added
+	 * @param addednodes map of ids to the newly created node objects
+	 */
+	private void addBatchOfNewNodes(ArrayList<String> name_list, ArrayList<String> id_list, HashMap<String,Node> addednodes) {
+		assert name_list.size() == id_list.size();
 		Transaction tx;
 		tx = graphDb.beginTx();
 		try{
-			for(int i = 0; i < addnodes.size(); i++){
+			for(int i = 0; i < name_list.size(); i++){
 				Node tnode = graphDb.createNode();
-				tnode.setProperty("name", addnodes.get(i));
-				taxNodeIndex.add( tnode, "name", addnodes.get(i));
-				_LOG.debug("Added " + addnodes.get(i));
-				addednodes.put(addnodesids.get(i), tnode);
+				tnode.setProperty("name", name_list.get(i));
+				taxNodeIndex.add( tnode, "name", name_list.get(i));
+				_LOG.debug("Added " + name_list.get(i));
+				addednodes.put(id_list.get(i), tnode);
 			}
-			addnodes.clear();
-			addnodesids.clear();
 			tx.success();
 		}finally{
 			tx.finish();
 		}
 	}
 	
+	private String taxonPathAsString(ArrayList<String> path) {
+		StringBuffer sb = new StringBuffer();
+		boolean first = true;
+		for (String tax_name : path ) {
+			if (first) {
+				first = false;
+			}
+			else {
+				sb.append(" -> ");
+			}
+			sb.append(tax_name);
+		}
+		return sb.toString();
+	}
 	/**
 	 * See addInitialTaxonomyTableIntoGraph 
 	 * This function acts like addInitialTaxonomyTableIntoGraph but it 
@@ -254,7 +276,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 						addnodes.add(strname);
 						addnodesids.add(spls[0]);
 					}else {
-						_LOG.debug(strname + " already in db");
+						_LOG.trace(strname + " already in db");
 					}
 				}finally{
 					ih.close();
@@ -265,11 +287,15 @@ public class TaxonomyLoader extends TaxonomyBase{
 					System.out.print(addnodes.size());
 					System.out.print("\n");
 					addBatchOfNewNodes(addnodes, addnodesids, addednodes);
+					addnodes.clear();
+					addnodesids.clear();
 				}
 			}
 			br.close();
 		}catch(IOException ioe){}
 		addBatchOfNewNodes(addnodes, addnodesids, addednodes);
+		addnodes.clear();
+		addnodesids.clear();
 		
 		System.out.println("second pass through file for relationships");
 		//GET NODE
@@ -281,7 +307,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 			count = 0;
 			int dcount = 0;
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			boolean verbose = false;
 			while((str = br.readLine())!=null){
 				String[] spls = str.split(",");
 				count += 1;
@@ -291,31 +316,31 @@ public class TaxonomyLoader extends TaxonomyBase{
 				String strparentname = "";
 				if(spls[1].compareTo("0") != 0)
 					strparentname = ndnames.get(spls[1]);
-				if (spls[1].compareTo("0") == 0)
+				else
 					continue;
-				if (verbose)
-					System.out.println(str);
+				_LOG.trace(str);
+				
+				//get full path to the root of the input taxonomy
+				// path1 will contain the node -> root list of all names
+				// badpath will be true if there is no parent returned for a node along this path
 				ArrayList<String> path1 = new ArrayList<String>();
-				boolean going = true;
 				boolean badpath = false;
 				String cur = parents.get(spls[0]);
-				if(verbose)
-					System.out.println("parent:"+cur +" "+ndnames.get(cur));
-				//get full path to the root of the input taxonomy
-				while(going == true){
+				_LOG.trace("parent:"+cur +" "+ndnames.get(cur));
+				for(;;){
 					if(cur == null){
-						going = false;
 						badpath = true;
-						System.out.println("-bad path start:"+spls[0]);
+						_LOG.warn("-bad path start:"+spls[0]);
+						break;
 					}else if (cur.compareTo("0")==0){
-						going = false;
+						break;
 					}else{
-						if (verbose)
-							System.out.println("parent:"+cur +" "+ndnames.get(cur));
+						_LOG.trace("parent:"+cur +" "+ndnames.get(cur));
 						path1.add(ndnames.get(cur));
 						cur = parents.get(cur);
 					}
 				}
+				
 				/*
 				 * if the nodes that don't lead to the root don't have
 				 * other relationships, delete the nodes
@@ -340,6 +365,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 					}
 					continue;
 				}
+				
 				Node matchnode = null;
 				int bestcount = LARGE;
 				Node bestitem = null;
@@ -358,13 +384,11 @@ public class TaxonomyLoader extends TaxonomyBase{
 							path2items = new ArrayList<Node> ();
 							//get shortest path
 							for(Node currentNode : CHILDOF_TRAVERSAL.traverse(node).nodes()){
-								if(verbose)
-									System.out.println("+"+((String) currentNode.getProperty("name")));
+								_LOG.trace("+"+((String) currentNode.getProperty("name")));
 								if(((String) currentNode.getProperty("name")).compareTo(strname) != 0){
 									path2.add((String)currentNode.getProperty("name"));
 									path2items.add(currentNode);
-									if (verbose)
-										System.out.println((String)currentNode.getProperty("name"));
+									_LOG.trace((String)currentNode.getProperty("name"));
 								}
 							}
 							ArrayList<Integer> itemcounts = stepsToMatch(path1,path2);
@@ -377,17 +401,19 @@ public class TaxonomyLoader extends TaxonomyBase{
 							}
 							path2.clear();
 							path2items.clear();
-							if(verbose)
-								System.out.println(bestcount);
-							//if(verbose)
-							//	System.out.println("after:"+bestpath.get(1));
+							_LOG.trace(bestcount);
+							//_LOG.trace("after:"+bestpath.get(1));
 						}
 					}finally{
 						hits.close();
 					}
 					//if the match is worse than the threshold, make a new node
-					if (bestitem == null || path1.size()-bestcount <= rootthresh){
-						System.out.println("adding duplicate "+strname);
+					if (bestitem == null || path1.size() - bestcount <= rootthresh){
+						_LOG.warn("adding duplicate " + strname);
+						if(_LOG.isDebugEnabled()) {
+							_LOG.debug("path1:    " + strname + " -> " + this.taxonPathAsString(path1));
+							_LOG.debug("bestcount = " + bestcount + " path1.size() - bestcount =" + (path1.size() - bestcount));
+						}
 						tx = graphDb.beginTx();
 						try{
 							Node tnode = graphDb.createNode();
@@ -418,8 +444,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 							matchnodeparent = bestpathitems.get(i);
 //							break;
 						}
-						if(verbose)
-							System.out.println("="+bestpath.get(i)+" "+strparentname);
+						_LOG.trace("="+bestpath.get(i)+" "+strparentname);
 					}
 					//do the same as above with the parent
 					if(matchnodeparent == null && addednodes.containsKey(strparentid) == false){
@@ -440,31 +465,32 @@ public class TaxonomyLoader extends TaxonomyBase{
 								for(Node currentNode : CHILDOF_TRAVERSAL.traverse(node).nodes()){
 									if(((String) currentNode.getProperty("name")).compareTo(strparentname) != 0){
 										path2.add((String)currentNode.getProperty("name"));
-										if(verbose)
-											System.out.println("path2: "+(String)currentNode.getProperty("name"));
+										_LOG.trace("path2: "+(String)currentNode.getProperty("name"));
 										path2items.add(currentNode);
 									}
 								}
 								ArrayList<Integer> itemcounts = stepsToMatch(path1,path2);
-								if(verbose)
-									System.out.println(itemcounts.get(0));
+								_LOG.trace(itemcounts.get(0));
 								if(itemcounts.get(0) < bestcount){
 									bestcount = itemcounts.get(0);
 									bestitem = node;
 								}
 								path2.clear();
 								path2items.clear();
-								if(verbose)
-									System.out.println(bestcount);
+								_LOG.trace(bestcount);
 							}
 						}finally{
 							hits.close();
 						}
 						//if the match is worse than the threshold, make a new node
-						if (verbose)
-							System.out.println(path1.size()+" "+(path1.size()-bestcount));
+						_LOG.trace(path1.size()+" "+(path1.size()-bestcount));
 						if (bestitem == null || path1.size()-bestcount <= rootthresh){
 							System.out.println("adding duplicate parent "+strparentname);
+							if(_LOG.isDebugEnabled()) {
+								_LOG.debug("path1:    " + strname + " -> " + this.taxonPathAsString(path1));
+								_LOG.debug("bestpath: " + strname + " -> " + this.taxonPathAsString(bestpath));
+								_LOG.debug("bestcount = " + bestcount + " path1.size() - bestcount =" + (path1.size() - bestcount));
+							}
 							tx = graphDb.beginTx();
 							try{
 								Node tnode = graphDb.createNode();
