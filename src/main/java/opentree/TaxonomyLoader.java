@@ -180,7 +180,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 			int count2 = 0;
 			for (int j=0; j< list1.size();j++){
 				count2 += 1;
-				if (list1.get(j).compareTo(keylist.get(i))==0){
+				if (list1.get(j).compareTo(keylist.get(i)) == 0){
 					ret.add(count1);ret.add(count2);
 					return ret;
 				}
@@ -272,7 +272,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 				ndnames.put(spls[0], strname);
 				IndexHits<Node> ih = taxNodeIndex.get("name", strname);
 				try{
-					if(ih.size()==0){
+					if(ih.size() == 0){
 						addnodes.add(strname);
 						addnodesids.add(spls[0]);
 					}else {
@@ -332,7 +332,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 						badpath = true;
 						_LOG.warn("-bad path start:"+spls[0]);
 						break;
-					}else if (cur.compareTo("0")==0){
+					}else if (cur.compareTo("0") == 0){
 						break;
 					}else{
 						_LOG.trace("parent:"+cur +" "+ndnames.get(cur));
