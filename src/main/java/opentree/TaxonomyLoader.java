@@ -412,6 +412,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 						_LOG.warn("adding duplicate " + strname);
 						if(_LOG.isDebugEnabled()) {
 							_LOG.debug("path1:    " + strname + " -> " + this.taxonPathAsString(path1));
+							_LOG.debug("bestpath: " + strname + " -> " + this.taxonPathAsString(bestpath));
 							_LOG.debug("bestcount = " + bestcount + " path1.size() - bestcount =" + (path1.size() - bestcount));
 						}
 						tx = graphDb.beginTx();
@@ -488,7 +489,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 							System.out.println("adding duplicate parent "+strparentname);
 							if(_LOG.isDebugEnabled()) {
 								_LOG.debug("path1:    " + strname + " -> " + this.taxonPathAsString(path1));
-								_LOG.debug("bestpath: " + strname + " -> " + this.taxonPathAsString(bestpath));
 								_LOG.debug("bestcount = " + bestcount + " path1.size() - bestcount =" + (path1.size() - bestcount));
 							}
 							tx = graphDb.beginTx();
