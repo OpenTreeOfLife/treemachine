@@ -24,10 +24,13 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
+import org.apache.log4j.Logger;
 
 import scala.actors.threadpool.Arrays;
 
 public class GraphImporter extends GraphBase{
+	static Logger _LOG = Logger.getLogger(GraphImporter.class);
+
 	private int transaction_iter = 100000;
 	private int cur_tran_iter = 0;
 	private JadeTree jt;
@@ -74,8 +77,9 @@ public class GraphImporter extends GraphBase{
 		try{
 			//root should be the ncbi startnode
 			Node startnode = (taxNodeIndex.get("name", "root")).next();
+			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
 			graphstart = graphDb.createNode();
-			graphstart.createRelationshipTo(startnode, RelTypes.ISCALLED); //@MTH: Do we need no add a source property to this relationship
+			graphstart.createRelationshipTo(startnode, RelTypes.ISCALLED); //@MTH: Do we need to add a source property to this relationship
 			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
 			        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
 			for(Node friendnode: CHILDOF_TRAVERSAL.traverse(startnode).nodes()){

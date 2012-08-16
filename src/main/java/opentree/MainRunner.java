@@ -28,21 +28,22 @@ public class MainRunner {
 			System.err.println("ERROR: not a known command");
 			tl.shutdownDB();
 			printHelp();
+			System.exit(1);
 		}
 		tl.shutdownDB();
 	}
 	
 	public void taxonomyQueryParser(String [] args){
 		if (args[0].equals("checktree")) {
-		    if (args.length != 4) {
-                System.out.println("arguments should be: treefile focalgroup graphdbfolder");
-                return;
-            }
+			if (args.length != 4) {
+				System.out.println("arguments should be: treefile focalgroup graphdbfolder");
+				return;
+			}
 		} else if (args[0].equals("comptaxgraph")) {
-		    if (args.length != 4) {
-                System.out.println("arguments should be: comptaxgraph query graphdbfolder outfile");
-                return;
-            }
+			if (args.length != 4) {
+				System.out.println("arguments should be: comptaxgraph query graphdbfolder outfile");
+				return;
+			}
 		} else if(args.length != 3){
 			System.out.println("arguments should be: query graphdbfolder");
 			return;
@@ -83,6 +84,7 @@ public class MainRunner {
 			System.err.println("ERROR: not a known command");
 			te.shutdownDB();
 			printHelp();
+			System.exit(1);
 		}
 		te.shutdownDB();
 	}
@@ -112,6 +114,7 @@ public class MainRunner {
 			System.err.println("ERROR: not a known command");
 			gi.shutdownDB();
 			printHelp();
+			System.exit(1);
 		}
 		gi.shutdownDB();
 	}
@@ -146,6 +149,7 @@ public class MainRunner {
 			System.err.println("ERROR: not a known command");
 			gi.shutdownDB();
 			printHelp();
+			System.exit(1);
 		}
 		gi.shutdownDB();
 	}
@@ -170,18 +174,19 @@ public class MainRunner {
 		System.out.println("\taddtree <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <preferred sources> <graphdbfolder> (constructs a newick file from a particular node)");
-		System.exit(0);
 	}
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-	    PropertyConfigurator.configure(System.getProperties());
+		PropertyConfigurator.configure(System.getProperties());
 		System.out.println("treemachine version alpha.alpha.prealpha");
 		if(args.length < 2){
 			printHelp();
+			System.exit(1);
 		}else if(args[0] == "help"){
 			printHelp();
+			System.exit(0);
 		}else{
 			System.out.println("things will happen here");
 			MainRunner mr = new MainRunner();
@@ -192,15 +197,20 @@ public class MainRunner {
 			if(args[0].compareTo("inittax")==0 || args[0].compareTo("addtax")==0){
 				mr.taxonomyLoadParser(args);
 			}else if(args[0].compareTo("comptaxtree") == 0 
-			        || args[0].compareTo("comptaxgraph") == 0
-			        || args[0].compareTo("findcycles") == 0
-			        || args[0].compareTo("jsgraph") == 0 
-			        || args[0].compareTo("checktree") == 0){
+					 || args[0].compareTo("comptaxgraph") == 0
+					 || args[0].compareTo("findcycles") == 0
+					 || args[0].compareTo("jsgraph") == 0 
+					 || args[0].compareTo("checktree") == 0){
 				mr.taxonomyQueryParser(args);
 			}else if(args[0].compareTo("inittree") == 0 || args[0].compareTo("addtree")==0){
 				mr.graphImporterParser(args);
 			}else if(args[0].compareTo("jsgol") == 0 || args[0].compareTo("fulltree") == 0){
 				mr.graphExplorerParser(args);
+			}
+			else {
+				System.err.println("Unrecognized command \"" + args[0] + "\"");
+				printHelp();
+				System.exit(1);
 			}
 		}
 	}
