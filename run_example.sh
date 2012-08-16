@@ -27,3 +27,4 @@ ${treemachine_invocation} addtax  example/ncbi_primates.txt ncbi  test.db -1 || 
 # initialize the GoL - this will add the NCBI taxonomy as a tree to the GoL
 ${treemachine_invocation} inittree test.db
 java  "-Dlog4j.configuration=debuglog4j.properties" -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addtree example/sarich_wilson_1967.tre Catarrhini sarichwilson1967 test.db
+java  "-Dlog4j.configuration=debuglog4j.properties" -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addtree example/grehan_schwartz_2009.tre Hominoidea grehanschwartz2009 test.db
