@@ -104,7 +104,11 @@ public class MainRunner {
 			gi = new GraphImporter(graphname);
 			System.out.println("adding a tree to the graph: "+ filename);
 			gi.preProcessTree(filename);
-			gi.addProcessedTreeToGraph(focalgroup,sourcename);
+			try {
+			    gi.addProcessedTreeToGraph(focalgroup,sourcename);
+			} catch (TaxonNotFoundException x) {
+    			System.err.println("Tree could not be read because the taxon " + x.getQuotedName() + " was not recognized");
+			}
 		}else if(args[0].compareTo("inittree")==0){
 			System.out.println("initializing the database with NCBI tax");
 			String graphname = args[1];
@@ -112,7 +116,6 @@ public class MainRunner {
 			gi.initializeGraphDBfromNCBI();
 		}else{
 			System.err.println("ERROR: not a known command");
-			gi.shutdownDB();
 			printHelp();
 			System.exit(1);
 		}

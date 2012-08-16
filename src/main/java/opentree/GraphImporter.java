@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import opentree.TaxonomyBase.RelTypes;
+import opentree.TaxonNotFoundException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
@@ -49,6 +50,7 @@ public class GraphImporter extends GraphBase{
 	 *
 	 * This currently reads a tree from a file but this will need to be changed to 
 	 * another form later
+	 * @param filename name of file with a newick tree representation
 	 */
 	public void preProcessTree(String filename){
 		//read the tree from a file
@@ -178,11 +180,11 @@ public class GraphImporter extends GraphBase{
 	/*
 	 * this should be done as a preorder traversal
 	 */
-	public void addProcessedTreeToGraph(String focalgroup,String sourcename){
+	public void addProcessedTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException {
 		IndexHits<Node> hits2 = taxNodeIndex.get("name", focalgroup);
-		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		Node focalnode = hits2.getSingle();
 		hits2.close();
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 		//store at the root all the nd ids for the matches
 		ArrayList<Long> ndids = new ArrayList<Long>();
@@ -190,15 +192,13 @@ public class GraphImporter extends GraphBase{
 		for (int j=0;j<nds.size();j++){
 			//find all the tip taxa and with doubles pick the taxon closest to the focal group
 			Node hitnode = null;
-			IndexHits<Node> hits = taxNodeIndex.get("name", nds.get(j).getName().replace("_"," "));
+			String processedname = nds.get(j).getName().replace("_", " "); //@todo processing syntactic rules like '_' -> ' ' should be done on input parsing. 
+			IndexHits<Node> hits = taxNodeIndex.get("name", processedname);
 			int numh = hits.size();
-			if(numh == 0){
-				System.err.println("the taxon "+nds.get(j).getName().replace("_", " ")+" is not found");
-			}
 			if (numh == 1){
 				hitnode = (hits.getSingle().getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode());
 			}else if (numh > 1){
-				System.out.println(nds.get(j).getName().replace("_"," ")+" gets "+numh+" hits");
+				System.out.println(processedname + " gets " + numh +" hits");
 				int shortest = 1000;//this is shortest to the focal, could reverse this
 				Node shortn = null;
 				for(Node tnode : hits){
@@ -212,12 +212,16 @@ public class GraphImporter extends GraphBase{
 						}
 //						System.out.println(shortest+" "+tpath.length());
 					}else{
-						System.out.println("one taxon is not within "+focalgroup);
+						System.out.println("one taxon is not within "+ focalgroup);
 					}
 				}
 				hitnode = shortn.getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode();
 			}
 			hits.close();
+			if (hitnode == null) {
+				assert numh == 0;
+				throw new TaxonNotFoundException(processedname);
+			}
 			ndids.add(hitnode.getId());
 			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
