@@ -20,6 +20,7 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipExpander;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -66,7 +67,31 @@ public class GraphImporter extends GraphBase{
 		//System.exit(0);
 	}
 	
-	/*
+	/**
+	 * Helper function that returns adjacent the node connected by the first
+	 *		relationship with the source property equal to `src` 
+	 * @param nd the focal node (serves as the source for all potential relationships
+	 * @param relType the type of Relationship to check
+	 * @param dir the direction of the relationship's connection to `nd`
+	 * @param src the string that must match the `source` property
+	 * @return adjacent node from the first relationship satisfying the criteria or null
+	 * @todo could be moved to a more generic class (this has nothing to do with GraphImporter).
+	 */
+	static public Node getAdjNodeFromFirstRelationshipBySource(Node nd, RelationshipType relType, Direction dir,  String src) {
+		for (Relationship rel: nd.getRelationships(relType, dir)) {
+			if (((String)rel.getProperty("source")).equals(src)) {
+				if (dir == Direction.OUTGOING) {
+					return rel.getEndNode();
+				}
+				else {
+					return rel.getStartNode();
+				}
+			}
+		}
+		return null;
+	}
+	
+	/**
 	 * assumes the structure of the graphdb where the taxonomy is stored alongside the graph of life
 	 * and therefore the graph is initialized, in this case, with the ncbi relationships
 	 * 
@@ -85,31 +110,18 @@ public class GraphImporter extends GraphBase{
 			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
 			        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
 			for(Node friendnode: CHILDOF_TRAVERSAL.traverse(startnode).nodes()){
-				boolean good = false;
-				Node taxparent = null;
-				for (Relationship rel: friendnode.getRelationships(RelTypes.TAXCHILDOF,Direction.OUTGOING)){
-					if (((String)rel.getProperty("source")).compareTo("ncbi") == 0){
-						taxparent = rel.getEndNode();
-						good = true;
-						break;
-					}
-				}
-				if (good == true){
-					int ncount = 0;
-					for (Relationship rel: friendnode.getRelationships(RelTypes.TAXCHILDOF,Direction.INCOMING)){
-						if (((String)rel.getProperty("source")).compareTo("ncbi") == 0){
-							ncount += 1;//just need one to see if it is a tip
-							break;
-						}
-					}
+				Node taxparent = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.OUTGOING, "ncbi");
+				if (taxparent != null){
+					Node firstchild = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.INCOMING, "ncbi");
 					Node newnode = graphDb.createNode();
 					newnode.createRelationshipTo(friendnode, RelTypes.ISCALLED); //@MTH: Do we need no add a "source" property to this relationship
 					graphNodeIndex.add(newnode, "name", friendnode.getProperty("name"));
-					if(ncount == 0){//leaf
+					if(firstchild == null){//leaf
 						long [] tmrcas = {newnode.getId()};
 						newnode.setProperty("mrca", tmrcas);			
 					}
 					if(startnode != friendnode){//not the root
+						// getSingleRelationship works here because we know that we are adding the first tree to the graph...
 						Node graphparent = taxparent.getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode();
 						Relationship trel = newnode.createRelationshipTo(graphparent, RelTypes.MRCACHILDOF);
 						Relationship trel2 = newnode.createRelationshipTo(graphparent, RelTypes.STREECHILDOF);
@@ -213,6 +225,7 @@ public class GraphImporter extends GraphBase{
 						System.out.println("one taxon is not within "+ focalgroup);
 					}
 				}
+				assert shortn != null; // @todo this could happen if there are multiple hits outside the focalgroup, and none inside the focalgroup.  We should develop an AmbiguousTaxonException class
 				hitnode = shortn.getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode();
 			}
 			hits.close();
