@@ -2,6 +2,7 @@ package opentree;
 
 import jade.tree.*;
 
+import java.lang.StringBuffer;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 
 import opentree.TaxonomyBase.RelTypes;
 import opentree.TaxonNotFoundException;
+import opentree.TreeIngestException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
@@ -200,13 +202,16 @@ public class GraphImporter extends GraphBase{
 	 * @param sourcename the name to be registered as the "source" property for
 	 *		every edge in this tree.
 	 */
-	public void addProcessedTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException {
+	public void addProcessedTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException, TreeIngestException {
 		Node focalnode = findTaxNodeByName(focalgroup);
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 		//We'll Create a list of the internal IDs for each taxonomic node that matches
 		//		the name of leaf in the tree to be ingested.
-		ArrayList<Long> ndids = new ArrayList<Long>();
+
+		/*@todo making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
+		  would make the look ups faster. See comment in testIsMRCA */
+		ArrayList<Long> ndids = new ArrayList<Long>(); 
 		//We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
@@ -269,14 +274,20 @@ public class GraphImporter extends GraphBase{
 	 *		for a leaf's taxonomic name
 	 * @param sourcename the name to be registered as the "source" property for
 	 *		every edge in this tree.
+	 * @todo note that if a TreeIngestException the database will not have been reverted
+	 *		back to its original state. At minimum at least some relationships
+	 *		will have been created. It is also possible that some nodes will have
+	 *		been created. We should probably add code to assure that we won't get
+	 *		a TreeIngestException, or rollback the db modifications.
+	 *		
 	 */
-	private void postOrderaddProcessedTreeToGraph(JadeNode inode, JadeNode root, String sourcename){
-//		System.out.println("adding node");
-		for(int i=0;i<inode.getChildCount();i++){
-			postOrderaddProcessedTreeToGraph(inode.getChild(i),root,sourcename);
+	private void postOrderaddProcessedTreeToGraph(JadeNode inode, JadeNode root, String sourcename) throws TreeIngestException {
+		// postorder traversal via recursion
+		for(int i = 0; i < inode.getChildCount(); i++){
+			postOrderaddProcessedTreeToGraph(inode.getChild(i), root, sourcename);
 		}
-//		System.out.println("children: "+inode.getChildCount());
-		if(inode.getChildCount()>0){
+//		_LOG.trace("children: "+inode.getChildCount());
+		if(inode.getChildCount() > 0){
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			//store the hits for each of the nodes in the tips
@@ -291,16 +302,18 @@ public class GraphImporter extends GraphBase{
 				ndids.add(roothash.get(nds.get(j)));
 //				System.out.print(nds.get(j).getName()+" ");
 			}
-//			System.out.println("finished names");
+//			_LOG.trace("finished names");
 			inode.assocObject("ndids", ndids);
 			expander = Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING);
 			Node ancestor = AncestorUtil.lowestCommonAncestor( hit_nodes, expander);
-//			System.out.println("ancestor "+ancestor);
-			//System.out.println(ancestor.getProperty("name"));
-			if(testIsMRCA(ancestor,root,inode)){
+//			_LOG.trace("ancestor "+ancestor);
+			//_LOG.trace(ancestor.getProperty("name"));
+			if(testIsMRCA(ancestor, root, inode)){
+				// get here if ancestor does not contain any leaves from this tree other than the leaves under inode.
+				//	in this case, we can treat this node in the GoL as the MRCA
 				inode.assocObject("dbnode", ancestor);
 			}else{
-//				System.out.println("need to make a new node");
+//				_LOG.trace("need to make a new node");
 				//make a node
 				//steps
 				//1. create a node
@@ -331,20 +344,27 @@ public class GraphImporter extends GraphBase{
 					tx.finish();
 				}
 			}
+			
+			// At this point the inode is guaranteed to be associated with a dbnode
 			//add the actual branches for the source
 			Transaction	tx = graphDb.beginTx();
 			try{
+				Node currGoLNode = (Node)(inode.getObject("dbnode"));
 				for(int i=0;i<inode.getChildCount();i++){
-					Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.STREECHILDOF);
+					Node childGoLNode = (Node)inode.getChild(i).getObject("dbnode");
+					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREECHILDOF);
 					if(rel.getStartNode().getId() == rel.getEndNode().getId()){
-						System.out.println("PROBLEM");
+						StringBuffer errbuff = new StringBuffer();
+						errbuff.append("A node and its child map to the same GoL node.\nTips:\n");
 						for(int j=0;j<inode.getTips().size();j++){
-							System.out.println(inode.getTips().get(j).getName());
-							if(ancestor.hasRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED,Direction.OUTGOING)){
-								System.out.println(ancestor.getSingleRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-							}
+							errbuff.append(inode.getTips().get(j).getName() + "\n");
+							errbuff.append("\n");
 						}
-						System.exit(0);
+						if(ancestor.hasRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED,Direction.OUTGOING)){
+							errbuff.append(" ancestor taxonomic name: " + ancestor.getSingleRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+						}
+						errbuff.append("\nThe tree has been partially imported into the db.\n");
+						throw new TreeIngestException(errbuff.toString());
 					}
 					//METADATA ENTRY
 					rel.setProperty("source", sourcename);
@@ -379,6 +399,20 @@ public class GraphImporter extends GraphBase{
 		}
 	}
 	
+	/**
+	 * Takes a node in the GoL (dbnode) that is a parent of all of the nodes 
+	 *	in the subtree rooted at `inode` This will return true if `dbnode` is
+	 *  not an ancestor of any of the other leaves in the tree (which is rooted
+	 *	at `root`).
+	 * The idea here is to determine if `dbnode` would be a MRCA of the leaves
+	 *		in `inode` if the GoL were pruned down to only contain the leaf set
+	 *		of `root`
+	 *
+	 * @return true if the GoL Node `dbnode` qualifies as the MRCA node for
+	 *		the leaves that descend from `inode`
+	 * @param dbnode must be a common ancestor of all of the leaves that descend
+	 *		from `inode`
+	 */
 	private boolean testIsMRCA(Node dbnode,JadeNode root, JadeNode inode){
 		boolean ret = true;
 		long [] dbnodei = (long []) dbnode.getProperty("mrca");
@@ -390,7 +424,7 @@ public class GraphImporter extends GraphBase{
 		rootids.removeAll(inodeids);
 //		System.out.println(rootids.size());
 		for(int i=0;i<dbnodei.length;i++){
-			if (rootids.contains(dbnodei[i]))
+			if (rootids.contains(dbnodei[i])) //@todo this is the Order(N) lookup that could be log(N) or constant time if ndids was not an ArrayList<Long>
 				ret = false;
 		}
 //		System.out.println("testisMRCA "+ret);

@@ -106,8 +106,12 @@ public class MainRunner {
 			gi.preProcessTree(filename);
 			try {
 			    gi.addProcessedTreeToGraph(focalgroup,sourcename);
-			} catch (TaxonNotFoundException x) {
-    			System.err.println("Tree could not be read because the taxon " + x.getQuotedName() + " was not recognized");
+			} catch (TaxonNotFoundException tnfx) {
+    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+    			System.exit(1);
+			} catch (TreeIngestException tix) {
+    			System.err.println("Tree could not be imported.\n" + tix.toString());
+    			System.exit(1);
 			}
 		}else if(args[0].compareTo("inittree")==0){
 			System.out.println("initializing the database with NCBI tax");
