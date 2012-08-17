@@ -181,9 +181,7 @@ public class GraphImporter extends GraphBase{
 	 * this should be done as a preorder traversal
 	 */
 	public void addProcessedTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException {
-		IndexHits<Node> hits2 = taxNodeIndex.get("name", focalgroup);
-		Node focalnode = hits2.getSingle();
-		hits2.close();
+		Node focalnode = findTaxNodeByName(focalgroup);
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 		//store at the root all the nd ids for the matches

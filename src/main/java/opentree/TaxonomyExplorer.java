@@ -56,9 +56,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	 * @todo support other graph file formats
 	 */
 	public void exportGraphForClade(String clade_name, String out_filepath){
-		IndexHits<Node> hits = taxNodeIndex.get("name", clade_name);
-		Node firstNode = hits.getSingle();
-		hits.close();
+		Node firstNode = findTaxNodeByName(clade_name);
 		if (firstNode == null){
 			_LOG.error("name \"" + clade_name + "\" not found");
 			return;
@@ -121,9 +119,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	 * that is written
 	 */
 	public void buildTaxonomyTree(String name){
-		IndexHits<Node> hits = taxNodeIndex.get("name", name);
-		Node firstNode = hits.getSingle();
-		hits.close();
+		Node firstNode = findTaxNodeByName(name);
 		if (firstNode == null){
 			System.out.println("name not found");
 			return;
@@ -168,9 +164,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	 * Given a Taxonomic name (as name), this will attempt to find cycles which should be conflicting taxonomies
 	 */
 	public void findTaxonomyCycles(String name){
-		IndexHits<Node> hits = taxNodeIndex.get("name", name);
-		Node firstNode = hits.getSingle();
-		hits.close();
+		Node firstNode = findTaxNodeByName(name);
 		if (firstNode == null){
 			System.out.println("name not found");
 			return;
@@ -201,9 +195,7 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	 * given a taxonomic name, construct a json object of the graph surrounding that name
 	 */
 	public void constructJSONGraph(String name){
-		IndexHits<Node> hits = taxNodeIndex.get("name",name);
-		Node firstNode = hits.getSingle();
-		hits.close();
+		Node firstNode = findTaxNodeByName(name);
 		if(firstNode == null){
 			System.out.println("name not found");
 			return;
@@ -254,10 +246,8 @@ public class TaxonomyExplorer extends TaxonomyBase{
 	}
 	
 	public void checkNamesInTree(String treefilename,String focalgroup){
-		IndexHits<Node> hits2 = taxNodeIndex.get("name", focalgroup);
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 100);
-		Node focalnode = hits2.getSingle();
-		hits2.close();
+		Node focalnode = findTaxNodeByName(focalgroup);
 		String ts = "";
 		try{
 			BufferedReader br = new BufferedReader(new FileReader(treefilename));
