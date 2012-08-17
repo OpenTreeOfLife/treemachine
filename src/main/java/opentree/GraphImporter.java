@@ -287,13 +287,14 @@ public class GraphImporter extends GraphBase{
 			postOrderaddProcessedTreeToGraph(inode.getChild(i), root, sourcename);
 		}
 //		_LOG.trace("children: "+inode.getChildCount());
+		@SuppressWarnings("unchecked")
+		HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
+		
 		if(inode.getChildCount() > 0){
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			//store the hits for each of the nodes in the tips
 			ArrayList<Long> ndids = new ArrayList<Long>();
-			@SuppressWarnings("unchecked")
-			HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
 			for (int j=0;j<nds.size();j++){
 //				IndexHits<Node> hits = graphNodeIndex.get("name", nds.get(j).getName().replace("_"," "));
 //				hit_nodes.add( hits.getSingle());
@@ -346,13 +347,15 @@ public class GraphImporter extends GraphBase{
 			}
 			
 			// At this point the inode is guaranteed to be associated with a dbnode
-			//add the actual branches for the source
+			// add the actual branches for the source
 			Transaction	tx = graphDb.beginTx();
 			try{
 				Node currGoLNode = (Node)(inode.getObject("dbnode"));
 				for(int i=0;i<inode.getChildCount();i++){
-					Node childGoLNode = (Node)inode.getChild(i).getObject("dbnode");
+					JadeNode childJadeNode = inode.getChild(i);
+					Node childGoLNode = (Node)childJadeNode.getObject("dbnode");
 					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREECHILDOF);
+					// check to make sure the parent and child nodes are distinct entities...
 					if(rel.getStartNode().getId() == rel.getEndNode().getId()){
 						StringBuffer errbuff = new StringBuffer();
 						errbuff.append("A node and its child map to the same GoL node.\nTips:\n");
@@ -368,24 +371,22 @@ public class GraphImporter extends GraphBase{
 					}
 					//METADATA ENTRY
 					rel.setProperty("source", sourcename);
-					if(inode.getChild(i).getBL() > 0.0){
-						rel.setProperty("branch_length", inode.getChild(i).getBL());
+					if(childJadeNode.getBL() > 0.0){ //@todo this if will cause us to drop 0 length branches. We probably need a "has branch length" flag in JadeNode...
+						rel.setProperty("branch_length", childJadeNode.getBL());
 					}
-					boolean there = false;
-					for(Relationship trel: ((Node)inode.getChild(i).getObject("dbnode")).getRelationships(Direction.OUTGOING,RelTypes.MRCACHILDOF)){
-						if (trel.getOtherNode((Node)inode.getChild(i).getObject("dbnode")).getId() == ((Node)inode.getObject("dbnode")).getId()){
-							there = true;
+					boolean mrca_rel = false;
+					for(Relationship trel: childGoLNode.getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)){
+						if (trel.getOtherNode(childGoLNode).getId() == currGoLNode.getId()){
+							mrca_rel = true;
+							break;
 						}
 					}
-					if(there == false){
-						Relationship rel2 = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
-						if(rel2.getStartNode().getId() == rel2.getEndNode().getId()){
-							System.out.println("PROBLEM there is false");
-							for(int j=0;j<inode.getTips().size();j++){
-								System.out.println(inode.getTips().get(j).getName());
-							}
-							System.exit(0);
-						}
+					if(mrca_rel == false){
+						Relationship rel2 = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.MRCACHILDOF);
+						// I'm not sure how this assert could ever trip, given that we create a 
+						//	childGoLNode -> currGoLNode relationship above and raise an exception
+						//	if the endpoints have the same ID.
+						assert rel2.getStartNode().getId() != rel2.getEndNode().getId();
 					}
 				}
 				tx.success();
@@ -393,8 +394,6 @@ public class GraphImporter extends GraphBase{
 				tx.finish();
 			}
 		}else{
-			@SuppressWarnings("unchecked")
-			HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
 			inode.assocObject("dbnode",graphDb.getNodeById(roothash.get(inode)));
 		}
 	}
