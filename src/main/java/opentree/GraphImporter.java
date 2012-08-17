@@ -189,16 +189,28 @@ public class GraphImporter extends GraphBase{
 		}
 	}
 	
-	/*
+	/**
+	 * Ingest the current JadeTree (in the jt data member) to the GoL.
+	 *
 	 * this should be done as a preorder traversal
+	 *
+	 * @param focalgroup a taxonomic name of the ancestor of the leaves in the tree
+	 *		this is only used in disambiguating taxa when there are multiple hits 
+	 *		for a leaf's taxonomic name
+	 * @param sourcename the name to be registered as the "source" property for
+	 *		every edge in this tree.
 	 */
 	public void addProcessedTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException {
 		Node focalnode = findTaxNodeByName(focalgroup);
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
-		//store at the root all the nd ids for the matches
+		//We'll Create a list of the internal IDs for each taxonomic node that matches
+		//		the name of leaf in the tree to be ingested.
 		ArrayList<Long> ndids = new ArrayList<Long>();
+		//We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
+		// this loop fills ndids and hashnodeids or throws an Exception (for 
+		//	errors in matching leaves to the taxonomy). No other side effects.
 		for (int j=0;j<nds.size();j++){
 			//find all the tip taxa and with doubles pick the taxon closest to the focal group
 			Node hitnode = null;
@@ -236,12 +248,29 @@ public class GraphImporter extends GraphBase{
 			ndids.add(hitnode.getId());
 			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
+		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
 		jt.getRoot().assocObject("ndids", ndids);
 		jt.getRoot().assocObject("hashnodeids",hashnodeids);
 		postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),sourcename);
 	}
 	
-	private void postOrderaddProcessedTreeToGraph(JadeNode inode,JadeNode root, String sourcename){
+	
+	/**
+	 * Finish ingest a tree into the GoL. This is called after the names in the tree
+	 *	have been mapped to IDs for the nodes in the Taxonomy graph. The mappings are stored
+	 *	as an object associated with the root node, as are the list of node ID's
+	 *
+	 * @todo: recursive
+	 *
+	 * this should be done as a preorder traversal
+	 *
+	 * @param focalgroup a taxonomic name of the ancestor of the leaves in the tree
+	 *		this is only used in disambiguating taxa when there are multiple hits 
+	 *		for a leaf's taxonomic name
+	 * @param sourcename the name to be registered as the "source" property for
+	 *		every edge in this tree.
+	 */
+	private void postOrderaddProcessedTreeToGraph(JadeNode inode, JadeNode root, String sourcename){
 //		System.out.println("adding node");
 		for(int i=0;i<inode.getChildCount();i++){
 			postOrderaddProcessedTreeToGraph(inode.getChild(i),root,sourcename);
