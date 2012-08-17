@@ -20,7 +20,6 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
@@ -42,13 +41,16 @@ public class GraphExplorer extends GraphBase{
 		taxNodeIndex = graphDb.index().forNodes("taxNamedNodes");
 	}
 	
-	/*
-	 * given a taxonomic name, construct a json object of the graph surrounding that name
+	/**
+	 * Given a taxonomic name, construct a json object of the subgraph of MRCACHILDOF
+	 *  relationships that are rooted at the specified node. Names that appear
+	 *  in the JSON are taken from the corresonding nodes in the taxonomy graph
+	 *  (using the ISCALLED relationships).
+	 *
+	 * @param name the name of the root node (should be the name in the graphNodeIndex)
 	 */
 	public void constructJSONGraph(String name){
-		IndexHits<Node> hits = graphNodeIndex.get("name",name);
-		Node firstNode = hits.getSingle();
-		hits.close();
+	    Node firstNode = findGraphNodeByName(name);
 		if(firstNode == null){
 			System.out.println("name not found");
 			return;
@@ -109,14 +111,12 @@ public class GraphExplorer extends GraphBase{
 	 * this is just one example of one type of synthesis
 	 */
 	public void constructNewickSourceTieBreaker(String taxname, String sourcename){
-		IndexHits<Node> hits = graphNodeIndex.get("name",taxname);
-		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
-		Node firstNode = hits.getSingle();
-		hits.close();
+		Node firstNode = findGraphNodeByName(taxname);
 		if(firstNode == null){
 			System.out.println("name not found");
 			return;
 		}
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
 		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
@@ -194,10 +194,7 @@ public class GraphExplorer extends GraphBase{
 	 */
 	
 	public void writeJSONWithAltParentsToFile(String taxname){
-//		IndexHits<Node> hits = graphNodeIndex.get("name",taxname);
-		IndexHits<Node> hits = taxNodeIndex.get("name",taxname);
-		Node firstNode = hits.getSingle();
-		hits.close();
+        Node firstNode = findTaxNodeByName(taxname);
 		if(firstNode == null){
 			System.out.println("name not found");
 			return;
