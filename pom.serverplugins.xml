@@ -5,6 +5,10 @@
   <version>0.0.1-SNAPSHOT</version>
   <name>opentree-neo4j-plugins</name>
   <description>Server-side restful plugins for the opentree project.</description>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.neo4j</groupId>
