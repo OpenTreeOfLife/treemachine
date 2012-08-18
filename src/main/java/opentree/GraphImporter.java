@@ -201,6 +201,9 @@ public class GraphImporter extends GraphBase{
 	 *		for a leaf's taxonomic name
 	 * @param sourcename the name to be registered as the "source" property for
 	 *		every edge in this tree.
+	 * @todo we probably want a node in the graph representing the tree with an 
+	 *		ISROOTOF edge from its root to the tree. We could attach annotations
+	 *		about the tree to this node
 	 */
 	public void addProcessedTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException, TreeIngestException {
 		Node focalnode = findTaxNodeByName(focalgroup);
