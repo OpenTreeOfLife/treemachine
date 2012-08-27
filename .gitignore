@@ -1,5 +1,11 @@
 *.class
-
+.settings*
+.project
+.classpath
+data/examples*
+data/taxonomies*
+target*
+viz*
 # Package Files #
 *.jar
 *.war
