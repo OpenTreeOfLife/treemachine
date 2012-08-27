@@ -48,6 +48,13 @@ public class GraphImporter extends GraphBase{
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 	}
 	
+	public GraphImporter(EmbeddedGraphDatabase graphn){
+		graphDb = graphn;
+		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
+		taxNodeIndex = graphDb.index().forNodes( "taxNamedNodes" );
+		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
+	}
+	
 	/**
 	 * Sets the jt member by reading a JadeTree from filename.
 	 *
@@ -67,6 +74,16 @@ public class GraphImporter extends GraphBase{
 		jt = tr.readTree(ts);
 		System.out.println("tree read");
 		//System.exit(0);
+	}
+	
+	/**
+	 * Sets the jt member by a JadeTree already read and processed.
+	 *
+	 * @param JadeTree object
+	 */
+	public void setTree(JadeTree tree){
+		jt = tree;
+		System.out.println("tree set");
 	}
 	
 	/**
@@ -299,17 +316,15 @@ public class GraphImporter extends GraphBase{
 			//store the hits for each of the nodes in the tips
 			ArrayList<Long> ndids = new ArrayList<Long>();
 			for (int j=0;j<nds.size();j++){
-//				IndexHits<Node> hits = graphNodeIndex.get("name", nds.get(j).getName().replace("_"," "));
-//				hit_nodes.add( hits.getSingle());
-//				hits.close();
 				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
 				ndids.add(roothash.get(nds.get(j)));
-//				System.out.print(nds.get(j).getName()+" ");
+				System.out.println(nds.get(j).getName());
 			}
 //			_LOG.trace("finished names");
 			inode.assocObject("ndids", ndids);
 			expander = Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING);
 			Node ancestor = AncestorUtil.lowestCommonAncestor( hit_nodes, expander);
+			System.out.println("ancestor: "+ancestor.getId());
 //			_LOG.trace("ancestor "+ancestor);
 			//_LOG.trace(ancestor.getProperty("name"));
 			if(testIsMRCA(ancestor, root, inode)){
@@ -354,6 +369,7 @@ public class GraphImporter extends GraphBase{
 			Transaction	tx = graphDb.beginTx();
 			try{
 				Node currGoLNode = (Node)(inode.getObject("dbnode"));
+				System.out.println("working on relationships for "+currGoLNode.getId());
 				for(int i=0;i<inode.getChildCount();i++){
 					JadeNode childJadeNode = inode.getChild(i);
 					Node childGoLNode = (Node)childJadeNode.getObject("dbnode");
@@ -366,8 +382,8 @@ public class GraphImporter extends GraphBase{
 							errbuff.append(inode.getTips().get(j).getName() + "\n");
 							errbuff.append("\n");
 						}
-						if(ancestor.hasRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED,Direction.OUTGOING)){
-							errbuff.append(" ancestor taxonomic name: " + ancestor.getSingleRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+						if(currGoLNode.hasRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED,Direction.OUTGOING)){
+							errbuff.append(" ancestor taxonomic name: " + currGoLNode.getSingleRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 						}
 						errbuff.append("\nThe tree has been partially imported into the db.\n");
 						throw new TreeIngestException(errbuff.toString());

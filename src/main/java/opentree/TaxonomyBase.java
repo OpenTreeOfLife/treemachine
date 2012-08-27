@@ -6,12 +6,13 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 /** 
  *  @todo Currently this code is identical to the code base in GraphBase
  */
 public abstract class TaxonomyBase {
-	GraphDatabaseService graphDb;
+	EmbeddedGraphDatabase graphDb; //was GraphDatabaseService
 	protected static Index<Node> taxNodeIndex;
 	protected static Index<Node> graphNodeIndex;
 	protected static Index<Relationship> sourceRelIndex;
@@ -23,7 +24,7 @@ public abstract class TaxonomyBase {
 		ISCALLED // is called ,from node in graph of life to node in tax graph 
 	}
 	
-	protected static void registerShutdownHook( final GraphDatabaseService graphDb ){
+	protected static void registerShutdownHook( final EmbeddedGraphDatabase graphDb ){ //was GraphDatabaseService
 		Runtime.getRuntime().addShutdownHook( new Thread(){
 			@Override
 			public void run(){
@@ -34,6 +35,10 @@ public abstract class TaxonomyBase {
 	
 	public void shutdownDB(){
 		 registerShutdownHook( graphDb );
+	}
+	
+	public EmbeddedGraphDatabase getGraphDB(){
+		return graphDb;
 	}
 	
 	/**

@@ -1,5 +1,16 @@
 package opentree;
 
+import jade.tree.TreeReader;
+import jade.tree.JadeTree;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashSet;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
@@ -89,7 +100,6 @@ public class MainRunner {
 		te.shutdownDB();
 	}
 	
-
 	public void graphImporterParser(String [] args){
 		GraphImporter gi = null;
 		if(args[0].compareTo("addtree") == 0){
@@ -161,6 +171,70 @@ public class MainRunner {
 		gi.shutdownDB();
 	}
 	
+	public void justTreeAnalysis(String [] args){
+		if (args.length > 3){
+			System.out.println("arguments should be: filename graphdbfolder");
+			return;
+		}
+		String filename = args[1];
+		String graphname = args[2];
+		TaxonomyLoader tl = new TaxonomyLoader(graphname);
+		//Run through all the trees and get the union of the taxa for a raw taxonomy graph
+		//read the tree from a file
+		String ts = "";
+		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+		TreeReader tr = new TreeReader();
+		try{
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while((ts = br.readLine())!=null){
+				if(ts.length()>1)
+					jt.add(tr.readTree(ts));
+			}
+			br.close();
+		}catch(IOException ioe){}
+		System.out.println("trees read");
+		HashSet<String> names = new HashSet<String>();
+		for(int i = 0;i<jt.size();i++){
+			for(int j=0;j<jt.get(i).getExternalNodeCount();j++){
+				names.add(jt.get(i).getExternalNode(j).getName());
+			}
+		}
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter("tax.temp"));
+			ArrayList<String> namesal = new ArrayList<String>(); namesal.addAll(names);
+			for(int i=0;i<namesal.size();i++){
+				outFile.write((i+2)+",1,"+namesal.get(i)+"\n");
+			}
+			outFile.write("1,0,life\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		//make a temp file to be loaded into the tax loader, a hack for now
+		tl.addInitialTaxonomyTableIntoGraph("tax.temp", "ncbi");
+		//Use the taxonomy as the first tree in the composite tree
+		GraphImporter gi = new GraphImporter(tl.getGraphDB());
+		System.out.println("started graph importer");
+		gi.initializeGraphDBfromNCBI();
+		
+		//Go through the trees again and add and update as necessary
+		for(int i=0;i<jt.size();i++){
+			System.out.println("adding a tree to the graph: "+ i);
+			gi.setTree(jt.get(i));
+			try {
+			    gi.addProcessedTreeToGraph("life","treeinfile_"+String.valueOf(i));
+			} catch (TaxonNotFoundException tnfx) {
+    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+    			System.exit(1);
+			} catch (TreeIngestException tix) {
+    			System.err.println("Tree could not be imported.\n" + tix.toString());
+    			System.exit(1);
+			}
+		}
+		gi.shutdownDB();
+	}
+	
 	public static void printHelp(){
 		System.out.println("==========================");
 		System.out.println("usage: treemachine command options");
@@ -181,6 +255,10 @@ public class MainRunner {
 		System.out.println("\taddtree <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <preferred sources> <graphdbfolder> (constructs a newick file from a particular node)");
+		System.out.println("\n\n");
+		System.out.println("---testing graph---");
+		System.out.println("(This is for testing the graph with a set of trees from a file)");
+		System.out.println("\tjusttrees <filename> <graphdbfolder> (loads the trees into a graph)");
 	}
 	/**
 	 * @param args
@@ -213,8 +291,9 @@ public class MainRunner {
 				mr.graphImporterParser(args);
 			}else if(args[0].compareTo("jsgol") == 0 || args[0].compareTo("fulltree") == 0){
 				mr.graphExplorerParser(args);
-			}
-			else {
+			}else if(args[0].compareTo("justtrees")==0){
+				mr.justTreeAnalysis(args);
+			}else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();
 				System.exit(1);

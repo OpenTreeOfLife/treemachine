@@ -37,6 +37,7 @@ public class TaxonomyLoader extends TaxonomyBase{
 		taxNodeIndex = graphDb.index().forNodes( "taxNamedNodes" );
 	}
 	
+	
 	/**
 	 * Reads a taxonomy file with rows formatted as:
 	 *	taxon_id,parent_id,Name with spaces allowed\n
