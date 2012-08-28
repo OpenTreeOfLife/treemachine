@@ -6,12 +6,20 @@ package opentree;
  * THIS IS FROM NEO4J FUTURE RELEASE AND SHOULD BE REPLACED ONCE IN THE MAIN BRANCH
  */
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import opentree.GraphBase.RelTypes;
+
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipExpander;
+import org.neo4j.kernel.Traversal;
 
 /**
  * @author Pablo Pareja Tobes
@@ -78,7 +86,7 @@ public class AncestorUtil {
         while (relIterator.hasNext()) {
             Relationship rel = relIterator.next();
             node = rel.getOtherNode(node);       
-
+            System.out.println(node.getId());
             ancestors.add(node);
 
             relIterator = expander.expand(node).iterator();
@@ -104,7 +112,6 @@ public class AncestorUtil {
             RelationshipExpander expander) {
 
         while (currentNode != null) {
-
             // If we find the current node in commonAncestors, we removed the preceding elements from commonAncestors and return true
             for (int i = 0; i < commonAncestors.size(); i++) {
                 Node node = commonAncestors.get(i);
@@ -127,4 +134,69 @@ public class AncestorUtil {
         }
     return false;
     }
+    
+    /**
+     * This should find all the least inclusive common ancestors (LICA). The idea
+     * is to walk all the paths from one tip to and query at each mrca list as to 
+     * whether it has at least the tip values necessary and none of the ones not
+     * necessary. 
+     * @param nodeSet list of all the nodes for which we are looking for the LICA
+     * @param fullIdSet list of all the node ids for the tree of interest
+     * @return an ArrayList<Node> of all the nodes that are feasible LICA
+     */
+    
+    public static HashSet<Node> getAllLICA(List<Node> nodeSet, HashSet<Long> inIdSet, HashSet<Long> fullIdSet){
+    	HashSet<Node> retaln = new HashSet<Node>();
+    	Node firstNode = nodeSet.get(0);//should be the node with the fewest outgoing relationships
+    	int fewestnumrel = 10000000;
+    	for (int i=0;i<nodeSet.size();i++){
+    		int num = 0;
+    		//only way to get number of relationships
+    		for(Relationship rel: nodeSet.get(i).getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)){num++;}
+    		if(num < fewestnumrel){
+    			fewestnumrel = num;
+    			firstNode = nodeSet.get(i);
+    		}
+    	}
+    	
+    	//remove everything but that which is in the outgroup
+    	fullIdSet.removeAll(inIdSet);
+//    	Iterator<Long> itr = fullIdSet.iterator();
+//    	while(itr.hasNext()){
+//   		System.out.println("fid: "+itr.next());
+//    	}
+    	
+    	Node innode = firstNode;
+    	for ( Path pa : Traversal.description()
+	        .depthFirst()
+	        .relationships( RelTypes.MRCACHILDOF, Direction.OUTGOING )
+	        .traverse( innode ) ){
+    		boolean going = true;
+    		for (Node tnode: pa.nodes()){
+    			long [] dbnodei = (long []) tnode.getProperty("mrca");
+    			HashSet<Long> Ldbnodei =new HashSet<Long>();
+    			for(long temp:dbnodei){Ldbnodei.add(temp);}
+    			//should look to apache commons primitives for a better solution to this
+    			int beforesize = Ldbnodei.size();
+				Ldbnodei.removeAll(fullIdSet);
+				if(Ldbnodei.size()==beforesize){
+					if(Ldbnodei.containsAll(inIdSet)){
+    					retaln.add(tnode);
+    					going = false;
+    				}
+    			}else{
+					going = false;
+				}
+    			if(going == false){
+    				break;
+    			}
+    		}
+    	}
+//    	Iterator<Node> itr2 = retaln.iterator();
+//    	while(itr2.hasNext()){
+//    		System.out.println("keep: "+itr2.next().getId());
+//    	}
+    	return retaln;
+    }
+    
 }

@@ -217,7 +217,6 @@ public class MainRunner {
 		GraphImporter gi = new GraphImporter(tl.getGraphDB());
 		System.out.println("started graph importer");
 		gi.initializeGraphDBfromNCBI();
-		
 		//Go through the trees again and add and update as necessary
 		for(int i=0;i<jt.size();i++){
 			System.out.println("adding a tree to the graph: "+ i);
