@@ -16,7 +16,9 @@ public abstract class GraphBase {
 	protected static enum RelTypes implements RelationshipType{
 		MRCACHILDOF, //standard rel for graph db, from node to parent
 		TAXCHILDOF, //standard rel for tax db, from node to parent
-		STREECHILDOF, //standard rel for input tree, from node to parent  
+		STREECHILDOF, //standard rel for input tree, from node to parent
+		STREEEXACTCHILDOF, 
+		STREEINCLUCHILDOF,
 		ISCALLED // is called ,from node in graph of life to node in tax graph 
 	}
 	
