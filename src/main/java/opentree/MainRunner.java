@@ -116,6 +116,7 @@ public class MainRunner {
 			gi.preProcessTree(filename);
 			try {
 			    gi.addProcessedTreeToGraph(focalgroup,sourcename);
+			    gi.updateAfterTreeIngest();
 			} catch (TaxonNotFoundException tnfx) {
     			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
     			System.exit(1);
@@ -223,6 +224,7 @@ public class MainRunner {
 			gi.setTree(jt.get(i));
 			try {
 			    gi.addProcessedTreeToGraph("life","treeinfile_"+String.valueOf(i));
+			    gi.updateAfterTreeIngest();
 			} catch (TaxonNotFoundException tnfx) {
     			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
     			System.exit(1);

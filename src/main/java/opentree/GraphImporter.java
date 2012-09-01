@@ -259,6 +259,10 @@ public class GraphImporter extends GraphBase{
 		HashSet<Long> ndids = new HashSet<Long>(); 
 		//We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
+		//same as above but added for nested nodes, so more comprehensive and 
+		//		used just for searching. the others are used for storage
+		HashSet<Long> ndidssearch = new HashSet<Long>();
+		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//	    errors in matching leaves to the taxonomy). No other side effects.
 		//TODO: when receiving trees in the future the ids should already be set so we don't have to 
@@ -297,15 +301,24 @@ public class GraphImporter extends GraphBase{
 				assert numh == 0;
 				throw new TaxonNotFoundException(processedname);
 			}
+			//added for nested nodes 
+			long [] mrcas = (long[])hitnode.getProperty("mrca");
+			ArrayList<Long> tset = new ArrayList<Long>(); 
+			for(int k=0;k<mrcas.length;k++){
+				ndidssearch.add(mrcas[k]);
+				tset.add((Long)mrcas[k]);
+			}
+
+			hashnodeidssearch.put(nds.get(j),tset);
 			ndids.add(hitnode.getId());
 			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
 		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
 		jt.getRoot().assocObject("ndids", ndids);
 		jt.getRoot().assocObject("hashnodeids",hashnodeids);
+		jt.getRoot().assocObject("ndidssearch",ndidssearch);
+		jt.getRoot().assocObject("hashnodeidssearch",hashnodeidssearch);
 		postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),sourcename, focalnode);
-		//Once a tree has updated the graph, update potential other nodes (so they point to the right place)
-		updateAfterTreeIngest();
 	}
 	
 	
@@ -336,16 +349,22 @@ public class GraphImporter extends GraphBase{
 			postOrderaddProcessedTreeToGraph(inode.getChild(i), root, sourcename, focalnode);
 		}
 //		_LOG.trace("children: "+inode.getChildCount());
+		//roothash are the actual ids with the nested names -- used for storing
+		//roothashsearch are the ids with nested exploded -- used for searching
 		HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
+		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode,ArrayList<Long>>)root.getObject("hashnodeidssearch"));
 		
 		if(inode.getChildCount() > 0){
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
+			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
 			//store the hits for each of the nodes in the tips
-//			ArrayList<Long> ndids = new ArrayList<Long>();
 			for (int j=0;j<nds.size();j++){
 				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
-//				ndids.add(roothash.get(nds.get(j)));
+				ArrayList<Long> tlist = roothashsearch.get(nds.get(j));
+				for(int k=0;k<tlist.size();k++){
+					hit_nodes_search.add(graphDb.getNodeById(tlist.get(k)));
+				}
 			}
 			//get all the childids even if they aren't in the tree, this is the postorder part
 			HashSet<Long> childndids =new HashSet<Long> (); 
@@ -359,17 +378,15 @@ public class GraphImporter extends GraphBase{
 					}
 				}
 			}
-			//TODO: break this out to another method for better code organization
 //			_LOG.trace("finished names");
-			HashSet<Long> rootids = new HashSet<Long>((ArrayList<Long>) root.getObject("ndids"));
-			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes, childndids, rootids);
+			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes_search, childndids, rootids);
 //			_LOG.trace("ancestor "+ancestor);
 			//_LOG.trace(ancestor.getProperty("name"));
 			if(ancestors.size()>0){
 				inode.assocObject("dbnodes",ancestors.toArray(new Node[ancestors.size()]));
 				boolean exact = false;
 				if(ancestors.size() == 1){
-					//TODO: deal with the nested_mrcas (higher taxon names)
 					int retlength = ((long[])ancestors.iterator().next().getProperty("mrca")).length;
 					if(retlength == hit_nodes.size()){
 						exact = true;
@@ -382,7 +399,7 @@ public class GraphImporter extends GraphBase{
 					for(int i=0;i<hit_nodes.size();i++){
 						ret[i] = hit_nodes.get(i).getId();
 					}
-				    rootids = new HashSet<Long>((ArrayList<Long>) root.getObject("ndids"));
+				    rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
 				    long[] ret2 = new long[rootids.size()];
 					Iterator<Long> chl2 = rootids.iterator();
 					int i=0;
@@ -399,7 +416,7 @@ public class GraphImporter extends GraphBase{
 				//make a node
 				//get the super lica, or what would be the licas if we didn't have the other taxa in the tree
 				//this is used to connect the new nodes to their licas for easier traversals
-				HashSet<Node> superlica = AncestorUtil.getSuperLICA(hit_nodes, childndids);
+				HashSet<Node> superlica = AncestorUtil.getSuperLICA(hit_nodes_search, childndids);
 				//steps
 				//1. create a node
 				//2. store the mrcas
@@ -419,7 +436,6 @@ public class GraphImporter extends GraphBase{
 				    }
 					dbnode.setProperty("mrca", ret);
 					//determine if the relationships that are made should be STREEEXACT or STREEINCLU
-					//TODO: deal with the nested_mrcas (higher taxon names)
 					if(ret.length == hit_nodes.size()){
 						inode.assocObject("streetype", "exact");//node is exact and only has taxa in the stree)
 					}else{
@@ -429,7 +445,7 @@ public class GraphImporter extends GraphBase{
 							rete[j] = hit_nodes.get(j).getId();
 						}
 						inode.assocObject("exclusive_mrca",rete);
-						rootids = new HashSet<Long>((ArrayList<Long>) root.getObject("ndids"));
+						rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
 						long[] ret2 = new long[rootids.size()];
 						Iterator<Long> chl2 = rootids.iterator();
 						i=0;
@@ -474,7 +490,6 @@ public class GraphImporter extends GraphBase{
 	 * @param source source name for the tree
 	 */
 	private void addProcessedNodeRelationships(JadeNode inode, String sourcename) throws TreeIngestException{
-		//TODO: break this out to another method for better organization
 		// At this point the inode is guaranteed to be associated with a dbnode
 		// add the actual branches for the source
 		Transaction	tx = graphDb.beginTx();
@@ -588,7 +603,7 @@ public class GraphImporter extends GraphBase{
 		boolean ret = true;
 		long [] dbnodei = (long []) dbnode.getProperty("mrca");
 		@SuppressWarnings("unchecked")
-		ArrayList<Long> rootids = new ArrayList<Long>((ArrayList<Long>) root.getObject("ndids"));
+		ArrayList<Long> rootids = new ArrayList<Long>((HashSet<Long>) root.getObject("ndids"));
 		@SuppressWarnings("unchecked")
 		ArrayList<Long> inodeids =(ArrayList<Long>) inode.getObject("ndids");
 //		System.out.println(rootids.size());
@@ -617,7 +632,7 @@ public class GraphImporter extends GraphBase{
 /*
  * This might be better done if we indexed the new updated node
  */
-	private void updateAfterTreeIngest(){
+	public void updateAfterTreeIngest(){
 		ArrayList<Relationship> krels = new ArrayList<Relationship>();
 		Iterator<Node> itr = updatedSuperLICAs.iterator();
 		while(itr.hasNext()){

@@ -198,6 +198,7 @@ public class AncestorUtil {
     			}
     		}
     	}
+    	System.out.println(nodeSet +" " +inIdSet+" "+fullIdSet+" "+retaln);
     	return retaln;
     }
     
