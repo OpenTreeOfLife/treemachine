@@ -566,6 +566,8 @@ public class GraphExplorer extends GraphBase{
 						JadeNode tchild = new JadeNode();
 						if(tnodechild.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED))
 							tchild.setName((String)tnodechild.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+						if(endnode_rel_map.get(tnode).get(i).hasProperty("branch_length"))
+							tchild.setBL((Double)endnode_rel_map.get(tnode).get(i).getProperty("branch_length"));
 						jadenode_map.get(tnode).addChild(tchild);
 						jadenode_map.put(tnodechild, tchild);
 //						System.out.println("pushing: "+endnode_rel_map.get(tnode).get(i).getStartNode());
@@ -575,7 +577,7 @@ public class GraphExplorer extends GraphBase{
 		}
 		//print the newick string
 		JadeTree tree = new JadeTree(root);
-		System.out.println(root.getNewick(false));
+		System.out.println(root.getNewick(false)+";");
 	}
 	
 }

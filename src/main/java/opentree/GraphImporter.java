@@ -359,6 +359,8 @@ public class GraphImporter extends GraphBase{
 				}
 			}
 			
+			//TODO: break this out to another method for better code organization
+			
 //			_LOG.trace("finished names");
 			@SuppressWarnings("unchecked")
 			HashSet<Long> rootids = new HashSet<Long>((ArrayList<Long>) root.getObject("ndids"));
@@ -456,7 +458,7 @@ public class GraphImporter extends GraphBase{
 				}
 			}
 			
-			
+			//TODO: break this out to another method for better organization
 			// At this point the inode is guaranteed to be associated with a dbnode
 			// add the actual branches for the source
 			Transaction	tx = graphDb.beginTx();
