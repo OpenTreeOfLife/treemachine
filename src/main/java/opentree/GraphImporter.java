@@ -35,7 +35,7 @@ import org.apache.log4j.Logger;
 import scala.actors.threadpool.Arrays;
 
 public class GraphImporter extends GraphBase{
-	static Logger _LOG = Logger.getLogger(GraphImporter.class);
+	//static Logger _LOG = Logger.getLogger(GraphImporter.class);
 
 	private int transaction_iter = 100000;
 	private int cur_tran_iter = 0;
@@ -129,7 +129,7 @@ public class GraphImporter extends GraphBase{
 		try{
 			//root should be the ncbi startnode
 			Node startnode = (taxNodeIndex.get("name", "root")).next();
-			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
+//			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
 			graphstart = graphDb.createNode();
 			graphstart.createRelationshipTo(startnode, RelTypes.ISCALLED); //@MTH: Do we need to add a source property to this relationship
 			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
@@ -358,9 +358,7 @@ public class GraphImporter extends GraphBase{
 					}
 				}
 			}
-			
 			//TODO: break this out to another method for better code organization
-			
 //			_LOG.trace("finished names");
 			HashSet<Long> rootids = new HashSet<Long>((ArrayList<Long>) root.getObject("ndids"));
 			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes, childndids, rootids);
@@ -457,7 +455,7 @@ public class GraphImporter extends GraphBase{
 				}
 			}
 			
-			postOrderaddProcessedTreeRelationships(inode, sourcename);
+			addProcessedNodeRelationships(inode, sourcename);
 		}else{
 //			inode.assocObject("dbnode",graphDb.getNodeById(roothash.get(inode)));
 			Node [] nar = {graphDb.getNodeById(roothash.get(inode))};
@@ -475,7 +473,7 @@ public class GraphImporter extends GraphBase{
 	 * @param inode current focal node from postorderaddprocessedtreetograph 
 	 * @param source source name for the tree
 	 */
-	private void postOrderaddProcessedTreeRelationships(JadeNode inode, String sourcename) throws TreeIngestException{
+	private void addProcessedNodeRelationships(JadeNode inode, String sourcename) throws TreeIngestException{
 		//TODO: break this out to another method for better organization
 		// At this point the inode is guaranteed to be associated with a dbnode
 		// add the actual branches for the source
