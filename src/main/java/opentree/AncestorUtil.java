@@ -178,7 +178,13 @@ public class AncestorUtil {
     			int beforesize = Ldbnodei.size();
 				Ldbnodei.removeAll(fullIdSet);
 				if(Ldbnodei.size()==beforesize){
-					if(Ldbnodei.containsAll(inIdSet)){
+					//this gets all, but we want to only include the exact if one exists
+					boolean containsall = Ldbnodei.containsAll(inIdSet);
+					if(containsall && inIdSet.size()==Ldbnodei.size()){
+						retaln.clear();
+						retaln.add(tnode);
+						going = false;
+					}else if(containsall){
     					retaln.add(tnode);
     					going = false;
     				}
@@ -229,10 +235,16 @@ public class AncestorUtil {
     			HashSet<Long> Ldbnodei =new HashSet<Long>();
     			for(long temp:dbnodei){Ldbnodei.add(temp);}
     			//should look to apache commons primitives for a better solution to this
-    			if(Ldbnodei.containsAll(inIdSet)){
-    				retaln.add(tnode);
-    				going = false;
-    			}
+    			//this gets all, but we want to only include the exact if one exists
+				boolean containsall = Ldbnodei.containsAll(inIdSet);
+				if(containsall && inIdSet.size()==Ldbnodei.size()){
+					retaln.clear();
+					retaln.add(tnode);
+					going = false;
+				}else if(containsall){
+					retaln.add(tnode);
+					going = false;
+				}
     			if(going == false){
     				break;
     			}

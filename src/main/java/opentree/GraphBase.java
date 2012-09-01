@@ -12,6 +12,7 @@ public abstract class GraphBase {
 	protected static Index<Node> taxNodeIndex;
 	protected static Index<Node> graphNodeIndex;
 	protected static Index<Relationship> sourceRelIndex;
+	protected static Index<Node> sourceRootIndex;
 	
 	protected static enum RelTypes implements RelationshipType{
 		MRCACHILDOF, //standard rel for graph db, from node to parent

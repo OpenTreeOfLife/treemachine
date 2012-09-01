@@ -234,6 +234,19 @@ public class MainRunner {
 		gi.shutdownDB();
 	}
 	
+	public void sourceTreeExplorer(String [] args){
+		if (args.length > 3){
+			System.out.println("arguments should be: sourcename graphdbfolder");
+			return;
+		}
+		String sourcename = args[1];
+		String graphname = args[2];
+		GraphExplorer ge = new GraphExplorer();
+		ge.setEmbeddedDB(graphname);
+		ge.reconstructSource(sourcename);
+		ge.shutdownDB();
+	}
+	
 	public static void printHelp(){
 		System.out.println("==========================");
 		System.out.println("usage: treemachine command options");
@@ -258,6 +271,7 @@ public class MainRunner {
 		System.out.println("---testing graph---");
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
 		System.out.println("\tjusttrees <filename> <graphdbfolder> (loads the trees into a graph)");
+		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
 	}
 	/**
 	 * @param args
@@ -292,6 +306,8 @@ public class MainRunner {
 				mr.graphExplorerParser(args);
 			}else if(args[0].compareTo("justtrees")==0){
 				mr.justTreeAnalysis(args);
+			}else if(args[0].compareTo("sourceexplorer")==0){
+				mr.sourceTreeExplorer(args);
 			}else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();

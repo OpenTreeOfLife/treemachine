@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Stack;
 
 import javax.swing.text.html.HTMLDocument.Iterator;
 
@@ -20,6 +22,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
@@ -39,6 +42,8 @@ public class GraphExplorer extends GraphBase{
 		graphDb = new EmbeddedGraphDatabase( graphname ) ;
 		graphNodeIndex = graphDb.index().forNodes("graphNamedNodes");
 		taxNodeIndex = graphDb.index().forNodes("taxNamedNodes");
+		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
+		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 	}
 	
 	/**
@@ -488,6 +493,89 @@ public class GraphExplorer extends GraphBase{
 		ret += tree.getRoot().getJSON(false);
 		ret += ",{\"domsource\":\""+sourcename+"\"}]\n";
 		return ret;
+	}
+	
+	/**
+	 * This will recreate the original source from the graph. At this point this 
+	 * is just a demonstration that it can be done.
+	 * 
+	 * @param sourcename the name of the source
+	 */
+	public void reconstructSource(String sourcename){
+		IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
+		IndexHits<Relationship> hitsr = sourceRelIndex.get("source",sourcename);
+		//really only need one
+		HashMap<Node,JadeNode> jadenode_map = new HashMap<Node,JadeNode>();
+		JadeNode root = new JadeNode();
+		Node rootnode = hits.next();
+		jadenode_map.put(rootnode, root);
+		if(rootnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED))
+			root.setName((String)rootnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+		hits.close();
+//		System.out.println(hitsr.size());
+		HashMap<Node,ArrayList<Relationship> > startnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
+		HashMap<Node,ArrayList<Relationship> > endnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
+		while(hitsr.hasNext()){
+			Relationship trel = hitsr.next();
+			if (startnode_rel_map.containsKey(trel.getStartNode())==false){
+				ArrayList<Relationship> trels = new ArrayList<Relationship> ();
+				startnode_rel_map.put(trel.getStartNode(), trels);
+			}
+			if (endnode_rel_map.containsKey(trel.getEndNode())==false){
+				ArrayList<Relationship> trels = new ArrayList<Relationship> ();
+				endnode_rel_map.put(trel.getEndNode(), trels);
+			}
+//			System.out.println(trel.getStartNode()+" "+trel.getEndNode());
+			startnode_rel_map.get(trel.getStartNode()).add(trel);
+			endnode_rel_map.get(trel.getEndNode()).add(trel);
+		}
+		hitsr.close();
+		Stack<Node> treestack = new Stack<Node>();
+		treestack.push(rootnode);
+		HashSet<Node> ignoreCycles = new HashSet<Node>();
+		while (treestack.isEmpty()==false){
+			Node tnode = treestack.pop();
+//			if(tnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
+//				System.out.println(tnode + " "+tnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+//			}else{
+//				System.out.println(tnode);
+//			}
+			//TODO: move down one more node
+			if(endnode_rel_map.containsKey(tnode)){
+				for(int i=0;i<endnode_rel_map.get(tnode).size();i++){
+					if(endnode_rel_map.containsKey(endnode_rel_map.get(tnode).get(i).getStartNode())){
+						ArrayList<Relationship> rels = endnode_rel_map.get(endnode_rel_map.get(tnode).get(i).getStartNode());
+						for(int j=0;j<rels.size();j++){
+							if(rels.get(j).hasProperty("licas")){
+								long [] licas = (long[])rels.get(j).getProperty("licas");
+								if(licas.length>1){
+									for(int k=1;k<licas.length;k++){
+										ignoreCycles.add(graphDb.getNodeById(licas[k]));
+//										System.out.println("ignoring: "+licas[k]);
+									}
+								}
+							}
+						}
+					}
+				}
+			}if(endnode_rel_map.containsKey(tnode)){
+				for(int i=0;i<endnode_rel_map.get(tnode).size();i++){
+					if(ignoreCycles.contains(endnode_rel_map.get(tnode).get(i).getStartNode())==false){
+						Node tnodechild = endnode_rel_map.get(tnode).get(i).getStartNode();
+						treestack.push(tnodechild);
+						JadeNode tchild = new JadeNode();
+						if(tnodechild.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED))
+							tchild.setName((String)tnodechild.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+						jadenode_map.get(tnode).addChild(tchild);
+						jadenode_map.put(tnodechild, tchild);
+//						System.out.println("pushing: "+endnode_rel_map.get(tnode).get(i).getStartNode());
+					}
+				}
+			}
+		}
+		//print the newick string
+		JadeTree tree = new JadeTree(root);
+		System.out.println(root.getNewick(false));
 	}
 	
 }
