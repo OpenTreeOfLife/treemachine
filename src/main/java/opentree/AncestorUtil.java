@@ -3,7 +3,8 @@ package opentree;
 
 /***
  * 
- * THIS IS FROM NEO4J FUTURE RELEASE AND SHOULD BE REPLACED ONCE IN THE MAIN BRANCH
+ * This has been modified from the NEO4J main development branch. It can NOT be
+ * merged with that and should be kept distinct.
  */
 
 import java.util.ArrayList;
@@ -27,7 +28,8 @@ import org.neo4j.kernel.Traversal;
 public class AncestorUtil {
 
     /**
-     * Return the lowest common ancestor of the nodes in `nodeSet` or null (if they do not share a common ancestor).
+     * Return the lowest common ancestor of the nodes in `nodeSet` or null (if they do not share a common ancestor). This does assume that there 
+     * is only one lowestCommonAncestor. If there are more, one will be returned.
      *
      * @todo This could be made more efficient, if necessary (by walking back from each node until coalescence; a bit of a bookkeeping nightmare, though).
      *
@@ -136,7 +138,7 @@ public class AncestorUtil {
     }
     
     /**
-     * TODO: deal with the nested_mrcas (higher taxon names)
+     * @author Stephen Smith
      * This should find all the least inclusive common ancestors (LICA). The idea
      * is to walk all the paths from one tip to and query at each mrca list as to 
      * whether it has at least the tip values necessary and none of the ones not
@@ -200,7 +202,7 @@ public class AncestorUtil {
     }
     
     /**
-     * TODO: deal with the nested_mrcas (higher taxon names)
+     * @author Stephen Smith
      * This should find all the least inclusive common ancestors (LICA) ignoring 
      * the sampling of the outgroup or other sampling in the source tree. The idea
      * is to walk all the paths from one tip to and query at each mrca list as to 

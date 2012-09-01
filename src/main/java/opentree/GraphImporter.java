@@ -240,7 +240,10 @@ public class GraphImporter extends GraphBase{
 	 *		every edge in this tree.
 	 * @todo we probably want a node in the graph representing the tree with an 
 	 *		ISROOTOF edge from its root to the tree. We could attach annotations
-	 *		about the tree to this node
+	 *		about the tree to this node. We have the index of the root node, but
+	 *		need to having and isroot would also be helpful. Unless we are indexing
+	 *		this we could just randomly choose one of the edges that is connected
+	 *		to the root node that is in the index
 	 */
 	public void addProcessedTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException, TreeIngestException {
 		Node focalnode = findTaxNodeByName(focalgroup);
@@ -253,11 +256,13 @@ public class GraphImporter extends GraphBase{
 
 		/*@todo making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
 		  would make the look ups faster. See comment in testIsMRCA */
-		ArrayList<Long> ndids = new ArrayList<Long>(); 
+		HashSet<Long> ndids = new HashSet<Long>(); 
 		//We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
-		//	errors in matching leaves to the taxonomy). No other side effects.
+		//	    errors in matching leaves to the taxonomy). No other side effects.
+		//TODO: when receiving trees in the future the ids should already be set so we don't have to 
+		//      do this kind of fuzzy matching
 		for (int j=0;j<nds.size();j++){
 			//find all the tip taxa and with doubles pick the taxon closest to the focal group
 			Node hitnode = null;
@@ -311,10 +316,6 @@ public class GraphImporter extends GraphBase{
 	 *
 	 * This will update the class member updatedNodes so they can be used for updating 
 	 * existing relationships.
-	 *
-	 * @todo: recursive
-	 *
-	 * this should be done as a preorder traversal
 	 *
 	 * @param focalgroup a taxonomic name of the ancestor of the leaves in the tree
 	 *		this is only used in disambiguating taxa when there are multiple hits 
@@ -454,7 +455,6 @@ public class GraphImporter extends GraphBase{
 					tx.finish();
 				}
 			}
-			
 			addProcessedNodeRelationships(inode, sourcename);
 		}else{
 //			inode.assocObject("dbnode",graphDb.getNodeById(roothash.get(inode)));
