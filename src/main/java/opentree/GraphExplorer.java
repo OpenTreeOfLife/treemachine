@@ -11,10 +11,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Stack;
 
-import javax.swing.text.html.HTMLDocument.Iterator;
-
-import opentree.GraphBase.RelTypes;
-
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -577,7 +573,7 @@ public class GraphExplorer extends GraphBase{
 		}
 		//print the newick string
 		JadeTree tree = new JadeTree(root);
-		System.out.println(root.getNewick(false)+";");
+		System.out.println(tree.getRoot().getNewick(false)+";");
 	}
 	
 }

@@ -25,7 +25,7 @@ public class ChildNumberEvaluator implements Evaluator{
 		boolean tthresh = false;
 		int count = 0;
 		// @query Do we need to specify the type of relationship?
-		for(Relationship rel: arg0.endNode().getRelationships(Direction.INCOMING)){
+		for(@SuppressWarnings("unused") Relationship rel: arg0.endNode().getRelationships(Direction.INCOMING)){
 			count += 1;
 			if (count >= child_threshold){
 				tthresh = true;

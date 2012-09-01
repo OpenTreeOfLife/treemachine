@@ -2,8 +2,6 @@ package opentree;
 
 
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.Traverser.Order;
-import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.*;
@@ -11,8 +9,6 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 /**
  * TaxonomyLoader is intended to control the initial creation 
@@ -306,7 +302,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 		ArrayList<String> rel_pid = new ArrayList<String>();
 		try{
 			count = 0;
-			int dcount = 0;
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			while((str = br.readLine())!=null){
 				String[] spls = str.split(",");
@@ -429,7 +424,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 						}finally{
 							tx.finish();
 						}
-						dcount += 1;
 					}
 				}//name was added this time around
 				else{
@@ -503,7 +497,6 @@ public class TaxonomyLoader extends TaxonomyBase{
 							}finally{
 								tx.finish();
 							}
-							dcount += 1;
 						}
 						matchnodeparent = bestitem;
 					}else if (addednodes.containsKey(strparentid) == true){

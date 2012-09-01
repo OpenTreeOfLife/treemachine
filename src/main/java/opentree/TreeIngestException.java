@@ -7,7 +7,7 @@ import java.lang.Exception;
  */
 public class TreeIngestException extends Exception {
  
-    private String msg;
+	private String msg;
  
     public TreeIngestException(String error_msg){
         this.msg = error_msg;
