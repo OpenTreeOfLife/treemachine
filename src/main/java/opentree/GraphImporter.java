@@ -30,7 +30,7 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 
 import scala.actors.threadpool.Arrays;
 
@@ -40,10 +40,10 @@ public class GraphImporter extends GraphBase{
 	private int transaction_iter = 100000;
 	private int cur_tran_iter = 0;
 	private JadeTree jt;
-	Transaction tx;
 	private RelationshipExpander expander;
 	private ArrayList<Node> updatedNodes;
 	private HashSet<Node> updatedSuperLICAs;
+	private Transaction	tx;
 	
 	public GraphImporter(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
@@ -318,7 +318,12 @@ public class GraphImporter extends GraphBase{
 		jt.getRoot().assocObject("hashnodeids",hashnodeids);
 		jt.getRoot().assocObject("ndidssearch",ndidssearch);
 		jt.getRoot().assocObject("hashnodeidssearch",hashnodeidssearch);
-		postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),sourcename, focalnode);
+		tx = graphDb.beginTx();
+		try{
+			postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),sourcename, focalnode);
+		}finally{
+			tx.finish();
+		}
 	}
 	
 	
@@ -348,12 +353,12 @@ public class GraphImporter extends GraphBase{
 		for(int i = 0; i < inode.getChildCount(); i++){
 			postOrderaddProcessedTreeToGraph(inode.getChild(i), root, sourcename, focalnode);
 		}
-//		_LOG.trace("children: "+inode.getChildCount());
+		//		_LOG.trace("children: "+inode.getChildCount());
 		//roothash are the actual ids with the nested names -- used for storing
 		//roothashsearch are the ids with nested exploded -- used for searching
 		HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
 		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode,ArrayList<Long>>)root.getObject("hashnodeidssearch"));
-		
+
 		if(inode.getChildCount() > 0){
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
@@ -378,10 +383,10 @@ public class GraphImporter extends GraphBase{
 					}
 				}
 			}
-//			_LOG.trace("finished names");
+			//			_LOG.trace("finished names");
 			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
 			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes_search, childndids, rootids);
-//			_LOG.trace("ancestor "+ancestor);
+			//			_LOG.trace("ancestor "+ancestor);
 			//_LOG.trace(ancestor.getProperty("name"));
 			if(ancestors.size()>0){
 				inode.assocObject("dbnodes",ancestors.toArray(new Node[ancestors.size()]));
@@ -399,20 +404,20 @@ public class GraphImporter extends GraphBase{
 					for(int i=0;i<hit_nodes.size();i++){
 						ret[i] = hit_nodes.get(i).getId();
 					}
-				    rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				    long[] ret2 = new long[rootids.size()];
+					rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+					long[] ret2 = new long[rootids.size()];
 					Iterator<Long> chl2 = rootids.iterator();
 					int i=0;
-				    while(chl2.hasNext()){
-				        ret2[i] = chl2.next().longValue();
-				        i++;
-				    }
+					while(chl2.hasNext()){
+						ret2[i] = chl2.next().longValue();
+						i++;
+					}
 					inode.assocObject("streetype", "inclu"); // node is inclusive (includes taxa not in the stree)
 					inode.assocObject("exclusive_mrca",ret);
 					inode.assocObject("root_exclusive_mrca",ret2);
 				}
 			}else{
-//				_LOG.trace("need to make a new node");
+				//				_LOG.trace("need to make a new node");
 				//make a node
 				//get the super lica, or what would be the licas if we didn't have the other taxa in the tree
 				//this is used to connect the new nodes to their licas for easier traversals
@@ -421,55 +426,50 @@ public class GraphImporter extends GraphBase{
 				//1. create a node
 				//2. store the mrcas
 				//3. assoc with the node
-				Transaction	tx = graphDb.beginTx();
-				try{
-					Node dbnode = graphDb.createNode();
-//					inode.assocObject("dbnode",dbnode);
-					Node [] nar = {dbnode};
-					inode.assocObject("dbnodes",nar);
-					long[] ret = new long[childndids.size()];
-					Iterator<Long> chl = childndids.iterator();
-					int i=0;
-				    while(chl.hasNext()){
-				        ret[i] = chl.next().longValue();
-				        i++;
-				    }
-					dbnode.setProperty("mrca", ret);
-					//determine if the relationships that are made should be STREEEXACT or STREEINCLU
-					if(ret.length == hit_nodes.size()){
-						inode.assocObject("streetype", "exact");//node is exact and only has taxa in the stree)
-					}else{
-						inode.assocObject("streetype", "inclu"); // node is inclusive (includes taxa not in the stree)
-						long[] rete = new long[hit_nodes.size()];
-						for(int j=0;j<hit_nodes.size();j++){
-							rete[j] = hit_nodes.get(j).getId();
-						}
-						inode.assocObject("exclusive_mrca",rete);
-						rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-						long[] ret2 = new long[rootids.size()];
-						Iterator<Long> chl2 = rootids.iterator();
-						i=0;
-					    while(chl2.hasNext()){
-					        ret2[i] = chl2.next().longValue();
-					        i++;
-					    }
-						inode.assocObject("root_exclusive_mrca",ret2);
-					}
-//					for(int i=0;i<inode.getChildCount();i++){
-//						Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
-//					}
-					Iterator<Node> itrsl = superlica.iterator();
-					while(itrsl.hasNext()){
-						Node itrnext = itrsl.next();
-						dbnode.createRelationshipTo(itrnext, RelTypes.MRCACHILDOF);
-						updatedSuperLICAs.add(itrnext);
-					}
-					tx.success();
-					//add new nodes so they can be used for updating after tree ingest
-					updatedNodes.add(dbnode);
-				}finally{
-					tx.finish();
+				Node dbnode = graphDb.createNode();
+				//					inode.assocObject("dbnode",dbnode);
+				Node [] nar = {dbnode};
+				inode.assocObject("dbnodes",nar);
+				long[] ret = new long[childndids.size()];
+				Iterator<Long> chl = childndids.iterator();
+				int i=0;
+				while(chl.hasNext()){
+					ret[i] = chl.next().longValue();
+					i++;
 				}
+				dbnode.setProperty("mrca", ret);
+				//determine if the relationships that are made should be STREEEXACT or STREEINCLU
+				if(ret.length == hit_nodes.size()){
+					inode.assocObject("streetype", "exact");//node is exact and only has taxa in the stree)
+				}else{
+					inode.assocObject("streetype", "inclu"); // node is inclusive (includes taxa not in the stree)
+					long[] rete = new long[hit_nodes.size()];
+					for(int j=0;j<hit_nodes.size();j++){
+						rete[j] = hit_nodes.get(j).getId();
+					}
+					inode.assocObject("exclusive_mrca",rete);
+					rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+					long[] ret2 = new long[rootids.size()];
+					Iterator<Long> chl2 = rootids.iterator();
+					i=0;
+					while(chl2.hasNext()){
+						ret2[i] = chl2.next().longValue();
+						i++;
+					}
+					inode.assocObject("root_exclusive_mrca",ret2);
+				}
+				//					for(int i=0;i<inode.getChildCount();i++){
+				//						Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
+				//					}
+				Iterator<Node> itrsl = superlica.iterator();
+				while(itrsl.hasNext()){
+					Node itrnext = itrsl.next();
+					dbnode.createRelationshipTo(itrnext, RelTypes.MRCACHILDOF);
+					updatedSuperLICAs.add(itrnext);
+				}
+				tx.success();
+				//add new nodes so they can be used for updating after tree ingest
+				updatedNodes.add(dbnode);
 			}
 			addProcessedNodeRelationships(inode, sourcename);
 		}else{
@@ -492,95 +492,89 @@ public class GraphImporter extends GraphBase{
 	private void addProcessedNodeRelationships(JadeNode inode, String sourcename) throws TreeIngestException{
 		// At this point the inode is guaranteed to be associated with a dbnode
 		// add the actual branches for the source
-		Transaction	tx = graphDb.beginTx();
-		try{
-//			Node currGoLNode = (Node)(inode.getObject("dbnode"));
-			Node [] allGoLNodes = (Node [])(inode.getObject("dbnodes"));
-			//for use if this node will be an incluchildof and we want to store the relationships for faster retrieval
-			ArrayList<Relationship> inclusiverelationships = new ArrayList<Relationship>();
-			boolean inclusive = false;
-			for(int k=0;k<allGoLNodes.length;k++){
-				Node currGoLNode = allGoLNodes[k];
-				//add the root index for the source trail
-				if (inode.isTheRoot()){
-					//TODO: this will need to be updated when trees are updated
-					System.out.println("placing root in index");
-					sourceRootIndex.add(currGoLNode, "rootnode", sourcename);
-				}
-//				System.out.println("working on relationships for "+currGoLNode.getId());
-				
-				for(int i=0;i<inode.getChildCount();i++){
-					JadeNode childJadeNode = inode.getChild(i);
-//					Node childGoLNode = (Node)childJadeNode.getObject("dbnode");
-					Node [] allChildGoLNodes = (Node [])(childJadeNode.getObject("dbnodes"));
-					for(int m=0;m<allChildGoLNodes.length;m++){
-						Node childGoLNode = allChildGoLNodes[m];
-						Relationship rel;
-						if(((String)inode.getObject("streetype")).compareTo("exact")==0){//exact only taxa included in the stree
-							rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREEEXACTCHILDOF);
-							sourceRelIndex.add(rel, "source", sourcename);
-						}else{//inclu taxa included not sampled in stree
-							inclusive = true;
-							rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREEINCLUCHILDOF);
-							sourceRelIndex.add(rel, "source", sourcename);
-							rel.setProperty("exclusive_mrca",(long [])inode.getObject("exclusive_mrca"));
-							rel.setProperty("root_exclusive_mrca",(long []) inode.getObject("root_exclusive_mrca"));
-							long [] licaids = new long[allGoLNodes.length];
-							for(int n=0;n<licaids.length;n++){
-								licaids[n] = allGoLNodes[n].getId();
-							}
-							rel.setProperty("licas",licaids);
-							inclusiverelationships.add(rel);
+		//			Node currGoLNode = (Node)(inode.getObject("dbnode"));
+		Node [] allGoLNodes = (Node [])(inode.getObject("dbnodes"));
+		//for use if this node will be an incluchildof and we want to store the relationships for faster retrieval
+		ArrayList<Relationship> inclusiverelationships = new ArrayList<Relationship>();
+		boolean inclusive = false;
+		for(int k=0;k<allGoLNodes.length;k++){
+			Node currGoLNode = allGoLNodes[k];
+			//add the root index for the source trail
+			if (inode.isTheRoot()){
+				//TODO: this will need to be updated when trees are updated
+				System.out.println("placing root in index");
+				sourceRootIndex.add(currGoLNode, "rootnode", sourcename);
+			}
+			//				System.out.println("working on relationships for "+currGoLNode.getId());
+
+			for(int i=0;i<inode.getChildCount();i++){
+				JadeNode childJadeNode = inode.getChild(i);
+				//					Node childGoLNode = (Node)childJadeNode.getObject("dbnode");
+				Node [] allChildGoLNodes = (Node [])(childJadeNode.getObject("dbnodes"));
+				for(int m=0;m<allChildGoLNodes.length;m++){
+					Node childGoLNode = allChildGoLNodes[m];
+					Relationship rel;
+					if(((String)inode.getObject("streetype")).compareTo("exact")==0){//exact only taxa included in the stree
+						rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREEEXACTCHILDOF);
+						sourceRelIndex.add(rel, "source", sourcename);
+					}else{//inclu taxa included not sampled in stree
+						inclusive = true;
+						rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREEINCLUCHILDOF);
+						sourceRelIndex.add(rel, "source", sourcename);
+						rel.setProperty("exclusive_mrca",(long [])inode.getObject("exclusive_mrca"));
+						rel.setProperty("root_exclusive_mrca",(long []) inode.getObject("root_exclusive_mrca"));
+						long [] licaids = new long[allGoLNodes.length];
+						for(int n=0;n<licaids.length;n++){
+							licaids[n] = allGoLNodes[n].getId();
 						}
-						// check to make sure the parent and child nodes are distinct entities...
-						if(rel.getStartNode().getId() == rel.getEndNode().getId()){
-							StringBuffer errbuff = new StringBuffer();
-							errbuff.append("A node and its child map to the same GoL node.\nTips:\n");
-							for(int j=0;j<inode.getTips().size();j++){
-								errbuff.append(inode.getTips().get(j).getName() + "\n");
-								errbuff.append("\n");
-							}
-							if(currGoLNode.hasRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED,Direction.OUTGOING)){
-								errbuff.append(" ancestor taxonomic name: " + currGoLNode.getSingleRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-							}
-							errbuff.append("\nThe tree has been partially imported into the db.\n");
-							throw new TreeIngestException(errbuff.toString());
+						rel.setProperty("licas",licaids);
+						inclusiverelationships.add(rel);
+					}
+					// check to make sure the parent and child nodes are distinct entities...
+					if(rel.getStartNode().getId() == rel.getEndNode().getId()){
+						StringBuffer errbuff = new StringBuffer();
+						errbuff.append("A node and its child map to the same GoL node.\nTips:\n");
+						for(int j=0;j<inode.getTips().size();j++){
+							errbuff.append(inode.getTips().get(j).getName() + "\n");
+							errbuff.append("\n");
 						}
-						//METADATA ENTRY
-						rel.setProperty("source", sourcename);
-						if(childJadeNode.getBL() > 0.0){ //@todo this if will cause us to drop 0 length branches. We probably need a "has branch length" flag in JadeNode...
-							rel.setProperty("branch_length", childJadeNode.getBL());
+						if(currGoLNode.hasRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED,Direction.OUTGOING)){
+							errbuff.append(" ancestor taxonomic name: " + currGoLNode.getSingleRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 						}
-						boolean mrca_rel = false;
-						for(Relationship trel: childGoLNode.getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)){
-							if (trel.getOtherNode(childGoLNode).getId() == currGoLNode.getId()){
-								mrca_rel = true;
-								break;
-							}
+						errbuff.append("\nThe tree has been partially imported into the db.\n");
+						throw new TreeIngestException(errbuff.toString());
+					}
+					//METADATA ENTRY
+					rel.setProperty("source", sourcename);
+					if(childJadeNode.getBL() > 0.0){ //@todo this if will cause us to drop 0 length branches. We probably need a "has branch length" flag in JadeNode...
+						rel.setProperty("branch_length", childJadeNode.getBL());
+					}
+					boolean mrca_rel = false;
+					for(Relationship trel: childGoLNode.getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)){
+						if (trel.getOtherNode(childGoLNode).getId() == currGoLNode.getId()){
+							mrca_rel = true;
+							break;
 						}
-						if(mrca_rel == false){
-							Relationship rel2 = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.MRCACHILDOF);
-							// I'm not sure how this assert could ever trip, given that we create a 
-							//	childGoLNode -> currGoLNode relationship above and raise an exception
-							//	if the endpoints have the same ID.
-							assert rel2.getStartNode().getId() != rel2.getEndNode().getId();
-						}
+					}
+					if(mrca_rel == false){
+						Relationship rel2 = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.MRCACHILDOF);
+						// I'm not sure how this assert could ever trip, given that we create a 
+						//	childGoLNode -> currGoLNode relationship above and raise an exception
+						//	if the endpoints have the same ID.
+						assert rel2.getStartNode().getId() != rel2.getEndNode().getId();
 					}
 				}
 			}
-			//for inclusivechildof nodes, set the property of each relationshipid
-			if(inclusive==true){
-				long [] relids = new long[inclusiverelationships.size()];
-				for(int n=0;n<inclusiverelationships.size();n++){
-					relids[n] = inclusiverelationships.get(n).getId();
-				}
-				for(int n=0;n<inclusiverelationships.size();n++){
-					inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
-				}
+		}
+		//for inclusivechildof nodes, set the property of each relationshipid
+		if(inclusive==true){
+			long [] relids = new long[inclusiverelationships.size()];
+			for(int n=0;n<inclusiverelationships.size();n++){
+				relids[n] = inclusiverelationships.get(n).getId();
 			}
-			tx.success();
-		}finally{
-			tx.finish();
+			for(int n=0;n<inclusiverelationships.size();n++){
+				inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
+			}
 		}
 	}
 	
