@@ -380,7 +380,7 @@ public class GraphImporter extends GraphBase{
 			}
 			//			_LOG.trace("finished names");
 			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
-			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes_search, childndids, rootids);
+			HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
 			//			_LOG.trace("ancestor "+ancestor);
 			//_LOG.trace(ancestor.getProperty("name"));
 			if(ancestors.size()>0){
@@ -416,7 +416,7 @@ public class GraphImporter extends GraphBase{
 				//make a node
 				//get the super lica, or what would be the licas if we didn't have the other taxa in the tree
 				//this is used to connect the new nodes to their licas for easier traversals
-				HashSet<Node> superlica = AncestorUtil.getSuperLICA(hit_nodes_search, childndids);
+				HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
 				//steps
 				//1. create a node
 				//2. store the mrcas
@@ -675,7 +675,7 @@ public class GraphImporter extends GraphBase{
 				}
 				//rootidsearch.add(rtexmrcas[j]);
 			}
-			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes, ndidssearch, rootidsearch);
+			HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes, ndidssearch, rootidsearch);
 			long [] licas = (long[])krels.get(i).getProperty("licas");
 			long [] relids = (long [])krels.get(i).getProperty("inclusive_relids");
 			String source = (String)krels.get(i).getProperty("source");
