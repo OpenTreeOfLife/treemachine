@@ -498,6 +498,7 @@ public class GraphExplorer extends GraphBase{
 	 * @param sourcename the name of the source
 	 */
 	public void reconstructSource(String sourcename){
+		boolean printlengths = false;
 		IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
 		IndexHits<Relationship> hitsr = sourceRelIndex.get("source",sourcename);
 		//really only need one
@@ -562,8 +563,10 @@ public class GraphExplorer extends GraphBase{
 						JadeNode tchild = new JadeNode();
 						if(tnodechild.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED))
 							tchild.setName((String)tnodechild.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-						if(endnode_rel_map.get(tnode).get(i).hasProperty("branch_length"))
+						if(endnode_rel_map.get(tnode).get(i).hasProperty("branch_length")){
+							printlengths = true;
 							tchild.setBL((Double)endnode_rel_map.get(tnode).get(i).getProperty("branch_length"));
+						}
 						jadenode_map.get(tnode).addChild(tchild);
 						jadenode_map.put(tnodechild, tchild);
 //						System.out.println("pushing: "+endnode_rel_map.get(tnode).get(i).getStartNode());
@@ -573,7 +576,7 @@ public class GraphExplorer extends GraphBase{
 		}
 		//print the newick string
 		JadeTree tree = new JadeTree(root);
-		System.out.println(tree.getRoot().getNewick(false)+";");
+		System.out.println(tree.getRoot().getNewick(printlengths)+";");
 	}
 	
 }

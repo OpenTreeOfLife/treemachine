@@ -18,7 +18,7 @@ treemachine_invocation="java -Dlog4j.configuration=${config_arg_val} -jar target
 # turn on command echoing
 set -x
 
-# add the Catalog of life taxonomy of primates
+## add the Catalog of life taxonomy of primates
 ${treemachine_invocation} inittax  example/col_primates.txt col test.db || exit
 
 # add the NCBI taxonomy of primates

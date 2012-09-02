@@ -260,10 +260,11 @@ public class GraphImporter extends GraphBase{
 		//	    errors in matching leaves to the taxonomy). No other side effects.
 		//TODO: when receiving trees in the future the ids should already be set so we don't have to 
 		//      do this kind of fuzzy matching
+		//TODO: this could be modified to account for internal node name mapping
 		for (int j=0;j<nds.size();j++){
 			//find all the tip taxa and with doubles pick the taxon closest to the focal group
 			Node hitnode = null;
-			String processedname = nds.get(j).getName();//.replace("_", " "); //@todo processing syntactic rules like '_' -> ' ' should be done on input parsing. 
+			String processedname = nds.get(j).getName().replace("_", " "); //@todo processing syntactic rules like '_' -> ' ' should be done on input parsing. 
 			IndexHits<Node> hits = taxNodeIndex.get("name", processedname);
 			int numh = hits.size();
 			if (numh == 1){
@@ -311,9 +312,10 @@ public class GraphImporter extends GraphBase{
 		jt.getRoot().assocObject("hashnodeids",hashnodeids);
 		jt.getRoot().assocObject("ndidssearch",ndidssearch);
 		jt.getRoot().assocObject("hashnodeidssearch",hashnodeidssearch);
-		tx = graphDb.beginTx();
 		try{
+			tx = graphDb.beginTx();
 			postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),sourcename, focalnode);
+			tx.success();
 		}finally{
 			tx.finish();
 		}
@@ -377,7 +379,7 @@ public class GraphImporter extends GraphBase{
 				}
 			}
 			//			_LOG.trace("finished names");
-			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
 			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes_search, childndids, rootids);
 			//			_LOG.trace("ancestor "+ancestor);
 			//_LOG.trace(ancestor.getProperty("name"));
@@ -498,11 +500,9 @@ public class GraphImporter extends GraphBase{
 				System.out.println("placing root in index");
 				sourceRootIndex.add(currGoLNode, "rootnode", sourcename);
 			}
-			//				System.out.println("working on relationships for "+currGoLNode.getId());
-
 			for(int i=0;i<inode.getChildCount();i++){
 				JadeNode childJadeNode = inode.getChild(i);
-				//					Node childGoLNode = (Node)childJadeNode.getObject("dbnode");
+//					Node childGoLNode = (Node)childJadeNode.getObject("dbnode");
 				Node [] allChildGoLNodes = (Node [])(childJadeNode.getObject("dbnodes"));
 				for(int m=0;m<allChildGoLNodes.length;m++){
 					Node childGoLNode = allChildGoLNodes[m];
@@ -649,18 +649,33 @@ public class GraphImporter extends GraphBase{
 				continue;
 			}
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
-			HashSet<Long> childndids = new HashSet<Long>();
-			HashSet<Long> rootids = new HashSet<Long>();
+			//HashSet<Long> childndids = new HashSet<Long>();
+			HashSet<Long> rootidsearch = new HashSet<Long>();
+			//same as above but added for nested nodes, so more comprehensive and 
+			//		used just for searching. the others are used for storage
+			HashSet<Long> ndidssearch = new HashSet<Long>();
 			long [] exmrcas = (long [])krels.get(i).getProperty("exclusive_mrca");
 			long [] rtexmrcas = (long [])krels.get(i).getProperty("root_exclusive_mrca");
 			for(int j=0;j<exmrcas.length;j++){
-				childndids.add(exmrcas[j]);
-				hit_nodes.add(graphDb.getNodeById(exmrcas[j]));
+				Node tnode = graphDb.getNodeById(exmrcas[j]);
+				hit_nodes.add(tnode);
+				//added for nested nodes
+				long [] mrcas = (long[])tnode.getProperty("mrca");
+				for(int k=0;k<mrcas.length;k++){
+					ndidssearch.add(mrcas[k]);
+				}
+				//childndids.add(exmrcas[j]);
 			}
 			for(int j=0;j<rtexmrcas.length;j++){
-				rootids.add(rtexmrcas[j]);
+				//added for nested nodes
+				Node tnode = graphDb.getNodeById(rtexmrcas[j]);
+				long [] mrcas = (long[])tnode.getProperty("mrca");
+				for(int k=0;k<mrcas.length;k++){
+					rootidsearch.add(mrcas[k]);
+				}
+				//rootidsearch.add(rtexmrcas[j]);
 			}
-			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes, childndids, rootids);
+			HashSet<Node> ancestors = AncestorUtil.getAllLICA(hit_nodes, ndidssearch, rootidsearch);
 			long [] licas = (long[])krels.get(i).getProperty("licas");
 			long [] relids = (long [])krels.get(i).getProperty("inclusive_relids");
 			String source = (String)krels.get(i).getProperty("source");
