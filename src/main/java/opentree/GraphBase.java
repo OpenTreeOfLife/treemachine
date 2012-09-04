@@ -17,10 +17,7 @@ import org.neo4j.graphdb.index.IndexHits;
  * 		nested_mrcas - all the subtending children ids that would be nested (higher taxa)
  * 
  * Relationship properties
- * 		STREEEXACTCHILDOF
- * 			source - name of the source tree
- * 			branch_length - branch length
- * 		STREEINCLUCHILDOF
+ * 		STREECHILDOF
  * 			exclusive_mrca - the mrcas (with nested ids not the full ids when applicable, 
  * 										so these need to be expanded for searches) for this inclusive relationship
  * 			root_exclusive_mrca - the root exclusive mrcas for the tree, necessary for future lica searching
@@ -40,10 +37,11 @@ public abstract class GraphBase {
 	protected static enum RelTypes implements RelationshipType{
 		MRCACHILDOF, //standard rel for graph db, from node to parent
 		TAXCHILDOF, //standard rel for tax db, from node to parent
-		STREECHILDOF, //@deprecated!! standard rel for input tree, from node to parent
-		STREEEXACTCHILDOF, //these refer to branches from the input tree that have NO ADDITIONAL 
+		STREECHILDOF, //standard rel for input tree, from node to parent
+		//To make tree order not matter, going back to just one type of STREEREL
+		//STREEEXACTCHILDOF, //these refer to branches from the input tree that have NO ADDITIONAL 
 						   // inclusive children (all taxa subtending are present in the tree)
-		STREEINCLUCHILDOF,//these refer to branches from the input tree that have ADDITIONAL 
+		//STREEINCLUCHILDOF,//these refer to branches from the input tree that have ADDITIONAL 
 		   				  // inclusive children (NOT all taxa subtending are present in the tree)
 		ISCALLED // is called ,from node in graph of life to node in tax graph 
 	}

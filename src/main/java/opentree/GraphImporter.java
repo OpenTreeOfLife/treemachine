@@ -144,9 +144,22 @@ public class GraphImporter extends GraphBase{
 						// getSingleRelationship works here because we know that we are adding the first tree to the graph...
 						Node graphparent = taxparent.getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode();
 						newnode.createRelationshipTo(graphparent, RelTypes.MRCACHILDOF);
-						Relationship trel2 = newnode.createRelationshipTo(graphparent, RelTypes.STREEEXACTCHILDOF);
+						Relationship trel2 = newnode.createRelationshipTo(graphparent, RelTypes.STREECHILDOF);
 						trel2.setProperty("source", "ncbi");
 						sourceRelIndex.add(trel2, "source", "ncbi");
+						//taxonomy is a special case, so not adding this unless I have to
+						/*trel2.setProperty("licas", tlicas);
+						trel2.setProperty("exclusive_mrca",texmrcas);
+						trel2.setProperty("root_exclusive_mrca",trtexmrcas);
+						long [] finalnewrelids = new long[newrelids.size()];
+						for(j=0;j<finalnewrelids.length;j++){
+							finalnewrelids[j] = newrelids.get(j);
+						}
+						for(Relationship rels: pnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
+							if(((String)rels.getProperty("source")).compareTo(source)==0){
+								rels.setProperty("inclusive_relids", finalnewrelids);
+							}
+						}*/
 					}
 					cur_tran_iter += 1;
 					if(cur_tran_iter % transaction_iter == 0){
@@ -385,32 +398,20 @@ public class GraphImporter extends GraphBase{
 			//_LOG.trace(ancestor.getProperty("name"));
 			if(ancestors.size()>0){
 				inode.assocObject("dbnodes",ancestors.toArray(new Node[ancestors.size()]));
-				boolean exact = false;
-				if(ancestors.size() == 1){
-					int retlength = ((long[])ancestors.iterator().next().getProperty("mrca")).length;
-					if(retlength == hit_nodes.size()){
-						exact = true;
-					}
-				}if(exact == true){
-					inode.assocObject("streetype", "exact");//node is exact and only has taxa in the stree)
-				}else{
-					inode.assocObject("streetype", "inclu"); // node is inclusive (includes taxa not in the stree)
-					long[] ret = new long[hit_nodes.size()];
-					for(int i=0;i<hit_nodes.size();i++){
-						ret[i] = hit_nodes.get(i).getId();
-					}
-					rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-					long[] ret2 = new long[rootids.size()];
-					Iterator<Long> chl2 = rootids.iterator();
-					int i=0;
-					while(chl2.hasNext()){
-						ret2[i] = chl2.next().longValue();
-						i++;
-					}
-					inode.assocObject("streetype", "inclu"); // node is inclusive (includes taxa not in the stree)
-					inode.assocObject("exclusive_mrca",ret);
-					inode.assocObject("root_exclusive_mrca",ret2);
+				long[] ret = new long[hit_nodes.size()];
+				for(int i=0;i<hit_nodes.size();i++){
+					ret[i] = hit_nodes.get(i).getId();
 				}
+				rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				long[] ret2 = new long[rootids.size()];
+				Iterator<Long> chl2 = rootids.iterator();
+				int i=0;
+				while(chl2.hasNext()){
+					ret2[i] = chl2.next().longValue();
+					i++;
+				}
+				inode.assocObject("exclusive_mrca",ret);
+				inode.assocObject("root_exclusive_mrca",ret2);
 			}else{
 				//				_LOG.trace("need to make a new node");
 				//make a node
@@ -433,26 +434,20 @@ public class GraphImporter extends GraphBase{
 					i++;
 				}
 				dbnode.setProperty("mrca", ret);
-				//determine if the relationships that are made should be STREEEXACT or STREEINCLU
-				if(ret.length == hit_nodes.size()){
-					inode.assocObject("streetype", "exact");//node is exact and only has taxa in the stree)
-				}else{
-					inode.assocObject("streetype", "inclu"); // node is inclusive (includes taxa not in the stree)
-					long[] rete = new long[hit_nodes.size()];
-					for(int j=0;j<hit_nodes.size();j++){
-						rete[j] = hit_nodes.get(j).getId();
-					}
-					inode.assocObject("exclusive_mrca",rete);
-					rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-					long[] ret2 = new long[rootids.size()];
-					Iterator<Long> chl2 = rootids.iterator();
-					i=0;
-					while(chl2.hasNext()){
-						ret2[i] = chl2.next().longValue();
-						i++;
-					}
-					inode.assocObject("root_exclusive_mrca",ret2);
+				long[] rete = new long[hit_nodes.size()];
+				for(int j=0;j<hit_nodes.size();j++){
+					rete[j] = hit_nodes.get(j).getId();
 				}
+				inode.assocObject("exclusive_mrca",rete);
+				rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				long[] ret2 = new long[rootids.size()];
+				Iterator<Long> chl2 = rootids.iterator();
+				i=0;
+				while(chl2.hasNext()){
+					ret2[i] = chl2.next().longValue();
+					i++;
+				}
+				inode.assocObject("root_exclusive_mrca",ret2);
 				//					for(int i=0;i<inode.getChildCount();i++){
 				//						Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
 				//					}
@@ -491,7 +486,6 @@ public class GraphImporter extends GraphBase{
 		Node [] allGoLNodes = (Node [])(inode.getObject("dbnodes"));
 		//for use if this node will be an incluchildof and we want to store the relationships for faster retrieval
 		ArrayList<Relationship> inclusiverelationships = new ArrayList<Relationship>();
-		boolean inclusive = false;
 		for(int k=0;k<allGoLNodes.length;k++){
 			Node currGoLNode = allGoLNodes[k];
 			//add the root index for the source trail
@@ -506,23 +500,17 @@ public class GraphImporter extends GraphBase{
 				Node [] allChildGoLNodes = (Node [])(childJadeNode.getObject("dbnodes"));
 				for(int m=0;m<allChildGoLNodes.length;m++){
 					Node childGoLNode = allChildGoLNodes[m];
-					Relationship rel;
-					if(((String)inode.getObject("streetype")).compareTo("exact")==0){//exact only taxa included in the stree
-						rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREEEXACTCHILDOF);
-						sourceRelIndex.add(rel, "source", sourcename);
-					}else{//inclu taxa included not sampled in stree
-						inclusive = true;
-						rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREEINCLUCHILDOF);
-						sourceRelIndex.add(rel, "source", sourcename);
-						rel.setProperty("exclusive_mrca",(long [])inode.getObject("exclusive_mrca"));
-						rel.setProperty("root_exclusive_mrca",(long []) inode.getObject("root_exclusive_mrca"));
-						long [] licaids = new long[allGoLNodes.length];
-						for(int n=0;n<licaids.length;n++){
-							licaids[n] = allGoLNodes[n].getId();
-						}
-						rel.setProperty("licas",licaids);
-						inclusiverelationships.add(rel);
+					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREECHILDOF);
+					sourceRelIndex.add(rel, "source", sourcename);
+					rel.setProperty("exclusive_mrca",(long [])inode.getObject("exclusive_mrca"));
+					rel.setProperty("root_exclusive_mrca",(long []) inode.getObject("root_exclusive_mrca"));
+					long [] licaids = new long[allGoLNodes.length];
+					for(int n=0;n<licaids.length;n++){
+						licaids[n] = allGoLNodes[n].getId();
 					}
+					rel.setProperty("licas",licaids);
+					inclusiverelationships.add(rel);
+
 					// check to make sure the parent and child nodes are distinct entities...
 					if(rel.getStartNode().getId() == rel.getEndNode().getId()){
 						StringBuffer errbuff = new StringBuffer();
@@ -559,16 +547,14 @@ public class GraphImporter extends GraphBase{
 				}
 			}
 		}
-		//for inclusivechildof nodes, set the property of each relationshipid
-		if(inclusive==true){
-			long [] relids = new long[inclusiverelationships.size()];
-			for(int n=0;n<inclusiverelationships.size();n++){
-				relids[n] = inclusiverelationships.get(n).getId();
-			}
-			for(int n=0;n<inclusiverelationships.size();n++){
-				inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
-			}
+		long [] relids = new long[inclusiverelationships.size()];
+		for(int n=0;n<inclusiverelationships.size();n++){
+			relids[n] = inclusiverelationships.get(n).getId();
 		}
+		for(int n=0;n<inclusiverelationships.size();n++){
+			inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
+		}
+
 	}
 	
 	/**
@@ -624,7 +610,10 @@ public class GraphImporter extends GraphBase{
 		Iterator<Node> itr = updatedSuperLICAs.iterator();
 		while(itr.hasNext()){
 			Node tnext = itr.next();
-			for(Relationship rel: tnext.getRelationships(Direction.INCOMING, RelTypes.STREEINCLUCHILDOF)){
+			for(Relationship rel: tnext.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
+				if(((String)rel.getProperty("source")).compareTo("ncbi")==0){
+					continue;
+				}
 				boolean add = true;
 				long [] incl = (long [])rel.getProperty("inclusive_relids");
 				for(int i=0;i<incl.length;i++){
@@ -719,52 +708,41 @@ public class GraphImporter extends GraphBase{
 				//streeexact
 				Transaction	tx = graphDb.beginTx();
 				try{
-					if(ancestors.size() == 1 && 
-							exmrcas.length == ((long[])ancestors.iterator().next().getProperty("mrca")).length){
+					Iterator<Node> ancit = ancestors.iterator();
+					long [] anlicas = new long[ancestors.size()];
+					int j = 0;
+					while(ancit.hasNext()){
+						anlicas[j] = ancit.next().getId();
+						j++;
+					}
+					ancit = ancestors.iterator();
+					ArrayList<Relationship> finrels = new ArrayList<Relationship> ();
+					while(ancit.hasNext()){
+						Node ancitn = ancit.next();
 						Iterator<Node>snit = startNodes.iterator();
-						Node anc = ancestors.iterator().next();
 						while(snit.hasNext()){
-							Relationship rel = snit.next().createRelationshipTo(anc, RelTypes.STREEEXACTCHILDOF);
+							Node snitn = snit.next(); 
+							Relationship rel = snitn.createRelationshipTo(ancitn, RelTypes.STREECHILDOF);
 							sourceRelIndex.add(rel, "source", source);
 							System.out.println("adding rel: "+rel.getId());
 							rel.setProperty("source", source);
-						}
-					}else{//streeincl
-						Iterator<Node> ancit = ancestors.iterator();
-						long [] anlicas = new long[ancestors.size()];
-						int j = 0;
-						while(ancit.hasNext()){
-							anlicas[j] = ancit.next().getId();
-							j++;
-						}
-						ancit = ancestors.iterator();
-						ArrayList<Relationship> finrels = new ArrayList<Relationship> ();
-						while(ancit.hasNext()){
-							Node ancitn = ancit.next();
-							Iterator<Node>snit = startNodes.iterator();
-							while(snit.hasNext()){
-								Node snitn = snit.next(); 
-								Relationship rel = snitn.createRelationshipTo(ancitn, RelTypes.STREEINCLUCHILDOF);
-								sourceRelIndex.add(rel, "source", source);
-								System.out.println("adding rel: "+rel.getId());
-								rel.setProperty("source", source);
-								rel.setProperty("licas", anlicas);
-								rel.setProperty("exclusive_mrca", exmrcas);
-								rel.setProperty("root_exclusive_mrca", rtexmrcas);
-								finrels.add(rel);
-							}
-						}
-						long [] relidsfin = new long[finrels.size()];
-						for(j=0;j<finrels.size();j++){
-							relidsfin[j] = finrels.get(j).getId();
-						}
-						for(j=0;j<finrels.size();j++){
-							finrels.get(j).setProperty("inclusive_relids",relidsfin);
+							rel.setProperty("licas", anlicas);
+							rel.setProperty("exclusive_mrca", exmrcas);
+							rel.setProperty("root_exclusive_mrca", rtexmrcas);
+							finrels.add(rel);
 						}
 					}
+					long [] relidsfin = new long[finrels.size()];
+					for(j=0;j<finrels.size();j++){
+						relidsfin[j] = finrels.get(j).getId();
+					}
+					for(j=0;j<finrels.size();j++){
+						finrels.get(j).setProperty("inclusive_relids",relidsfin);
+					}
+
 					//connect the new ancestors to the original parents
-					Iterator<Node> ancit = ancestors.iterator();
 					Iterator<Node> pnodes = parentnodes.iterator();
+					ancit = ancestors.iterator();
 					while(pnodes.hasNext()){
 						Node pnode = pnodes.next();
 						HashSet<Relationship> oldones = parent_rel_map.get(pnode);
@@ -775,9 +753,13 @@ public class GraphImporter extends GraphBase{
 						ArrayList<Relationship> new_rels = new ArrayList<Relationship>();
 						long [] oldrelids = (long [])toldone.getProperty("inclusive_relids");
 						ArrayList<Long> newrelids = new ArrayList<Long>();
-						for(int j=0;j<oldrelids.length;j++){newrelids.add(oldrelids[j]);}
+						for(j=0;j<oldrelids.length;j++){System.out.println("adding original rel: "+oldrelids[j]);newrelids.add(oldrelids[j]);}
 						Iterator<Relationship> oldit = oldones.iterator();
-						while(oldit.hasNext()){newrelids.remove(oldit.next().getId());}
+						while(oldit.hasNext()){
+							long oldid = oldit.next().getId();
+							System.out.println("deleting the old bad rel: "+oldid);
+							newrelids.remove(oldid);
+						}
 						while(ancit.hasNext()){
 							Node anc = ancit.next();
 							//first make sure that there is a MRCACHILDOF for these nodes
@@ -791,7 +773,7 @@ public class GraphImporter extends GraphBase{
 							if (present == false){
 								anc.createRelationshipTo(pnode, RelTypes.MRCACHILDOF);
 							}
-							Relationship newrel = anc.createRelationshipTo(pnode, RelTypes.STREEINCLUCHILDOF);
+							Relationship newrel = anc.createRelationshipTo(pnode, RelTypes.STREECHILDOF);
 							sourceRelIndex.add(newrel, "source", source);
 							newrel.setProperty("source", source);
 							newrel.setProperty("licas", tlicas);
@@ -801,10 +783,10 @@ public class GraphImporter extends GraphBase{
 							newrelids.add(newrel.getId());
 						}
 						long [] finalnewrelids = new long[newrelids.size()];
-						for(int j=0;j<finalnewrelids.length;j++){
+						for(j=0;j<finalnewrelids.length;j++){
 							finalnewrelids[j] = newrelids.get(j);
 						}
-						for(Relationship rels: pnode.getRelationships(Direction.INCOMING, RelTypes.STREEINCLUCHILDOF)){
+						for(Relationship rels: pnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
 							if(((String)rels.getProperty("source")).compareTo(source)==0){
 								rels.setProperty("inclusive_relids", finalnewrelids);
 							}
