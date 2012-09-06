@@ -71,7 +71,8 @@ public class LicaUtil {
 					//this gets all, but we want to only include the exact if one exists
 					boolean containsall = Ldbnodei.containsAll(inIdSet);
 					if(containsall && inIdSet.size()==Ldbnodei.size()){
-						retaln.clear();
+						//NOT SURE IF WE SHOULD EMPTY THE LIST IF IT IS EXACT OR RETAIN ALL THE LICAS
+						//retaln.clear();
 						retaln.add(tnode);
 						going = false;
 					}else if(containsall){
@@ -128,7 +129,8 @@ public class LicaUtil {
     			//this gets all, but we want to only include the exact if one exists
 				boolean containsall = Ldbnodei.containsAll(inIdSet);
 				if(containsall && inIdSet.size()==Ldbnodei.size()){
-					retaln.clear();
+					//NOT SURE IF WE SHOULD EMPTY THE LIST IF IT IS EXACT OR RETAIN ALL THE LICAS
+					//retaln.clear();
 					retaln.add(tnode);
 					going = false;
 				}else if(containsall){
