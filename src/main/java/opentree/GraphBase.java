@@ -43,7 +43,7 @@ public abstract class GraphBase {
 						   // inclusive children (all taxa subtending are present in the tree)
 		//STREEINCLUCHILDOF,//these refer to branches from the input tree that have ADDITIONAL 
 		   				  // inclusive children (NOT all taxa subtending are present in the tree)
-		ISCALLED // is called ,from node in graph of life to node in tax graph 
+		//ISCALLED @deprecated once the taxonomy graph was moved out// is called ,from node in graph of life to node in tax graph 
 	}
 	
 	protected static void registerShutdownHook( final GraphDatabaseService graphDb ){

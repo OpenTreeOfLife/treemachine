@@ -110,6 +110,128 @@ public class GraphImporter extends GraphBase{
 	}
 	
 	/**
+	 * Reads a taxonomy file with rows formatted as:
+	 *	taxon_id,parent_id,Name with spaces allowed\n
+	 * Creates the nodes and TAXCHILDOF relationship for a taxonomy tree
+	 * Node objects will get a "name" property.
+	 * The relationships will get "source", "childid", and "parentid" properties
+	 * Nodes are indexed in taxNamedNodes with their name as the value for a "name" key.
+	 * 
+	 * The source name is going to just be OTTOL
+	 * 
+	 * @param filename file path to the taxonomy file
+	 */
+	public void addInitialTaxonomyTableIntoGraph(String filename){
+		String str = "";
+		int count = 0;
+		HashMap<String, Node> dbnodes = new HashMap<String, Node>();
+		HashMap<String, String> parents = new HashMap<String, String>();
+		Transaction tx;
+		ArrayList<String> templines = new ArrayList<String>();
+		try{
+			//create the root node
+			tx = graphDb.beginTx();
+			try{
+				Node node = graphDb.createNode();
+				node.setProperty("name", "root");
+				taxNodeIndex.add( node, "name", "root" );
+				dbnodes.put("0", node);
+				tx.success();
+			}finally{
+				tx.finish();
+			}
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while((str = br.readLine())!=null){
+				count += 1;
+				templines.add(str);
+				if (count % transaction_iter == 0){
+					System.out.print(count);
+					System.out.print("\n");
+					tx = graphDb.beginTx();
+					try{
+						for(int i=0;i<templines.size();i++){
+							String[] spls = templines.get(i).split(",");
+							if (spls[1].length() > 0){
+								Node tnode = graphDb.createNode();
+								tnode.setProperty("name", spls[2]);
+								taxNodeIndex.add( tnode, "name", spls[2] );
+								parents.put(spls[0], spls[1]);
+								dbnodes.put(spls[0], tnode);
+							}
+						}
+						tx.success();
+					}finally{
+						tx.finish();
+					}
+					templines.clear();
+				}
+			}
+			br.close();
+			tx = graphDb.beginTx();
+			try{
+				for(int i=0;i<templines.size();i++){
+					String[] spls = templines.get(i).split(",");
+					count += 1;
+					if (spls[1].length() > 0){
+						Node tnode = graphDb.createNode();
+						tnode.setProperty("name", spls[2]);
+						taxNodeIndex.add( tnode, "name", spls[2] );
+						parents.put(spls[0], spls[1]);
+						dbnodes.put(spls[0], tnode);
+					}
+				}
+				tx.success();
+			}finally{
+				tx.finish();
+			}
+			templines.clear();
+			//add the relationships
+			ArrayList<String> temppar = new ArrayList<String>();
+			count = 0;
+			for(String key: dbnodes.keySet()){
+				count += 1;
+				temppar.add(key);
+				if (count % transaction_iter == 0){
+					System.out.println(count);
+					tx = graphDb.beginTx();
+					try{
+						for (int i=0;i<temppar.size();i++){
+							try {
+								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
+								rel.setProperty("childid",temppar.get(i));
+								rel.setProperty("parentid",parents.get(temppar.get(i)));
+							}catch(java.lang.IllegalArgumentException io){
+//								System.out.println(temppar.get(i));
+								continue;
+							}
+						}
+						tx.success();
+					}finally{
+						tx.finish();
+					}
+					temppar.clear();
+				}
+			}
+			tx = graphDb.beginTx();
+			try{
+				for (int i=0;i<temppar.size();i++){
+					try {
+						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
+						rel.setProperty("childid",temppar.get(i));
+						rel.setProperty("parentid",parents.get(temppar.get(i)));
+					}catch(java.lang.IllegalArgumentException io){
+//						System.out.println(temppar.get(i));
+						continue;
+					}
+				}
+				tx.success();
+			}finally{
+				tx.finish();
+			}
+		}catch(IOException ioe){}
+	}
+	
+	/**
 	 * assumes the structure of the graphdb where the taxonomy is stored alongside the graph of life
 	 * and therefore the graph is initialized, in this case, with the ncbi relationships
 	 * 
