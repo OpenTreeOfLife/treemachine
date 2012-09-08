@@ -37,7 +37,6 @@ public class GraphExplorer extends GraphBase{
 	public void setEmbeddedDB(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname ) ;
 		graphNodeIndex = graphDb.index().forNodes("graphNamedNodes");
-		taxNodeIndex = graphDb.index().forNodes("taxNamedNodes");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 	}
@@ -73,8 +72,8 @@ public class GraphExplorer extends GraphBase{
 			outFile.write("{\"nodes\":[");
 			for(int i=0; i<count;i++){
 				Node tnode = numbernodes.get(i);
-				if(tnode.hasRelationship(RelTypes.ISCALLED))
-					outFile.write("{\"name\":\""+(tnode.getRelationships(RelTypes.ISCALLED)).iterator().next().getEndNode().getProperty("name")+"");
+				if(tnode.hasProperty("name"))
+					outFile.write("{\"name\":\""+(tnode.getProperty("name"))+"");
 				else
 					outFile.write("{\"name\":\"");
 				//outFile.write("{\"name\":\""+tnode.getProperty("name")+"");
@@ -119,7 +118,6 @@ public class GraphExplorer extends GraphBase{
 		}
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
-		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
 		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
 		ArrayList<Node> visited = new ArrayList<Node>();
@@ -140,8 +138,8 @@ public class GraphExplorer extends GraphBase{
 						break;
 					}else{
 						JadeNode newnode = new JadeNode();
-						if(curnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
-							newnode.setName((String)curnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+						if(curnode.hasProperty("name")){
+							newnode.setName((String)curnode.getProperty("name"));
 							newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
 						}
 						Relationship keep = null;
@@ -224,8 +222,7 @@ public class GraphExplorer extends GraphBase{
 //		sourcename = "dipsacales_matK";
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
-		System.out.println(firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-		root.setName((String)firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+		root.setName((String)firstNode.getProperty("name"));
 		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
 		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
 		ArrayList<Node> visited = new ArrayList<Node>();
@@ -247,8 +244,8 @@ public class GraphExplorer extends GraphBase{
 						break;
 					}else{
 						JadeNode newnode = new JadeNode();
-						if(curnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
-							newnode.setName((String)curnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+						if(curnode.hasProperty("name")){
+							newnode.setName((String)curnode.getProperty("name"));
 							newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
 						}
 						Relationship keep = null;
@@ -294,8 +291,8 @@ public class GraphExplorer extends GraphBase{
 					confstr += ", \"altparents\": [";
 					for(int i=0;i<cn.size();i++){
 						String namestr = "";
-						if(cn.get(i).hasRelationship(RelTypes.ISCALLED))
-							namestr = (String) cn.get(i).getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
+						if(cn.get(i).hasProperty("name"))
+							namestr = (String) cn.get(i).getProperty("name");
 						confstr += "{\"name\": \""+namestr+"\",\"nodeid\":\""+cn.get(i).getId()+"\"}";
 						if(i+1 != cn.size())
 							confstr += ",";
@@ -350,7 +347,7 @@ public class GraphExplorer extends GraphBase{
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(defaultchildtype, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
 		if(taxonomy == false)
-			root.setName((String)firstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+			root.setName((String)firstNode.getProperty("name"));
 		else
 			root.setName((String)firstNode.getProperty("name"));
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
@@ -398,8 +395,8 @@ public class GraphExplorer extends GraphBase{
 			}
 			JadeNode newnode = new JadeNode();
 			if(taxonomy == false){
-				if(friendnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
-					newnode.setName((String)friendnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+				if(friendnode.hasProperty("name")){
+					newnode.setName((String)friendnode.getProperty("name"));
 					newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
 				}
 			}else{
@@ -436,8 +433,8 @@ public class GraphExplorer extends GraphBase{
 					for(int i=0;i<cr.size();i++){
 						String namestr = "";
 						if(taxonomy == false){
-							if(cr.get(i).getEndNode().hasRelationship(RelTypes.ISCALLED))
-								namestr = (String) cr.get(i).getEndNode().getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
+							if(cr.get(i).getEndNode().hasProperty("name"))
+								namestr = (String) cr.get(i).getEndNode().getProperty("name");
 						}else{
 							namestr = (String)cr.get(i).getEndNode().getProperty("name");
 						}
@@ -470,8 +467,8 @@ public class GraphExplorer extends GraphBase{
 		if(parFirstNode != null){
 			String namestr = "";
 			if(taxonomy == false){
-				if(parFirstNode.hasRelationship(RelTypes.ISCALLED))
-					namestr = (String) parFirstNode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name");
+				if(parFirstNode.hasProperty("name"))
+					namestr = (String) parFirstNode.getProperty("name");
 			}else{
 				namestr = (String)parFirstNode.getProperty("name");
 			}
@@ -506,8 +503,8 @@ public class GraphExplorer extends GraphBase{
 		JadeNode root = new JadeNode();
 		Node rootnode = hits.next();
 		jadenode_map.put(rootnode, root);
-		if(rootnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED))
-			root.setName((String)rootnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+		if(rootnode.hasProperty("name"))
+			root.setName((String)rootnode.getProperty("name"));
 		hits.close();
 //		System.out.println(hitsr.size());
 		HashMap<Node,ArrayList<Relationship> > startnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
@@ -561,8 +558,8 @@ public class GraphExplorer extends GraphBase{
 						Node tnodechild = endnode_rel_map.get(tnode).get(i).getStartNode();
 						treestack.push(tnodechild);
 						JadeNode tchild = new JadeNode();
-						if(tnodechild.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED))
-							tchild.setName((String)tnodechild.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+						if(tnodechild.hasProperty("name"))
+							tchild.setName((String)tnodechild.getProperty("name"));
 						if(endnode_rel_map.get(tnode).get(i).hasProperty("branch_length")){
 							printlengths = true;
 							tchild.setBL((Double)endnode_rel_map.get(tnode).get(i).getProperty("branch_length"));

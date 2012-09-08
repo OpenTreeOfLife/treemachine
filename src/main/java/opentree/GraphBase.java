@@ -29,7 +29,6 @@ import org.neo4j.graphdb.index.IndexHits;
 
 public abstract class GraphBase {
 	GraphDatabaseService graphDb;
-	protected static Index<Node> taxNodeIndex;
 	protected static Index<Node> graphNodeIndex;
 	protected static Index<Relationship> sourceRelIndex;
 	protected static Index<Node> sourceRootIndex;
@@ -76,7 +75,7 @@ public abstract class GraphBase {
 	 * helper function primarily written to avoid forgetting to call hits.close();
 	 */
     Node findTaxNodeByName(final String name) {
-        IndexHits<Node> hits = this.taxNodeIndex.get("name", name);
+        IndexHits<Node> hits = this.graphNodeIndex.get("name", name);
 		Node firstNode = hits.getSingle();
 		hits.close();
 		return firstNode;

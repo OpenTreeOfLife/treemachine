@@ -41,7 +41,6 @@ public class GraphImporter extends GraphBase{
 	public GraphImporter(String graphname){
 		graphDb = new EmbeddedGraphDatabase( graphname );
 		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
-		taxNodeIndex = graphDb.index().forNodes( "taxNamedNodes" );
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
 	}
@@ -49,7 +48,6 @@ public class GraphImporter extends GraphBase{
 	public GraphImporter(EmbeddedGraphDatabase graphn){
 		graphDb = graphn;
 		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
-		taxNodeIndex = graphDb.index().forNodes( "taxNamedNodes" );
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
 	}
@@ -112,12 +110,16 @@ public class GraphImporter extends GraphBase{
 	/**
 	 * Reads a taxonomy file with rows formatted as:
 	 *	taxon_id,parent_id,Name with spaces allowed\n
-	 * Creates the nodes and TAXCHILDOF relationship for a taxonomy tree
-	 * Node objects will get a "name" property.
-	 * The relationships will get "source", "childid", and "parentid" properties
-	 * Nodes are indexed in taxNamedNodes with their name as the value for a "name" key.
 	 * 
-	 * The source name is going to just be OTTOL
+	 * The source name is going to be OTTOL
+	 * 
+	 * Creates the nodes and TAXCHILDOF relationship for a taxonomy tree
+	 * Node objects will get a "name", "mrca", and "nested_mrca" properties
+	 * TAXCHILDOF relationships will get "source" of "ottol", "childid", and "parentid" properties
+	 * STREECHILDOF relationships will get "source" properties as "taxonomy"
+	 * Nodes are indexed in graphNamedNodes with their name as the value for a "name" key
+	 * 
+	 * This will load the taxonomy, adding 
 	 * 
 	 * @param filename file path to the taxonomy file
 	 */
@@ -134,7 +136,7 @@ public class GraphImporter extends GraphBase{
 			try{
 				Node node = graphDb.createNode();
 				node.setProperty("name", "root");
-				taxNodeIndex.add( node, "name", "root" );
+				graphNodeIndex.add( node, "name", "root" );
 				dbnodes.put("0", node);
 				tx.success();
 			}finally{
@@ -154,7 +156,7 @@ public class GraphImporter extends GraphBase{
 							if (spls[1].length() > 0){
 								Node tnode = graphDb.createNode();
 								tnode.setProperty("name", spls[2]);
-								taxNodeIndex.add( tnode, "name", spls[2] );
+								graphNodeIndex.add( tnode, "name", spls[2] );
 								parents.put(spls[0], spls[1]);
 								dbnodes.put(spls[0], tnode);
 							}
@@ -175,7 +177,7 @@ public class GraphImporter extends GraphBase{
 					if (spls[1].length() > 0){
 						Node tnode = graphDb.createNode();
 						tnode.setProperty("name", spls[2]);
-						taxNodeIndex.add( tnode, "name", spls[2] );
+						graphNodeIndex.add( tnode, "name", spls[2] );
 						parents.put(spls[0], spls[1]);
 						dbnodes.put(spls[0], tnode);
 					}
@@ -200,6 +202,7 @@ public class GraphImporter extends GraphBase{
 								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
 								rel.setProperty("childid",temppar.get(i));
 								rel.setProperty("parentid",parents.get(temppar.get(i)));
+								rel.setProperty("source","ottol");
 							}catch(java.lang.IllegalArgumentException io){
 //								System.out.println(temppar.get(i));
 								continue;
@@ -219,6 +222,7 @@ public class GraphImporter extends GraphBase{
 						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
 						rel.setProperty("childid",temppar.get(i));
 						rel.setProperty("parentid",parents.get(temppar.get(i)));
+						rel.setProperty("source","ottol");
 					}catch(java.lang.IllegalArgumentException io){
 //						System.out.println(temppar.get(i));
 						continue;
@@ -229,59 +233,43 @@ public class GraphImporter extends GraphBase{
 				tx.finish();
 			}
 		}catch(IOException ioe){}
+		initMrcaAndStreeRelsTax();
 	}
 	
 	/**
 	 * assumes the structure of the graphdb where the taxonomy is stored alongside the graph of life
-	 * and therefore the graph is initialized, in this case, with the ncbi relationships
+	 * and therefore the graph is initialized, in this case, with the taxonomy relationships
 	 * 
 	 * for a more general implementation, could just go through and work on the preferred nodes
+	 * 
+	 * STREE
 	 */
-	public void initializeGraphDBfromNCBI(){
+	private void initMrcaAndStreeRelsTax(){
 		tx = graphDb.beginTx();
 		//start from the node called root
-		Node graphstart = null;
+		Node startnode = (graphNodeIndex.get("name", "root")).next();
 		try{
-			//root should be the ncbi startnode
-			Node startnode = (taxNodeIndex.get("name", "root")).next();
+			//root should be the taxonomy startnode
 //			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
-			graphstart = graphDb.createNode();
-			graphstart.createRelationshipTo(startnode, RelTypes.ISCALLED); //@MTH: Do we need to add a source property to this relationship
 			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
 			        .relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
 			for(Node friendnode: CHILDOF_TRAVERSAL.traverse(startnode).nodes()){
-				Node taxparent = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.OUTGOING, "ncbi");
+				Node taxparent = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.OUTGOING, "ottol");
 				if (taxparent != null){
-					Node firstchild = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.INCOMING, "ncbi");
-					Node newnode = graphDb.createNode();
-					newnode.createRelationshipTo(friendnode, RelTypes.ISCALLED); //@MTH: Do we need no add a "source" property to this relationship
-					graphNodeIndex.add(newnode, "name", friendnode.getProperty("name"));
+					Node firstchild = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.INCOMING, "ottol");
 					if(firstchild == null){//leaf
-						long [] tmrcas = {newnode.getId()};
-						newnode.setProperty("mrca", tmrcas);
+						long [] tmrcas = {friendnode.getId()};
+						friendnode.setProperty("mrca", tmrcas);
 						long [] ntmrcas = {};
-						newnode.setProperty("nested_mrca", ntmrcas);
+						friendnode.setProperty("nested_mrca", ntmrcas);
 					}
 					if(startnode != friendnode){//not the root
 						// getSingleRelationship works here because we know that we are adding the first tree to the graph...
-						Node graphparent = taxparent.getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode();
-						newnode.createRelationshipTo(graphparent, RelTypes.MRCACHILDOF);
-						Relationship trel2 = newnode.createRelationshipTo(graphparent, RelTypes.STREECHILDOF);
-						trel2.setProperty("source", "ncbi");
-						sourceRelIndex.add(trel2, "source", "ncbi");
+						friendnode.createRelationshipTo(taxparent, RelTypes.MRCACHILDOF);
+						Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelTypes.STREECHILDOF);
+						trel2.setProperty("source", "taxonomy");
+						sourceRelIndex.add(trel2, "source", "taxonomy");
 						//taxonomy is a special case, so not adding this unless I have to
-						/*trel2.setProperty("licas", tlicas);
-						trel2.setProperty("exclusive_mrca",texmrcas);
-						trel2.setProperty("root_exclusive_mrca",trtexmrcas);
-						long [] finalnewrelids = new long[newrelids.size()];
-						for(j=0;j<finalnewrelids.length;j++){
-							finalnewrelids[j] = newrelids.get(j);
-						}
-						for(Relationship rels: pnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
-							if(((String)rels.getProperty("source")).compareTo(source)==0){
-								rels.setProperty("inclusive_relids", finalnewrelids);
-							}
-						}*/
 					}
 					cur_tran_iter += 1;
 					if(cur_tran_iter % transaction_iter == 0){
@@ -300,7 +288,7 @@ public class GraphImporter extends GraphBase{
 		System.out.println("calculating mrcas");
 		try{
 			tx = graphDb.beginTx();
-			postordernewNodeAddMRCAArray(graphstart);
+			postorderAddMRCAsTax(startnode);
 			tx.success();
 		}finally{
 			tx.finish();
@@ -316,17 +304,16 @@ public class GraphImporter extends GraphBase{
 	 *
 	 * @param dbnode should be a node in the graph-of-life (has incoming MRCACHILDOF relationship)
 	 */
-	private void postordernewNodeAddMRCAArray(Node dbnode){
+	private void postorderAddMRCAsTax(Node dbnode){
 		//traversal incoming and record all the names
 		for(Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)){
 			Node tnode = rel.getStartNode();
-			postordernewNodeAddMRCAArray(tnode);
+			postorderAddMRCAsTax(tnode);
 		}
 		//could make this a hashset if dups become a problem
 		ArrayList<Long> mrcas = new ArrayList<Long> ();
 		ArrayList<Long> nested_mrcas = new ArrayList<Long>();
 		if(dbnode.hasProperty("mrca")==false){
-			System.out.println(dbnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
 			for(Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)){
 				Node tnode = rel.getStartNode();
 				long[] tmrcas = (long[])tnode.getProperty("mrca");
@@ -400,10 +387,10 @@ public class GraphImporter extends GraphBase{
 			//find all the tip taxa and with doubles pick the taxon closest to the focal group
 			Node hitnode = null;
 			String processedname = nds.get(j).getName().replace("_", " "); //@todo processing syntactic rules like '_' -> ' ' should be done on input parsing. 
-			IndexHits<Node> hits = taxNodeIndex.get("name", processedname);
+			IndexHits<Node> hits = graphNodeIndex.get("name", processedname);
 			int numh = hits.size();
 			if (numh == 1){
-				hitnode = (hits.getSingle().getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode());
+				hitnode = hits.getSingle();
 			}else if (numh > 1){
 				System.out.println(processedname + " gets " + numh +" hits");
 				int shortest = 1000;//this is shortest to the focal, could reverse this
@@ -423,7 +410,7 @@ public class GraphImporter extends GraphBase{
 					}
 				}
 				assert shortn != null; // @todo this could happen if there are multiple hits outside the focalgroup, and none inside the focalgroup.  We should develop an AmbiguousTaxonException class
-				hitnode = shortn.getSingleRelationship(RelTypes.ISCALLED, Direction.INCOMING).getStartNode();
+				hitnode = shortn;
 			}
 			hits.close();
 			if (hitnode == null) {
@@ -641,8 +628,8 @@ public class GraphImporter extends GraphBase{
 							errbuff.append(inode.getTips().get(j).getName() + "\n");
 							errbuff.append("\n");
 						}
-						if(currGoLNode.hasRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED,Direction.OUTGOING)){
-							errbuff.append(" ancestor taxonomic name: " + currGoLNode.getSingleRelationship(opentree.TaxonomyBase.RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+						if(currGoLNode.hasProperty("name")){
+							errbuff.append(" ancestor taxonomic name: " + currGoLNode.getProperty("name"));
 						}
 						errbuff.append("\nThe tree has been partially imported into the db.\n");
 						throw new TreeIngestException(errbuff.toString());
@@ -733,7 +720,7 @@ public class GraphImporter extends GraphBase{
 		while(itr.hasNext()){
 			Node tnext = itr.next();
 			for(Relationship rel: tnext.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
-				if(((String)rel.getProperty("source")).compareTo("ncbi")==0){
+				if(((String)rel.getProperty("source")).compareTo("taxonomy")==0){
 					continue;
 				}
 				boolean add = true;

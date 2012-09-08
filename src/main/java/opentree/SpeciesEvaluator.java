@@ -1,6 +1,6 @@
 package opentree;
 
-import opentree.TaxonomyBase.RelTypes;
+import opentree.GraphBase.RelTypes;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
