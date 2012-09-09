@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -490,6 +491,7 @@ public class GraphImporter extends GraphBase{
 			}
 			//get all the childids even if they aren't in the tree, this is the postorder part
 			HashSet<Long> childndids =new HashSet<Long> (); 
+			
 			for(int i =0;i<inode.getChildCount();i++){
 				Node [] dbnodesob = (Node [])inode.getChild(i).getObject("dbnodes"); 
 				for(int k=0;k<dbnodesob.length;k++){

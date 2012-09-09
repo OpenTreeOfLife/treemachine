@@ -1,6 +1,8 @@
 package opentree;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import opentree.GraphBase.RelTypes;
@@ -36,11 +38,11 @@ public class LicaUtil {
      * @param fullIdSet list of all the node ids for the tree of interest
      * @return an ArrayList<Node> of all the nodes that are feasible LICA
      */
-    
     public static HashSet<Node> getAllLICA(List<Node> nodeSet, HashSet<Long> inIdSet, HashSet<Long> fullIdSet){
     	HashSet<Node> retaln = new HashSet<Node>();
     	Node firstNode = nodeSet.get(0);//should be the node with the fewest outgoing relationships
     	int fewestnumrel = 10000000;
+    	//long start = System.currentTimeMillis();
     	for (int i=0;i<nodeSet.size();i++){
     		int num = 0;
     		//only way to get number of relationships
@@ -50,17 +52,21 @@ public class LicaUtil {
     			firstNode = nodeSet.get(i);
     		}
     	}
-    	
+    	//long elapsedTimeMillis = System.currentTimeMillis()-start;
+    	//float elapsedTimeSec = elapsedTimeMillis/1000F;
+    	//System.out.println("elapsed 1: "+elapsedTimeSec);
     	//remove everything but that which is in the outgroup
     	fullIdSet.removeAll(inIdSet);
     	
     	Node innode = firstNode;
+    	//start = System.currentTimeMillis();
     	for ( Path pa : Traversal.description()
 	        .depthFirst()
 	        .relationships( RelTypes.MRCACHILDOF, Direction.OUTGOING )
 	        .traverse( innode ) ){
     		boolean going = true;
     		for (Node tnode: pa.nodes()){
+    			//as long as these are sorted we can do a faster comparison
     			long [] dbnodei = (long []) tnode.getProperty("mrca");
     			HashSet<Long> Ldbnodei =new HashSet<Long>();
     			for(long temp:dbnodei){Ldbnodei.add(temp);}
@@ -70,12 +76,7 @@ public class LicaUtil {
 				if(Ldbnodei.size()==beforesize){
 					//this gets all, but we want to only include the exact if one exists
 					boolean containsall = Ldbnodei.containsAll(inIdSet);
-					if(containsall && inIdSet.size()==Ldbnodei.size()){
-						//NOT SURE IF WE SHOULD EMPTY THE LIST IF IT IS EXACT OR RETAIN ALL THE LICAS
-						//retaln.clear();
-						retaln.add(tnode);
-						going = false;
-					}else if(containsall){
+					if(containsall){
     					retaln.add(tnode);
     					going = false;
     				}
@@ -87,6 +88,9 @@ public class LicaUtil {
     			}
     		}
     	}
+    	//elapsedTimeMillis = System.currentTimeMillis()-start;
+    	//elapsedTimeSec = elapsedTimeMillis/1000F;
+    	//System.out.println("elapsed inloop: "+elapsedTimeSec);
     	return retaln;
     }
     
@@ -144,4 +148,5 @@ public class LicaUtil {
     	}
     	return retaln;
     }
+    
 }
