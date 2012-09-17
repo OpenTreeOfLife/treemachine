@@ -179,6 +179,19 @@ public class MainRunner {
 		ge.shutdownDB();
 	}
 	
+	public void graphExporter(String [] args){
+		if(args.length > 4){
+			System.out.println("arguments should be name outfile graphdbfolder");
+			return;
+		}
+		String taxon = args[1];
+		String outfile = args[2];
+		String graphname = args[3];
+		GraphExporter ge = new GraphExporter(graphname);
+		ge.writeGraphML(taxon, outfile);
+		ge.shutdownDB();
+	}
+	
 	public static void printHelp(){
 		System.out.println("==========================");
 		System.out.println("usage: treemachine command options");
@@ -196,6 +209,7 @@ public class MainRunner {
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <preferred sources> <graphdbfolder> (constructs a newick file from a particular node)");
+		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
 
 	}
 	/**
@@ -227,6 +241,8 @@ public class MainRunner {
 				mr.justTreeAnalysis(args);
 			}else if(args[0].compareTo("sourceexplorer")==0){
 				mr.sourceTreeExplorer(args);
+			}else if(args[0].compareTo("graphml")==0){
+				mr.graphExporter(args);
 			}else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();
