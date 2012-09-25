@@ -26,7 +26,8 @@ Set<TaxonomyID> get_taxonomies()
 /**
  * @returns list of all names defined by a taxonomy
  */
-List<String> get_taxonomic_names(TaxonomyID)
+List<String> get_taxonomic_names(
+    TaxonomyID)
 
 /**
  * @returns NULL or the definition of the name according to the
@@ -34,7 +35,8 @@ List<String> get_taxonomic_names(TaxonomyID)
  * @param t
  * @param a taxonomic name 
  */
-Phyloreference get_definition_of_name(TaxonomyID t, String tax_name);
+Phyloreference get_definition_of_name(
+    TaxonomyID t, String tax_name);
 
 /**
  * @returns tree ID string for the taxonomy. The taxonomy is ingested
@@ -43,7 +45,8 @@ Phyloreference get_definition_of_name(TaxonomyID t, String tax_name);
  *	the query would return an id for that backbone.
  * @param t
  */
-String get_tree_id_for_taxonomy(TaxonomyID t)
+String get_tree_id_for_taxonomy(
+    TaxonomyID t)
 
 /**
  * @returns list of all ids for all of the stored trees
@@ -61,7 +64,8 @@ Set<TreeID> get_tree_ids();
  * @param unique tree_id obtained from having ingested the tree with
  *   with that name or as the result of another call.
  */ 
-RootedTree get_tree(TreeID tree_id);
+RootedTree get_tree(
+    TreeID tree_id);
 
 /**
  * @returns Resolves a phylorefence onto a tree and returns the 
@@ -69,7 +73,9 @@ RootedTree get_tree(TreeID tree_id);
  * @param clade_def
  * @param String that identifies a tree
  */
-TaxSet get_clade_contents(Phyloreference clade_def, TreeID tree_id);
+TaxSet get_clade_contents(
+    Phyloreference clade_def,
+    TreeID tree_id);
 
 
 /**
@@ -79,12 +85,14 @@ TaxSet get_clade_contents(Phyloreference clade_def, TreeID tree_id);
  *
  * @param ts - set of taxa of interest
  */
-Set<TreeID> get_trees_that_test_monophyly(TaxSet ts)
+Set<TreeID> get_trees_that_test_monophyly(
+    TaxSet ts)
 
 /**
  * @returns ids for all trees that contain any taxon in ts
  */
-Set<TreeID> get_trees_that_include_any(TaxSet ts)
+Set<TreeID> get_trees_that_include_any(
+    TaxSet ts)
 
 /**
  * @returns ids for all trees that contain all taxon listed in ts
@@ -93,9 +101,9 @@ Set<TreeID> get_trees_that_include_any(TaxSet ts)
  *   you’d get trees that have descendants of those clades.
  */
 Set<TreeID> get_trees_that_include_all(
-TaxonomyID taxonomy_id, 
-TaxSet ts,
-bool include_des)
+    TaxonomyID taxonomy_id, 
+    TaxSet ts,
+    bool include_des)
 
 /**
  * @returns an ID for a graph (could be a tree, but some forms
@@ -111,3 +119,6 @@ GraphID synthesize(Set<TreeID> input,
    Set<TreeID> constraints,
    TaxSet output_leaf_set,
    SynthesisModeSpecifier blob)
+   
+////////////////////////////////////////////////////////////////////////////////
+Note: The identifier for the taxonomy that gives the taxonomic names their definition could be omitted if the elements of the TaxSet point to nodes in an unambiguous way. If the information conveying the definition of a taxonomic name is not contained in the TaxSet, then this sort of taxonomic id will have to be added to more of these queries. I need to mull this over.
