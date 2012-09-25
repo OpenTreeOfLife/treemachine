@@ -1,0 +1,113 @@
+This doc was created by migrating the API section that was at the bottom of:
+https://docs.google.com/document/d/1FQNFVNo_Mz9ucbIaabBRl4tncVaGWfFOBnUt5fQqieM/edit
+
+The goal of this doc is to start specifying the queries we expect to support in enough detail to allow us to start building and testing implementations.
+
+We'll need  to talk about the serialization formats at some point (JSON, vs NeXML...), but we'll start by specifying the interfaces in terms of semantically richer entities (e.g. "Tree" instead of "newick")
+
+Data types:
+ * RootedTree - A tree with tip labels resolved to the taxonomic identifiers used internally in TaxOL
+
+ * TaxonomyID - a string that uniquely identifies a classification (to accommodate the fact that we’ll have to version, but this would also let us handle multiple competing. Essentially this is the namespace for the names.
+
+ * Phyloreference - initially this would just be the set of specifiers used to define node-based names. We’ll need to sketch out how we deal with more complicated
+
+ * TaxSet - a set of taxonomic identifiers. For big sets, we may use something like a identifer for a node that is the MRCA of the taxa (to make faster to transmit).
+
+ * TreeID - just a string. Included to make the intent of the function clearer
+
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * @returns list of identifiers for the different taxonomies that
+ *	the system knows about.
+ */
+Set<TaxonomyID> get_taxonomies()
+
+/**
+ * @returns list of all names defined by a taxonomy
+ */
+List<String> get_taxonomic_names(TaxonomyID)
+
+/**
+ * @returns NULL or the definition of the name according to the
+ * 	taxonomy
+ * @param t
+ * @param a taxonomic name 
+ */
+Phyloreference get_definition_of_name(TaxonomyID t, String tax_name);
+
+/**
+ * @returns tree ID string for the taxonomy. The taxonomy is ingested
+ * 	as a source tree in treemachine; In Rick’s proposal, the 
+ *   backbone structure of the GOL is provided by the taxonomy, so
+ *	the query would return an id for that backbone.
+ * @param t
+ */
+String get_tree_id_for_taxonomy(TaxonomyID t)
+
+/**
+ * @returns list of all ids for all of the stored trees
+ * @todo we might need some sort of filter for the tree’s
+ * 	status(input trees, taxonomic trees), or we may just want
+ *	to jump to a full fledged query interface to getting a list
+ * 	of trees that satisfy much more complex set of queries.
+ */ 
+Set<TreeID> get_tree_ids();
+
+/**
+ * @returns RootedTree or NULL or some sort of “PENDING” - code if 
+ *  the tree is the result of a synthesis step that has been started
+ *  but not completed. 
+ * @param unique tree_id obtained from having ingested the tree with
+ *   with that name or as the result of another call.
+ */ 
+RootedTree get_tree(TreeID tree_id);
+
+/**
+ * @returns Resolves a phylorefence onto a tree and returns the 
+ *	set of identifier that are included on that tree.
+ * @param clade_def
+ * @param String that identifies a tree
+ */
+TaxSet get_clade_contents(Phyloreference clade_def, TreeID tree_id);
+
+
+/**
+ * @returns ids for all trees that contain:
+ *	at least 2 members of ts, AND
+ * 	at least 1 taxon that is not in ts.
+ *
+ * @param ts - set of taxa of interest
+ */
+Set<TreeID> get_trees_that_test_monophyly(TaxSet ts)
+
+/**
+ * @returns ids for all trees that contain any taxon in ts
+ */
+Set<TreeID> get_trees_that_include_any(TaxSet ts)
+
+/**
+ * @returns ids for all trees that contain all taxon listed in ts
+ * @param if include_des is True then a tree “counts” if it has a  
+ *	descendant of a taxon (so if you asked for “Homo” and “Pan”
+ *   you’d get trees that have descendants of those clades.
+ */
+Set<TreeID> get_trees_that_include_all(
+TaxonomyID taxonomy_id, 
+TaxSet ts,
+bool include_des)
+
+/**
+ * @returns an ID for a graph (could be a tree, but some forms
+ * 	of synthesis will generate graphs, so we’re being generic here)
+ * @param input - identifiers for the input source trees
+ * @param constraint - any set of trees that are treated as topological constraints
+ * @param output_leaf_set leaves not included in this set can
+ *   be pruned from the output tree
+ * @param blob - Placeholder - we need to think about what ways of
+ *	generating a synthetic tree we are going to support.
+ */
+GraphID synthesize(Set<TreeID> input, 
+   Set<TreeID> constraints,
+   TaxSet output_leaf_set,
+   SynthesisModeSpecifier blob)
