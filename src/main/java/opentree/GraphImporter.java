@@ -133,8 +133,8 @@ public class GraphImporter extends GraphBase{
 		ArrayList<String> templines = new ArrayList<String>();
 		try{
 			//create the root node
-			tx = graphDb.beginTx();
-			try{
+			//tx = graphDb.beginTx();
+			/*try{
 				Node node = graphDb.createNode();
 				node.setProperty("name", "root");
 				graphNodeIndex.add( node, "name", "root" );
@@ -142,7 +142,7 @@ public class GraphImporter extends GraphBase{
 				tx.success();
 			}finally{
 				tx.finish();
-			}
+			}*/
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			while((str = br.readLine())!=null){
 				count += 1;
@@ -153,14 +153,14 @@ public class GraphImporter extends GraphBase{
 					tx = graphDb.beginTx();
 					try{
 						for(int i=0;i<templines.size();i++){
-							String[] spls = templines.get(i).split(",");
+							String[] spls = templines.get(i).split("\t");
+							Node tnode = graphDb.createNode();
+							tnode.setProperty("name", spls[2]);
+							graphNodeIndex.add( tnode, "name", spls[2] );
 							if (spls[1].length() > 0){
-								Node tnode = graphDb.createNode();
-								tnode.setProperty("name", spls[2]);
-								graphNodeIndex.add( tnode, "name", spls[2] );
 								parents.put(spls[0], spls[1]);
-								dbnodes.put(spls[0], tnode);
 							}
+							dbnodes.put(spls[0], tnode);
 						}
 						tx.success();
 					}finally{
@@ -173,15 +173,16 @@ public class GraphImporter extends GraphBase{
 			tx = graphDb.beginTx();
 			try{
 				for(int i=0;i<templines.size();i++){
-					String[] spls = templines.get(i).split(",");
+					String[] spls = templines.get(i).split("\t");
 					count += 1;
+					Node tnode = graphDb.createNode();
+					tnode.setProperty("name", spls[2]);
+					graphNodeIndex.add( tnode, "name", spls[2] );
+					parents.put(spls[0], spls[1]);
 					if (spls[1].length() > 0){
-						Node tnode = graphDb.createNode();
-						tnode.setProperty("name", spls[2]);
-						graphNodeIndex.add( tnode, "name", spls[2] );
 						parents.put(spls[0], spls[1]);
-						dbnodes.put(spls[0], tnode);
 					}
+					dbnodes.put(spls[0], tnode);
 				}
 				tx.success();
 			}finally{
@@ -248,7 +249,7 @@ public class GraphImporter extends GraphBase{
 	private void initMrcaAndStreeRelsTax(){
 		tx = graphDb.beginTx();
 		//start from the node called root
-		Node startnode = (graphNodeIndex.get("name", "root")).next();
+		Node startnode = (graphNodeIndex.get("name", "life")).next();
 		try{
 			//root should be the taxonomy startnode
 //			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
@@ -265,12 +266,10 @@ public class GraphImporter extends GraphBase{
 						friendnode.setProperty("nested_mrca", ntmrcas);
 					}
 					if(startnode != friendnode){//not the root
-						// getSingleRelationship works here because we know that we are adding the first tree to the graph...
 						friendnode.createRelationshipTo(taxparent, RelTypes.MRCACHILDOF);
 						Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelTypes.STREECHILDOF);
 						trel2.setProperty("source", "taxonomy");
 						sourceRelIndex.add(trel2, "source", "taxonomy");
-						//taxonomy is a special case, so not adding this unless I have to
 					}
 					cur_tran_iter += 1;
 					if(cur_tran_iter % transaction_iter == 0){
@@ -279,6 +278,8 @@ public class GraphImporter extends GraphBase{
 						tx = graphDb.beginTx();
 						System.out.println("cur transaction: "+cur_tran_iter);
 					}
+				}else{
+					System.out.println(friendnode+"\t"+friendnode.getProperty("name"));
 				}
 			}
 			tx.success();
