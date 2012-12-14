@@ -136,9 +136,9 @@ public class MainRunner {
 			outFile = new PrintWriter(new FileWriter("tax.temp"));
 			ArrayList<String> namesal = new ArrayList<String>(); namesal.addAll(names);
 			for(int i=0;i<namesal.size();i++){
-				outFile.write((i+2)+",1,"+namesal.get(i)+"\n");
+				outFile.write((i+2)+"\t1\t"+namesal.get(i)+"\n");
 			}
-			outFile.write("1,0,life\n");
+			outFile.write("1\t0\tlife\n");
 			outFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
