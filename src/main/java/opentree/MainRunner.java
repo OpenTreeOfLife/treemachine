@@ -35,7 +35,6 @@ public class MainRunner {
 		tl.shutdownDB();
 	}
 	
-	
 	public void graphImporterParser(String [] args){
 		GraphImporter gi = null;
 		if(args[0].compareTo("addtree") == 0){
@@ -179,6 +178,18 @@ public class MainRunner {
 		ge.shutdownDB();
 	}
 	
+	public void graphExplorerBiparts(String [] args){
+		if(args.length != 2){
+			System.out.println("arguments should be: graphdbfolder");
+			return;
+		}
+		String graphname = args[1];
+		GraphExplorer ge = new GraphExplorer();
+		ge.setEmbeddedDB(graphname);
+		ge.getBipartSupport(); // should add an mrca
+		ge.shutdownDB();
+	}
+	
 	public void graphExporter(String [] args){
 		if(args.length > 4){
 			System.out.println("arguments should be name outfile graphdbfolder");
@@ -210,6 +221,7 @@ public class MainRunner {
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <preferred sources> <graphdbfolder> (constructs a newick file from a particular node)");
 		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
+		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
 
 	}
 	/**
@@ -243,6 +255,8 @@ public class MainRunner {
 				mr.sourceTreeExplorer(args);
 			}else if(args[0].compareTo("graphml")==0){
 				mr.graphExporter(args);
+			}else if(args[0].compareTo("biparts")==0){
+				mr.graphExplorerBiparts(args);
 			}else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();

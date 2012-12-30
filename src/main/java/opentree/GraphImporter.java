@@ -388,7 +388,7 @@ public class GraphImporter extends GraphBase{
 		for (int j=0;j<nds.size();j++){
 			//find all the tip taxa and with doubles pick the taxon closest to the focal group
 			Node hitnode = null;
-			String processedname = nds.get(j).getName().replace("_", " "); //@todo processing syntactic rules like '_' -> ' ' should be done on input parsing. 
+			String processedname = nds.get(j).getName();//.replace("_", " "); //@todo processing syntactic rules like '_' -> ' ' should be done on input parsing. 
 			IndexHits<Node> hits = graphNodeIndex.get("name", processedname);
 			int numh = hits.size();
 			if (numh == 1){

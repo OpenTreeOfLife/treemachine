@@ -106,6 +106,192 @@ public class GraphExplorer extends GraphBase{
 		}
 	}
 	
+	/**
+	 * This will walk the graph and attempt to report the bipartition information
+	 */
+	
+	public void getBipartSupport(){
+		Node startnode = (graphNodeIndex.get("name", "life")).next();
+		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
+		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
+		HashMap<Long,String> id_to_name = new HashMap<Long,String>();
+		HashSet<Node> tips = new HashSet<Node> ();
+//		HashMap<Node,Node> parents = new HashMap<Node,Node>();
+		HashMap<Node,HashMap<Node,Integer> > childs_scores = new HashMap<Node,HashMap<Node,Integer> > ();
+//		parents.put(startnode, null);
+		HashMap<Node,HashMap<Node,Integer> > scores = new HashMap<Node,HashMap<Node,Integer> >();
+		HashMap<Node,Integer> node_score = new HashMap<Node,Integer>();
+		HashSet<Node> allnodes = new HashSet<Node> ();
+		for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(startnode).nodes()){
+			if(friendnode.hasRelationship(Direction.INCOMING, RelTypes.MRCACHILDOF) == false)
+				tips.add(friendnode);
+//			HashSet<Node> conflicts = new HashSet<Node>();
+			HashMap<Node,Integer> conflicts_count = new HashMap<Node,Integer>();
+			int largest_count = 0;
+			Node largest_parent = null;
+			int count = 0;
+			for(Relationship rel: friendnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
+				if(rel.getProperty("source").equals("taxonomy") == true || rel.getProperty("source").equals("ottol") == true)
+					continue;
+//				conflicts.add(rel.getEndNode());
+				if(conflicts_count.containsKey(rel.getEndNode())== false){
+					conflicts_count.put(rel.getEndNode(), 0);
+				}
+//				if(childs_scores.containsKey(rel.getEndNode())==false){
+//					childs_scores.put(rel.getEndNode(), new HashMap<Node,Integer>());
+//				}
+				Integer tint = (Integer)conflicts_count.get(rel.getEndNode()) + 1;
+				conflicts_count.put(rel.getEndNode(),tint);
+				if(tint > largest_count){
+					largest_count = tint;
+					largest_parent = rel.getEndNode();
+				}
+				count += 1;
+			}
+			node_score.put(friendnode, count);
+			for(Node tnode: conflicts_count.keySet()){
+				if(childs_scores.containsKey(tnode) == false){
+					childs_scores.put(tnode, new HashMap<Node,Integer>());
+				}
+				childs_scores.get(tnode).put(friendnode,conflicts_count.get(tnode));
+			}
+			scores.put(friendnode,conflicts_count);
+//			parents.put(friendnode, largest_parent);
+			allnodes.add(friendnode);
+		}
+		for(Node friendnode: allnodes){
+			System.out.println(friendnode+" "+node_score.get(friendnode));
+		}
+/*		for(Node friendnode: allnodes){
+//			System.out.println("best parent: "+friendnode+" ("+String.valueOf(count)+") "+largest_parent);
+//			if(conflicts.size() > 1){
+				System.out.println("========================");
+				if(friendnode.hasProperty("name")){
+					id_to_name.put((Long)friendnode.getId(), (String)friendnode.getProperty("name"));
+					System.out.println(friendnode.getProperty("name")+" ("+node_score.get(friendnode.getId())+") "+friendnode);
+				}else{
+					long [] mrcas = (long [] ) friendnode.getProperty("mrca");
+					for(int i=0;i<mrcas.length;i++){
+						if (id_to_name.containsKey((Long)mrcas[i])==false){
+							id_to_name.put((Long)mrcas[i],(String)graphDb.getNodeById(mrcas[i]).getProperty("name"));
+						}
+						System.out.print(id_to_name.get((Long)mrcas[i])+" ");	
+					}
+					System.out.print(friendnode+" \n");
+				}
+				System.out.println("\t"+scores.get(friendnode.getId()).size());
+
+				for(Long tnodeid: scores.get(friendnode.getId()).keySet()){
+					System.out.println("\t\t"+tnodeid+" " +scores.get(friendnode.getId()).get(tnodeid));
+					System.out.print("\t\t");
+					long [] mrcas = (long [] ) graphDb.getNodeById(tnodeid).getProperty("mrca");
+					for(int i=0;i<mrcas.length;i++){
+						if (id_to_name.containsKey((Long)mrcas[i])==false){
+							id_to_name.put((Long)mrcas[i],(String)graphDb.getNodeById(mrcas[i]).getProperty("name"));
+						}
+						System.out.print(id_to_name.get((Long)mrcas[i])+" ");	
+					}
+					System.out.print("\n");
+				}
+//			}
+		}*/
+		//write out the root to tip stree weight tree
+		construct_root_to_tip_stree_weight_tree(startnode,node_score,childs_scores);
+	}
+	
+	/*
+	 * starts from the root and goes to the tips picking the best traveled routes
+	 */
+	public void construct_root_to_tip_stree_weight_tree(Node startnode,HashMap<Node,Integer> node_score,HashMap<Node,HashMap<Node,Integer> > childs_scores){
+		Stack<Node> st = new Stack<Node>();
+		st.push(startnode);
+		JadeNode root = new JadeNode();
+		HashMap<Long,JadeNode> node_jade_map = new HashMap<Long,JadeNode>();
+		node_jade_map.put(startnode.getId(), root);
+		HashSet<Node> visited = new HashSet<Node>();
+		root.setName(String.valueOf(startnode.getId()));
+		visited.add(startnode);
+		while(st.isEmpty()==false){
+			Node friendnode = st.pop();
+			JadeNode pnode = null;
+			if (node_jade_map.containsKey(friendnode.getId())){
+				pnode = node_jade_map.get(friendnode.getId());
+			}else{
+				pnode = new JadeNode();
+				if(friendnode.hasProperty("name"))
+					pnode.setName((String)friendnode.getProperty("name"));
+				else
+					pnode.setName(String.valueOf((long)friendnode.getId()));
+				pnode.setName(pnode.getName()+"_"+String.valueOf(node_score.get(friendnode)));
+			}
+			long [] mrcas = (long [] ) friendnode.getProperty("mrca");
+			HashSet<Long> pmrcas = new HashSet<Long>();
+			for(int i=0;i<mrcas.length;i++){pmrcas.add(mrcas[i]);}
+			boolean going = true;
+			HashSet <Long> curmrcas = new HashSet<Long> ();
+			while(going){
+				boolean nomatch = false;
+				int highest = 0;
+				Node bnode = null;
+				//pick one
+				for(Node tnode: childs_scores.get(friendnode).keySet()){
+					try{
+						int tscore = childs_scores.get(friendnode).get(tnode);
+						if (tscore > highest){
+							boolean br = false;
+							long [] mrcas2 = (long [] ) tnode.getProperty("mrca");
+							for(int i=0;i<mrcas2.length;i++){
+								if(curmrcas.contains((Long)mrcas2[i])){
+									br = true;
+									break;
+								}
+							}
+							if(br == false){
+								highest = tscore;
+								bnode = tnode;
+							}
+						}
+					}catch(Exception e){}
+				}
+				if(bnode == null){
+					nomatch = true;
+				}else{
+					long [] mrcas1 = (long [] ) bnode.getProperty("mrca");
+					for(int i=0;i<mrcas1.length;i++){curmrcas.add(mrcas1[i]);}
+					pmrcas.removeAll(curmrcas);
+					JadeNode tnode1 = null;
+					if(node_jade_map.containsKey(bnode.getId())){
+						tnode1 = node_jade_map.get(bnode.getId());
+					}else{
+						tnode1 = new JadeNode(pnode);
+						if(bnode.hasProperty("name")){tnode1.setName((String)bnode.getProperty("name"));}
+						else{
+							tnode1.setName(String.valueOf((long)bnode.getId()));
+							tnode1.setName(tnode1.getName()+"_"+String.valueOf(node_score.get(bnode)));
+						}
+					}
+					pnode.addChild(tnode1);
+					node_jade_map.put(bnode.getId(), tnode1);
+					if(childs_scores.containsKey(bnode))
+						st.push(bnode);
+				}
+				if(pmrcas.size() == 0 || nomatch == true){
+					going = false;
+					break;
+				}
+			}
+			node_jade_map.put(friendnode.getId(), pnode);
+		}
+		JadeTree tree = new JadeTree(root);
+		System.out.println(tree.getRoot().getNewick(false));
+	}
+
+	
+	/**
+	 * 
+	 * @param taxname
+	 * @param sourcename
+	 */
 	/*
 	 * given a taxonomic name, construct a newick string, breaking ties based on a source name
 	 * this is just one example of one type of synthesis
