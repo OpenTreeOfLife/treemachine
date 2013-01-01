@@ -719,6 +719,33 @@ public class GraphImporter extends GraphBase{
 		return ret;
 	}
 	
+	public void deleteTreeBySource(String source){
+		System.out.println("deleting: "+source);
+		IndexHits <Relationship> hits = sourceRelIndex.get("source", source);
+		Transaction	tx = graphDb.beginTx();
+		try{
+//			Iterator<Relationship> itrel = tobedeleted.iterator();
+			for(Relationship itrel: hits){
+					itrel.delete();
+					sourceRelIndex.remove(itrel, "source", source);
+			}
+			tx.success();
+		}finally{
+			tx.finish();
+		}
+		IndexHits <Node> shits = sourceRootIndex.get("rootnode", source);
+		tx = graphDb.beginTx();
+		try{
+//			Iterator<Relationship> itrel = tobedeleted.iterator();
+			for(Node itrel: shits){
+					sourceRootIndex.remove(itrel, "rootnode", source);
+			}
+			tx.success();
+		}finally{
+			tx.finish();
+		}
+	}
+	
 	/**
 	 * Looks at the class member updatedNodes to determine if there are any relationships
 	 * that need to be updated. 
@@ -738,33 +765,33 @@ public class GraphImporter extends GraphBase{
 		//seems like this doesn't find all the nodes
 		if(comprehensive == false){
 			for(Node tnext: updatedSuperLICAs){
-				System.out.println(tnext);
+//				System.out.println(tnext);
 				for(Relationship rel: tnext.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
-					System.out.print(rel+"\n");
+//					System.out.print(rel+"\n");
 					if(((String)rel.getProperty("source")).compareTo("taxonomy")==0){
 						continue;
 					}
 					boolean add = true;
 					long [] incl = (long [])rel.getProperty("inclusive_relids");
-					for(int i=0;i<incl.length;i++){
-						System.out.print(incl[i]+" ");
-					}
-					System.out.print("\n");
+//					for(int i=0;i<incl.length;i++){
+//						System.out.print(incl[i]+" ");
+//					}
+//					System.out.print("\n");
 
 					for(int i=0;i<incl.length;i++){
-						System.out.print(incl[i]+" ");
+//						System.out.print(incl[i]+" ");
 						if(krels.contains(graphDb.getRelationshipById(incl[i]))){
 							add = false;
 							break;
 						}
 					}
-					System.out.print("\n");
+//					System.out.print("\n");
 					if(add == true){
 						krels.add(rel);
 					}
 				}
 			}
-			System.out.println("krels: "+krels);
+//			System.out.println("krels: "+krels);
 			//here is the comprehensive searcher
 		}else if(comprehensive == true ){
 			TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
@@ -772,25 +799,25 @@ public class GraphImporter extends GraphBase{
 			Node startnode = (graphNodeIndex.get("name", "life")).next();
 			for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(startnode).nodes()){
 				for(Relationship rel: friendnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
-					System.out.print(rel+"\n");
+//					System.out.print(rel+"\n");
 					if(((String)rel.getProperty("source")).compareTo("taxonomy")==0){
 						continue;
 					}
 					boolean add = true;
 					long [] incl = (long [])rel.getProperty("inclusive_relids");
-					for(int i=0;i<incl.length;i++){
-						System.out.print(incl[i]+" ");
-					}
-					System.out.print("\n");
+//					for(int i=0;i<incl.length;i++){
+//						System.out.print(incl[i]+" ");
+//					}
+//					System.out.print("\n");
 
 					for(int i=0;i<incl.length;i++){
-						System.out.print(incl[i]+" ");
+//						System.out.print(incl[i]+" ");
 						if(krels.contains(graphDb.getRelationshipById(incl[i]))){
 							add = false;
 							break;
 						}
 					}
-					System.out.print("\n");
+//					System.out.print("\n");
 
 					if(add == true){
 						krels.add(rel);
@@ -839,13 +866,13 @@ public class GraphImporter extends GraphBase{
 			long [] relids = (long [])krels.get(i).getProperty("inclusive_relids");
 			String source = (String)krels.get(i).getProperty("source");
 			HashSet<Node> startNodes = new HashSet<Node>();
-			System.out.print("relids ("+krels.get(i)+"):");
+//			System.out.print("relids ("+krels.get(i)+"):");
 			for(int j=0;j<relids.length;j++){
-				System.out.print(" "+relids[j]);
+//				System.out.print(" "+relids[j]);
 				startNodes.add(graphDb.getRelationshipById(relids[j]).getStartNode());
 			}
-			System.out.print("\n");
-			System.out.println(startNodes);
+//			System.out.print("\n");
+//			System.out.println(startNodes);
 			//these are the nodes that are parents of the current ancestors
 			//if the children change, these need to be updated as well
 			HashSet<Node> parentnodes = new HashSet<Node>();

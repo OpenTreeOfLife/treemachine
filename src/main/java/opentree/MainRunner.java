@@ -69,7 +69,7 @@ public class MainRunner {
 						gi.addProcessedTreeToGraph(focalgroup, sourcename);
 					else
 						gi.addProcessedTreeToGraph(focalgroup,sourcename+"_"+String.valueOf(i));
-				    gi.updateAfterTreeIngest(true);
+				    gi.updateAfterTreeIngest(false);
 				} catch (TaxonNotFoundException tnfx) {
 	    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
 	    			System.exit(1);
@@ -176,6 +176,8 @@ public class MainRunner {
 			gi.setTree(jt.get(i));
 			try {
 			    gi.addProcessedTreeToGraph("life","treeinfile_"+String.valueOf(i));
+			    gi.deleteTreeBySource("treeinfile_"+String.valueOf(i));
+			    //gi.updateAfterTreeIngest(false);
 			} catch (TaxonNotFoundException tnfx) {
     			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
     			System.exit(1);
@@ -184,7 +186,23 @@ public class MainRunner {
     			System.exit(1);
 			}
 		}
-	    gi.updateAfterTreeIngest(true);
+		//adding them again after all the nodes are there
+		for(int i=0;i<jt.size();i++){
+			System.out.println("adding a tree to the graph: "+ i);
+			gi.setTree(jt.get(i));
+			try {
+			    gi.addProcessedTreeToGraph("life","treeinfile_"+String.valueOf(i));
+			    //gi.updateAfterTreeIngest(false);
+			} catch (TaxonNotFoundException tnfx) {
+    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+    			System.exit(1);
+			} catch (TreeIngestException tix) {
+    			System.err.println("Tree could not be imported.\n" + tix.toString());
+    			System.exit(1);
+			}
+		}
+		
+//	    gi.updateAfterTreeIngest(true);
 		gi.shutdownDB();
 	}
 	
