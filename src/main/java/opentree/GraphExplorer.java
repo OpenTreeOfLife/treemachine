@@ -2,14 +2,20 @@ package opentree;
 
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
+import jade.tree.TreeReader;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Stack;
+
+import opentree.GraphBase.RelTypes;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
@@ -110,8 +116,8 @@ public class GraphExplorer extends GraphBase{
 	 * This will walk the graph and attempt to report the bipartition information
 	 */
 	
-	public void getBipartSupport(){
-		Node startnode = (graphNodeIndex.get("name", "life")).next();
+	public void getBipartSupport(String starttaxon){
+		Node startnode = (graphNodeIndex.get("name", starttaxon)).next();
 		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
 		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
 		HashMap<Long,String> id_to_name = new HashMap<Long,String>();
@@ -197,6 +203,189 @@ public class GraphExplorer extends GraphBase{
 		}*/
 		//write out the root to tip stree weight tree
 		construct_root_to_tip_stree_weight_tree(startnode,node_score,childs_scores);
+	}
+	
+
+	/**
+	 * map the support (or the number of subtending source trees that support
+	 * a particular node in the given tree
+	 * @param infile
+	 * @param outfile
+	 * @throws TaxonNotFoundException 
+	 */
+	public void getMapTreeSupport(String infile, String outfile) throws TaxonNotFoundException{
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
+		Node focalnode = findTaxNodeByName("life");
+		String ts = "";
+		JadeTree jt = null;
+		TreeReader tr = new TreeReader();
+		try{
+			BufferedReader br = new BufferedReader(new FileReader(infile));
+			while((ts = br.readLine())!=null){
+				if(ts.length()>1)
+					jt = tr.readTree(ts);
+			}
+			br.close();
+		}catch(IOException ioe){}
+		System.out.println("trees read");
+		
+		//need to map the tips of the trees to the map
+		ArrayList<JadeNode> nds = jt.getRoot().getTips();
+		HashSet<Long> ndids = new HashSet<Long>(); 
+		//We'll map each Jade node to the internal ID of its taxonomic node.
+		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
+		//same as above but added for nested nodes, so more comprehensive and 
+		//		used just for searching. the others are used for storage
+		HashSet<Long> ndidssearch = new HashSet<Long>();
+		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
+		HashSet<JadeNode> skiptips = new HashSet<JadeNode>();
+		for (int j=0;j<nds.size();j++){
+			//find all the tip taxa and with doubles pick the taxon closest to the focal group
+			Node hitnode = null;
+			String processedname = nds.get(j).getName();//.replace("_", " "); //@todo processing syntactic rules like '_' -> ' ' should be done on input parsing. 
+			IndexHits<Node> hits = graphNodeIndex.get("name", processedname);
+			int numh = hits.size();
+			if (numh == 1){
+				hitnode = hits.getSingle();
+			}else if (numh > 1){
+				System.out.println(processedname + " gets " + numh +" hits");
+				int shortest = 1000;//this is shortest to the focal, could reverse this
+				Node shortn = null;
+				for(Node tnode : hits){
+					Path tpath = pf.findSinglePath(tnode, focalnode);
+					if (tpath!= null){
+						if (shortn == null)
+							shortn = tnode;
+						if(tpath.length()<shortest){
+							shortest = tpath.length();
+							shortn = tnode;
+						}
+//						System.out.println(shortest+" "+tpath.length());
+					}else{
+						System.out.println("one taxon is not within life");
+					}
+				}
+				assert shortn != null; // @todo this could happen if there are multiple hits outside the focalgroup, and none inside the focalgroup.  We should develop an AmbiguousTaxonException class
+				hitnode = shortn;
+			}
+			hits.close();
+			if (hitnode == null) {
+				System.out.println("Skipping taxon not found in graph: "+processedname);
+				skiptips.add(nds.get(j));
+//				assert numh == 0;
+//				throw new TaxonNotFoundException(processedname);
+			}else{
+				//added for nested nodes 
+				long [] mrcas = (long[])hitnode.getProperty("mrca");
+				ArrayList<Long> tset = new ArrayList<Long>(); 
+				for(int k=0;k<mrcas.length;k++){
+					ndidssearch.add(mrcas[k]);
+					tset.add((Long)mrcas[k]);
+				}
+				hashnodeidssearch.put(nds.get(j),tset);
+				ndids.add(hitnode.getId());
+				hashnodeids.put(nds.get(j), hitnode.getId());
+			}
+		}
+		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
+		jt.getRoot().assocObject("ndids", ndids);
+		jt.getRoot().assocObject("hashnodeids",hashnodeids);
+		jt.getRoot().assocObject("ndidssearch",ndidssearch);
+		jt.getRoot().assocObject("hashnodeidssearch",hashnodeidssearch);
+		
+		if(skiptips.size() >= (nds.size()*0.8)){
+			System.out.println("too many tips skipped");
+			return;
+		}
+		
+		postorderMapTree(jt.getRoot(),jt.getRoot(),focalnode,skiptips);
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter(outfile));
+			outFile.write(jt.getRoot().getNewick(true)+";\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void postorderMapTree(JadeNode inode, JadeNode root, Node focalnode, HashSet<JadeNode> skiptips){
+		for(int i = 0; i < inode.getChildCount(); i++){
+			postorderMapTree(inode.getChild(i), root, focalnode,skiptips);
+		}
+		
+		HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
+		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode,ArrayList<Long>>)root.getObject("hashnodeidssearch"));
+		//get the licas
+		if(inode.getChildCount() > 0){
+			ArrayList<JadeNode>nds = inode.getTips();
+			nds.removeAll(skiptips);
+			ArrayList<Node> hit_nodes = new ArrayList<Node>();
+			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
+			//store the hits for each of the nodes in the tips
+			for (int j=0;j<nds.size();j++){
+				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
+				ArrayList<Long> tlist = roothashsearch.get(nds.get(j));
+				for(int k=0;k<tlist.size();k++){
+					hit_nodes_search.add(graphDb.getNodeById(tlist.get(k)));
+				}
+			}
+			//get all the childids even if they aren't in the tree, this is the postorder part
+			HashSet<Long> childndids =new HashSet<Long> (); 
+			
+//			System.out.println(inode.getNewick(false));
+			for(int i =0;i<inode.getChildCount();i++){
+				if(skiptips.contains(inode.getChild(i))){
+					continue;
+				}
+				Node [] dbnodesob = (Node [])inode.getChild(i).getObject("dbnodes"); 
+				for(int k=0;k<dbnodesob.length;k++){
+					long [] mrcas = ((long[])dbnodesob[k].getProperty("mrca"));
+					for(int j=0;j<mrcas.length;j++){
+						if(childndids.contains(mrcas[j]) == false)
+							childndids.add(mrcas[j]);
+					}
+				}
+			}
+			//			_LOG.trace("finished names");
+			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
+			HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
+			if(ancestors.size()>0){
+				int count = 0;
+				for(Node tnode: ancestors){
+					//calculate the number of supported branches
+					for(Relationship rel: tnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
+						count += 1;
+					}
+				}
+				inode.setName(String.valueOf(count));
+				inode.assocObject("dbnodes",ancestors.toArray(new Node[ancestors.size()]));
+				long[] ret = new long[hit_nodes.size()];
+				for(int i=0;i<hit_nodes.size();i++){
+					ret[i] = hit_nodes.get(i).getId();
+				}
+				rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				long[] ret2 = new long[rootids.size()];
+				Iterator<Long> chl2 = rootids.iterator();
+				int i=0;
+				while(chl2.hasNext()){
+					ret2[i] = chl2.next().longValue();
+					i++;
+				}
+				inode.assocObject("exclusive_mrca",ret);
+				inode.assocObject("root_exclusive_mrca",ret2);
+			}else{
+				System.out.println("node not found");
+				Node [] nar = {};
+				inode.assocObject("dbnodes",nar);
+			}
+		}else{
+			if(skiptips.contains(inode)){
+				return;
+			}
+			Node [] nar = {graphDb.getNodeById(roothash.get(inode))};
+			inode.assocObject("dbnodes",nar);
+		}
 	}
 	
 	/*
@@ -293,10 +482,10 @@ public class GraphExplorer extends GraphBase{
 	 * @param sourcename
 	 */
 	/*
-	 * given a taxonomic name, construct a newick string, breaking ties based on a source name
+	 * given a taxonomic name, construct a newick string, breaking ties based on sources listed
 	 * this is just one example of one type of synthesis
 	 */
-	public void constructNewickSourceTieBreaker(String taxname, String sourcename){
+	public void constructNewickSourceTieBreaker(String taxname, String [] sources){
 		Node firstNode = findGraphNodeByName(taxname);
 		if(firstNode == null){
 			System.out.println("name not found");
@@ -329,13 +518,20 @@ public class GraphExplorer extends GraphBase{
 							newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
 						}
 						Relationship keep = null;
+						//TODO: downweight taxonomy here
 						for(Relationship rel: curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
 							if(keep == null)
 								keep = rel;
-							if (((String)rel.getProperty("source")).compareTo(sourcename) == 0){
-								keep = rel;
-								break;
+							boolean found = false;
+							for(int i=0;i<sources.length;i++){
+								if (((String)rel.getProperty("source")).compareTo(sources[i]) == 0){
+									keep = rel;
+									found = true;
+									break;
+								}
 							}
+							if(found==true)
+								break;
 							if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){
 								keep = rel;
 							}

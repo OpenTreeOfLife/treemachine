@@ -11,9 +11,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.StringTokenizer;
 
 import opentree.TaxonNotFoundException;
 import opentree.TreeIngestException;
+import opentree.GraphBase.RelTypes;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
@@ -153,14 +155,20 @@ public class GraphImporter extends GraphBase{
 					tx = graphDb.beginTx();
 					try{
 						for(int i=0;i<templines.size();i++){
-							String[] spls = templines.get(i).split("\t");
+							StringTokenizer st = new StringTokenizer(templines.get(i),"\t|\t");
+							int numtok = st.countTokens();
+							String tid = st.nextToken();
+							String pid = "";
+							if(numtok == 3)
+								pid = st.nextToken();
+							String name = st.nextToken();
 							Node tnode = graphDb.createNode();
-							tnode.setProperty("name", spls[2]);
-							graphNodeIndex.add( tnode, "name", spls[2] );
-							if (spls[1].length() > 0){
-								parents.put(spls[0], spls[1]);
+							tnode.setProperty("name", name);
+							graphNodeIndex.add( tnode, "name", name );
+							if (pid.length() > 0){
+								parents.put(tid, pid);
 							}
-							dbnodes.put(spls[0], tnode);
+							dbnodes.put(tid, tnode);
 						}
 						tx.success();
 					}finally{
@@ -173,16 +181,22 @@ public class GraphImporter extends GraphBase{
 			tx = graphDb.beginTx();
 			try{
 				for(int i=0;i<templines.size();i++){
-					String[] spls = templines.get(i).split("\t");
+					StringTokenizer st = new StringTokenizer(templines.get(i),"\t|\t");
+					int numtok = st.countTokens();
+					String tid = st.nextToken();
+					String pid = "";
+					if(numtok == 3)
+						pid = st.nextToken();
+					String name = st.nextToken();
 					count += 1;
 					Node tnode = graphDb.createNode();
-					tnode.setProperty("name", spls[2]);
-					graphNodeIndex.add( tnode, "name", spls[2] );
-					parents.put(spls[0], spls[1]);
-					if (spls[1].length() > 0){
-						parents.put(spls[0], spls[1]);
+					tnode.setProperty("name", name);
+					graphNodeIndex.add( tnode, "name", name );
+					parents.put(tid, pid);
+					if (pid.length() > 0){
+						parents.put(tid, pid);
 					}
-					dbnodes.put(spls[0], tnode);
+					dbnodes.put(tid, tnode);
 				}
 				tx.success();
 			}finally{
@@ -371,6 +385,7 @@ public class GraphImporter extends GraphBase{
 		//We'll Create a list of the internal IDs for each taxonomic node that matches
 		//		the name of leaf in the tree to be ingested.
 
+		//TODO: could take this out and make it a seperate procedure
 		/*@todo making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
 		  would make the look ups faster. See comment in testIsMRCA */
 		HashSet<Long> ndids = new HashSet<Long>(); 
@@ -713,31 +728,74 @@ public class GraphImporter extends GraphBase{
 	 * 2) check the mrcas with the ones from the updated nodes to see if any of the updated ones are better or equally good
 	 * 3) if so, delete (if better) the old ones and add with connections to the new node(s)
 	 * 
+	 * This needs to be more comprehensive so that it checks the other relationships for inclusive ones
 	 */
 /*
  * This might be better done if we indexed the new updated node
  */
-	public void updateAfterTreeIngest(){
+	public void updateAfterTreeIngest(boolean comprehensive){
 		ArrayList<Relationship> krels = new ArrayList<Relationship>();
-		Iterator<Node> itr = updatedSuperLICAs.iterator();
-		while(itr.hasNext()){
-			Node tnext = itr.next();
-			for(Relationship rel: tnext.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
-				if(((String)rel.getProperty("source")).compareTo("taxonomy")==0){
-					continue;
-				}
-				boolean add = true;
-				long [] incl = (long [])rel.getProperty("inclusive_relids");
-				for(int i=0;i<incl.length;i++){
-					if(krels.contains(graphDb.getRelationshipById(incl[i]))){
-						add = false;
-						break;
+		//seems like this doesn't find all the nodes
+		if(comprehensive == false){
+			for(Node tnext: updatedSuperLICAs){
+				System.out.println(tnext);
+				for(Relationship rel: tnext.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
+					System.out.print(rel+"\n");
+					if(((String)rel.getProperty("source")).compareTo("taxonomy")==0){
+						continue;
+					}
+					boolean add = true;
+					long [] incl = (long [])rel.getProperty("inclusive_relids");
+					for(int i=0;i<incl.length;i++){
+						System.out.print(incl[i]+" ");
+					}
+					System.out.print("\n");
+
+					for(int i=0;i<incl.length;i++){
+						System.out.print(incl[i]+" ");
+						if(krels.contains(graphDb.getRelationshipById(incl[i]))){
+							add = false;
+							break;
+						}
+					}
+					System.out.print("\n");
+					if(add == true){
+						krels.add(rel);
 					}
 				}
-				if(add ==true){
-					krels.add(rel);
+			}
+			System.out.println("krels: "+krels);
+			//here is the comprehensive searcher
+		}else if(comprehensive == true ){
+			TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
+					.relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
+			Node startnode = (graphNodeIndex.get("name", "life")).next();
+			for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(startnode).nodes()){
+				for(Relationship rel: friendnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
+					System.out.print(rel+"\n");
+					if(((String)rel.getProperty("source")).compareTo("taxonomy")==0){
+						continue;
+					}
+					boolean add = true;
+					long [] incl = (long [])rel.getProperty("inclusive_relids");
+					for(int i=0;i<incl.length;i++){
+						System.out.print(incl[i]+" ");
+					}
+					System.out.print("\n");
+
+					for(int i=0;i<incl.length;i++){
+						System.out.print(incl[i]+" ");
+						if(krels.contains(graphDb.getRelationshipById(incl[i]))){
+							add = false;
+							break;
+						}
+					}
+					System.out.print("\n");
+
+					if(add == true){
+						krels.add(rel);
+					}
 				}
-				
 			}
 		}
 		//these are relationships that will be deleted at the end but can't 
@@ -781,9 +839,13 @@ public class GraphImporter extends GraphBase{
 			long [] relids = (long [])krels.get(i).getProperty("inclusive_relids");
 			String source = (String)krels.get(i).getProperty("source");
 			HashSet<Node> startNodes = new HashSet<Node>();
+			System.out.print("relids ("+krels.get(i)+"):");
 			for(int j=0;j<relids.length;j++){
+				System.out.print(" "+relids[j]);
 				startNodes.add(graphDb.getRelationshipById(relids[j]).getStartNode());
 			}
+			System.out.print("\n");
+			System.out.println(startNodes);
 			//these are the nodes that are parents of the current ancestors
 			//if the children change, these need to be updated as well
 			HashSet<Node> parentnodes = new HashSet<Node>();
@@ -791,6 +853,8 @@ public class GraphImporter extends GraphBase{
 			//TODO: update the rootnode index if this changes
 			//this should hold, and for now, just remake the relationships
 			if(licas.length != ancestors.size()){
+				//because the original lica length is different than the ancestors length
+				//we need to connect the nodes
 				for(int j=0;j<relids.length;j++){
 					System.out.println("deleting rel: "+relids[j]);
 					Transaction	tx = graphDb.beginTx();
@@ -798,10 +862,11 @@ public class GraphImporter extends GraphBase{
 						Relationship trel = graphDb.getRelationshipById(relids[j]);
 						sourceRelIndex.remove(trel, "source", source);
 						System.out.println(trel.getStartNode()+" "+trel.getEndNode());
+						//if there aren't relationships then we need to change the root node
 						for(Relationship ptrel: trel.getEndNode().getRelationships(Direction.OUTGOING)){
 							if(ptrel.hasProperty("source")){
 								if(((String)ptrel.getProperty("source")).compareTo(source)==0){
-									System.out.println(ptrel.getStartNode()+"-"+ptrel.getEndNode());
+									System.out.println(ptrel+" "+ptrel.getStartNode()+"-"+ptrel.getEndNode());
 									parentnodes.add(ptrel.getEndNode());
 									if(parent_rel_map.containsKey(ptrel.getEndNode())==false){
 										parent_rel_map.put(ptrel.getEndNode(), new HashSet<Relationship>());
@@ -811,29 +876,25 @@ public class GraphImporter extends GraphBase{
 								}
 							}
 						}
-						trel.delete();
+						tobedeleted.add(trel);
+						//trel.delete();
 						tx.success();
 					}finally{
 						tx.finish();
 					}
 				}
-				//streeexact
 				Transaction	tx = graphDb.beginTx();
 				try{
-					Iterator<Node> ancit = ancestors.iterator();
+					//now for each of the new licas
 					long [] anlicas = new long[ancestors.size()];
 					int j = 0;
-					while(ancit.hasNext()){
-						anlicas[j] = ancit.next().getId();
+					for(Node tancn: ancestors){
+						anlicas[j] = tancn.getId();
 						j++;
 					}
-					ancit = ancestors.iterator();
 					ArrayList<Relationship> finrels = new ArrayList<Relationship> ();
-					while(ancit.hasNext()){
-						Node ancitn = ancit.next();
-						Iterator<Node>snit = startNodes.iterator();
-						while(snit.hasNext()){
-							Node snitn = snit.next(); 
+					for(Node ancitn: ancestors){
+						for(Node snitn: startNodes){
 							Relationship rel = snitn.createRelationshipTo(ancitn, RelTypes.STREECHILDOF);
 							sourceRelIndex.add(rel, "source", source);
 							System.out.println("adding rel: "+rel.getId());
@@ -853,11 +914,14 @@ public class GraphImporter extends GraphBase{
 					}
 
 					//connect the new ancestors to the original parents
-					Iterator<Node> pnodes = parentnodes.iterator();
-					ancit = ancestors.iterator();
-					while(pnodes.hasNext()){
-						Node pnode = pnodes.next();
+//					Iterator<Node> pnodes = parentnodes.iterator();
+//					ancit = ancestors.iterator();
+					for(Node pnode: parentnodes){
+//					while(pnodes.hasNext()){
+//						Node pnode = pnodes.next();
 						HashSet<Relationship> oldones = parent_rel_map.get(pnode);
+						//this is going to need to be in some sort of array
+						System.out.println("oldones: "+oldones);
 						Relationship toldone = oldones.iterator().next();
 						long [] tlicas = (long [])toldone.getProperty("licas");
 						long [] texmrcas = (long [])toldone.getProperty("exclusive_mrca");
@@ -866,14 +930,20 @@ public class GraphImporter extends GraphBase{
 						long [] oldrelids = (long [])toldone.getProperty("inclusive_relids");
 						ArrayList<Long> newrelids = new ArrayList<Long>();
 						for(j=0;j<oldrelids.length;j++){System.out.println("adding original rel: "+oldrelids[j]);newrelids.add(oldrelids[j]);}
-						Iterator<Relationship> oldit = oldones.iterator();
-						while(oldit.hasNext()){
-							long oldid = oldit.next().getId();
+						/*for(Relationship toldrel: oldones){
+							long oldid = toldrel.getId();
 							System.out.println("deleting the old bad rel: "+oldid);
 							newrelids.remove(oldid);
+						}*/
+						//change to just eliminating all the to be deleted ones
+						for(Relationship toldrel: tobedeleted){
+							long oldid = toldrel.getId();
+							System.out.println("deleting the old bad rel: "+oldid);
+							newrelids.remove(oldid);	
 						}
-						while(ancit.hasNext()){
-							Node anc = ancit.next();
+						for(Node anc: ancestors){
+//						while(ancit.hasNext()){
+//							Node anc = ancit.next();
 							//first make sure that there is a MRCACHILDOF for these nodes
 							boolean present = false;
 							for(Relationship rels: pnode.getRelationships(Direction.INCOMING, RelTypes.MRCACHILDOF)){
@@ -895,11 +965,15 @@ public class GraphImporter extends GraphBase{
 							newrelids.add(newrel.getId());
 						}
 						long [] finalnewrelids = new long[newrelids.size()];
+						System.out.print("newrelids: ");
 						for(j=0;j<finalnewrelids.length;j++){
+							System.out.print(" "+newrelids.get(j));
 							finalnewrelids[j] = newrelids.get(j);
-						}
+						}System.out.print("\n");
+						//this is where the new rel id is not getting fixed
 						for(Relationship rels: pnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
 							if(((String)rels.getProperty("source")).compareTo(source)==0){
+								System.out.println("setting new inclusive relids: "+rels);
 								rels.setProperty("inclusive_relids", finalnewrelids);
 							}
 						}
@@ -913,15 +987,31 @@ public class GraphImporter extends GraphBase{
 		//cleaning up parent relationships that have to be deleted
 		Transaction	tx = graphDb.beginTx();
 		try{
-			Iterator<Relationship> itrel = tobedeleted.iterator();
-			while (itrel.hasNext())
-				itrel.next().delete();
+//			Iterator<Relationship> itrel = tobedeleted.iterator();
+			for(Relationship itrel: tobedeleted){
+				System.out.println("actually deleting: "+itrel);
+//			while (itrel.hasNext()){
+				try{
+					itrel.delete();
+//					itrel.next().delete();
+				}catch(org.neo4j.graphdb.NotFoundException f){
+					System.out.println("seems "+f.getMessage());
+				}
+			}
 			tx.success();
 		}finally{
 			tx.finish();
 		}
 	}
     
+	/*
+	 * can't seem to find the full error in the updateAfterTreeIngest procedure so 
+	 * just trying a full remap of any trees that need it instead of the localized remap
+	 */
+	private void updateAfterTreeIngestRemapTree(){
+	}
+	
+	
 	
 	/**
 	 * @param args

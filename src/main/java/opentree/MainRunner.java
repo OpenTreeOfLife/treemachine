@@ -47,17 +47,36 @@ public class MainRunner {
 			String sourcename = args[3];
 			String graphname = args[4];
 			gi = new GraphImporter(graphname);
-			System.out.println("adding a tree to the graph: "+ filename);
-			gi.preProcessTree(filename);
-			try {
-			    gi.addProcessedTreeToGraph(focalgroup,sourcename);
-			    gi.updateAfterTreeIngest();
-			} catch (TaxonNotFoundException tnfx) {
-    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-    			System.exit(1);
-			} catch (TreeIngestException tix) {
-    			System.err.println("Tree could not be imported.\n" + tix.toString());
-    			System.exit(1);
+			System.out.println("adding tree(s) to the graph: "+ filename);
+			String ts = "";
+			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+			TreeReader tr = new TreeReader();
+			try{
+				BufferedReader br = new BufferedReader(new FileReader(filename));
+				while((ts = br.readLine())!=null){
+					if(ts.length()>1)
+						jt.add(tr.readTree(ts));
+				}
+				br.close();
+			}catch(IOException ioe){}
+			System.out.println("trees read");
+			//Go through the trees again and add and update as necessary
+			for(int i=0;i<jt.size();i++){
+				System.out.println("adding a tree to the graph: "+ i);
+				gi.setTree(jt.get(i));
+				try {
+					if(jt.size() == 1)
+						gi.addProcessedTreeToGraph(focalgroup, sourcename);
+					else
+						gi.addProcessedTreeToGraph(focalgroup,sourcename+"_"+String.valueOf(i));
+				    gi.updateAfterTreeIngest(true);
+				} catch (TaxonNotFoundException tnfx) {
+	    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+	    			System.exit(1);
+				} catch (TreeIngestException tix) {
+	    			System.err.println("Tree could not be imported.\n" + tix.toString());
+	    			System.exit(1);
+				}
 			}
 		}else{
 			System.err.println("ERROR: not a known command");
@@ -88,11 +107,15 @@ public class MainRunner {
 			}
 			String name = args[1];
 			String sourcename = args[2];
+			String [] sources = sourcename.split(",");
+			System.out.println("Sources (in order) that will be used to break conflicts");
+			for(int i =0;i<sources.length;i++){
+				System.out.println(sources[i]);
+			}
 			String graphname = args[3];
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			System.out.println("constructing a full tree for: "+name+" with cycles resolved by "+sourcename);
-			gi.constructNewickSourceTieBreaker(name, sourcename);
+			gi.constructNewickSourceTieBreaker(name, sources);
 		}else{
 			System.err.println("ERROR: not a known command");
 			gi.shutdownDB();
@@ -135,9 +158,9 @@ public class MainRunner {
 			outFile = new PrintWriter(new FileWriter("tax.temp"));
 			ArrayList<String> namesal = new ArrayList<String>(); namesal.addAll(names);
 			for(int i=0;i<namesal.size();i++){
-				outFile.write((i+2)+"\t1\t"+namesal.get(i)+"\n");
+				outFile.write((i+2)+"\t|\t1\t|\t"+namesal.get(i)+"\t|\t\n");
 			}
-			outFile.write("1\t0\tlife\n");
+			outFile.write("1\t|\t0\t|\tlife\t|\t\n");
 			outFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -153,7 +176,6 @@ public class MainRunner {
 			gi.setTree(jt.get(i));
 			try {
 			    gi.addProcessedTreeToGraph("life","treeinfile_"+String.valueOf(i));
-			    gi.updateAfterTreeIngest();
 			} catch (TaxonNotFoundException tnfx) {
     			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
     			System.exit(1);
@@ -162,6 +184,7 @@ public class MainRunner {
     			System.exit(1);
 			}
 		}
+	    gi.updateAfterTreeIngest(true);
 		gi.shutdownDB();
 	}
 	
@@ -186,7 +209,26 @@ public class MainRunner {
 		String graphname = args[1];
 		GraphExplorer ge = new GraphExplorer();
 		ge.setEmbeddedDB(graphname);
-		ge.getBipartSupport(); // should add an mrca
+		ge.getBipartSupport("life"); // need to change this from hardcoded
+		ge.shutdownDB();
+	}
+	
+	public void graphExplorerMapSupport(String [] args){
+		if(args.length != 4){
+			System.out.println("arguments should be infile outfile graphdbfolder");
+			return;
+		}
+		String infile = args[1];
+		String outfile = args[2];
+		String graphname = args[3];
+		GraphExplorer ge = new GraphExplorer();
+		ge.setEmbeddedDB(graphname);
+		try {
+			ge.getMapTreeSupport(infile, outfile);
+		}catch(TaxonNotFoundException tnfx){
+			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+			System.exit(1);
+		}
 		ge.shutdownDB();
 	}
 	
@@ -208,21 +250,23 @@ public class MainRunner {
 		System.out.println("usage: treemachine command options");
 		System.out.println("");
 		System.out.println("commands");
-		System.out.println("---taxonomy---");
+		System.out.println("---initialize---");
 		System.out.println("\tinittax <filename> <graphdbfolder> (initializes the tax graph with a tax list)");
 		System.out.println("\n");
-		System.out.println("---graphoflife---");
+		System.out.println("---graph input---");
 		System.out.println("\taddtree <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\n");
-		System.out.println("---testing graph---");
+		System.out.println("---graph output---");
+		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
+		System.out.println("\tfulltree <name> <preferred sources csv> <graphdbfolder> (constructs a newick file from a particular node)");
+		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
+		System.out.println("\n");
+		System.out.println("---graph exploration---");
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
 		System.out.println("\tjusttrees <filename> <graphdbfolder> (loads the trees into a graph)");
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
-		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
-		System.out.println("\tfulltree <name> <preferred sources> <graphdbfolder> (constructs a newick file from a particular node)");
-		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
 		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
-
+		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
 	}
 	/**
 	 * @param args
@@ -257,6 +301,8 @@ public class MainRunner {
 				mr.graphExporter(args);
 			}else if(args[0].compareTo("biparts")==0){
 				mr.graphExplorerBiparts(args);
+			}else if(args[0].compareTo("mapsupport")==0){
+				mr.graphExplorerMapSupport(args);
 			}else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();
