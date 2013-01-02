@@ -32,11 +32,13 @@ public abstract class GraphBase {
 	protected static Index<Node> graphNodeIndex;
 	protected static Index<Relationship> sourceRelIndex;
 	protected static Index<Node> sourceRootIndex;
+	protected static Index<Node> sourceMetaIndex;
 	
 	protected static enum RelTypes implements RelationshipType{
 		MRCACHILDOF, //standard rel for graph db, from node to parent
 		TAXCHILDOF, //standard rel for tax db, from node to parent
 		STREECHILDOF, //standard rel for input tree, from node to parent
+		METADATAFOR,
 		//To make tree order not matter, going back to just one type of STREEREL
 		//STREEEXACTCHILDOF, //these refer to branches from the input tree that have NO ADDITIONAL 
 						   // inclusive children (all taxa subtending are present in the tree)

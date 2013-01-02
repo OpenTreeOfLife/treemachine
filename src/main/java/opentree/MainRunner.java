@@ -35,6 +35,30 @@ public class MainRunner {
 		tl.shutdownDB();
 	}
 	
+	public void graphReloadTrees(String [] args){
+		GraphImporter gi = null;
+		if(args.length != 2){
+			System.out.println("arguments should be: graphdbfolder");
+			return;
+		}
+		String graphname = args[1];
+		gi = new GraphImporter(graphname);
+		gi.deleteAllTreesAndReprocess();
+		gi.shutdownDB();
+	}
+	
+	public void graphDeleteTrees(String [] args){
+		GraphImporter gi = null;
+		if(args.length != 2){
+			System.out.println("arguments should be: graphdbfolder");
+			return;
+		}
+		String graphname = args[1];
+		gi = new GraphImporter(graphname);
+		gi.deleteAllTrees();
+		gi.shutdownDB();
+	}
+	
 	public void graphImporterParser(String [] args){
 		GraphImporter gi = null;
 		if(args[0].compareTo("addtree") == 0){
@@ -65,17 +89,35 @@ public class MainRunner {
 				System.out.println("adding a tree to the graph: "+ i);
 				gi.setTree(jt.get(i));
 				try {
-					if(jt.size() == 1)
+					if(jt.size() == 1){
 						gi.addProcessedTreeToGraph(focalgroup, sourcename);
-					else
+						gi.updateAfterTreeIngest(false);//TODO: this still needs work
+					}else{
 						gi.addProcessedTreeToGraph(focalgroup,sourcename+"_"+String.valueOf(i));
-				    gi.updateAfterTreeIngest(false);
+					    gi.deleteTreeBySource(sourcename+"_"+String.valueOf(i));	
+					}
+				    //gi.updateAfterTreeIngest(false);
 				} catch (TaxonNotFoundException tnfx) {
 	    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
 	    			System.exit(1);
 				} catch (TreeIngestException tix) {
 	    			System.err.println("Tree could not be imported.\n" + tix.toString());
 	    			System.exit(1);
+				}
+			}
+			if(jt.size() > 1){
+				for(int i=0;i<jt.size();i++){
+					System.out.println("adding a tree to the graph: "+ i);
+					gi.setTree(jt.get(i));
+					try {
+						gi.addProcessedTreeToGraph(focalgroup,sourcename+"_"+String.valueOf(i));
+					} catch (TaxonNotFoundException tnfx) {
+		    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+		    			System.exit(1);
+					} catch (TreeIngestException tix) {
+		    			System.err.println("Tree could not be imported.\n" + tix.toString());
+		    			System.exit(1);
+					}
 				}
 			}
 		}else{
@@ -273,6 +315,8 @@ public class MainRunner {
 		System.out.println("\n");
 		System.out.println("---graph input---");
 		System.out.println("\taddtree <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
+		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)");
 		System.out.println("\n");
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
@@ -321,6 +365,10 @@ public class MainRunner {
 				mr.graphExplorerBiparts(args);
 			}else if(args[0].compareTo("mapsupport")==0){
 				mr.graphExplorerMapSupport(args);
+			}else if(args[0].compareTo("reprocess")==0){
+				mr.graphReloadTrees(args);
+			}else if(args[0].compareTo("deletetrees")==0){
+				mr.graphDeleteTrees(args);
 			}else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();

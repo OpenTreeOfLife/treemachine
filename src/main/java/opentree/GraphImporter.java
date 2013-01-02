@@ -37,6 +37,7 @@ public class GraphImporter extends GraphBase{
 	private int transaction_iter = 100000;
 	private int cur_tran_iter = 0;
 	private JadeTree jt;
+	private String treestring; // original newick string for the jt
 	private ArrayList<Node> updatedNodes;
 	private HashSet<Node> updatedSuperLICAs;
 	private Transaction	tx;
@@ -46,6 +47,7 @@ public class GraphImporter extends GraphBase{
 		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
+		sourceMetaIndex = graphDb.index().forNodes("sourceMetaNodes");
 	}
 	
 	public GraphImporter(EmbeddedGraphDatabase graphn){
@@ -53,6 +55,7 @@ public class GraphImporter extends GraphBase{
 		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
+		sourceMetaIndex = graphDb.index().forNodes("sourceMetaNodes");
 	}
 	
 	/**
@@ -68,6 +71,7 @@ public class GraphImporter extends GraphBase{
 		try{
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			ts = br.readLine();
+			treestring = ts;
 			br.close();
 		}catch(IOException ioe){}
 		TreeReader tr = new TreeReader();
@@ -83,6 +87,13 @@ public class GraphImporter extends GraphBase{
 	 */
 	public void setTree(JadeTree tree){
 		jt = tree;
+		treestring = jt.getRoot().getNewick(true)+";";
+		System.out.println("tree set");
+	}
+	
+	public void setTree(JadeTree tree, String ts){
+		jt = tree;
+		treestring = ts;
 		System.out.println("tree set");
 	}
 	
@@ -620,6 +631,14 @@ public class GraphImporter extends GraphBase{
 				//TODO: this will need to be updated when trees are updated
 				System.out.println("placing root in index");
 				sourceRootIndex.add(currGoLNode, "rootnode", sourcename);
+				Node metadatanode = null;
+				metadatanode = graphDb.createNode();
+				metadatanode.setProperty("source", sourcename);
+				metadatanode.setProperty("author", "no one");
+				metadatanode.setProperty("newick",treestring);
+				sourceMetaIndex.add(metadatanode,"source",sourcename);
+				//TODO: doesn't account for multiple root nodes
+				metadatanode.createRelationshipTo(currGoLNode, RelTypes.METADATAFOR);
 			}
 			for(int i=0;i<inode.getChildCount();i++){
 				JadeNode childJadeNode = inode.getChild(i);
@@ -719,6 +738,38 @@ public class GraphImporter extends GraphBase{
 		return ret;
 	}
 	
+	public void deleteAllTrees(){
+		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
+		System.out.println(hits.size());
+		for(Node itrel: hits){
+			String source = (String)itrel.getProperty("source");
+			deleteTreeBySource(source);
+		}
+	}
+	
+	public void deleteAllTreesAndReprocess(){
+		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
+		System.out.println(hits.size());
+		for(Node itrel: hits){
+			String source = (String)itrel.getProperty("source");
+			String trees = (String)itrel.getProperty("newick");
+			deleteTreeBySource(source);
+			TreeReader tr = new TreeReader();
+			jt = tr.readTree(trees);
+			System.out.println("tree read");
+			setTree(jt,trees);
+			try {
+				addProcessedTreeToGraph("life",source);
+			} catch (TaxonNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (TreeIngestException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	public void deleteTreeBySource(String source){
 		System.out.println("deleting: "+source);
 		IndexHits <Relationship> hits = sourceRelIndex.get("source", source);
@@ -726,19 +777,32 @@ public class GraphImporter extends GraphBase{
 		try{
 //			Iterator<Relationship> itrel = tobedeleted.iterator();
 			for(Relationship itrel: hits){
-					itrel.delete();
-					sourceRelIndex.remove(itrel, "source", source);
+				itrel.delete();
+				sourceRelIndex.remove(itrel, "source", source);
 			}
 			tx.success();
 		}finally{
 			tx.finish();
 		}
+		hits.close();
 		IndexHits <Node> shits = sourceRootIndex.get("rootnode", source);
 		tx = graphDb.beginTx();
 		try{
-//			Iterator<Relationship> itrel = tobedeleted.iterator();
 			for(Node itrel: shits){
-					sourceRootIndex.remove(itrel, "rootnode", source);
+				sourceRootIndex.remove(itrel, "rootnode", source);
+			}
+			tx.success();
+		}finally{
+			tx.finish();
+		}
+		shits.close();
+		shits = sourceMetaIndex.get("source", source);
+		tx = graphDb.beginTx();
+		try{
+			for(Node itrel: shits){
+				sourceMetaIndex.remove(itrel, "source", source);
+				itrel.getRelationships(RelTypes.METADATAFOR).iterator().next().delete();
+				itrel.delete();
 			}
 			tx.success();
 		}finally{
