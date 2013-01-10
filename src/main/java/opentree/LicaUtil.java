@@ -43,8 +43,13 @@ public class LicaUtil {
     	//long start = System.currentTimeMillis();
     	for (int i=0;i<nodeSet.size();i++){
     		int num = 0;
-    		//only way to get number of relationships
+    		//only way to get number of relationships.
     		for(Relationship rel: nodeSet.get(i).getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)){num++;}
+    	// exit on first node (if any) with only one relationship; same result, potentially fewer iterations
+    		if (num == 1) {
+    			firstNode = nodeSet.get(i);
+    			break;
+    		}
     		if(num < fewestnumrel){
     			fewestnumrel = num;
     			firstNode = nodeSet.get(i);
@@ -101,7 +106,7 @@ public class LicaUtil {
      * 
      * @param nodeSet list of all the nodes for which we are looking for the LICA
      * @param inIdSet list of the ingroup ids
-     * @return
+     * @return an ArrayList<Node> of all the nodes that are feasible LICA
      */
     public static HashSet<Node> getSuperLICA(List<Node> nodeSet, HashSet<Long> inIdSet){
     	HashSet<Node> retaln = new HashSet<Node>();
@@ -111,6 +116,11 @@ public class LicaUtil {
     		int num = 0;
     		//only way to get number of relationships
     		for(Relationship rel: nodeSet.get(i).getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)){num++;}
+    	// exit on first node (if any) with only one relationship; same result, potentially fewer iterations
+    		if (num == 1) {
+    			firstNode = nodeSet.get(i);
+    			break;
+    		}
     		if(num < fewestnumrel){
     			fewestnumrel = num;
     			firstNode = nodeSet.get(i);
@@ -146,5 +156,4 @@ public class LicaUtil {
     	}
     	return retaln;
     }
-    
 }
