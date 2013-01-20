@@ -122,87 +122,122 @@ public class GraphExplorer extends GraphBase{
 		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
 		HashMap<Long,String> id_to_name = new HashMap<Long,String>();
 		HashSet<Node> tips = new HashSet<Node> ();
-//		HashMap<Node,Node> parents = new HashMap<Node,Node>();
 		HashMap<Node,HashMap<Node,Integer> > childs_scores = new HashMap<Node,HashMap<Node,Integer> > ();
-//		parents.put(startnode, null);
+		HashMap<Node,HashMap<Node,Integer> > childs_scores_cumulative = new HashMap<Node,HashMap<Node,Integer>> ();
 		HashMap<Node,HashMap<Node,Integer> > scores = new HashMap<Node,HashMap<Node,Integer> >();
+		HashMap<Node,HashSet<Node>> child_parents_map = new HashMap<Node,HashSet<Node>>();
 		HashMap<Node,Integer> node_score = new HashMap<Node,Integer>();
 		HashSet<Node> allnodes = new HashSet<Node> ();
 		for(Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(startnode).nodes()){
 			if(friendnode.hasRelationship(Direction.INCOMING, RelTypes.MRCACHILDOF) == false)
 				tips.add(friendnode);
-//			HashSet<Node> conflicts = new HashSet<Node>();
 			HashMap<Node,Integer> conflicts_count = new HashMap<Node,Integer>();
-			int largest_count = 0;
-			Node largest_parent = null;
+			child_parents_map.put(friendnode, new HashSet<Node> ());
 			int count = 0;
 			for(Relationship rel: friendnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
 				if(rel.getProperty("source").equals("taxonomy") == true || rel.getProperty("source").equals("ottol") == true)
 					continue;
-//				conflicts.add(rel.getEndNode());
 				if(conflicts_count.containsKey(rel.getEndNode())== false){
 					conflicts_count.put(rel.getEndNode(), 0);
 				}
-//				if(childs_scores.containsKey(rel.getEndNode())==false){
-//					childs_scores.put(rel.getEndNode(), new HashMap<Node,Integer>());
-//				}
 				Integer tint = (Integer)conflicts_count.get(rel.getEndNode()) + 1;
 				conflicts_count.put(rel.getEndNode(),tint);
-				if(tint > largest_count){
-					largest_count = tint;
-					largest_parent = rel.getEndNode();
-				}
+				child_parents_map.get(friendnode).add(rel.getEndNode());
 				count += 1;
 			}
 			node_score.put(friendnode, count);
 			for(Node tnode: conflicts_count.keySet()){
 				if(childs_scores.containsKey(tnode) == false){
 					childs_scores.put(tnode, new HashMap<Node,Integer>());
+					childs_scores_cumulative.put(tnode,new HashMap<Node,Integer>());
 				}
 				childs_scores.get(tnode).put(friendnode,conflicts_count.get(tnode));
+				childs_scores_cumulative.get(tnode).put(friendnode,conflicts_count.get(tnode));
 			}
 			scores.put(friendnode,conflicts_count);
-//			parents.put(friendnode, largest_parent);
 			allnodes.add(friendnode);
 		}
-		for(Node friendnode: allnodes){
-			System.out.println(friendnode+" "+node_score.get(friendnode));
+		//TODO: this doesn't work yet
+		//calculate the cumulative part
+//		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
+		for (Node friendnode: childs_scores_cumulative.keySet()){
+			int cumuscore = 0;
+			/*HashSet<Node> parents = new HashSet<Node>();
+			for(Node tnode: childs_scores_cumulative.keySet()){
+				if(pf.findSinglePath(friendnode, tnode) != null)
+					parents.add(tnode);
+			}
+			for(Node tnode: childs_scores_cumulative.get(friendnode).keySet()){
+				
+			}*/
+			Stack<Node> tstack = new Stack<Node>();
+			tstack.push(friendnode);
+			HashSet<Node> visited = new HashSet<Node>();
+			while(tstack.isEmpty()==false){
+				Node tnode = tstack.pop();
+				if(child_parents_map.containsKey(tnode)){
+					for(Node ttnode: child_parents_map.get(tnode)){
+						tstack.push(ttnode);
+					}
+				}
+				if(visited.contains(tnode))
+					break;
+				visited.add(tnode);
+				cumuscore += node_score.get(tnode);
+			}
+			for(Node tfriendnode: childs_scores_cumulative.keySet()){
+				if(friendnode != tfriendnode){
+					if(childs_scores_cumulative.get(tfriendnode).containsKey(friendnode)){
+						childs_scores_cumulative.get(tfriendnode).put(friendnode,cumuscore + childs_scores.get(tfriendnode).get(friendnode));
+					}
+				}
+			}
 		}
-/*		for(Node friendnode: allnodes){
-//			System.out.println("best parent: "+friendnode+" ("+String.valueOf(count)+") "+largest_parent);
-//			if(conflicts.size() > 1){
-				System.out.println("========================");
-				if(friendnode.hasProperty("name")){
-					id_to_name.put((Long)friendnode.getId(), (String)friendnode.getProperty("name"));
-					System.out.println(friendnode.getProperty("name")+" ("+node_score.get(friendnode.getId())+") "+friendnode);
-				}else{
-					long [] mrcas = (long [] ) friendnode.getProperty("mrca");
-					for(int i=0;i<mrcas.length;i++){
-						if (id_to_name.containsKey((Long)mrcas[i])==false){
-							id_to_name.put((Long)mrcas[i],(String)graphDb.getNodeById(mrcas[i]).getProperty("name"));
-						}
-						System.out.print(id_to_name.get((Long)mrcas[i])+" ");	
-					}
-					System.out.print(friendnode+" \n");
-				}
-				System.out.println("\t"+scores.get(friendnode.getId()).size());
 
-				for(Long tnodeid: scores.get(friendnode.getId()).keySet()){
-					System.out.println("\t\t"+tnodeid+" " +scores.get(friendnode.getId()).get(tnodeid));
-					System.out.print("\t\t");
-					long [] mrcas = (long [] ) graphDb.getNodeById(tnodeid).getProperty("mrca");
-					for(int i=0;i<mrcas.length;i++){
-						if (id_to_name.containsKey((Long)mrcas[i])==false){
-							id_to_name.put((Long)mrcas[i],(String)graphDb.getNodeById(mrcas[i]).getProperty("name"));
-						}
-						System.out.print(id_to_name.get((Long)mrcas[i])+" ");	
+		HashMap<Node,String> node_names = new HashMap<Node,String>();
+		for(Node friendnode: allnodes){
+			String mrname = "";
+			System.out.println("========================");
+			if(friendnode.hasProperty("name")){
+				id_to_name.put((Long)friendnode.getId(), (String)friendnode.getProperty("name"));
+				System.out.println(friendnode.getProperty("name")+" ("+node_score.get(friendnode)+") "+friendnode);
+				mrname = (String)friendnode.getProperty("name");
+			}else{
+				long [] mrcas = (long [] ) friendnode.getProperty("mrca");
+				for(int i=0;i<mrcas.length;i++){
+					if (id_to_name.containsKey((Long)mrcas[i])==false){
+						id_to_name.put((Long)mrcas[i],(String)graphDb.getNodeById(mrcas[i]).getProperty("name"));
 					}
-					System.out.print("\n");
+					System.out.print(id_to_name.get((Long)mrcas[i])+" ");
+					mrname += id_to_name.get((Long)mrcas[i])+" ";
 				}
-//			}
-		}*/
+				System.out.print(friendnode+" \n");
+			}
+			System.out.println("\t"+scores.get(friendnode).size());
+
+			node_names.put(friendnode, mrname);
+			
+			for(Node tnode: scores.get(friendnode).keySet()){
+				System.out.println("\t\t"+tnode+" " +scores.get(friendnode).get(tnode));
+				System.out.print("\t\t");
+				long [] mrcas = (long [] ) tnode.getProperty("mrca");
+				for(int i=0;i<mrcas.length;i++){
+					if (id_to_name.containsKey((Long)mrcas[i])==false){
+						id_to_name.put((Long)mrcas[i],(String)graphDb.getNodeById(mrcas[i]).getProperty("name"));
+					}
+					System.out.print(id_to_name.get((Long)mrcas[i])+" ");	
+				}
+				System.out.print("\n");
+			}
+		}
+		//all calculations are done, this is just for printing
+		for(Node friendnode: allnodes){
+			System.out.println(friendnode+" "+node_score.get(friendnode)+" "+node_names.get(friendnode));
+		}
+		
 		//write out the root to tip stree weight tree
 		construct_root_to_tip_stree_weight_tree(startnode,node_score,childs_scores);
+		construct_root_to_tip_stree_weight_tree(startnode,node_score,childs_scores_cumulative);
 	}
 	
 
@@ -390,6 +425,7 @@ public class GraphExplorer extends GraphBase{
 	
 	/*
 	 * starts from the root and goes to the tips picking the best traveled routes
+	 * if you want a more resolved tree, send the child_scores that are cumulative
 	 */
 	public void construct_root_to_tip_stree_weight_tree(Node startnode,HashMap<Node,Integer> node_score,HashMap<Node,HashMap<Node,Integer> > childs_scores){
 		Stack<Node> st = new Stack<Node>();
@@ -421,12 +457,13 @@ public class GraphExplorer extends GraphBase{
 			while(going){
 				boolean nomatch = false;
 				int highest = 0;
+				int smdiff = 1000000000;
 				Node bnode = null;
 				//pick one
 				for(Node tnode: childs_scores.get(friendnode).keySet()){
 					try{
 						int tscore = childs_scores.get(friendnode).get(tnode);
-						if (tscore > highest){
+						if (tscore >= highest){//could specifically choose the equal weighted by resolution
 							boolean br = false;
 							long [] mrcas2 = (long [] ) tnode.getProperty("mrca");
 							for(int i=0;i<mrcas2.length;i++){
@@ -435,6 +472,7 @@ public class GraphExplorer extends GraphBase{
 									break;
 								}
 							}
+							
 							if(br == false){
 								highest = tscore;
 								bnode = tnode;
@@ -472,8 +510,9 @@ public class GraphExplorer extends GraphBase{
 			node_jade_map.put(friendnode.getId(), pnode);
 		}
 		JadeTree tree = new JadeTree(root);
-		System.out.println(tree.getRoot().getNewick(false));
+		System.out.println(tree.getRoot().getNewick(false)+";");
 	}
+
 
 	
 	/**
