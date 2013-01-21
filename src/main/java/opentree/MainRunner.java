@@ -305,6 +305,28 @@ public class MainRunner {
 		ge.shutdownDB();
 	}
 	
+	public void treeUtils(String [] args){
+		if (args.length < 2){
+			System.out.println("arguments need to at least be a treefilename");
+		}
+		String filename = args[1];
+		String ts = "";
+		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+		TreeReader tr = new TreeReader();
+		try{
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while((ts = br.readLine())!=null){
+				if(ts.length()>1)
+					jt.add(tr.readTree(ts));
+			}
+			br.close();
+		}catch(IOException ioe){}
+		System.out.println("trees read");
+		if(args[0].equals("counttips")){
+			System.out.println("int: "+jt.get(0).getInternalNodeCount()+" ext:"+jt.get(0).getExternalNodeCount());
+		}
+	}
+	
 	public static void printHelp(){
 		System.out.println("==========================");
 		System.out.println("usage: treemachine command options");
@@ -329,6 +351,10 @@ public class MainRunner {
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
 		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
+		System.out.println("\n");
+		System.out.println("---tree functions---");
+		System.out.println("(This is temporary and for doing some functions on trees output by the fulltree)");
+		System.out.println("\tcounttips <filename> (count the number of nodes and leaves in a newick)");
 	}
 	/**
 	 * @param args
@@ -369,6 +395,8 @@ public class MainRunner {
 				mr.graphReloadTrees(args);
 			}else if(args[0].compareTo("deletetrees")==0){
 				mr.graphDeleteTrees(args);
+			}else if(args[0].compareTo("counttips")==0){
+				mr.treeUtils(args);
 			}else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();
