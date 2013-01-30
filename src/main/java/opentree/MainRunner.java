@@ -13,6 +13,7 @@ import java.util.HashSet;
 
 //import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.neo4j.graphdb.Node;
 
 public class MainRunner {
 	public void taxonomyLoadParser(String [] args){
@@ -248,6 +249,48 @@ public class MainRunner {
 		gi.shutdownDB();
 	}
 	
+	public void graphListPruner(String [] args){
+		if(args.length != 4){
+			System.out.println("arguments should be: name preferredsource graphdbfolder");
+			return;
+		}
+
+		String filename = args[1];
+		HashSet<String> speciesnames = new HashSet<String>();
+		String ts = "";
+		try{
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while((ts = br.readLine())!=null){
+				if(ts.length()>1)
+					speciesnames.add(ts);
+			}
+			br.close();
+		}catch(IOException ioe){}
+		System.out.println("read "+speciesnames.size()+" taxa from "+filename);
+		System.out.println("(these will have to match exactly, so doing that check now)");
+		String graphname = args[3];
+		GraphExplorer gi = new GraphExplorer();
+		gi.setEmbeddedDB(graphname);
+		HashSet<Long> fnodes = new HashSet<Long>();
+		for(String tn: speciesnames){
+			Node t = gi.findGraphNodeByName(tn);
+			if (t != null){
+				fnodes.add(t.getId());
+			}else{
+				System.out.println(tn+" not found");
+			}
+		}
+		String sourcename = args[2];
+		String [] sources = sourcename.split(",");
+		System.out.println("Sources (in order) that will be used to break conflicts");
+		for(int i =0;i<sources.length;i++){
+			System.out.println(sources[i]);
+		}
+		gi.constructNewickTaxaListTieBreaker(fnodes,sources);
+		//gi.constructNewickSourceTieBreaker(name, sources);
+		gi.shutdownDB();
+	}
+	
 	public void sourceTreeExplorer(String [] args){
 		if (args.length > 3){
 			System.out.println("arguments should be: sourcename graphdbfolder");
@@ -324,6 +367,48 @@ public class MainRunner {
 		System.out.println("trees read");
 		if(args[0].equals("counttips")){
 			System.out.println("int: "+jt.get(0).getInternalNodeCount()+" ext:"+jt.get(0).getExternalNodeCount());
+		}else if(args[0].equals("diversity")){
+			for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
+				if(jt.get(0).getInternalNode(i).getName().length() > 0){
+					System.out.print(jt.get(0).getInternalNode(i).getName()+" :"+jt.get(0).getInternalNode(i).getTipCount());
+					for(int j=0;j<jt.get(0).getInternalNode(i).getChildCount();j++){
+						System.out.print(" || "+jt.get(0).getInternalNode(i).getChild(j).getName()+" :"+jt.get(0).getInternalNode(i).getChild(j).getTipCount());
+					}
+					System.out.print("\n");
+				}
+			}
+		}else if(args[0].equals("labeltips")){
+			String filename2 = args[2];
+			ts = "";
+			int count = 0;
+			HashSet<String> names = new HashSet<String>();
+			try{
+				BufferedReader br = new BufferedReader(new FileReader(filename2));
+				while((ts = br.readLine())!=null){
+					String [] tss = ts.split("\t");
+					if (tss.length == 4){
+						if(tss[3].contains("ncbi")){
+							names.add(tss[2]);
+							count +=1 ;
+						}
+					}
+				}
+				br.close();
+			}catch(IOException ioe){}
+			System.out.println(count);
+			System.out.println("names read");
+			count = 0;
+			for(int i=0;i<jt.get(0).getExternalNodeCount();i++){
+				if(names.contains(jt.get(0).getExternalNode(i).getName())){
+					jt.get(0).getExternalNode(i).setBL(1.0);
+				}
+			}for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
+				if(names.contains(jt.get(0).getInternalNode(i).getName())){
+					jt.get(0).getInternalNode(i).setBL(1.0);
+				}
+			}
+			System.out.println(count);
+			System.out.println(jt.get(0).getRoot().getNewick(true)+";");
 		}
 	}
 	
@@ -343,6 +428,7 @@ public class MainRunner {
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <preferred sources csv> <graphdbfolder> (constructs a newick file from a particular node)");
+		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
 		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
 		System.out.println("\n");
 		System.out.println("---graph exploration---");
@@ -355,6 +441,8 @@ public class MainRunner {
 		System.out.println("---tree functions---");
 		System.out.println("(This is temporary and for doing some functions on trees output by the fulltree)");
 		System.out.println("\tcounttips <filename> (count the number of nodes and leaves in a newick)");
+		System.out.println("\tdiversity <filename> (for each node it will print the immediate descendents and their diversity)");
+		System.out.println("\tlabeltips <filename.tre> <filename>");
 	}
 	/**
 	 * @param args
@@ -381,6 +469,8 @@ public class MainRunner {
 				mr.graphImporterParser(args);
 			}else if(args[0].compareTo("jsgol") == 0 || args[0].compareTo("fulltree") == 0){
 				mr.graphExplorerParser(args);
+			}else if(args[0].compareTo("fulltreelist") == 0){
+				mr.graphListPruner(args);
 			}else if(args[0].compareTo("justtrees")==0){
 				mr.justTreeAnalysis(args);
 			}else if(args[0].compareTo("sourceexplorer")==0){
@@ -395,7 +485,8 @@ public class MainRunner {
 				mr.graphReloadTrees(args);
 			}else if(args[0].compareTo("deletetrees")==0){
 				mr.graphDeleteTrees(args);
-			}else if(args[0].compareTo("counttips")==0){
+			}else if(args[0].compareTo("counttips")==0 || args[0].compareTo("diversity")==0
+					|| args[0].compareTo("labeltips")==0){
 				mr.treeUtils(args);
 			}else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");

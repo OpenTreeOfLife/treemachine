@@ -185,6 +185,24 @@ public class JadeNode {
 	}
 	
 	/**
+	 * @return Returns all of the tips in the subtree rooted at `this`
+	 */
+	public int getTipCount(){
+		int count = 0;
+		Stack<JadeNode> nodes = new Stack<JadeNode>();
+		nodes.push(this);
+		while(nodes.isEmpty() == false){
+			JadeNode jt = nodes.pop();
+			for (int i = 0; i < jt.getChildCount(); i++){
+				nodes.push(jt.getChild(i));
+			}
+			if (jt.isExternal())
+				count += 1;
+		}
+		return count;
+	}
+	
+	/**
 	 * @return Returns the maximum number of edges between `this` and a tip
 	 *		that is a descendant of `this`
 	 */

@@ -33,11 +33,13 @@ import org.neo4j.kernel.Traversal;
 public class GraphExplorer extends GraphBase{
 	private SpeciesEvaluator se;
 	private ChildNumberEvaluator cne;
+	private TaxaListEvaluator tle;
 	
 	public GraphExplorer (){
 		cne = new ChildNumberEvaluator();
 		cne.setChildThreshold(100);
 		se = new SpeciesEvaluator();
+		tle = new TaxaListEvaluator();
 	}
 	
 	public void setEmbeddedDB(String graphname){
@@ -605,6 +607,74 @@ public class GraphExplorer extends GraphBase{
 		}
 	}
 
+	/**
+	 * TODO: This doesn't not yet include the sources differences. It is just a demonstration of
+	 * how to use the evaluator to construct a pruned tree
+	 * TODO: Add ability to work with conflicts
+	 * 
+	 * @param innodes
+	 * @param sources
+	 */
+	public void constructNewickTaxaListTieBreaker(HashSet<Long> innodes, String [] sources){
+		Node lifeNode = findGraphNodeByName("life");
+		if(lifeNode == null){
+			System.out.println("name not found");
+			return;
+		}
+		tle.setTaxaList(innodes);
+		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
+		        .relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
+		HashSet<Long> visited = new HashSet<Long>();
+		Long firstparent = null;
+		HashMap<Long,JadeNode> nodejademap = new HashMap<Long,JadeNode>();
+		HashMap<Long,Integer> childcount = new HashMap<Long,Integer>();
+		System.out.println("traversing");
+		for(Node friendnode : MRCACHILDOF_TRAVERSAL.breadthFirst().evaluator(tle).traverse(lifeNode).nodes()){
+			Long parent = null;
+			for (Relationship tn: friendnode.getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)){
+				if (visited.contains(tn.getEndNode().getId())){
+					parent = tn.getEndNode().getId();
+					break;
+				}
+			}
+			if(parent == null && friendnode.getId() != lifeNode.getId()){
+				System.out.println("disconnected tree");
+				return;
+			}
+			JadeNode newnode = new JadeNode();
+			if(friendnode.getId()!=lifeNode.getId()){
+				JadeNode jparent = nodejademap.get(parent);
+				jparent.addChild(newnode);
+				Integer value = childcount.get(parent);
+				value += 1;
+				if (value > 1){
+					if (firstparent == null)
+						firstparent = parent;
+				}
+				childcount.put(parent,value);
+			}
+			if(friendnode.hasProperty("name")){
+				newnode.setName((String)friendnode.getProperty("name"));
+				newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_"));
+			}
+			nodejademap.put(friendnode.getId(), newnode);
+			visited.add(friendnode.getId());
+			childcount.put(friendnode.getId(),0);
+		}
+		System.out.println("done traversing");
+		//could prune this at the first split
+		JadeTree tree = new JadeTree(nodejademap.get(firstparent));
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter("pruned.tre"));
+			outFile.write(tree.getRoot().getNewick(true));
+			outFile.write(";\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	/*
 	 * this constructs a json with tie breaking and puts the alt parents
 	 * in the assocOBjects for printing
