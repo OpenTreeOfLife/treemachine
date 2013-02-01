@@ -515,7 +515,118 @@ public class GraphExplorer extends GraphBase{
 		System.out.println(tree.getRoot().getNewick(false)+";");
 	}
 	
-	public void constructNewickSourceTieBreaker_mrcatest(String taxname, String [] sources){
+	
+	/**
+	 * Constructs a newick breaking ties based on support (or random)
+	 * TODO: instead of random, needs to be based on nested or not or other factors
+	 * @param taxname
+	 */
+	public void constructNewickSourceTieBreaker(String taxname){
+		Node firstNode = findGraphNodeByName(taxname);
+		if(firstNode == null){
+			System.out.println("name not found");
+			return;
+		}
+		JadeNode root = preorderConstructNWTBreaker(firstNode,null,null);
+		JadeTree tree = new JadeTree(root);
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter(taxname+".tre"));
+			outFile.write(tree.getRoot().getNewick(true));
+			outFile.write(";\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private JadeNode preorderConstructNWTBreaker(Node curnode,JadeNode parent,Relationship relcoming){
+		boolean ret = false;
+		JadeNode newnode = new JadeNode();
+		if(curnode.hasProperty("name")){
+			newnode.setName((String)curnode.getProperty("name"));
+			newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_").replace(";","_"));
+		}
+		if (parent == null){
+			ret = true;
+		}else{
+			parent.addChild(newnode);
+			if(relcoming.hasProperty("branch_length")){
+				newnode.setBL((Double)relcoming.getProperty("branch_length"));
+			}
+		}
+		//decide which nodes to continue on
+		HashSet<Long> testnodes = new HashSet<Long>();
+		HashMap<Long,Integer> testnodes_scores = new HashMap<Long,Integer>(); 
+		HashMap<Long,HashSet<Long>> storedmrcas = new HashMap<Long,HashSet<Long>>();
+		HashMap<Long,Relationship> bestrelrel = new HashMap<Long,Relationship>();
+		for(Relationship rel: curnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
+			Long tnd = rel.getStartNode().getId();
+			testnodes.add(tnd);
+			if(testnodes_scores.containsKey(tnd) == false){
+				testnodes_scores.put(tnd, 0);
+				HashSet<Long> mrcas1 = new HashSet<Long>();
+				long [] dbnodei = (long []) graphDb.getNodeById(tnd).getProperty("mrca");
+				for(long temp:dbnodei){mrcas1.add(temp);}
+				storedmrcas.put(tnd,mrcas1);
+				//TODO: make this one more meaningful
+				bestrelrel.put(tnd, rel);
+			}
+			testnodes_scores.put(tnd,testnodes_scores.get(tnd)+1);
+		}
+		if(testnodes.size() == 0){
+			return null;
+		}
+		HashSet<Long> deletenodes = new HashSet<Long>();
+		for(Long tn: testnodes){
+			if (deletenodes.contains(tn))
+				continue;
+			HashSet<Long> mrcas1 = storedmrcas.get(tn);
+			int compint1 = testnodes_scores.get(tn);
+			for(Long tn2: testnodes){
+				if (tn2 == tn || deletenodes.contains(tn2))
+					continue;
+				HashSet<Long> mrcas2 = storedmrcas.get(tn2);
+				int compint2 = testnodes_scores.get(tn2);
+				//test intersection
+				int sizeb = mrcas1.size();
+				HashSet<Long> cmrcas1 = new HashSet<Long>(mrcas1);
+				cmrcas1.removeAll(mrcas2);
+//				System.out.println(sizeb+" "+cmrcas1.size());
+				if ((sizeb - cmrcas1.size()) > 0){
+					if(compint2 < compint1){
+						deletenodes.add(tn2);
+					}else{
+						deletenodes.add(tn);
+						break;
+					}
+				}
+			}
+		}
+		testnodes.removeAll(deletenodes);
+		if(testnodes.size() == 0){
+			return null;
+		}
+		//continue on the nodes
+		for(Long nd: testnodes){
+			if(newnode.getName().length()==0){
+				newnode.setName(String.valueOf(testnodes_scores.get(nd)));
+			}
+			preorderConstructNWTBreaker(graphDb.getNodeById(nd),newnode,bestrelrel.get(nd));
+		}
+		if (ret == true){
+			return newnode;
+		}
+		return null;
+	}
+
+	
+	/**
+	 * Constructs a newick tree based on the sources
+	 * @param taxname
+	 * @param sources
+	 */
+	public void constructNewickSourceTieBreaker(String taxname, String [] sources){
 		Node firstNode = findGraphNodeByName(taxname);
 		if(firstNode == null){
 			System.out.println("name not found");
@@ -535,128 +646,88 @@ public class GraphExplorer extends GraphBase{
 	}
 
 	private JadeNode preorderConstructNWTBreaker(Node curnode,JadeNode parent,String [] sources,Relationship relcoming){
-		boolean ret = false;
-		JadeNode newnode = new JadeNode();
-		if(curnode.hasProperty("name")){
-			newnode.setName((String)curnode.getProperty("name"));
-			newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_").replace(";","_"));
-		}
-		if (parent == null){
-			ret = true;
-		}else{
-			parent.addChild(newnode);
-			if(relcoming.hasProperty("branch_length")){
-				newnode.setBL((Double)relcoming.getProperty("branch_length"));
+			boolean ret = false;
+			JadeNode newnode = new JadeNode();
+			if(curnode.hasProperty("name")){
+				newnode.setName((String)curnode.getProperty("name"));
+				newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_").replace(";","_"));
 			}
-		}
-		//decide which nodes to continue on
-		HashSet<Long> testnodes = new HashSet<Long>();
-		for(Relationship rel: curnode.getRelationships(Direction.INCOMING, RelTypes.MRCACHILDOF)){
-			if (rel.getEndNode().hasRelationship(RelTypes.STREECHILDOF)){
-				testnodes.add(rel.getStartNode().getId());
+			if (parent == null){
+				ret = true;
+			}else{
+				parent.addChild(newnode);
+				if(relcoming.hasProperty("branch_length")){
+					newnode.setBL((Double)relcoming.getProperty("branch_length"));
+				}
 			}
-		}
-		if(testnodes.size() == 0){
-			return null;
-		}
-		HashSet<Long> deletenodes = new HashSet<Long>();
-		HashMap<Long,HashSet<Long>> storedmrcas = new HashMap<Long,HashSet<Long>>();
-		HashMap<Long,Integer> bestrelint = new HashMap<Long,Integer>();
-		HashMap<Long,Relationship> bestrelrel = new HashMap<Long,Relationship>();
-		for(Long tn: testnodes){
-			if (deletenodes.contains(tn))
-				continue;
-			HashSet<Long> mrcas1 = null;
-			if (storedmrcas.containsKey(tn))
-				mrcas1 = storedmrcas.get(tn);
-			else{
-				mrcas1 = new HashSet<Long>();
-				int best = sources.length;
-				Relationship bestr = null;
-				for(Relationship rel: graphDb.getNodeById(tn).getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
-					if(rel.getEndNode().getId() != curnode.getId()){
-						continue;
-					}
-					if (bestr == null)
-						bestr = rel;
+			//decide which nodes to continue on
+			HashMap<Long,HashSet<Long>> storedmrcas = new HashMap<Long,HashSet<Long>>();
+			HashMap<Long,Integer> bestrelint = new HashMap<Long,Integer>();
+			HashMap<Long,Relationship> bestrelrel = new HashMap<Long,Relationship>();
+			HashSet<Long> testnodes = new HashSet<Long>();
+			for(Relationship rel: curnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
+				Long tnd = rel.getStartNode().getId();
+				testnodes.add(tnd);
+				if(storedmrcas.containsKey(tnd) == false){
+					HashSet<Long> mrcas1 = new HashSet<Long>();
+					long [] dbnodei = (long []) graphDb.getNodeById(tnd).getProperty("mrca");
+					for(long temp:dbnodei){mrcas1.add(temp);}
+					storedmrcas.put(tnd,mrcas1);
+					bestrelrel.put(tnd,rel);
+					bestrelint.put(tnd,sources.length);
+				}
+				if(bestrelint.get(tnd) != 0){//0 is the best so no point continuing
 					String sr = (String)rel.getProperty("source");
-					int i=0;
-					for(i=0;i<sources.length;i++){
+					for(int i=0;i<sources.length;i++){
 						if (sr.compareTo(sources[i])==0){
-							if (best > i){
-								best = i;
-								bestr = rel;
+							if (bestrelint.get(tnd) > i){
+								bestrelint.put(tnd,i);
+								bestrelrel.put(tnd,rel);
 							}
+							break;
 						}
 					}
 				}
-				bestrelint.put(tn, best);
-				bestrelrel.put(tn,bestr);
-				long [] dbnodei = (long []) graphDb.getNodeById(tn).getProperty("mrca");
-    			for(long temp:dbnodei){mrcas1.add(temp);}
-    			storedmrcas.put(tn,mrcas1);
 			}
-			//get mrcas and explode nmrcas
-			for(Long tn2: testnodes){
-				if (tn2 == tn || deletenodes.contains(tn2))
+			if(testnodes.size() == 0){
+				return null;
+			}
+			HashSet<Long> deletenodes = new HashSet<Long>();
+			for(Long tn: testnodes){
+				if (deletenodes.contains(tn))
 					continue;
-				HashSet<Long> mrcas2 = null;
-				if (storedmrcas.containsKey(tn2))
-					mrcas2 = storedmrcas.get(tn2);
-				else{
-					mrcas2 = new HashSet<Long>();
-					int best = sources.length;
-					Relationship bestr = null;
-					for(Relationship rel: graphDb.getNodeById(tn2).getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
-						if(rel.getEndNode().getId() != curnode.getId()){
-							continue;
+				HashSet<Long> mrcas1 = storedmrcas.get(tn);
+				for(Long tn2: testnodes){
+					if (tn2 == tn || deletenodes.contains(tn2))
+						continue;
+					//test intersection
+					HashSet<Long> mrcas2 = storedmrcas.get(tn2);
+					int sizeb = mrcas1.size();
+					HashSet<Long> cmrcas1 = new HashSet<Long>(mrcas1);
+					cmrcas1.removeAll(mrcas2);
+	//				System.out.println(sizeb+" "+cmrcas1.size());
+					if ((sizeb - cmrcas1.size()) > 0){
+						if(bestrelint.get(tn) < bestrelint.get(tn2)){
+							deletenodes.add(tn2);
+						}else{
+							deletenodes.add(tn);
+							break;
 						}
-						if(bestr == null)
-							bestr = rel;
-						String sr = (String)rel.getProperty("source");
-						int i=0;
-						for(i=0;i<sources.length;i++){
-							if (sr.compareTo(sources[i])==0){
-								if (best > i){
-									best = i;
-									bestr = rel;
-								}
-							}
-						}
-					}
-					bestrelint.put(tn2, best);
-					bestrelrel.put(tn2,bestr);
-					long [] dbnodei = (long []) graphDb.getNodeById(tn2).getProperty("mrca");
-	    			for(long temp:dbnodei){mrcas2.add(temp);}
-					storedmrcas.put(tn2,mrcas2);
-				}
-				//test intersection
-				int sizeb = mrcas1.size();
-				HashSet<Long> cmrcas1 = new HashSet<Long>(mrcas1);
-				cmrcas1.removeAll(mrcas2);
-//				System.out.println(sizeb+" "+cmrcas1.size());
-				if ((sizeb - cmrcas1.size()) > 0){
-					if(bestrelint.get(tn) < bestrelint.get(tn2)){
-						deletenodes.add(tn2);
-					}else{
-						deletenodes.add(tn);
-						break;
 					}
 				}
 			}
-		}
-		testnodes.removeAll(deletenodes);
-		if(testnodes.size() == 0){
+			testnodes.removeAll(deletenodes);
+			if(testnodes.size() == 0){
+				return null;
+			}
+			//continue on the nodes
+			for(Long nd: testnodes){
+				preorderConstructNWTBreaker(graphDb.getNodeById(nd),newnode,sources,bestrelrel.get(nd));
+			}
+			if (ret == true){
+				return newnode;
+			}
 			return null;
-		}
-		//continue on the nodes
-		for(Long nd: testnodes){
-			preorderConstructNWTBreaker(graphDb.getNodeById(nd),newnode,sources,bestrelrel.get(nd));
-		}
-		if (ret == true){
-			return newnode;
-		}
-		return null;
 	}
 	
 	/**

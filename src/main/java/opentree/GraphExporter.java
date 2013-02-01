@@ -87,6 +87,24 @@ public class GraphExporter extends GraphBase{
 		return retstring;
 	}
 	
+	public void mrpDump(String taxname, String outfile){
+		Node firstNode = findTaxNodeByName(taxname);
+		String tofile = getMRPDump(firstNode);
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter(outfile));
+			outFile.write(tofile);
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private String getMRPDump(Node startnode){
+		return "";
+	}
+
+	
 	/**
 	 * @param args
 	 */

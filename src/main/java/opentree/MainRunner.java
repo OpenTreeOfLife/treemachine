@@ -144,6 +144,16 @@ public class MainRunner {
 //			gi.constructJSONGraph(name);
 			gi.writeJSONWithAltParentsToFile(name);
 		}else if (args[0].compareTo("fulltree") == 0){
+			if(args.length != 3){
+				System.out.println("arguments should be: name graphdbfolder");
+				return;
+			}
+			String name = args[1];
+			String graphname = args[2];
+			gi = new GraphExplorer();
+			gi.setEmbeddedDB(graphname);
+			gi.constructNewickSourceTieBreaker(name);
+		}else if (args[0].compareTo("fulltree_sources") == 0){
 			if(args.length != 4){
 				System.out.println("arguments should be: name preferredsource graphdbfolder");
 				return;
@@ -158,8 +168,7 @@ public class MainRunner {
 			String graphname = args[3];
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			//gi.constructNewickSourceTieBreaker(name, sources);
-			gi.constructNewickSourceTieBreaker_mrcatest(name, sources);
+			gi.constructNewickSourceTieBreaker(name, sources);
 		}else{
 			System.err.println("ERROR: not a known command");
 			gi.shutdownDB();
@@ -349,6 +358,19 @@ public class MainRunner {
 		ge.shutdownDB();
 	}
 	
+	public void mrpDumpParser(String [] args){
+		if(args.length > 4){
+			System.out.println("arguments should be name outfile graphdbfolder");
+			return;
+		}
+		String taxon = args[1];
+		String outfile = args[2];
+		String graphname = args[3];
+		GraphExporter ge = new GraphExporter(graphname);
+		ge.writeGraphML(taxon, outfile);
+		ge.shutdownDB();
+	}
+	
 	public void treeUtils(String [] args){
 		if (args.length < 2){
 			System.out.println("arguments need to at least be a treefilename");
@@ -428,8 +450,10 @@ public class MainRunner {
 		System.out.println("\n");
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
-		System.out.println("\tfulltree <name> <preferred sources csv> <graphdbfolder> (constructs a newick file from a particular node)");
+		System.out.println("\tfulltree <name> <graphdbfolder> (constructs a newick file from a particular node)");
+		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> (constructs a newick file from a particular node, break tie preferring sources)");
 		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
+		System.out.println("\tmrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
 		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
 		System.out.println("\n");
 		System.out.println("---graph exploration---");
@@ -468,8 +492,10 @@ public class MainRunner {
 				mr.taxonomyLoadParser(args);
 			}else if(args[0].compareTo("addtree")==0){
 				mr.graphImporterParser(args);
-			}else if(args[0].compareTo("jsgol") == 0 || args[0].compareTo("fulltree") == 0){
+			}else if(args[0].compareTo("jsgol") == 0 || args[0].compareTo("fulltree") == 0 || args[0].compareTo("fulltree_sources") == 0){
 				mr.graphExplorerParser(args);
+			}else if(args[0].compareTo("mrpdump")==0){
+				mr.mrpDumpParser(args);
 			}else if(args[0].compareTo("fulltreelist") == 0){
 				mr.graphListPruner(args);
 			}else if(args[0].compareTo("justtrees")==0){
