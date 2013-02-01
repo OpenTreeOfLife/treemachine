@@ -367,7 +367,7 @@ public class MainRunner {
 		String outfile = args[2];
 		String graphname = args[3];
 		GraphExporter ge = new GraphExporter(graphname);
-		ge.writeGraphML(taxon, outfile);
+		ge.mrpDump(taxon, outfile);
 		ge.shutdownDB();
 	}
 	

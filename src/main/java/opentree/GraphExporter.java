@@ -7,9 +7,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import opentree.GraphBase.RelTypes;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 
@@ -100,8 +103,43 @@ public class GraphExporter extends GraphBase{
 		}
 	}
 
+	/**
+	 * This will return the mrp matrix for a node assuming that you only want to look at the tips
+	 * So it will ignore internal taxonomic names
+	 * @param startnode
+	 * @return string of the mrp matrix
+	 */
 	private String getMRPDump(Node startnode){
-		return "";
+		HashSet<Long> tids = new HashSet<Long>();
+		HashSet<Long> nodeids = new HashSet<Long>();
+		HashMap<Long,HashSet<Long>> mrpmap = new HashMap<Long,HashSet<Long>>(); //key is the id for the taxon and the hashset is the list of nodes to which the taxon is a member
+		long [] dbnodei = (long []) startnode.getProperty("mrca");
+		for(long temp:dbnodei){tids.add(temp);mrpmap.put(temp, new HashSet<Long>());}
+		TraversalDescription STREECHILDOF_TRAVERSAL = Traversal.description()
+		        .relationships( RelTypes.STREECHILDOF,Direction.INCOMING );
+		for(Node tnd:STREECHILDOF_TRAVERSAL.traverse(startnode).nodes()){
+			long [] dbnodet = (long []) tnd.getProperty("mrca");
+			if (dbnodet.length == 1)
+				continue;
+			for(long temp:dbnodet){
+				mrpmap.get(temp).add(tnd.getId());
+			}
+			nodeids.add(tnd.getId());
+		}
+		String retstring = String.valueOf(tids.size())+" "+String.valueOf(nodeids.size())+"\n";
+		for(Long nd: tids){
+			retstring += (String)graphDb.getNodeById(nd).getProperty("name");
+			retstring += "\t";
+			for(Long nnid: nodeids){
+				if (mrpmap.get(nd).contains(nnid)){
+					retstring += "1";
+				}else{
+					retstring += "0";
+				}
+			}
+			retstring += "\n";
+		}
+		return retstring;
 	}
 
 	
