@@ -158,7 +158,8 @@ public class MainRunner {
 			String graphname = args[3];
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			gi.constructNewickSourceTieBreaker(name, sources);
+			//gi.constructNewickSourceTieBreaker(name, sources);
+			gi.constructNewickSourceTieBreaker_mrcatest(name, sources);
 		}else{
 			System.err.println("ERROR: not a known command");
 			gi.shutdownDB();
