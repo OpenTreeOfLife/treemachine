@@ -527,7 +527,7 @@ public class GraphExplorer extends GraphBase{
 			System.out.println("name not found");
 			return;
 		}
-		JadeNode root = preorderConstructNWTBreaker(firstNode,null,null);
+		JadeNode root = preorderConstructNWTBreaker(firstNode,null,null,"");
 		JadeTree tree = new JadeTree(root);
 		PrintWriter outFile;
 		try {
@@ -540,12 +540,70 @@ public class GraphExplorer extends GraphBase{
 		}
 	}
 	
-	private JadeNode preorderConstructNWTBreaker(Node curnode,JadeNode parent,Relationship relcoming){
+	private int combinations(int m, int n){
+        if(!(m >= n)&&!(n >= 0))
+            System.out.println("m >= n >= 0 required");
+        if (n > (m >> 1))
+            n = m-n;
+        if (n == 0)
+            return 1;
+        int result = m;
+        int i=2;
+        m=m-1;n=n-1;
+        while(n>0){
+            //assert (result * m) % i == 0
+            result = result * m / i;
+            i = i+1;
+            n = n-1;
+            m = m-1;
+        }
+        return result;
+    }
+	
+	public ArrayList<ArrayList<Integer>> iterate(int M, int N){
+        if(!(M >= N)&&!(N >= 1))
+            System.out.println("M >= N >= 1 required");
+        int ncombs = combinations(M,N);
+//        int [][] result = new int[ncombs][0];
+        ArrayList<ArrayList<Integer>> resultal = new ArrayList<ArrayList<Integer>>();
+        for(int x=0;x<ncombs;x++){
+        	resultal.add(new ArrayList<Integer>(0));
+            int i = x; int n = N; int m = M;
+            int c = ncombs * n / m;
+            int element=0;
+            while(m>0){
+                //System.out.println(element+" "+i+" "+c+" "+m+" "+n);
+                if (i < c){
+//                    result[x] = Utils.addToArray(result[x], element);
+                    resultal.get(x).add(element);
+                    n = n-1;
+                    if (n == 0)
+                        break;
+                    c = c*n/(m-1);
+                }
+                else{
+                    i = i-c;
+                    c = c*(m-n)/(m-1);
+                }
+                element++;
+                m = m-1;
+            }  
+        }
+        return resultal;
+	}
+	
+	
+	//TODO: need to be able to ignore taxonomy
+	private JadeNode preorderConstructNWTBreaker(Node curnode,JadeNode parent,Relationship relcoming,String nodename){
+		System.out.println("starting +"+curnode.getId());
 		boolean ret = false;
 		JadeNode newnode = new JadeNode();
 		if(curnode.hasProperty("name")){
 			newnode.setName((String)curnode.getProperty("name"));
 			newnode.setName(newnode.getName().replace("(", "_").replace(")","_").replace(" ", "_").replace(":", "_").replace(";","_"));
+		}
+		if(newnode.getName().length()==0){
+			newnode.setName(nodename);
 		}
 		if (parent == null){
 			ret = true;
@@ -557,22 +615,31 @@ public class GraphExplorer extends GraphBase{
 		}
 		//decide which nodes to continue on
 		HashSet<Long> testnodes = new HashSet<Long>();
+		HashSet<Long> originaltest = new HashSet<Long>();
 		HashMap<Long,Integer> testnodes_scores = new HashMap<Long,Integer>(); 
 		HashMap<Long,HashSet<Long>> storedmrcas = new HashMap<Long,HashSet<Long>>();
 		HashMap<Long,Relationship> bestrelrel = new HashMap<Long,Relationship>();
 		for(Relationship rel: curnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
+			if(rel.getProperty("source").equals("taxonomy"))
+				continue;
 			Long tnd = rel.getStartNode().getId();
 			testnodes.add(tnd);
+			originaltest.add(tnd);
 			if(testnodes_scores.containsKey(tnd) == false){
-				testnodes_scores.put(tnd, 0);
+				testnodes_scores.put(tnd,0);
 				HashSet<Long> mrcas1 = new HashSet<Long>();
 				long [] dbnodei = (long []) graphDb.getNodeById(tnd).getProperty("mrca");
 				for(long temp:dbnodei){mrcas1.add(temp);}
 				storedmrcas.put(tnd,mrcas1);
-				//TODO: make this one more meaningful
+				//TODO: make this relationship more meaningful
 				bestrelrel.put(tnd, rel);
 			}
+			//trying to get scores directly from the node
 			testnodes_scores.put(tnd,testnodes_scores.get(tnd)+1);
+		}
+		for(Long tn: testnodes){
+			HashSet<Long> mrcas1 = storedmrcas.get(tn);
+			System.out.println(tn+" "+mrcas1.size()+" "+testnodes_scores.get(tn));
 		}
 		if(testnodes.size() == 0){
 			return null;
@@ -596,6 +663,13 @@ public class GraphExplorer extends GraphBase{
 				if ((sizeb - cmrcas1.size()) > 0){
 					if(compint2 < compint1){
 						deletenodes.add(tn2);
+					}else if(compint2 == compint1){
+						if(mrcas2.size() < mrcas1.size()){
+							deletenodes.add(tn2);
+						}else{
+							deletenodes.add(tn);
+							break;
+						}
 					}else{
 						deletenodes.add(tn);
 						break;
@@ -607,12 +681,75 @@ public class GraphExplorer extends GraphBase{
 		if(testnodes.size() == 0){
 			return null;
 		}
-		//continue on the nodes
+		int totalmrcas = ((long[])curnode.getProperty("mrca")).length;
+		System.out.print(totalmrcas);
+		int total = 0;
 		for(Long nd: testnodes){
-			if(newnode.getName().length()==0){
-				newnode.setName(String.valueOf(testnodes_scores.get(nd)));
+			total += storedmrcas.get(nd).size();
+			System.out.print("\t"+storedmrcas.get(nd).size());
+		}System.out.print("\n");
+		/*
+		 * If the totalmrcas is not complete then we search for a more
+		 * complete one despite lower scores
+		 */
+		if(totalmrcas - total != 0){
+			System.out.println("more extensive search");
+			//THEN WE ARE GOING TO DO SOME COMBINATORICS
+			ArrayList<Long> testnodesal = new ArrayList<Long>(originaltest);
+			int bestmrca = 0;
+			ArrayList<Integer> bestxs = null;
+			boolean finished = false;
+			for (int n=1;n<testnodesal.size()+1;n++){
+				System.out.println(n+" "+testnodesal.size());
+		        ArrayList<ArrayList<Integer>> it = iterate(testnodesal.size(), n);
+		        for (int x=0;x<it.size();x++){
+		            //it[x] = list of indices of testnodes
+		        	HashSet<Long> curmrcas = new HashSet<Long>();
+		        	boolean nofail = true;
+//		        	System.out.println(it.get(x));
+		            for(int j=0;j<it.get(x).size();j++){	
+						HashSet<Long> mrcas1 = storedmrcas.get(testnodesal.get(it.get(x).get(j)));
+						//get score later for best score if equal
+						//int compint2 = testnodes_scores.get(tn2);
+						//test intersection
+						int sizeb = curmrcas.size();
+						HashSet<Long> cmrcas1 = new HashSet<Long>(mrcas1);
+						curmrcas.removeAll(cmrcas1);
+//						System.out.println(sizeb+" "+cmrcas1.size());
+						if ((sizeb - curmrcas.size()) > 0){
+		            		nofail = false;
+		            		break;
+		            	}else{
+		            		curmrcas.addAll(cmrcas1);
+		            	}
+		            }
+		            //if true
+		            if (nofail){
+			            //check the size, if size is greater than bestmrca, keep
+		            	if (curmrcas.size() > bestmrca){
+		            		bestmrca = curmrcas.size();
+		            		bestxs = it.get(x);
+		            		if(curmrcas.size() == totalmrcas){
+		            			finished = true;
+		            			break;
+		            		}
+		            	}
+		            }
+		            if(finished)
+			        	break;
+		        }
+		        if(finished)
+		        	break;
 			}
-			preorderConstructNWTBreaker(graphDb.getNodeById(nd),newnode,bestrelrel.get(nd));
+			HashSet<Long>arofx = new HashSet<Long>();
+			for(int i=0;i<bestxs.size();i++){arofx.add(testnodesal.get(bestxs.get(i)));}
+			testnodes = arofx;
+		}
+		//continue on the nodes
+		System.out.println("sending");
+		for(Long nd: testnodes){
+			System.out.println(" -"+nd);
+			preorderConstructNWTBreaker(graphDb.getNodeById(nd),newnode,bestrelrel.get(nd),String.valueOf(testnodes_scores.get(nd)));
 		}
 		if (ret == true){
 			return newnode;
