@@ -1,5 +1,7 @@
 package opentree;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
@@ -25,6 +27,7 @@ import org.neo4j.kernel.Traversal;
 
 public class LicaUtil {
 
+	
     /**
      * This should find all the least inclusive common ancestors (LICA). The idea
      * is to walk all the paths from one tip to and query at each mrca list as to 
@@ -70,6 +73,7 @@ public class LicaUtil {
     		boolean going = true;
     		for (Node tnode: pa.nodes()){
     			//as long as these are sorted we can do a faster comparison
+    			
     			long [] dbnodei = (long []) tnode.getProperty("mrca");
     			HashSet<Long> Ldbnodei =new HashSet<Long>();
     			for(long temp:dbnodei){Ldbnodei.add(temp);}
@@ -96,6 +100,7 @@ public class LicaUtil {
     	//System.out.println("elapsed inloop: "+elapsedTimeSec);
     	return retaln;
     }
+    
     
     /**
      * This should find all the least inclusive common ancestors (LICA) ignoring 

@@ -31,6 +31,8 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 //import org.apache.log4j.Logger;
 
+import scala.actors.threadpool.Arrays;
+
 public class GraphImporter extends GraphBase{
 	//static Logger _LOG = Logger.getLogger(GraphImporter.class);
 
@@ -352,13 +354,11 @@ public class GraphImporter extends GraphBase{
 					nested_mrcas.add(nestedtmrcas[j]);
 				}
 			}
-			//should these be added to the nested ones?
-			//higher taxa?
-			//mrcas.add(dbnode.getId());
 			long[] ret = new long[mrcas.size()];
 			for (int i=0; i < ret.length; i++){
 				ret[i] = mrcas.get(i).longValue();
 			}
+			Arrays.sort(ret);
 			dbnode.setProperty("mrca", ret);
 			
 			nested_mrcas.add(dbnode.getId());
@@ -366,6 +366,7 @@ public class GraphImporter extends GraphBase{
 			for (int i=0; i < ret2.length; i++){
 				ret2[i] = nested_mrcas.get(i).longValue();
 			}
+			Arrays.sort(ret2);
 			dbnode.setProperty("nested_mrca", ret2);
 		}
 	}
@@ -532,6 +533,7 @@ public class GraphImporter extends GraphBase{
 			//			_LOG.trace("finished names");
 			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
 			HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
+			
 			//			_LOG.trace("ancestor "+ancestor);
 			//_LOG.trace(ancestor.getProperty("name"));
 			if(ancestors.size()>0){
@@ -571,11 +573,13 @@ public class GraphImporter extends GraphBase{
 					ret[i] = chl.next().longValue();
 					i++;
 				}
+				Arrays.sort(ret);
 				dbnode.setProperty("mrca", ret);
 				long[] rete = new long[hit_nodes.size()];
 				for(int j=0;j<hit_nodes.size();j++){
 					rete[j] = hit_nodes.get(j).getId();
 				}
+				Arrays.sort(rete);
 				inode.assocObject("exclusive_mrca",rete);
 				rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
 				long[] ret2 = new long[rootids.size()];
@@ -585,6 +589,7 @@ public class GraphImporter extends GraphBase{
 					ret2[i] = chl2.next().longValue();
 					i++;
 				}
+				Arrays.sort(ret2);
 				inode.assocObject("root_exclusive_mrca",ret2);
 				//					for(int i=0;i<inode.getChildCount();i++){
 				//						Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
