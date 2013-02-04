@@ -520,6 +520,7 @@ public class GraphExplorer extends GraphBase{
 	
 	/**
 	 * Constructs a newick breaking ties based on support (or random)
+	 * 
 	 * TODO: instead of random, needs to be based on nested or not or other factors
 	 * @param taxname
 	 */
@@ -543,8 +544,22 @@ public class GraphExplorer extends GraphBase{
 		}
 	}
 	
-
-	
+	/**
+	 * This is the preorder function for constructing a newick tree 
+	 * based only on graph decisions. If the resulting decisions do 
+	 * not contain all of the taxa, either a branch and bound search or
+	 * exhaustive pair search will attempt to find a better (more 
+	 * complete) scenario.
+	 * 
+	 * TODO: add more criteria
+	 * 
+	 * @param curnode
+	 * @param parent
+	 * @param relcoming
+	 * @param nodename
+	 * @param bandb
+	 * @return
+	 */
 	//TODO: need to be able to ignore taxonomy
 	private JadeNode preorderConstructNWTBreaker(Node curnode,JadeNode parent,Relationship relcoming,String nodename, boolean bandb){
 //		System.out.println("starting +"+curnode.getId());
@@ -588,10 +603,6 @@ public class GraphExplorer extends GraphBase{
 			}
 			//trying to get scores directly from the node
 			testnodes_scores.put(tnd,testnodes_scores.get(tnd)+1);
-		}
-		for(Long tn: testnodes){
-			HashSet<Long> mrcas1 = storedmrcas.get(tn);
-//			System.out.println(tn+" "+mrcas1.size()+" "+testnodes_scores.get(tn));
 		}
 		if(testnodes.size() == 0){
 			return null;
@@ -691,7 +702,10 @@ public class GraphExplorer extends GraphBase{
 
 		
 	/**
-	 * Constructs a newick tree based on the sources
+	 * Constructs a newick tree based on the sources. There are 
+	 * currently no other criteria considered in this particular 
+	 * function. 
+	 * 
 	 * @param taxname
 	 * @param sources
 	 */
@@ -714,6 +728,20 @@ public class GraphExplorer extends GraphBase{
 		}
 	}
 
+	/**
+	 * This function is the preorder function for constructing newick trees 
+	 * given a list of sources. This ONLY considers the sources. There should
+	 * be a general function that considers some sort of hierarchy of decisions
+	 * 
+	 * TODO: this will need to eventually incorporate more functionality for 
+	 * 		deciding based on more than the sources
+	 * 
+	 * @param curnode
+	 * @param parent
+	 * @param sources
+	 * @param relcoming
+	 * @return
+	 */
 	private JadeNode preorderConstructNWTBreaker(Node curnode,JadeNode parent,String [] sources,Relationship relcoming){
 			boolean ret = false;
 			JadeNode newnode = new JadeNode();
