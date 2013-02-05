@@ -15,9 +15,13 @@ then
 	
 	sh mvn_cmdline.sh
 	
-To compile and package what is necessary for the server plugins
+This will compile a jar file in the target directory that has commands for constructing and synthesizing the graph from the command line. 
+
+If you would rather use the neo4j server and the plugins that are written for interacting with the graph over REST calls, you will compile the server plugins. To compile and package what is necessary for the server plugins
 
 	sh mvn_serverplugins.sh
+	
+The compilation of the server plugins will delete the treemachine jar in the target directory. You can rebuild either just by running those scripts again.
 
 Usage
 --------------
