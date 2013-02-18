@@ -90,6 +90,45 @@ public class GraphExporter extends GraphBase{
 		return retstring;
 	}
 	
+	/**
+	 * This will dump a csv for each of the relationships in the format 
+	 * nodeid,parentid,nodename,parentname,source,brlen 
+	 * 
+	 */
+	public void dumpCSV(String startnodes,String outfile,boolean taxonomy){
+		Node startnode = findGraphNodeByName(startnodes);
+		if(startnode == null){
+			System.out.println("name not found");
+			return;
+		}
+		try{
+			PrintWriter outFile = new PrintWriter(new FileWriter(outfile));
+			for(Node tnode:  Traversal.description().relationships(RelTypes.MRCACHILDOF, Direction.INCOMING)
+				.traverse(startnode).nodes()){
+				for(Relationship trel: tnode.getRelationships(RelTypes.STREECHILDOF)){
+					if(taxonomy == false){
+						if (((String)trel.getProperty("source")).equals("taxonomy"))
+							continue;
+					}
+					outFile.write(trel.getStartNode().getId() +","+trel.getEndNode().getId()+",");
+					if(trel.getStartNode().hasProperty("name")){
+						outFile.write(((String)trel.getStartNode().getProperty("name")).replace(",","_"));
+					}
+					outFile.write(",");
+					if(trel.getEndNode().hasProperty("name"))
+						outFile.write(((String)trel.getEndNode().getProperty("name")).replace(",","_"));
+					outFile.write(","+trel.getProperty("source")+",");
+					if(trel.hasProperty("branch_length"))
+						outFile.write((String)String.valueOf(trel.getProperty("branch_length")));
+					outFile.write("\n");
+				}
+			}
+			outFile.close();
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+	}
+	
 	public void mrpDump(String taxname, String outfile){
 		Node firstNode = findTaxNodeByName(taxname);
 		String tofile = getMRPDump(firstNode);

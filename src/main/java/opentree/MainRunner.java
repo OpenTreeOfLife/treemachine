@@ -371,6 +371,19 @@ public class MainRunner {
 		ge.shutdownDB();
 	}
 	
+	public void csvDumpParser(String [] args){
+		if (args.length != 4){
+			System.out.println("arguments should be name outfile graphdbfolder");
+			return;
+		}
+		String taxon = args[1];
+		String outfile = args[2];
+		String graphname = args[3];
+		GraphExporter ge = new GraphExporter(graphname);
+		ge.dumpCSV(taxon, outfile,true);
+		ge.shutdownDB();
+	}
+	
 	public void treeUtils(String [] args){
 		if (args.length < 2){
 			System.out.println("arguments need to at least be a treefilename");
@@ -455,6 +468,7 @@ public class MainRunner {
 		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
 		System.out.println("\tmrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
 		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
+		System.out.println("\tcsvdump <name> <outfile> <graphdbfolder> (dumps the graph in format node,parent,nodename,parentname,source,brlen");
 		System.out.println("\n");
 		System.out.println("---graph exploration---");
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
@@ -512,6 +526,8 @@ public class MainRunner {
 				mr.graphReloadTrees(args);
 			}else if(args[0].compareTo("deletetrees")==0){
 				mr.graphDeleteTrees(args);
+			}else if(args[0].compareTo("csvdump")==0){
+				mr.csvDumpParser(args);
 			}else if(args[0].compareTo("counttips")==0 || args[0].compareTo("diversity")==0
 					|| args[0].compareTo("labeltips")==0){
 				mr.treeUtils(args);
