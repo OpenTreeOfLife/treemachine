@@ -9,7 +9,7 @@ sudo apt-get install maven2
 
 Once Maven v. 2 is installed, you can 
 	
-	git clone git@github.com:OpenTreeOfLife/opentree-treemachine.git
+	git clone git@github.com:OpenTreeOfLife/treemachine.git
 
 then 
 	
