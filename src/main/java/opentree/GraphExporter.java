@@ -58,7 +58,7 @@ public class GraphExporter extends GraphBase{
 
 	public void writeGraphML(String taxname, String outfile){
 		Node firstNode = findTaxNodeByName(taxname);
-		String tofile = getGraphML(firstNode);
+		String tofile = getGraphML(firstNode,false);
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(outfile));
@@ -69,49 +69,112 @@ public class GraphExporter extends GraphBase{
 		}
 	}
 	
-	private String getGraphML(Node startnode){
-		String retstring = "<graphml>\n";
-		retstring += "<key id=\"d0\" for=\"node\" attr.name=\"taxon\" attr.type=\"string\">\n";
-	    retstring += "<default></default>\n";
-	    retstring += "</key>\n";
-	    retstring += "<key id=\"d1\" for=\"edge\" attr.name=\"sourcename\" attr.type=\"string\">\n";
-	    retstring += "<default></default>\n";
-	    retstring += "</key>\n";
-	    retstring += "<graph id=\"G\" edgedefault=\"directed\">\n";
+	
+	/**
+	 * creates a graphml for viewing in gephi
+	 * Because gephi cannot view parallel lines, this will not output parallel edges.
+	 * The properties that we have are
+	 * node taxon
+	 * edge sourcename (this is more complicated because of not outputting parallel edges)
+	 * node support
+	 * edge support 
+	 * node effective parents
+	 * node average effective parents
+	 * node delta average effective parents
+	 * 
+	 * measurement of effective parents is measured as Inverse Simpson index:$N=\frac{1}{\sum_{i=1}^{n}p_{i}^{2}}$
+	 * @param startnode
+	 * @return
+	 */
+	private String getGraphML(Node startnode,boolean taxonomy){
+		
+		StringBuffer retstring = new StringBuffer("<graphml>\n");
+		retstring.append("<key id=\"d0\" for=\"node\" attr.name=\"taxon\" attr.type=\"string\">\n");
+	    retstring.append("<default></default>\n");
+	    retstring.append("</key>\n");
+	    retstring.append("<key id=\"d1\" for=\"edge\" attr.name=\"sourcename\" attr.type=\"string\">\n");
+	    retstring.append("<default></default>\n");
+	    retstring.append("</key>\n");
+	    retstring.append("<key id=\"d2\" for=\"node\" attr.name=\"support\" attr.type=\"double\">\n");
+	    retstring.append("<default></default>\n");
+	    retstring.append("</key>\n");
+	    retstring.append("<key id=\"d3\" for=\"edge\" attr.name=\"support\" attr.type=\"double\">\n");
+	    retstring.append("<default></default>\n");
+	    retstring.append("</key>\n");
+	    retstring.append("<key id=\"d4\" for=\"node\" attr.name=\"effpar\" attr.type=\"double\">\n");
+	    retstring.append("<default></default>\n");
+	    retstring.append("</key>\n");
+	    retstring.append("<key id=\"d5\" for=\"node\" attr.name=\"avgeffpar\" attr.type=\"double\">\n");
+	    retstring.append("<default></default>\n");
+	    retstring.append("</key>\n");
+	    retstring.append("<key id=\"d6\" for=\"node\" attr.name=\"deltaavgeffpar\" attr.type=\"double\">\n");
+	    retstring.append("<default></default>\n");
+	    retstring.append("</key>\n");
+	    retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
 		HashSet<Node> nodes = new HashSet<Node>();
 		for(Node tnode:  Traversal.description().relationships(RelTypes.STREECHILDOF, Direction.INCOMING)
 				.traverse(startnode).nodes()){
 			nodes.add(tnode);
 		}
-		System.out.println("nodes traversed: "+nodes.size());
-		//could do this in one loop but it is just cleaner to read like this for now
-		Iterator<Node> itn = nodes.iterator();
-		while(itn.hasNext()){
-			Node nxt = itn.next();
-			retstring += "<node id=\"n"+nxt.getId()+"\">\n";
-			if(nxt.hasProperty("name"))
-				retstring += "<data key=\"d0\">"+((String)nxt.getProperty("name")).replace("&", "_")+"</data>\n";
-			else
-				retstring += "<data key=\"d0\">"+nxt.getId()+"</data>\n";
-			retstring += "</node>\n";
-		}
-		System.out.println("nodes written");
-		itn = nodes.iterator();
-		while(itn.hasNext()){
-			Node nxt = itn.next();
-			for(Relationship rel: nxt.getRelationships(RelTypes.STREECHILDOF, Direction.INCOMING)){
-				if(nodes.contains(rel.getStartNode()) && nodes.contains(rel.getEndNode()) //){
-						&& 
-						((String)rel.getProperty("source")).compareTo("taxonomy") != 0){
-					retstring += "<edge source=\"n"+rel.getStartNode().getId()+"\" target=\"n"+rel.getEndNode().getId()+"\">\n"; 
-					retstring += "<data key=\"d1\">"+((String)rel.getProperty("source")).replace("&", "_")+"</data>\n";
-					retstring += "</edge>\n";
+		HashMap<Long,Integer>nodesupport = new HashMap<Long,Integer>();
+		HashMap<Long,Double>effpar = new HashMap<Long,Double>();
+		HashMap<Long,HashMap<Long,Integer>> parcounts = new HashMap<Long,HashMap<Long,Integer>>();
+		for(Node tnode: nodes){
+			HashMap<Long,Integer> parcount = new HashMap<Long,Integer>();
+			int relcount = 0;
+			for(Relationship rel: tnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
+				if(taxonomy == true || ((String)rel.getProperty("source")).compareTo("taxonomy") != 0){
+					if (parcount.containsKey(rel.getEndNode().getId())==false){
+						parcount.put(rel.getEndNode().getId(),0);
+					}
+					Integer tint = (Integer)parcount.get(rel.getEndNode().getId()) + 1;
+					parcount.put(rel.getEndNode().getId(),tint);
+					relcount += 1;
 				}
 			}
+			//calculate the inverse shannon
+			double efp = 0.0;
+			for(Long tl: parcount.keySet()){
+				efp += (parcount.get(tl)/(double)relcount)*(parcount.get(tl)/(double)relcount);
+			}
+			efp = 1/efp;
+			effpar.put(tnode.getId(),efp);
+			nodesupport.put(tnode.getId(), relcount);
+			parcounts.put(tnode.getId(), parcount);
 		}
-		System.out.println("edges written");
-		retstring += "</graph>\n</graphml>\n";
-		return retstring;
+		System.out.println("nodes traversed");		
+		for(Node tnode: nodes){
+			if(nodesupport.get(tnode.getId())==0){
+				continue;
+			}
+			retstring.append("<node id=\"n"+tnode.getId()+"\">\n");
+			if(tnode.hasProperty("name")){
+				retstring.append("<data key=\"d0\">"+((String)tnode.getProperty("name")).replace("&", "_")+"</data>\n");
+			}
+			//not printing the ids as names
+//			else
+//				retstring.append("<data key=\"d0\">"+tnode.getId()+"</data>\n");
+			//skip tips
+			if(tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF)){
+				retstring.append("<data key=\"d2\">"+nodesupport.get(tnode.getId())+"</data>\n");
+			}else{
+				retstring.append("<data key=\"d2\">1</data>\n");
+			}
+			retstring.append("<data key=\"d4\">"+effpar.get(tnode.getId())+"</data>\n");
+			retstring.append("</node>\n");
+		}
+		for(Node tnode: nodes){
+			HashMap<Long,Integer> parcount = parcounts.get(tnode.getId());
+			for(Long tl: parcount.keySet()){
+				retstring.append("<edge source=\"n"+tnode.getId()+"\" target=\"n"+tl+"\">\n"); 
+				retstring.append("<data key=\"d3\">"+parcount.get(tl)+"</data>\n");
+				//			retstring.append("<data key=\"d1\">"+((String)rel.getProperty("source")).replace("&", "_")+"</data>\n");
+				retstring.append("</edge>\n");
+			}
+		}
+		System.out.println("nodes written");
+		retstring.append("</graph>\n</graphml>\n");
+		return retstring.toString();
 	}
 	
 	/**

@@ -117,6 +117,7 @@ public class GraphExplorer extends GraphBase{
 		}
 	}
 	
+	
 	/**
 	 * This will walk the graph and attempt to report the bipartition information
 	 */
@@ -128,7 +129,6 @@ public class GraphExplorer extends GraphBase{
 		HashMap<Long,String> id_to_name = new HashMap<Long,String>();
 		HashSet<Node> tips = new HashSet<Node> ();
 		HashMap<Node,HashMap<Node,Integer> > childs_scores = new HashMap<Node,HashMap<Node,Integer> > ();
-		HashMap<Node,HashMap<Node,Integer> > childs_scores_cumulative = new HashMap<Node,HashMap<Node,Integer>> ();
 		HashMap<Node,HashMap<Node,Integer> > scores = new HashMap<Node,HashMap<Node,Integer> >();
 		HashMap<Node,HashSet<Node>> child_parents_map = new HashMap<Node,HashSet<Node>>();
 		HashMap<Node,Integer> node_score = new HashMap<Node,Integer>();
@@ -154,50 +154,13 @@ public class GraphExplorer extends GraphBase{
 			for(Node tnode: conflicts_count.keySet()){
 				if(childs_scores.containsKey(tnode) == false){
 					childs_scores.put(tnode, new HashMap<Node,Integer>());
-					childs_scores_cumulative.put(tnode,new HashMap<Node,Integer>());
 				}
 				childs_scores.get(tnode).put(friendnode,conflicts_count.get(tnode));
-				childs_scores_cumulative.get(tnode).put(friendnode,conflicts_count.get(tnode));
 			}
 			scores.put(friendnode,conflicts_count);
 			allnodes.add(friendnode);
 		}
-		//TODO: this doesn't work yet
-		//calculate the cumulative part
-//		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
-		for (Node friendnode: childs_scores_cumulative.keySet()){
-			int cumuscore = 0;
-			/*HashSet<Node> parents = new HashSet<Node>();
-			for(Node tnode: childs_scores_cumulative.keySet()){
-				if(pf.findSinglePath(friendnode, tnode) != null)
-					parents.add(tnode);
-			}
-			for(Node tnode: childs_scores_cumulative.get(friendnode).keySet()){
-				
-			}*/
-			Stack<Node> tstack = new Stack<Node>();
-			tstack.push(friendnode);
-			HashSet<Node> visited = new HashSet<Node>();
-			while(tstack.isEmpty()==false){
-				Node tnode = tstack.pop();
-				if(child_parents_map.containsKey(tnode)){
-					for(Node ttnode: child_parents_map.get(tnode)){
-						tstack.push(ttnode);
-					}
-				}
-				if(visited.contains(tnode))
-					break;
-				visited.add(tnode);
-				cumuscore += node_score.get(tnode);
-			}
-			for(Node tfriendnode: childs_scores_cumulative.keySet()){
-				if(friendnode != tfriendnode){
-					if(childs_scores_cumulative.get(tfriendnode).containsKey(friendnode)){
-						childs_scores_cumulative.get(tfriendnode).put(friendnode,cumuscore + childs_scores.get(tfriendnode).get(friendnode));
-					}
-				}
-			}
-		}
+		
 
 		HashMap<Node,String> node_names = new HashMap<Node,String>();
 		for(Node friendnode: allnodes){
@@ -241,8 +204,7 @@ public class GraphExplorer extends GraphBase{
 		}
 		
 		//write out the root to tip stree weight tree
-		construct_root_to_tip_stree_weight_tree(startnode,node_score,childs_scores);
-		construct_root_to_tip_stree_weight_tree(startnode,node_score,childs_scores_cumulative);
+		//construct_root_to_tip_stree_weight_tree(startnode,node_score,childs_scores);
 	}
 	
 
