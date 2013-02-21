@@ -14,6 +14,7 @@ import java.util.HashSet;
 //import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.index.IndexHits;
 
 public class MainRunner {
 	public void taxonomyLoadParser(String [] args){
@@ -138,11 +139,9 @@ public class MainRunner {
 			}
 			String name = args[1];
 			String graphname = args[2];
-			gi = new GraphExplorer();
-			gi.setEmbeddedDB(graphname);
+			GraphExporter ge = new GraphExporter(graphname);
 			System.out.println("constructing a json for: "+ name);
-//			gi.constructJSONGraph(name);
-			gi.writeJSONWithAltParentsToFile(name);
+			ge.writeJSONWithAltParentsToFile(name);
 		}else if (args[0].compareTo("fulltree") == 0){
 			if(args.length != 3){
 				System.out.println("arguments should be: name graphdbfolder");
@@ -313,6 +312,18 @@ public class MainRunner {
 		ge.reconstructSource(sourcename);
 		ge.shutdownDB();
 	}
+
+	public void listSources(String [] args){
+		if (args.length != 2){
+			System.out.println("arguments should be: graphdbfolder");
+			return;
+		}
+		String graphname = args[1];
+		GraphExplorer ge = new GraphExplorer();
+		ge.setEmbeddedDB(graphname);
+		System.out.print(ge.getSourceList());
+		ge.shutdownDB();
+	}
 	
 	public void graphExplorerBiparts(String [] args){
 		if(args.length != 2){
@@ -474,6 +485,7 @@ public class MainRunner {
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
 		System.out.println("\tjusttrees <filename> <graphdbfolder> (loads the trees into a graph)");
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
+		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
 		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
 		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
 		System.out.println("\n");
@@ -516,6 +528,8 @@ public class MainRunner {
 				mr.justTreeAnalysis(args);
 			}else if(args[0].compareTo("sourceexplorer")==0){
 				mr.sourceTreeExplorer(args);
+			}else if(args[0].compareTo("listsources")==0){
+				mr.listSources(args);
 			}else if(args[0].compareTo("graphml")==0){
 				mr.graphExporter(args);
 			}else if(args[0].compareTo("biparts")==0){

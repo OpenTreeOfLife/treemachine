@@ -114,21 +114,21 @@ public class JadeNode {
 	 * @return string with newick representation of the subtree rooted at this node
 	 */
 	public String getNewick(boolean bl){
-		String ret = "";
+		StringBuffer ret = new StringBuffer("");
 		for(int i = 0; i < this.getChildCount(); i++){
 			if(i == 0)
-				ret = ret + "(";
-			ret = ret + this.getChild(i).getNewick(bl);
+				ret.append("(");
+			ret.append(this.getChild(i).getNewick(bl));
 			if(bl)
-				ret = ret + ":" + this.getChild(i).getBL();
+				ret.append(this.getChild(i).getBL());
 			if(i == this.getChildCount()-1)
-				ret =ret + ")";
+				ret.append(")");
 			else
-				ret = ret + ",";
+				ret.append(",");
 		}
 		if(this.name != null)
-			ret = ret + this.name;
-		return ret;
+			ret.append(this.name);
+		return ret.toString();
 	}
 	
 	/**
@@ -136,34 +136,34 @@ public class JadeNode {
 	 * @return string with JSON representation of the subtree rooted at this node
 	 */
 	public String getJSON(boolean bl){
-		String ret = "{";
+		StringBuffer ret = new StringBuffer("{");
 		if (this.name != null)
-			ret += " \"name\": \"" + this.getName() + "\"";
+			ret.append(" \"name\": \"" + this.getName() + "\"");
 		else
-			ret += " \"name\": \"\"";
+			ret.append(" \"name\": \"\"");
 		if(this.getObject("nodeid") != null)
-			ret += "\n, \"nodeid\": \"" + this.getObject("nodeid") + "\"";
+			ret.append("\n, \"nodeid\": \"" + this.getObject("nodeid") + "\"");
 		for(int i = 0; i < this.getChildCount(); i++){
 			if(i == 0)
-				ret += "\n, \"children\": [\n";
-			ret += this.getChild(i).getJSON(bl);
+				ret.append("\n, \"children\": [\n");
+			ret.append(this.getChild(i).getJSON(bl));
 			if(i == this.getChildCount() - 1)
-				ret += "]\n";
+				ret.append("]\n");
 			else
-				ret += ",\n";
+				ret.append(",\n");
 		}
 		if (bl)
-			ret += ", \"size\": " + this.getBL();
+			ret.append(", \"size\": " + this.getBL());
 		if((this.getObject("jsonprint")) != null)
-			ret += this.getObject("jsonprint");
+			ret.append(this.getObject("jsonprint"));
 		if(this.getObject("nodedepth") != null)
-			ret += ", \"maxnodedepth\": " + this.getObject("nodedepth");
+			ret.append(", \"maxnodedepth\": " + this.getObject("nodedepth"));
 		if(this.isInternal())
-			ret += ", \"nleaves\": " + this.getTips().size();
+			ret.append(", \"nleaves\": " + this.getTips().size());
 		else
-			ret += ", \"nleaves\": 0";
-		ret += "}";
-		return ret;
+			ret.append(", \"nleaves\": 0");
+		ret.append("}");
+		return ret.toString();
 	}
 	
 	/**

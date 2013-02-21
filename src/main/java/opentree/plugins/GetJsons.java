@@ -8,6 +8,7 @@ import java.util.HashMap;
 
 
 import opentree.GraphExplorer;
+import opentree.GraphExporter;
 
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -43,7 +44,7 @@ public class GetJsons extends ServerPlugin {
 	@PluginTarget( Node.class )
     public String getConflictJson(@Source Node source){
 		Node firstNode = source;
-		GraphExplorer ge = new GraphExplorer();
+		GraphExporter ge = new GraphExporter();
 		return ge.constructJSONAltParents(firstNode);
 	}
 	
@@ -57,7 +58,7 @@ public class GetJsons extends ServerPlugin {
 			@Description( "A new relationship nub." )
     		@Parameter( name = "nubrel", optional = true ) Long nubrel ){
 		String retst="";
-		GraphExplorer ge = new GraphExplorer();
+		GraphExporter ge = new GraphExporter();
 		if(nubrel != null){
 			Relationship rel = source.getGraphDatabase().getRelationshipById(nubrel);
 			ArrayList<Long> rels = new ArrayList<Long>();
