@@ -104,7 +104,7 @@ public class GraphExporter extends GraphBase{
 	    retstring.append("<key id=\"d4\" for=\"node\" attr.name=\"effpar\" attr.type=\"double\">\n");
 	    retstring.append("<default></default>\n");
 	    retstring.append("</key>\n");
-	    retstring.append("<key id=\"d5\" for=\"node\" attr.name=\"avgeffpar\" attr.type=\"double\">\n");
+	    retstring.append("<key id=\"d5\" for=\"node\" attr.name=\"effch\" attr.type=\"double\">\n");
 	    retstring.append("<default></default>\n");
 	    retstring.append("</key>\n");
 	    retstring.append("<key id=\"d6\" for=\"node\" attr.name=\"deltaavgeffpar\" attr.type=\"double\">\n");
@@ -118,6 +118,7 @@ public class GraphExporter extends GraphBase{
 		}
 		HashMap<Long,Integer>nodesupport = new HashMap<Long,Integer>();
 		HashMap<Long,Double>effpar = new HashMap<Long,Double>();
+		HashMap<Long,Double>effch = new HashMap<Long,Double>();
 		HashMap<Long,HashMap<Long,Integer>> parcounts = new HashMap<Long,HashMap<Long,Integer>>();
 		for(Node tnode: nodes){
 			HashMap<Long,Integer> parcount = new HashMap<Long,Integer>();
@@ -132,7 +133,7 @@ public class GraphExporter extends GraphBase{
 					relcount += 1;
 				}
 			}
-			//calculate the inverse shannon
+			//calculate the inverse shannon effective number of parents
 			double efp = 0.0;
 			for(Long tl: parcount.keySet()){
 				efp += (parcount.get(tl)/(double)relcount)*(parcount.get(tl)/(double)relcount);
@@ -141,6 +142,27 @@ public class GraphExporter extends GraphBase{
 			effpar.put(tnode.getId(),efp);
 			nodesupport.put(tnode.getId(), relcount);
 			parcounts.put(tnode.getId(), parcount);
+			//calculate the inverse shannon effective number of children
+			HashMap<Long,Integer> chcount = new HashMap<Long,Integer>();
+			relcount = 0;
+			for(Relationship rel: tnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
+				if(taxonomy == true || ((String)rel.getProperty("source")).compareTo("taxonomy") != 0){
+					if (chcount.containsKey(rel.getStartNode().getId())==false){
+						chcount.put(rel.getStartNode().getId(),0);
+					}
+					Integer tint = (Integer)chcount.get(rel.getStartNode().getId()) + 1;
+					chcount.put(rel.getStartNode().getId(),tint);
+					relcount += 1;
+				}
+			}
+			double efc = 0.0;
+			if(relcount > 0){
+				for(Long tl: chcount.keySet()){
+					efc += (chcount.get(tl)/(double)relcount)*(chcount.get(tl)/(double)relcount);
+				}
+				efc = 1/efc;
+			}
+			effch.put(tnode.getId(), efc);
 		}
 		System.out.println("nodes traversed");		
 		for(Node tnode: nodes){
@@ -161,6 +183,7 @@ public class GraphExporter extends GraphBase{
 				retstring.append("<data key=\"d2\">1</data>\n");
 			}
 			retstring.append("<data key=\"d4\">"+effpar.get(tnode.getId())+"</data>\n");
+			retstring.append("<data key=\"d5\">"+effch.get(tnode.getId())+"</data>\n");
 			retstring.append("</node>\n");
 		}
 		for(Node tnode: nodes){
