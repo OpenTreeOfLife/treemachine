@@ -116,12 +116,15 @@ public class GraphExporter extends GraphBase{
 				.traverse(startnode).nodes()){
 			nodes.add(tnode);
 		}
-		HashMap<Long,Integer>nodesupport = new HashMap<Long,Integer>();
+		HashMap<Long,Double>nodesupport = new HashMap<Long,Double>();
+		HashMap<Long,HashMap<Long,Double> > edgesupport = new HashMap<Long,HashMap<Long,Double> >();
+		HashMap<Long,ArrayList<String>> sourcelists = new HashMap<Long,ArrayList<String>>();//number of sources for each node
 		HashMap<Long,Double>effpar = new HashMap<Long,Double>();
 		HashMap<Long,Double>effch = new HashMap<Long,Double>();
 		HashMap<Long,HashMap<Long,Integer>> parcounts = new HashMap<Long,HashMap<Long,Integer>>();
 		for(Node tnode: nodes){
 			HashMap<Long,Integer> parcount = new HashMap<Long,Integer>();
+			ArrayList<String> slist = new ArrayList<String>();
 			int relcount = 0;
 			for(Relationship rel: tnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)){
 				if(taxonomy == true || ((String)rel.getProperty("source")).compareTo("taxonomy") != 0){
@@ -131,8 +134,10 @@ public class GraphExporter extends GraphBase{
 					Integer tint = (Integer)parcount.get(rel.getEndNode().getId()) + 1;
 					parcount.put(rel.getEndNode().getId(),tint);
 					relcount += 1;
+					slist.add((String)rel.getProperty("source"));
 				}
 			}
+			sourcelists.put(tnode.getId(), slist);
 			//calculate the inverse shannon effective number of parents
 			double efp = 0.0;
 			for(Long tl: parcount.keySet()){
@@ -140,7 +145,6 @@ public class GraphExporter extends GraphBase{
 			}
 			efp = 1/efp;
 			effpar.put(tnode.getId(),efp);
-			nodesupport.put(tnode.getId(), relcount);
 			parcounts.put(tnode.getId(), parcount);
 			//calculate the inverse shannon effective number of children
 			HashMap<Long,Integer> chcount = new HashMap<Long,Integer>();
@@ -163,6 +167,33 @@ public class GraphExporter extends GraphBase{
 				efc = 1/efc;
 			}
 			effch.put(tnode.getId(), efc);
+		}
+		//calculate node support
+		/*
+		 * node support here is calculated as the number of outgoing edges
+		 * divided by the total number of sources in the subtree obtained by 
+		 * getting the number of unique sources at each tip
+		 */
+		for(Node tnode: nodes){
+			HashSet<String> sources = new HashSet<String>();
+			long []mrcas = (long[])tnode.getProperty("mrca");
+			for (int i=0;i<mrcas.length;i++){
+				sources.addAll(sourcelists.get((Long)mrcas[i]));
+			}
+			double supp = (double)sourcelists.get(tnode.getId()).size() /  (double)sources.size();
+			//give tips no support so they don't give weird looking
+			if(tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF)==false){
+				nodesupport.put(tnode.getId(),1.);
+			}else{
+				nodesupport.put(tnode.getId(), supp);
+			}
+			HashMap<Long,Integer> parcount = parcounts.get(tnode.getId());
+			HashMap<Long,Double> edgesupp = new HashMap<Long,Double>();
+			for(Long tl: parcount.keySet()){
+				double dedgesupp = (double)parcount.get(tl)/(double)sources.size();
+				edgesupp.put(tl, dedgesupp);
+			}
+			edgesupport.put(tnode.getId(), edgesupp);
 		}
 		System.out.println("nodes traversed");		
 		for(Node tnode: nodes){
@@ -187,10 +218,10 @@ public class GraphExporter extends GraphBase{
 			retstring.append("</node>\n");
 		}
 		for(Node tnode: nodes){
-			HashMap<Long,Integer> parcount = parcounts.get(tnode.getId());
-			for(Long tl: parcount.keySet()){
+			HashMap<Long,Double> tedgesupport = edgesupport.get(tnode.getId());
+			for(Long tl: tedgesupport.keySet()){
 				retstring.append("<edge source=\"n"+tnode.getId()+"\" target=\"n"+tl+"\">\n"); 
-				retstring.append("<data key=\"d3\">"+parcount.get(tl)+"</data>\n");
+				retstring.append("<data key=\"d3\">"+tedgesupport.get(tl)+"</data>\n");
 				//			retstring.append("<data key=\"d1\">"+((String)rel.getProperty("source")).replace("&", "_")+"</data>\n");
 				retstring.append("</edge>\n");
 			}
