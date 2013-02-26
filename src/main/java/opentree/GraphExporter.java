@@ -1,5 +1,15 @@
 package opentree;
 
+/*
+ * GraphExporter is meant to export the graph in a variety of 
+ * formats
+ * GraphExporter major functions
+ * =============================
+ * mrpdump
+ * write graph ml
+ * write json
+ */
+
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 
@@ -10,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Stack;
 
 import opentree.GraphBase.RelTypes;
 
@@ -107,10 +118,11 @@ public class GraphExporter extends GraphBase{
 	    retstring.append("<key id=\"d5\" for=\"node\" attr.name=\"effch\" attr.type=\"double\">\n");
 	    retstring.append("<default></default>\n");
 	    retstring.append("</key>\n");
-	    retstring.append("<key id=\"d6\" for=\"node\" attr.name=\"deltaavgeffpar\" attr.type=\"double\">\n");
+	    retstring.append("<key id=\"d6\" for=\"node\" attr.name=\"avgeffparsubtree\" attr.type=\"double\">\n");
 	    retstring.append("<default></default>\n");
 	    retstring.append("</key>\n");
 	    retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
+	    //get the list of nodes
 		HashSet<Node> nodes = new HashSet<Node>();
 		for(Node tnode:  Traversal.description().relationships(RelTypes.STREECHILDOF, Direction.INCOMING)
 				.traverse(startnode).nodes()){
@@ -120,8 +132,13 @@ public class GraphExporter extends GraphBase{
 		HashMap<Long,HashMap<Long,Double> > edgesupport = new HashMap<Long,HashMap<Long,Double> >();
 		HashMap<Long,ArrayList<String>> sourcelists = new HashMap<Long,ArrayList<String>>();//number of sources for each node
 		HashMap<Long,Double>effpar = new HashMap<Long,Double>();
+		HashMap<Long,ArrayList<Double> > avgeffparnums= new HashMap<Long, ArrayList<Double> >();
 		HashMap<Long,Double>effch = new HashMap<Long,Double>();
 		HashMap<Long,HashMap<Long,Integer>> parcounts = new HashMap<Long,HashMap<Long,Integer>>();
+		//do most of the calculations
+		/*
+		 * calculations here are effective parents and effective children
+		 */
 		for(Node tnode: nodes){
 			HashMap<Long,Integer> parcount = new HashMap<Long,Integer>();
 			ArrayList<String> slist = new ArrayList<String>();
@@ -146,6 +163,7 @@ public class GraphExporter extends GraphBase{
 			efp = 1/efp;
 			effpar.put(tnode.getId(),efp);
 			parcounts.put(tnode.getId(), parcount);
+			
 			//calculate the inverse shannon effective number of children
 			HashMap<Long,Integer> chcount = new HashMap<Long,Integer>();
 			relcount = 0;
@@ -194,8 +212,39 @@ public class GraphExporter extends GraphBase{
 				edgesupp.put(tl, dedgesupp);
 			}
 			edgesupport.put(tnode.getId(), edgesupp);
+			//add effpar to parents
+			if(tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF) == false){
+				//add the numbers to the parents for avgeffparsubtree
+				//this is probably the slowest thing
+				Long curnodeid = tnode.getId();
+				Stack<Long> ndl = new Stack<Long>();
+				ndl.push(curnodeid);
+				HashSet<Long> done = new HashSet<Long>();
+				while(ndl.isEmpty()==false){
+					curnodeid = ndl.pop();
+					done.add(curnodeid);
+					if(parcounts.containsKey(curnodeid) == false){
+						continue;
+					}
+					for(Long tndl: parcounts.get(curnodeid).keySet()){
+						if(done.contains(tndl)==false){
+							ndl.push(tndl);
+						}
+						if(avgeffparnums.containsKey(tndl)==false){
+							ArrayList<Double> tarl = new ArrayList<Double>();
+							tarl.add(0.);tarl.add(0.);
+							avgeffparnums.put(tndl,tarl);
+						}
+						ArrayList<Double> tarl = avgeffparnums.get(tndl);
+						avgeffparnums.get(tndl).set(0, tarl.get(0)+effpar.get(tnode.getId()));
+						avgeffparnums.get(tndl).set(1, tarl.get(1)+1);
+					}
+				}
+			}
+			
 		}
 		System.out.println("nodes traversed");		
+		//nothing calculated beyond, this is just for writing the file
 		for(Node tnode: nodes){
 			if(nodesupport.get(tnode.getId())==0){
 				continue;
@@ -210,9 +259,12 @@ public class GraphExporter extends GraphBase{
 			//skip tips
 			if(tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF)){
 				retstring.append("<data key=\"d2\">"+nodesupport.get(tnode.getId())+"</data>\n");
-			}else{
-				retstring.append("<data key=\"d2\">1</data>\n");
+				double avgeffpar = avgeffparnums.get(tnode.getId()).get(0)/avgeffparnums.get(tnode.getId()).get(1);
+				retstring.append("<data key=\"d6\">"+(avgeffpar-1)+"</data>\n");
 			}
+			//else{
+			//	retstring.append("<data key=\"d2\">1</data>\n");
+			//}
 			retstring.append("<data key=\"d4\">"+effpar.get(tnode.getId())+"</data>\n");
 			retstring.append("<data key=\"d5\">"+effch.get(tnode.getId())+"</data>\n");
 			retstring.append("</node>\n");
