@@ -52,6 +52,22 @@ public class GraphExplorer extends GraphBase{
 		sourceMetaIndex = graphDb.index().forNodes("sourceMetaNodes");
 	}
 	
+	public void printLicaNames(String nodeid){
+		Node gn = graphDb.getNodeById(Long.valueOf(nodeid));
+		if (gn == null){
+			System.out.println("can't find "+nodeid+". is it more than just a number?");
+			return;
+		}
+		
+		long[] mrcas = (long[])gn.getProperty("mrca");
+		for (int i=0;i<mrcas.length;i++){
+			Node tn = graphDb.getNodeById(mrcas[i]);
+			if (tn.hasProperty("name")){
+				System.out.println(tn.getProperty("name"));
+			}
+		}
+	}
+	
 	/**
 	 * Given a taxonomic name, construct a json object of the subgraph of MRCACHILDOF
 	 *  relationships that are rooted at the specified node. Names that appear

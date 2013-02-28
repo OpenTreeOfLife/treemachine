@@ -395,6 +395,19 @@ public class MainRunner {
 		ge.shutdownDB();
 	}
 	
+	public void getlicanames(String [] args){
+		if (args.length != 3){
+			System.out.println("arguments should be nodeid graphdbfolder");
+			return;
+		}
+		String nodeid = args[1];
+		String graphname = args[2];
+		GraphExplorer ge = new GraphExplorer();
+		ge.setEmbeddedDB(graphname);
+		ge.printLicaNames(nodeid);
+		ge.shutdownDB();
+	}
+	
 	public void treeUtils(String [] args){
 		if (args.length < 2){
 			System.out.println("arguments need to at least be a treefilename");
@@ -488,6 +501,7 @@ public class MainRunner {
 		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
 		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
 		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
+		System.out.println("\tgetlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)");
 		System.out.println("\n");
 		System.out.println("---tree functions---");
 		System.out.println("(This is temporary and for doing some functions on trees output by the fulltree)");
@@ -542,6 +556,8 @@ public class MainRunner {
 				mr.graphDeleteTrees(args);
 			}else if(args[0].compareTo("csvdump")==0){
 				mr.csvDumpParser(args);
+			}else if(args[0].compareTo("getlicanames")==0){
+				mr.getlicanames(args);
 			}else if(args[0].compareTo("counttips")==0 || args[0].compareTo("diversity")==0
 					|| args[0].compareTo("labeltips")==0){
 				mr.treeUtils(args);
