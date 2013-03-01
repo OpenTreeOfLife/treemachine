@@ -159,7 +159,7 @@ public class GraphExporter extends GraphBase{
 				}
 			}
 			sourcelists.put(tnode.getId(), slist);
-			//calculate the inverse shannon effective number of parents
+			//calculate the inverse Simpson effective number of parents
 			double efp = 0.0;
 			for(Long tl: parcount.keySet()){
 				efp += (parcount.get(tl)/(double)relcount)*(parcount.get(tl)/(double)relcount);
