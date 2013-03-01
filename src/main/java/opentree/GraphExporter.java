@@ -168,7 +168,7 @@ public class GraphExporter extends GraphBase{
 			effpar.put(tnode.getId(),efp);
 			parcounts.put(tnode.getId(), parcount);
 			
-			//calculate the inverse shannon effective number of children
+			//calculate the inverse Simpson effective number of children
 			HashMap<Long,Integer> chcount = new HashMap<Long,Integer>();
 			relcount = 0;
 			for(Relationship rel: tnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)){
