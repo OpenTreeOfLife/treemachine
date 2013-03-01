@@ -217,32 +217,26 @@ public class GraphExporter extends GraphBase{
 			}
 			edgesupport.put(tnode.getId(), edgesupp);
 			//add effpar to parents
-			if(tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF) == false){
-				//add the numbers to the parents for avgeffparsubtree
-				//this is probably the slowest thing
-				Long curnodeid = tnode.getId();
-				Stack<Long> ndl = new Stack<Long>();
-				ndl.push(curnodeid);
-				HashSet<Long> done = new HashSet<Long>();
-				while(ndl.isEmpty()==false){
-					curnodeid = ndl.pop();
-					done.add(curnodeid);
-					if(parcounts.containsKey(curnodeid) == false){
-						continue;
+			Stack<Long> ndl = new Stack<Long>();
+			for(Long tndl: parcounts.get(tnode.getId()).keySet()){
+				ndl.add(tndl);
+			}
+			HashSet<Long> done = new HashSet<Long>();
+			while(ndl.isEmpty() == false){
+				Long curnodeid = ndl.pop();
+				for(Long tndl: parcounts.get(curnodeid).keySet()){
+					if(done.contains(tndl)==false){
+						ndl.push(tndl);
 					}
-					for(Long tndl: parcounts.get(curnodeid).keySet()){
-						if(done.contains(tndl)==false){
-							ndl.push(tndl);
-						}
-						if(avgeffparnums.containsKey(tndl)==false){
-							ArrayList<Double> tarl = new ArrayList<Double>();
-							tarl.add(0.);tarl.add(0.);
-							avgeffparnums.put(tndl,tarl);
-						}
-						ArrayList<Double> tarl = avgeffparnums.get(tndl);
-						avgeffparnums.get(tndl).set(0, tarl.get(0)+effpar.get(tnode.getId()));
-						avgeffparnums.get(tndl).set(1, tarl.get(1)+1);
+					ArrayList<Double> tarl;
+					if(avgeffparnums.containsKey(tndl)==false){
+						tarl = new ArrayList<Double>();
+						tarl.add(0.);tarl.add(0.);
+						avgeffparnums.put(tndl,tarl);
 					}
+					tarl = avgeffparnums.get(tndl);
+					avgeffparnums.get(tndl).set(0, tarl.get(0)+(effpar.get(tnode.getId())*nodesupport.get(tnode.getId())));
+					avgeffparnums.get(tndl).set(1, tarl.get(1)+1);
 				}
 			}
 		}
