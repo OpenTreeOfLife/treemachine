@@ -121,6 +121,9 @@ public class GraphExporter extends GraphBase{
 	    retstring.append("<key id=\"d6\" for=\"node\" attr.name=\"avgeffparsubtree\" attr.type=\"double\">\n");
 	    retstring.append("<default></default>\n");
 	    retstring.append("</key>\n");
+	    retstring.append("<key id=\"d7\" for=\"node\" attr.name=\"avgdeltaparsubtree\" attr.type=\"double\">\n");
+	    retstring.append("<default></default>\n");
+	    retstring.append("</key>\n");
 	    retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
 	    //get the list of nodes
 		HashSet<Node> nodes = new HashSet<Node>();
@@ -135,6 +138,7 @@ public class GraphExporter extends GraphBase{
 		HashMap<Long,ArrayList<Double> > avgeffparnums= new HashMap<Long, ArrayList<Double> >();
 		HashMap<Long,Double>effch = new HashMap<Long,Double>();
 		HashMap<Long,HashMap<Long,Integer>> parcounts = new HashMap<Long,HashMap<Long,Integer>>();
+		HashMap<Long,Double> avgdelta = new HashMap<Long,Double>();
 		//do most of the calculations
 		/*
 		 * calculations here are effective parents and effective children
@@ -241,8 +245,26 @@ public class GraphExporter extends GraphBase{
 					}
 				}
 			}
-			
 		}
+		//calculating the delta (startnode avgeffpar - endnode avgeffpar) for each relationship for a node
+		//them calculate the weighted avg of the outgoing edge delta values and store as 
+		for(Node tnode: nodes){
+			Long curnodeid = tnode.getId();
+			if (parcounts.containsKey(curnodeid)==false || avgeffparnums.containsKey(curnodeid) == false){
+				continue;
+			}
+			int totalweight = 0;
+			double total = 0;
+			for(Long tndl: parcounts.get(curnodeid).keySet()){
+				totalweight += parcounts.get(curnodeid).get(tndl);
+				double st = (avgeffparnums.get(curnodeid).get(0)/avgeffparnums.get(curnodeid).get(1))-1;
+				double ed = (avgeffparnums.get(tndl).get(0)/avgeffparnums.get(tndl).get(1))-1;
+				total += ((st-ed)*parcounts.get(curnodeid).get(tndl));
+			}
+			total /= totalweight;
+			avgdelta.put(curnodeid, total);
+		}
+		
 		System.out.println("nodes traversed");		
 		//nothing calculated beyond, this is just for writing the file
 		for(Node tnode: nodes){
@@ -267,6 +289,9 @@ public class GraphExporter extends GraphBase{
 			//}
 			retstring.append("<data key=\"d4\">"+effpar.get(tnode.getId())+"</data>\n");
 			retstring.append("<data key=\"d5\">"+effch.get(tnode.getId())+"</data>\n");
+			if (avgdelta.containsKey(tnode.getId())==true){
+				retstring.append("<data key=\"d7\">"+avgdelta.get(tnode.getId())+"</data>\n");
+			}
 			retstring.append("</node>\n");
 		}
 		for(Node tnode: nodes){
