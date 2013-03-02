@@ -224,20 +224,21 @@ public class GraphExporter extends GraphBase{
 			HashSet<Long> done = new HashSet<Long>();
 			while(ndl.isEmpty() == false){
 				Long curnodeid = ndl.pop();
+				done.add(curnodeid);
 				for(Long tndl: parcounts.get(curnodeid).keySet()){
 					if(done.contains(tndl)==false){
 						ndl.push(tndl);
 					}
-					ArrayList<Double> tarl;
-					if(avgeffparnums.containsKey(tndl)==false){
-						tarl = new ArrayList<Double>();
-						tarl.add(0.);tarl.add(0.);
-						avgeffparnums.put(tndl,tarl);
-					}
-					tarl = avgeffparnums.get(tndl);
-					avgeffparnums.get(tndl).set(0, tarl.get(0)+(effpar.get(tnode.getId())*nodesupport.get(tnode.getId())));
-					avgeffparnums.get(tndl).set(1, tarl.get(1)+1);
 				}
+				ArrayList<Double> tarl;
+				if(avgeffparnums.containsKey(curnodeid)==false){
+					tarl = new ArrayList<Double>();
+					tarl.add(0.);tarl.add(0.);
+					avgeffparnums.put(curnodeid,tarl);
+				}
+				tarl = avgeffparnums.get(curnodeid);
+				avgeffparnums.get(curnodeid).set(0, tarl.get(0)+(effpar.get(tnode.getId())*nodesupport.get(tnode.getId())));
+				avgeffparnums.get(curnodeid).set(1, tarl.get(1)+1);
 			}
 		}
 		//calculating the delta (startnode avgeffpar - endnode avgeffpar) for each relationship for a node
@@ -275,8 +276,10 @@ public class GraphExporter extends GraphBase{
 			//skip tips
 			if(tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF)){
 				retstring.append("<data key=\"d2\">"+nodesupport.get(tnode.getId())+"</data>\n");
+			}
+			if(avgeffparnums.containsKey(tnode.getId())){
 				double avgeffpar = avgeffparnums.get(tnode.getId()).get(0)/avgeffparnums.get(tnode.getId()).get(1);
-				retstring.append("<data key=\"d6\">"+(avgeffpar-1)+"</data>\n");
+				retstring.append("<data key=\"d6\">"+(avgeffpar)+"</data>\n");
 			}
 			//else{
 			//	retstring.append("<data key=\"d2\">1</data>\n");
@@ -284,7 +287,7 @@ public class GraphExporter extends GraphBase{
 			retstring.append("<data key=\"d4\">"+effpar.get(tnode.getId())+"</data>\n");
 			retstring.append("<data key=\"d5\">"+effch.get(tnode.getId())+"</data>\n");
 			if (avgdelta.containsKey(tnode.getId())==true){
-				retstring.append("<data key=\"d7\">"+avgdelta.get(tnode.getId())+"</data>\n");
+				retstring.append("<data key=\"d7\">"+(avgdelta.get(tnode.getId())*nodesupport.get(tnode.getId()))+"</data>\n");
 			}
 			retstring.append("</node>\n");
 		}
