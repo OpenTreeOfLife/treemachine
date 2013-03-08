@@ -44,14 +44,15 @@ public class JadeTree {
 		externalNodes = new ArrayList<JadeNode>();
 		internalNodeCount = 0;
 		externalNodeCount = 0;
-		if (root == null)
+		if (root == null) {
 			return;
+		}
 		postOrderProcessRoot(root);
 	}
 
 	/**
 	 * Adds `tn` to the this.externalNodes, but does not tell the node its number
-	 *	@todo Is this deprecated? it is not usesd within opentree-treemachine code
+	 *	@todo Is this deprecated? it is not used within opentree-treemachine code
 	 */
 	public void addExternalNode(JadeNode tn) {
 		externalNodes.add(tn);
@@ -61,7 +62,7 @@ public class JadeTree {
 
 	/**
 	 * Adds `tn` to the this.internalNodeCount, but does not tell the node its number
-	 *	@todo Is this deprecated? it is not usesd within opentree-machine code
+	 *	@todo Is this deprecated? it is not used within opentree-machine code
 	 */
 	public void addInternalNode(JadeNode tn) {
 		internalNodes.add(tn);
@@ -72,7 +73,7 @@ public class JadeTree {
 
 	/**
 	 * Adds `tn` to the this.externalNodes and uses setNumber to tell the node its index
-	 * @todo it is unclear why we can't just make num a local variable that it eaqual to the initial externalNodes.size();
+	 * @todo it is unclear why we can't just make num a local variable that it equal to the initial externalNodes.size();
 	 */
 	public void addExternalNode(JadeNode tn, int num) {
 		externalNodes.add(tn);
@@ -84,7 +85,7 @@ public class JadeTree {
 
 	/**
 	 * Adds `tn` to the this.internalNodes and uses setNumber to tell the node its index
-	 * @todo it is unclear why we can't just make num a local variable that it eaqual to the initial internalNodes.size();
+	 * @todo it is unclear why we can't just make num a local variable that it equal to the initial internalNodes.size();
 	 */
 	public void addInternalNode(JadeNode tn, int num) {
 		internalNodes.add(tn);
@@ -166,12 +167,12 @@ public class JadeTree {
 	 * @return size of externalNodes.
 	 * NOTE: this disagrees with externalNodesCount during tree construction methods!
 	 */
-	public int getExternalNodeCount(){return externalNodes.size();}
+	public int getExternalNodeCount() {return externalNodes.size();}
 	/**
 	 * @return size of internalNodes.
 	 * NOTE: this disagrees with internalNodesCount during tree construction methods!
 	 */
-	public int getInternalNodeCount(){return internalNodes.size();}
+	public int getInternalNodeCount() {return internalNodes.size();}
 	
 	public JadeNode getRoot() {return root;}
 
@@ -203,7 +204,7 @@ public class JadeTree {
 	 * @todo need to check
 	 * @todo we should probably have a boolean flag to indicate whether or not the tree should be treated as rooted
 	 */
-	public void unRoot(JadeNode inRoot){
+	public void unRoot(JadeNode inRoot) {
 		processRoot();
 		if (this.getRoot().getChildCount() < 3) {
 			tritomyRoot(inRoot);
@@ -310,18 +311,18 @@ public class JadeTree {
 	 * @param innodes an array of leaf node names
 	 * @todo this could be optimized (by not calling getMRCATraverse repeatedly)
 	 */
-	public JadeNode getMRCA(String [] innodes){
-		if(innodes.length == 1)
+	public JadeNode getMRCA(String [] innodes) {
+		if (innodes.length == 1)
     		return this.getExternalNode(innodes[0]);
 		ArrayList <String> outgroup = new ArrayList<String>();
-		for(int i = 0;i < innodes.length; i++){
+		for (int i = 0;i < innodes.length; i++) {
 			outgroup.add(innodes[i]);
 		}
 		JadeNode cur1 = this.getExternalNode(outgroup.get(0));
 		outgroup.remove(0);
 		JadeNode cur2 = null;
 		JadeNode tempmrca = null;
-		while(outgroup.size() > 0){
+		while (outgroup.size() > 0) {
 			cur2 = this.getExternalNode(outgroup.get(0));
 			outgroup.remove(0);
 			tempmrca = getMRCATraverse(cur1, cur2);
@@ -335,16 +336,19 @@ public class JadeTree {
 	 * @param innodes an array of leaf node names
 	 * @todo this could be optimized (by not calling getMRCATraverse repeatedly)
 	 */
-	public JadeNode getMRCA(ArrayList<String> innodes){
-    	if(innodes.size() == 1)
+	public JadeNode getMRCA(ArrayList<String> innodes) {
+    	if (innodes.size() == 1) {
     		return this.getExternalNode(innodes.get(0));
+    	}
 		ArrayList <String> outgroup = new ArrayList<String>();
-		for(int i=0;i<innodes.size();i++){outgroup.add(innodes.get(i));}
+		for (int i = 0; i < innodes.size(); i++) {
+			outgroup.add(innodes.get(i));
+		}
 		JadeNode cur1 = this.getExternalNode(outgroup.get(0));
 		outgroup.remove(0);
 		JadeNode cur2 = null;
 		JadeNode tempmrca = null;
-		while(outgroup.size()>0){
+		while (outgroup.size() > 0) {
 			cur2 = this.getExternalNode(outgroup.get(0));
 			outgroup.remove(0);
 			tempmrca = getMRCATraverse(cur1,cur2);
@@ -412,8 +416,8 @@ public class JadeTree {
 	 * prunes `node` from the tree, if `node` is external
 	 * @todo doesn't yet take care if node.parent == root or is a polytomy
 	 */
-	public void pruneExternalNode(JadeNode node){
-		if(node.isInternal()){
+	public void pruneExternalNode(JadeNode node) {
+		if (node.isInternal()) {
 			return;
 		}
 		/*
@@ -427,18 +431,18 @@ public class JadeTree {
 		double bl = 0;
 		JadeNode parent = node.getParent();
 		JadeNode other = null;
-		for(int i = 0; i < parent.getChildCount(); i++) {
-			if (parent.getChild(i) != node){
+		for (int i = 0; i < parent.getChildCount(); i++) {
+			if (parent.getChild(i) != node) {
 				other = parent.getChild(i);
 			}
 		}
-		bl = other.getBL()+parent.getBL();
+		bl = other.getBL() + parent.getBL();
 		JadeNode mparent = parent.getParent();
-		if(mparent != null){
+		if (mparent != null) {
 			mparent.addChild(other);
 			other.setBL(bl);
-			for(int i=0;i<mparent.getChildCount();i++){
-				if(mparent.getChild(i)==parent){
+			for (int i = 0; i < mparent.getChildCount(); i++) {
+				if (mparent.getChild(i) == parent) {
 					mparent.removeChild(parent);
 					break;
 				}
