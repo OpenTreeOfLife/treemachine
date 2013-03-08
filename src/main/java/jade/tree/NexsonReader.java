@@ -6,6 +6,8 @@
  * declarations are not processed, so particular namespace prefix
  * bindings, and a default namespace of "http://www.nexml.org/2009",
  * are assumed.
+ *
+ * @about is ignored, etc.
  */
 
 package jade.tree;
@@ -32,8 +34,11 @@ public class NexsonReader {
 		String filename = "study15.json";
 		if (argv.length == 1)
 			filename = argv[0];
-		for (JadeTree tree : readNexson(filename))
+		for (JadeTree tree : readNexson(filename)) {
+			System.out.println("Curator: " + tree.getObject("ot:curatorName"));
+			System.out.println("Reference: " + tree.getObject("ot:studyPublicationReference"));
 			System.out.println(tree.getRoot().getNewick(false));
+		}
 	}
 
 	/* Read Nexson study from a file, given file name */
@@ -65,9 +70,11 @@ public class NexsonReader {
 
 		// The XML root element
 		JSONObject root = (JSONObject)all.get("nexml");
-		// All of the <meta> elements
-		JSONArray meta = (JSONArray)root.get("meta");
 
+		// All of the <meta> elements
+		List<Object> metaList = getMetaList(root);
+			
+		// All of the <otu> elements
 		JSONObject otus = (JSONObject)root.get("otus");
 		JSONArray otuList = (JSONArray)otus.get("otu");
 		System.out.println(otuList.size() + " OTUs");
@@ -90,7 +97,7 @@ public class NexsonReader {
 		for (Object tree : treeList) {
 			JSONObject tree2 = (JSONObject)tree;
 			// tree2 = {"node": [...], "edge": [...]}
-			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge")));
+			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), metaList));
 		}
 
 		return result;
@@ -100,7 +107,8 @@ public class NexsonReader {
 
 	private static JadeTree importTree(Map<String,JSONObject> otuMap,
 									   JSONArray nodeList,
-									   JSONArray edgeList) {
+									   JSONArray edgeList,
+									   List<Object> metaList) {
 		System.out.println(nodeList.size() + " nodes, " + edgeList.size() + " edges");
 		Map<String, JadeNode> nodeMap = new HashMap<String, JadeNode>();
 
@@ -121,12 +129,18 @@ public class NexsonReader {
 			String otuId = (String)j.get("@otu");
 			if (otuId != null) {
 				JSONObject otu = otuMap.get(otuId);
-				// System.out.println(otu);
-
 				String label = (String)otu.get("@label");
-				// System.out.println(label);
-
 				jn.setName(label);
+
+				List<Object> metaList2 = getMetaList(otu);
+				if (metaList2 != null)
+					for (Object meta : metaList2) {
+						JSONObject m = (JSONObject)meta;
+						String propname = (String)m.get("@property");
+						Object value = m.get("$");
+						jn.assocObject(propname, value);
+						System.out.println(label + "/ " + propname + ": " + jn.getObject(propname));
+					}
 			}
 		}
 
@@ -149,7 +163,41 @@ public class NexsonReader {
 		for (JadeNode jn = arbitraryNode; jn != null; jn = jn.getParent())
 			root = jn;
 
-		return new JadeTree(root);
+		JadeTree tree = new JadeTree(root);
+
+		// Copy tree-level metadata into the JadeTree
+		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
+		if (metaList != null)
+			for (Object meta : metaList) {
+				JSONObject j = (JSONObject)meta;
+				// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
+				String propname = (String)j.get("@property");
+				if (propname != null) {
+					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
+					Object value = j.get("$");
+					if (value == null) throw new RuntimeException("missing value for " + propname);
+					tree.assocObject(propname, value);
+				} else if ((propname = (String)j.get("@rel")) != null) {
+					System.out.println("propname = " + propname);
+					// String propkind = (String)j.get("@xsi:type");  = nex:ResourceMeta
+					Object value = j.get("@href");
+					if (value == null) throw new RuntimeException("missing value for " + propname);
+					tree.assocObject(propname, value);
+				} else
+					throw new RuntimeException("missing property name" + j);
+			}
+		return tree;
+	}
+
+	private static List<Object> getMetaList(JSONObject obj) {
+		Object meta = obj.get("meta");
+		if (meta == null) return null;
+		if (meta instanceof JSONObject) {
+			List l = new ArrayList(1);
+			l.add(meta);
+			return l;
+		} else
+			return (JSONArray) meta;
 	}
 
 }

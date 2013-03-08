@@ -14,7 +14,7 @@ public class JadeTree {
 
 	private ArrayList<JadeNode> externalNodes;
 
-	private ArrayList<TreeObject> assoc; //@todo as with JavaNode.assoc, this could be changed to a HashMap or TreeMap, if needed
+	private HashMap<String,Object> assoc;
 
 	private int internalNodeCount;  // @todo could be removed by relying on internalNodes.size()
 
@@ -25,13 +25,13 @@ public class JadeTree {
 	 */
 	public JadeTree() {
 		root = null;
-		assoc = new ArrayList<TreeObject>();
+		assoc = new HashMap<String,Object>();
 		processRoot();
 	}
 
 	public JadeTree(JadeNode root) {
 		this.root = root;
-		assoc = new ArrayList<TreeObject>();
+		assoc = new HashMap<String,Object>();
 		processRoot();
 	}
 
@@ -185,27 +185,18 @@ public class JadeTree {
 	 * @note this in an example of an O(N) routine that would be constant time
 	 * 		or O(log(N)) if we change the assoc datatype.
 	 * @param key
-	 * @param obj Object to be storted
+	 * @param obj Object to be stored
 	 */
 	public void assocObject(String key, Object obj) {
-		TreeObject no = new TreeObject(key, obj);
-		assoc.add(no);
+		assoc.put(key, obj);
 	}
 
 	/**
 	 * Returns the object associated with the last call of assocObject with this key
-	 * @note this in an example of an O(N) routine that would be constant time
-	 * 		or O(log(N)) if we change the assoc datatype.
 	 * @param key
 	 */
 	public Object getObject(String key) {
-		Object a = null;
-		for (int i = 0; i < assoc.size(); i++) {
-			if (assoc.get(i).getName().compareTo(key) == 0) {
-				a = assoc.get(i);
-			}
-		}
-		return a;
+		return assoc.get(key);
 	}
 
 	/**
