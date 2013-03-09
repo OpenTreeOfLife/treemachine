@@ -8,6 +8,9 @@
  * are assumed.
  *
  * @about is ignored, etc.
+ * Ill-formed nexson files will lead to random runtime exceptions, such as bad 
+ * casts and null pointer exceptions.  Should be cleaned up eventually, but not
+ * high priority.
  */
 
 package jade.tree;
@@ -21,6 +24,7 @@ import org.json.simple.JSONArray;
 
 import java.io.Reader;
 import java.io.FileReader;
+import java.io.BufferedReader;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -38,14 +42,20 @@ public class NexsonReader {
 			System.out.println("Curator: " + tree.getObject("ot:curatorName"));
 			System.out.println("Reference: " + tree.getObject("ot:studyPublicationReference"));
 			System.out.println(tree.getRoot().getNewick(false));
+
+			int i = 0;
+			for (JadeNode node: tree.iterateExternalNodes()) {
+				Object o = node.getObject("ot:ottolid");
+				System.out.println(node.getName() + " / " + o + " " + o.getClass());
+				if (++i > 10) break;
+			}
 		}
 	}
 
 	/* Read Nexson study from a file, given file name */
-	/* Do we want: BufferedReader br = new BufferedReader(new FileReader(filename)); ? */
 
 	public static List<JadeTree> readNexson(String filename) throws java.io.IOException {
-		Reader r = new FileReader(filename);
+		Reader r = new BufferedReader(new FileReader(filename));
 		List<JadeTree> result = readNexson(r);
 		r.close();
 		return result;
@@ -132,14 +142,17 @@ public class NexsonReader {
 				String label = (String)otu.get("@label");
 				jn.setName(label);
 
+				// Get taxon id (usually present) and maybe other metadata (rarely present)
 				List<Object> metaList2 = getMetaList(otu);
 				if (metaList2 != null)
 					for (Object meta : metaList2) {
 						JSONObject m = (JSONObject)meta;
 						String propname = (String)m.get("@property");
 						Object value = m.get("$");
+						if (propname.equals("ot:ottolid"))
+							// Kludge! For important special case
+							value = Long.parseLong((String)value);
 						jn.assocObject(propname, value);
-						System.out.println(label + "/ " + propname + ": " + jn.getObject(propname));
 					}
 			}
 		}
