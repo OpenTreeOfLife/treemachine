@@ -36,8 +36,9 @@ public class NexsonReader {
 
 	public static void main(String argv[]) throws Exception {
 		String filename = "study15.json";
-		if (argv.length == 1)
+		if (argv.length == 1) {
 			filename = argv[0];
+		}
 		for (JadeTree tree : readNexson(filename)) {
 			System.out.println("Curator: " + tree.getObject("ot:curatorName"));
 			System.out.println("Reference: " + tree.getObject("ot:studyPublicationReference"));
@@ -165,22 +166,24 @@ public class NexsonReader {
 			JadeNode source = nodeMap.get(j.get("@source"));  // why isn't this a type error?
 			JadeNode target = nodeMap.get(j.get("@target"));
 			Double length = (Double)j.get("@length");
-			if (length != null)
+			if (length != null) {
 				target.setBL(length);
+			}
 			source.addChild(target);
 		}
 
 		// Find the root (the node without a parent) so we can return it.
 		// If the input file is malicious this might loop forever.
 		JadeNode root = null;
-		for (JadeNode jn = arbitraryNode; jn != null; jn = jn.getParent())
+		for (JadeNode jn = arbitraryNode; jn != null; jn = jn.getParent()) {
 			root = jn;
+		}
 
 		JadeTree tree = new JadeTree(root);
 
 		// Copy tree-level metadata into the JadeTree
 		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
-		if (metaList != null)
+		if (metaList != null) {
 			for (Object meta : metaList) {
 				JSONObject j = (JSONObject)meta;
 				// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
@@ -194,23 +197,29 @@ public class NexsonReader {
 					System.out.println("propname = " + propname);
 					// String propkind = (String)j.get("@xsi:type");  = nex:ResourceMeta
 					Object value = j.get("@href");
-					if (value == null) throw new RuntimeException("missing value for " + propname);
+					if (value == null) {
+						throw new RuntimeException("missing value for " + propname);
+					}
 					tree.assocObject(propname, value);
-				} else
+				} else {
 					throw new RuntimeException("missing property name" + j);
+				}
 			}
+		}
 		return tree;
 	}
 
 	private static List<Object> getMetaList(JSONObject obj) {
 		Object meta = obj.get("meta");
-		if (meta == null) return null;
+		if (meta == null) {
+			return null;
+		}
 		if (meta instanceof JSONObject) {
 			List l = new ArrayList(1);
 			l.add(meta);
 			return l;
-		} else
+		} else {
 			return (JSONArray) meta;
+		}
 	}
-
 }
