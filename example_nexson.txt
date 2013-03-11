@@ -7,21 +7,27 @@
       "nex": "http:\/\/www.nexml.org\/2009",
       "ot": "http:\/\/purl.org\/opentree-terms#"
     },
+    "@about": "#study",
     "@nexmljson": "http:\/\/www.somewhere.org",
     "meta": [
+      {
+        "@property": "ot:studyPublicationReference",
+        "@xsi:type": "nex:LiteralMeta",
+        "$": "Wang, Hengchang, Michael J. Moore, Pamela S. Soltis, Charles D. Bell, Samuel F. Brockington, Roolse Alexandre, Charles C. Davis, Maribeth Latvis, Steven R. Manchester, and Douglas E. Soltis. 2009. Rosid radiation and the rapid rise of angiosperm-dominated forests. Proceedings of the National Academy of Sciences 106, no. 10 (March 10): 3853 -3858. doi:10.1073\/pnas.0813376106."
+      },
       {
         "@property": "ot:curatorName",
         "@xsi:type": "nex:LiteralMeta",
         "$": "Rick Ree"
       },
       {
-        "@property": "ot:studyPublicationReference",
+        "@property": "ot:studyid",
         "@xsi:type": "nex:LiteralMeta",
-        "$": "Wang, Hengchang, Michael J. Moore, Pamela S. Soltis, Charles D. Bell, Samuel F. Brockington, Roolse Alexandre, Charles C. Davis, Maribeth Latvis, Steven R. Manchester, and Douglas E. Soltis. 2009. Rosid radiation and the rapid rise of angiosperm-dominated forests. Proceedings of the National Academy of Sciences 106, no. 10 (March 10): 3853 -3858. doi:10.1073\/pnas.0813376106."
+        "$": "15"
       }
     ],
     "@generator": "Phylografter nexml-json exporter",
-    "@id": "15",
+    "@id": "study",
     "@version": "0.9",
     "otus": {
       "@id": "otus15",
@@ -31,7 +37,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "122"
+            "$": 101454754
           },
           "@id": "otu192",
           "@about": "#otu192"
@@ -41,7 +47,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "123"
+            "$": 101251481
           },
           "@id": "otu193",
           "@about": "#otu193"
@@ -51,7 +57,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "124"
+            "$": 101506050
           },
           "@id": "otu194",
           "@about": "#otu194"
@@ -61,7 +67,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "125"
+            "$": 101513471
           },
           "@id": "otu195",
           "@about": "#otu195"
@@ -75,7 +81,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "126"
+            "$": 101567818
           },
           "@id": "otu197",
           "@about": "#otu197"
@@ -85,7 +91,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "127"
+            "$": 100039565
           },
           "@id": "otu198",
           "@about": "#otu198"
@@ -95,7 +101,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "128"
+            "$": 100976935
           },
           "@id": "otu199",
           "@about": "#otu199"
@@ -105,7 +111,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "129"
+            "$": 100515554
           },
           "@id": "otu200",
           "@about": "#otu200"
@@ -115,7 +121,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "130"
+            "$": 101402117
           },
           "@id": "otu201",
           "@about": "#otu201"
@@ -125,7 +131,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "131"
+            "$": 101270511
           },
           "@id": "otu202",
           "@about": "#otu202"
@@ -135,7 +141,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "132"
+            "$": 100954210
           },
           "@id": "otu203",
           "@about": "#otu203"
@@ -145,7 +151,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "133"
+            "$": 101761379
           },
           "@id": "otu204",
           "@about": "#otu204"
@@ -155,7 +161,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "134"
+            "$": 100332038
           },
           "@id": "otu205",
           "@about": "#otu205"
@@ -165,7 +171,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "135"
+            "$": 100701682
           },
           "@id": "otu206",
           "@about": "#otu206"
@@ -175,7 +181,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "136"
+            "$": 100877056
           },
           "@id": "otu207",
           "@about": "#otu207"
@@ -185,7 +191,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "137"
+            "$": 101368600
           },
           "@id": "otu208",
           "@about": "#otu208"
@@ -195,7 +201,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "138"
+            "$": 100877050
           },
           "@id": "otu209",
           "@about": "#otu209"
@@ -205,7 +211,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "139"
+            "$": 100294465
           },
           "@id": "otu210",
           "@about": "#otu210"
@@ -215,7 +221,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "140"
+            "$": 100877052
           },
           "@id": "otu211",
           "@about": "#otu211"
@@ -225,7 +231,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "141"
+            "$": 102027874
           },
           "@id": "otu212",
           "@about": "#otu212"
@@ -235,7 +241,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "142"
+            "$": 100328158
           },
           "@id": "otu213",
           "@about": "#otu213"
@@ -245,7 +251,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "143"
+            "$": 101861751
           },
           "@id": "otu214",
           "@about": "#otu214"
@@ -255,7 +261,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "144"
+            "$": 100339711
           },
           "@id": "otu215",
           "@about": "#otu215"
@@ -265,7 +271,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "145"
+            "$": 101683669
           },
           "@id": "otu216",
           "@about": "#otu216"
@@ -275,7 +281,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "146"
+            "$": 100837832
           },
           "@id": "otu217",
           "@about": "#otu217"
@@ -285,7 +291,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "147"
+            "$": 100783868
           },
           "@id": "otu218",
           "@about": "#otu218"
@@ -295,7 +301,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "148"
+            "$": 100011840
           },
           "@id": "otu219",
           "@about": "#otu219"
@@ -305,7 +311,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "149"
+            "$": 101013823
           },
           "@id": "otu220",
           "@about": "#otu220"
@@ -315,7 +321,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "150"
+            "$": 100548636
           },
           "@id": "otu221",
           "@about": "#otu221"
@@ -329,7 +335,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "151"
+            "$": 102044882
           },
           "@id": "otu223",
           "@about": "#otu223"
@@ -339,7 +345,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "152"
+            "$": 100249321
           },
           "@id": "otu224",
           "@about": "#otu224"
@@ -349,7 +355,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "153"
+            "$": 101880927
           },
           "@id": "otu225",
           "@about": "#otu225"
@@ -359,7 +365,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "154"
+            "$": 101707571
           },
           "@id": "otu226",
           "@about": "#otu226"
@@ -369,7 +375,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "155"
+            "$": 101784488
           },
           "@id": "otu227",
           "@about": "#otu227"
@@ -379,7 +385,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "156"
+            "$": 101025521
           },
           "@id": "otu228",
           "@about": "#otu228"
@@ -389,7 +395,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "157"
+            "$": 100348853
           },
           "@id": "otu229",
           "@about": "#otu229"
@@ -399,7 +405,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "158"
+            "$": 101751080
           },
           "@id": "otu230",
           "@about": "#otu230"
@@ -409,7 +415,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "159"
+            "$": 100651511
           },
           "@id": "otu231",
           "@about": "#otu231"
@@ -419,7 +425,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "160"
+            "$": 100219397
           },
           "@id": "otu232",
           "@about": "#otu232"
@@ -429,7 +435,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "161"
+            "$": 100740459
           },
           "@id": "otu233",
           "@about": "#otu233"
@@ -439,7 +445,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "162"
+            "$": 101064737
           },
           "@id": "otu234",
           "@about": "#otu234"
@@ -449,7 +455,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "163"
+            "$": 100019766
           },
           "@id": "otu235",
           "@about": "#otu235"
@@ -459,7 +465,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "164"
+            "$": 100445187
           },
           "@id": "otu236",
           "@about": "#otu236"
@@ -469,7 +475,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "165"
+            "$": 100843647
           },
           "@id": "otu237",
           "@about": "#otu237"
@@ -479,7 +485,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "166"
+            "$": 101875472
           },
           "@id": "otu238",
           "@about": "#otu238"
@@ -489,7 +495,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "167"
+            "$": 101617808
           },
           "@id": "otu239",
           "@about": "#otu239"
@@ -503,7 +509,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "168"
+            "$": 100933122
           },
           "@id": "otu241",
           "@about": "#otu241"
@@ -513,7 +519,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "169"
+            "$": 101203523
           },
           "@id": "otu242",
           "@about": "#otu242"
@@ -523,7 +529,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "170"
+            "$": 101440327
           },
           "@id": "otu243",
           "@about": "#otu243"
@@ -533,7 +539,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "171"
+            "$": 101948720
           },
           "@id": "otu244",
           "@about": "#otu244"
@@ -547,7 +553,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "172"
+            "$": 100423285
           },
           "@id": "otu246",
           "@about": "#otu246"
@@ -557,7 +563,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "173"
+            "$": 101098619
           },
           "@id": "otu247",
           "@about": "#otu247"
@@ -567,7 +573,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "174"
+            "$": 100111454
           },
           "@id": "otu248",
           "@about": "#otu248"
@@ -577,7 +583,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "175"
+            "$": 101880925
           },
           "@id": "otu249",
           "@about": "#otu249"
@@ -587,7 +593,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "176"
+            "$": 102044886
           },
           "@id": "otu250",
           "@about": "#otu250"
@@ -597,7 +603,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "177"
+            "$": 100468095
           },
           "@id": "otu251",
           "@about": "#otu251"
@@ -607,7 +613,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "178"
+            "$": 101588066
           },
           "@id": "otu252",
           "@about": "#otu252"
@@ -617,7 +623,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "179"
+            "$": 100262163
           },
           "@id": "otu253",
           "@about": "#otu253"
@@ -627,7 +633,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "180"
+            "$": 101587449
           },
           "@id": "otu254",
           "@about": "#otu254"
@@ -637,7 +643,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "181"
+            "$": 100623679
           },
           "@id": "otu255",
           "@about": "#otu255"
@@ -647,7 +653,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "182"
+            "$": 100113319
           },
           "@id": "otu256",
           "@about": "#otu256"
@@ -657,7 +663,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "183"
+            "$": 100843493
           },
           "@id": "otu257",
           "@about": "#otu257"
@@ -667,7 +673,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "184"
+            "$": 100672539
           },
           "@id": "otu258",
           "@about": "#otu258"
@@ -677,7 +683,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "185"
+            "$": 100095678
           },
           "@id": "otu259",
           "@about": "#otu259"
@@ -687,7 +693,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "186"
+            "$": 101493995
           },
           "@id": "otu260",
           "@about": "#otu260"
@@ -697,7 +703,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "187"
+            "$": 102004710
           },
           "@id": "otu261",
           "@about": "#otu261"
@@ -707,7 +713,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "188"
+            "$": 101492215
           },
           "@id": "otu262",
           "@about": "#otu262"
@@ -717,7 +723,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "189"
+            "$": 100004044
           },
           "@id": "otu263",
           "@about": "#otu263"
@@ -727,7 +733,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "190"
+            "$": 100665372
           },
           "@id": "otu264",
           "@about": "#otu264"
@@ -737,7 +743,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "191"
+            "$": 100662081
           },
           "@id": "otu265",
           "@about": "#otu265"
@@ -747,7 +753,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "192"
+            "$": 100425734
           },
           "@id": "otu266",
           "@about": "#otu266"
@@ -757,7 +763,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "193"
+            "$": 101981039
           },
           "@id": "otu267",
           "@about": "#otu267"
@@ -767,7 +773,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "194"
+            "$": 100171435
           },
           "@id": "otu268",
           "@about": "#otu268"
@@ -777,7 +783,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "195"
+            "$": 100968044
           },
           "@id": "otu269",
           "@about": "#otu269"
@@ -787,7 +793,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "196"
+            "$": 100751863
           },
           "@id": "otu270",
           "@about": "#otu270"
@@ -797,7 +803,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "197"
+            "$": 100348035
           },
           "@id": "otu271",
           "@about": "#otu271"
@@ -807,7 +813,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "198"
+            "$": 101805521
           },
           "@id": "otu272",
           "@about": "#otu272"
@@ -817,7 +823,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "199"
+            "$": 101412419
           },
           "@id": "otu273",
           "@about": "#otu273"
@@ -827,7 +833,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "200"
+            "$": 102025713
           },
           "@id": "otu274",
           "@about": "#otu274"
@@ -837,7 +843,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "201"
+            "$": 100821482
           },
           "@id": "otu275",
           "@about": "#otu275"
@@ -847,7 +853,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "202"
+            "$": 101638074
           },
           "@id": "otu276",
           "@about": "#otu276"
@@ -869,7 +875,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "203"
+            "$": 101529771
           },
           "@id": "otu280",
           "@about": "#otu280"
@@ -879,7 +885,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "204"
+            "$": 100705515
           },
           "@id": "otu281",
           "@about": "#otu281"
@@ -889,7 +895,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "205"
+            "$": 101434638
           },
           "@id": "otu282",
           "@about": "#otu282"
@@ -899,7 +905,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "206"
+            "$": 101199585
           },
           "@id": "otu283",
           "@about": "#otu283"
@@ -909,7 +915,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "207"
+            "$": 100049118
           },
           "@id": "otu284",
           "@about": "#otu284"
@@ -919,7 +925,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "208"
+            "$": 101669768
           },
           "@id": "otu285",
           "@about": "#otu285"
@@ -929,7 +935,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "209"
+            "$": 101647107
           },
           "@id": "otu286",
           "@about": "#otu286"
@@ -939,7 +945,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "210"
+            "$": 100790701
           },
           "@id": "otu287",
           "@about": "#otu287"
@@ -949,7 +955,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "211"
+            "$": 100097797
           },
           "@id": "otu288",
           "@about": "#otu288"
@@ -959,7 +965,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "212"
+            "$": 101327349
           },
           "@id": "otu289",
           "@about": "#otu289"
@@ -969,7 +975,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "213"
+            "$": 100046148
           },
           "@id": "otu290",
           "@about": "#otu290"
@@ -983,7 +989,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "214"
+            "$": 101185023
           },
           "@id": "otu292",
           "@about": "#otu292"
@@ -997,7 +1003,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "215"
+            "$": 100773870
           },
           "@id": "otu294",
           "@about": "#otu294"
@@ -1007,7 +1013,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "216"
+            "$": 100233973
           },
           "@id": "otu295",
           "@about": "#otu295"
@@ -1017,7 +1023,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "217"
+            "$": 101294297
           },
           "@id": "otu296",
           "@about": "#otu296"
@@ -1027,7 +1033,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "218"
+            "$": 100919905
           },
           "@id": "otu297",
           "@about": "#otu297"
@@ -1037,7 +1043,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "219"
+            "$": 100148593
           },
           "@id": "otu298",
           "@about": "#otu298"
@@ -1047,7 +1053,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "220"
+            "$": 100920452
           },
           "@id": "otu299",
           "@about": "#otu299"
@@ -1057,7 +1063,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "221"
+            "$": 100490081
           },
           "@id": "otu300",
           "@about": "#otu300"
@@ -1067,7 +1073,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "222"
+            "$": 101715120
           },
           "@id": "otu301",
           "@about": "#otu301"
@@ -1081,7 +1087,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "223"
+            "$": 101341265
           },
           "@id": "otu303",
           "@about": "#otu303"
@@ -1091,7 +1097,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "224"
+            "$": 100104973
           },
           "@id": "otu304",
           "@about": "#otu304"
@@ -1101,7 +1107,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "225"
+            "$": 101986781
           },
           "@id": "otu305",
           "@about": "#otu305"
@@ -1115,7 +1121,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "226"
+            "$": 100827117
           },
           "@id": "otu307",
           "@about": "#otu307"
@@ -1125,7 +1131,7 @@
           "meta": {
             "@property": "ot:ottolid",
             "@xsi:type": "nex:LiteralMeta",
-            "$": "227"
+            "$": 101715109
           },
           "@id": "otu308",
           "@about": "#otu308"
@@ -1951,6 +1957,12 @@
               "@id": "node768"
             }
           ],
+          "@about": "#tree4",
+          "meta": {
+            "@property": "ot:branchLengthMode",
+            "@xsi:type": "nex:LiteralMeta",
+            "$": "ot:substitutionCount"
+          },
           "edge": [
             {
               "@source": "node830",
