@@ -133,6 +133,7 @@ public class MainRunner {
 	
 	public void graphExplorerParser(String [] args) {
 		GraphExplorer gi = null;
+
 		if (args[0].compareTo("jsgol") == 0) {
 			if (args.length != 3) {
 				System.out.println("arguments should be: name graphdbfolder");
@@ -143,16 +144,40 @@ public class MainRunner {
 			GraphExporter ge = new GraphExporter(graphname);
 			System.out.println("constructing a json for: "+ name);
 			ge.writeJSONWithAltParentsToFile(name);
+			
 		} else if (args[0].compareTo("fulltree") == 0) {
-			if (args.length != 3) {
-				System.out.println("arguments should be: name graphdbfolder");
+		    String usageString = "arguments should be: name graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
+			if (args.length != 5) {
+				System.out.println(usageString);
 				return;
 			}
+
 			String name = args[1];
 			String graphname = args[2];
+			String _useTaxonomy = args[3];
+			String _useBranchAndBound = args[4];
+			
+			boolean useTaxonomy = false;
+	        if (_useTaxonomy.equals("T")) {
+	            useTaxonomy = true;
+	        } else if (!(_useTaxonomy.equals("F"))) {
+	            System.out.println(usageString);
+	            return;
+	        }
+
+	        boolean useBranchAndBound= false;
+            if (_useBranchAndBound.equals("T")) {
+                useBranchAndBound = true;
+            } else if (!(_useBranchAndBound.equals("F"))) {
+                System.out.println(usageString);
+                return;
+            }
+
+	        
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			gi.constructNewickSourceTieBreaker(name);
+			gi.constructNewickSourceTieBreaker(name, useTaxonomy, useBranchAndBound);
+			
 		} else if (args[0].compareTo("fulltree_sources") == 0) {
 			if (args.length != 4) {
 				System.out.println("arguments should be: name preferredsource graphdbfolder");
@@ -358,15 +383,26 @@ public class MainRunner {
 	}
 	
 	public void graphExporter(String [] args) {
-		if (args.length > 4) {
-			System.out.println("arguments should be name outfile graphdbfolder");
+	    String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
+		if (args.length > 5) {
+			System.out.println(usageString);
 			return;
 		}
 		String taxon = args[1];
 		String outfile = args[2];
-		String graphname = args[3];
+		String _useTaxonomy = args[3];
+		String graphname = args[4];
+		
+		boolean useTaxonomy = false;
+		if (_useTaxonomy.equals("T")) {
+		    useTaxonomy = true;
+		} else if (!(_useTaxonomy.equals("F"))) {
+		    System.out.println(usageString);
+		    return;
+		}
+		
 		GraphExporter ge = new GraphExporter(graphname);
-		ge.writeGraphML(taxon, outfile);
+		ge.writeGraphML(taxon, outfile, useTaxonomy);
 		ge.shutdownDB();
 	}
 	
