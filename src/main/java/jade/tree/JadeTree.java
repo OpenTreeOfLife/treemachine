@@ -357,6 +357,47 @@ public class JadeTree {
 		return cur1;
     }
 	
+	   /**
+     * @return the node in the tree that is the most recent common ancestor of all of the leaves specified
+     * @param innodes an array of leaf node names
+     * @todo this could be optimized (by not calling getMRCATraverse repeatedly)
+     */
+    public JadeNode getMRCAAnyDepthDescendants(ArrayList<String> innodes) {
+        if (innodes.size() == 1) {
+            return this.getExternalNode(innodes.get(0));
+        }
+        ArrayList <String> outgroup = new ArrayList<String>();
+        for (int i = 0; i < innodes.size(); i++) {
+            outgroup.add(innodes.get(i));
+        }
+        JadeNode cur1 = this.getExternalNode(outgroup.get(0));
+
+        if (cur1 == null)
+            cur1 = this.getInternalNode(outgroup.get(0));
+        
+        if (cur1 == null)
+            throw new java.lang.IllegalStateException("could not find the taxon " + outgroup.get(0));
+
+        outgroup.remove(0);
+        JadeNode cur2 = null;
+        JadeNode tempmrca = null;
+
+        while (outgroup.size() > 0) {
+            cur2 = this.getExternalNode(outgroup.get(0));
+
+            if (cur2 == null)
+                cur2 = this.getInternalNode(outgroup.get(0));
+
+            if (cur2 == null)
+                throw new java.lang.IllegalStateException("could not find the taxon " + outgroup.get(0));
+
+            outgroup.remove(0);
+            tempmrca = getMRCATraverse(cur1,cur2);
+            cur1 = tempmrca;
+        }
+        return cur1;
+    }
+	
 	/**
 	 * Changes the direction of the arc connecting node to it's parent
 	 * @todo uses recursion.

@@ -54,10 +54,41 @@ public class JadeNode {
 		this.assoc = new ArrayList<NodeObject>();
 	}
 
-	/*
-	 * public methods
-	 */
-	
+
+    /* ---------------------------- begin node iterators --------------------------------*/
+
+    public enum NodeOrder {PREORDER, POSTORDER};
+
+    private void addDescendants(JadeNode n, List<JadeNode> children, NodeOrder order) {
+
+        if (order == NodeOrder.PREORDER) {
+            for (JadeNode c : n.children){
+                addDescendants(c, children, order);
+            }
+            children.add(n);
+
+        } else if (order == NodeOrder.POSTORDER) {
+            children.add(n);
+
+            for (JadeNode c : n.children){
+                addDescendants(c, children, order);
+            }
+        }
+    }
+    
+    public Iterable<JadeNode> getDescendants(NodeOrder order) {
+        
+        ArrayList<JadeNode> nodes = new ArrayList<JadeNode>();
+        addDescendants(this, nodes, order);
+        return nodes;
+    }
+    
+    /* ---------------------------- end node iterators --------------------------------*/
+    
+    /*
+     * other public methods
+     */
+    
 	public JadeNode [] getChildrenArr() {return (JadeNode[])this.children.toArray();}
 	
 	public ArrayList<JadeNode> getChildren() {return this.children;}
@@ -299,4 +330,6 @@ public class JadeNode {
 		}
 		return a;
 	}
+
+
 }

@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Stack;
 
@@ -41,7 +44,7 @@ public class GraphExplorer extends GraphBase {
     /* -------------------- begin info: collapsing children based on taxonomy ----------------------- */
 
     /*
-     * settings and variables below are related to features controlling the heuristic placement of external taxa (tips) that would otherwise not be observed in
+     * settings and variables below are related to features controlling the heuristic placement of external taxa that would otherwise not be observed in
      * synthetic phylogenies.
      * 
      * Currently there are two options: "strict" and "relaxed".
@@ -61,8 +64,8 @@ public class GraphExplorer extends GraphBase {
     private HashSet<Long> knownIdsInTree;
 
     // only one of these should be turned on at once
-    private static final boolean sinkLostChildrenStrict = true;
-    private static final boolean sinkLostChildrenRelaxed = false;
+    private static final boolean sinkLostChildrenStrict = false;
+    private static final boolean sinkLostChildrenRelaxed = true;
 
     /* --------------------- end info: collapsing children based on taxonomy ---------------------- */
 
@@ -744,29 +747,127 @@ public class GraphExplorer extends GraphBase {
     }
 
     /**
+     * Used to add missing external nodes from a JadeNode tree that has just been built by `constructNewickTieBreakerSOURCE`.
+     * Adds nodes based on taxnomy; identifies all the external descendants of each taxon that are absent from the tree, and adds them
+     * at the base of the MRCA of all the external descendants of that taxon that are present in the tree.
+     * 
+     * @param inputRoot -
+     *        the tree to be added
+     * @param taxRootName
+     *        the name of the inclusive taxon to add missing descendants of (will include all descendant taxa)
+     * @return JadeNode tree (the root of a JadeNode tree) with missing children added
+     */
+    private void addMissingChildrenRelaxed(JadeTree tree, String taxRootName) {
+
+        // will hold nodes from the taxonomy to check
+        LinkedList<Node> taxNodes = new LinkedList<Node>();
+
+        // walk taxonomy and save nodes in postorder
+        Node taxRoot = findGraphNodeByName(taxRootName);
+        TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.TAXCHILDOF, Direction.INCOMING);
+        for (Node taxChild : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRoot).nodes()) {
+            taxNodes.add(0, taxChild);
+        }
+
+        // walk taxa from tips down
+        for (Node taxNode : taxNodes) {
+            if (taxNode.hasRelationship(Direction.INCOMING, RelTypes.TAXCHILDOF) == false) {
+                // only consider taxa that are not tips
+                continue;
+            }
+
+//            System.out.println(taxNode.getProperty("name"));
+            
+            // record descendant taxa not in the tree so we can add them
+            HashMap<String, Long> taxaToAdd = new HashMap<String, Long>();
+
+            // just record the names that are already in the tree, used for finding the mrca
+            ArrayList<String> namesInTree = new ArrayList<String>();
+            
+            // get all external descendants of this taxon
+            for (long cid : (long[]) taxNode.getProperty("mrca")) {
+                String name = GeneralUtils.cleanName((String) graphDb.getNodeById(cid).getProperty("name"));
+//                taxChildNames.add(name);
+                if (knownIdsInTree.contains(cid)) {
+                    namesInTree.add(name);
+                    System.out.println("name in tree: " + name);
+                } else {
+                    taxaToAdd.put(name, cid);
+                }
+            }
+            
+            // find the mrca of the names in the tree
+            JadeNode mrca = null;
+            if (namesInTree.size() > 0) {
+                mrca = tree.getMRCAAnyDepthDescendants(namesInTree);
+//                System.out.println("found mrca: " + mrca);
+
+            } else {
+//                System.out.println("zero names in tree!");
+                continue;
+            }
+            
+            if (namesInTree.size() == 1) {
+                // make a new parent if the mrca is a tip
+                // TODO: what to do about the branch length of the single exemplar tip for this mrca?
+                JadeNode newMRCA = new JadeNode();
+                JadeNode parentOfNewMRCA = mrca.getParent();
+                parentOfNewMRCA.addChild(newMRCA);
+                parentOfNewMRCA.removeChild(mrca);
+                newMRCA.addChild(mrca);
+                mrca = newMRCA;
+            }
+            
+            // add any children that are not already in tree
+            // `knownIdsInTree` should already have been started during original construction of `tree`
+            for (Entry<String, Long> entry: taxaToAdd.entrySet()) {
+
+                String taxName = entry.getKey();
+                Long taxId = entry.getValue();
+
+//                System.out.println("attempting to add child: " + taxName + " to " + mrca.getName());
+
+                JadeNode newChild = new JadeNode();
+                newChild.setName(taxName);
+
+                mrca.addChild(newChild);
+                
+                knownIdsInTree.add(taxId);
+            }
+            
+            // update the JadeTree, otherwise we won't always find newly added taxa when we look for mrcas
+            tree.processRoot();
+        }
+    }
+    
+    /**
      * Constructs a newick tree based on the sources. There are currently no other criteria considered in this particular function.
      * 
-     * @param taxname
+     * @param taxName
      * @param sources
      */
-    public void constructNewickTieBreakerSOURCE(String taxname, String[] sources, boolean useTaxonomy, boolean useBranchAndBound) {
-        Node firstNode = findGraphNodeByName(taxname);
+    public void constructNewickTieBreakerSOURCE(String taxName, String[] sources, boolean useTaxonomy, boolean useBranchAndBound) {
+        Node firstNode = findGraphNodeByName(taxName);
         if (firstNode == null) {
             System.out.println("name not found");
             return;
         }
 
-        if (sinkLostChildrenStrict) {
+        if (sinkLostChildrenStrict || sinkLostChildrenRelaxed) {
             knownIdsInTree = new HashSet<Long>();
         }
 
         // NOTE: currently we don't use a branch/bound search when we prefer by source
         JadeNode root = preorderConstructNewickTieBreakerSOURCE(firstNode, null, sources, null, useTaxonomy /* , useBranchAndBound) */);
-
         JadeTree tree = new JadeTree(root);
+
+        if (sinkLostChildrenRelaxed) {
+            addMissingChildrenRelaxed(tree, taxName);
+        }
+        
         PrintWriter outFile;
         try {
-            outFile = new PrintWriter(new FileWriter(taxname + ".tre"));
+            outFile = new PrintWriter(new FileWriter(taxName + ".tre"));
             outFile.write(tree.getRoot().getNewick(true));
             outFile.write(";\n");
             outFile.close();
@@ -796,9 +897,6 @@ public class GraphExplorer extends GraphBase {
         if (curnode.hasProperty("name")) {
             newNode.setName((String) curnode.getProperty("name"));
             newNode.setName(GeneralUtils.cleanName(newNode.getName()));
-            
-            if (sinkLostChildrenStrict)
-                knownIdsInTree.add(curnode.getId());
         }
 
         if (parent == null) {
@@ -808,6 +906,11 @@ public class GraphExplorer extends GraphBase {
         } else {
             // add this node as a child of the passed-in parent
             parent.addChild(newNode);
+
+            if (sinkLostChildrenStrict || sinkLostChildrenRelaxed) {
+                knownIdsInTree.add(curnode.getId());
+            }
+
             if (relcoming.hasProperty("branch_length")) {
                 newNode.setBL((Double) relcoming.getProperty("branch_length"));
             }
@@ -828,7 +931,7 @@ public class GraphExplorer extends GraphBase {
                     continue;
             }
 
-            // get the id of the candidate child node
+            // candidate child node id
             Long cid = candRel.getStartNode().getId();
 
             // if we haven't seen this node yet
@@ -899,20 +1002,21 @@ public class GraphExplorer extends GraphBase {
                     if (candNodeRankingMap.get(cid_i) < candNodeRankingMap.get(cid_j)) {
                         nodesToExclude.add(cid_j);
 
-                        // record eventual descendants that may be lost by this choice
-                        if (sinkLostChildrenStrict)
+                        if (sinkLostChildrenStrict) {
+                            // record eventual descendants that may be lost by this choice
                             putativeLostChildIds.addAll(descIds_j);
+                        }
 
                     } else {
                         nodesToExclude.add(cid_i);
 
-                        // record eventual descendants that may be lost by this choice
-                        if (sinkLostChildrenStrict)
+                        if (sinkLostChildrenStrict) {
+                            // record eventual descendants that may be lost by this choice
                             putativeLostChildIds.addAll(descIds_i);
-
-                        // if we're not recording lost children, move on? (@sas, why do we break here?)
-                        else
+                        } else {
+                            // if we're not recording lost children, move on? (@sas, why do we break here?)
                             break;
+                        }
                     }
                 }
             }
