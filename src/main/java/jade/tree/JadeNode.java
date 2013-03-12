@@ -3,7 +3,10 @@ package jade.tree;
 import java.util.*;
 
 public class JadeNode {
-	/*
+    
+    public static final double MIN_BRANCHLENGTH = 0.0000000000000000000001;
+
+    /*
 	 * common associations
 	 */
 	private double BL; //branch lengths
@@ -121,7 +124,11 @@ public class JadeNode {
 			}
 			ret.append(this.getChild(i).getNewick(bl));
 			if (bl) {
-				ret.append(this.getChild(i).getBL());
+			    double branchLength = this.getChild(i).getBL();
+			    if (branchLength == 0)
+			        branchLength = MIN_BRANCHLENGTH;
+
+			    ret.append(":".concat(String.valueOf(branchLength)));
 			}
 			if (i == this.getChildCount()-1) {
 				ret.append(")");

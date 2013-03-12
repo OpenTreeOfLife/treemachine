@@ -13,7 +13,10 @@ import java.util.*;
 
 public class GeneralUtils {
 
-	public static int sum_ints(List<Integer> list){
+    // all common non-alphanumeric chars except "_" and "-", for use when cleaning strings
+    public final static String badchars = "`!@#$%^&*()+=;':\",.<>/\\?|\b\t\n\f\r";
+
+    public static int sum_ints(List<Integer> list){
 		if(list==null || list.size()<1)
 			return 0;
 
@@ -24,4 +27,16 @@ public class GeneralUtils {
 		return sum;
 	}
 
+	/**
+	 * Replaces non-alphanumeric characters (excluding "_" and "-") in `dirtyName` with "_" and returns the cleaned name. Currently slow and crappy, should be updated to use regex and just do a single pass over the string.
+	 * @param dirtyName
+	 * @return cleaned name
+	 */
+	public static String cleanName(String dirtyName) {
+	    String cleanName = dirtyName;
+	    for (char bad : badchars.toCharArray()) {
+	        cleanName.replace(bad, '_');
+	    }
+	    return cleanName;
+	}
 }

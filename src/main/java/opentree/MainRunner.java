@@ -173,33 +173,56 @@ public class MainRunner {
                 return;
             }
 
-	        
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			gi.constructNewickSourceTieBreaker(name, useTaxonomy, useBranchAndBound);
+			gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound);
 			
 		} else if (args[0].compareTo("fulltree_sources") == 0) {
-			if (args.length != 4) {
-				System.out.println("arguments should be: name preferredsource graphdbfolder");
+
+		    String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
+			if (args.length != 6) {
+				System.out.println(usageString);
 				return;
 			}
+			
 			String name = args[1];
-			String sourcename = args[2];
-			String [] sources = sourcename.split(",");
+			String sourcenames = args[2];
+			String graphname = args[3];
+            String _useTaxonomy = args[4];
+            String _useBranchAndBound = args[5];
+            
+			String [] sources = sourcenames.split(",");
 			System.out.println("Sources (in order) that will be used to break conflicts");
 			for (int i = 0; i < sources.length; i++) {
 				System.out.println(sources[i]);
 			}
-			String graphname = args[3];
+
+			boolean useTaxonomy = false;
+			if (_useTaxonomy.equals("T")) {
+			    useTaxonomy = true;
+			} else if (!(_useTaxonomy.equals("F"))) {
+			    System.out.println(usageString);
+			    return;
+			}
+			
+			boolean useBranchAndBound= false;
+			if (_useBranchAndBound.equals("T")) {
+			    useBranchAndBound = true;
+			} else if (!(_useBranchAndBound.equals("F"))) {
+			    System.out.println(usageString);
+			    return;
+			}
+			
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			gi.constructNewickSourceTieBreaker(name, sources);
+			gi.constructNewickTieBreakerSOURCE(name, sources, useTaxonomy, useBranchAndBound);
+
 		} else {
 			System.err.println("ERROR: not a known command");
-//			gi.shutdownDB(); // not used.
 			printHelp();
 			System.exit(1);
 		}
+
 		gi.shutdownDB();
 	}
 	

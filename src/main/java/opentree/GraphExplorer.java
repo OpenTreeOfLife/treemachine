@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Stack;
 
 import opentree.GraphBase.RelTypes;
@@ -36,6 +37,34 @@ public class GraphExplorer extends GraphBase {
     private SpeciesEvaluator se;
     private ChildNumberEvaluator cne;
     private TaxaListEvaluator tle;
+
+    /* -------------------- begin info: collapsing children based on taxonomy ----------------------- */
+
+    /*
+     * settings and variables below are related to features controlling the heuristic placement of external taxa (tips) that would otherwise not be observed in
+     * synthetic phylogenies.
+     * 
+     * Currently there are two options: "strict" and "relaxed".
+     * 
+     * STRICT: Activating the strict option will assign external descendants that are lost during conflict tie-breaking (i.e. "lost children") as children of
+     * the node where the tie-breaking event occurred (i.e. they are "sunk" to that level in the tree). This will result in very conservative (in this case
+     * meaning deep and imprecise) assignment of "lost child" taxa.
+     * 
+     * RELAXED: External descendants of each node in the taxonomy that are not present in the synthesized tree will be sunk into the MRCA (in the synthesized
+     * tree) of all the present external descendants of that taxonomy node. This essentially assumes that in the absence of phylogenetic information placing a
+     * given taxon in a tree, we can use taxonomic information as an estimate of its phylogenetic position. May or may not be reasonable, depending on the use
+     * of the tree and the phylogenetic accuracy of the taxonomic classification. Certainly results in more precise placement of "lost child" taxa (at the
+     * potential expense of correct placement in some cases.)
+     */
+
+    // used when sinking children using the strict setting
+    private HashSet<Long> knownIdsInTree;
+
+    // only one of these should be turned on at once
+    private static final boolean sinkLostChildrenStrict = true;
+    private static final boolean sinkLostChildrenRelaxed = false;
+
+    /* --------------------- end info: collapsing children based on taxonomy ---------------------- */
 
     public GraphExplorer() {
         cne = new ChildNumberEvaluator();
@@ -508,19 +537,27 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param taxname
      */
-    public void constructNewickSourceTieBreaker(String taxname, boolean useTaxonomy, boolean useBranchAndBound) {
+    public void constructNewickTieBreakerDEFAULT(String taxname, boolean useTaxonomy, boolean useBranchAndBound) {
+
+        // TODO: make this user-settable
+        boolean reportBranchLength = false;
+
+        // find the start node
         Node firstNode = findGraphNodeByName(taxname);
         if (firstNode == null) {
             System.out.println("name not found");
             return;
         }
-//        boolean bandb = false;
-        JadeNode root = preorderConstructNWTBreaker(firstNode, null, null, "", useBranchAndBound, useTaxonomy);
+
+        // get the tree structure as a JadeTree object
+        JadeNode root = preorderConstructNewickTieBreakerDEFAULT(firstNode, null, null, "", useBranchAndBound, useTaxonomy);
         JadeTree tree = new JadeTree(root);
+
+        // write newick tree to a file
         PrintWriter outFile;
         try {
             outFile = new PrintWriter(new FileWriter(taxname + ".tre"));
-            outFile.write(tree.getRoot().getNewick(true));
+            outFile.write(tree.getRoot().getNewick(reportBranchLength));
             outFile.write(";\n");
             outFile.close();
         } catch (IOException e) {
@@ -542,17 +579,22 @@ public class GraphExplorer extends GraphBase {
      * @return
      */
     // TODO: need to be able to ignore taxonomy
-    private JadeNode preorderConstructNWTBreaker(Node curnode, JadeNode parent, Relationship relcoming, String nodename, boolean useBranchAndBound, boolean useTaxonomy) {
+    private JadeNode preorderConstructNewickTieBreakerDEFAULT(Node curnode, JadeNode parent, Relationship relcoming, String altName, boolean useTaxonomy,
+            boolean useBranchAndBound) {
+
         // System.out.println("starting +"+curnode.getId());
         boolean ret = false;
         JadeNode newnode = new JadeNode();
+
         if (curnode.hasProperty("name")) {
             newnode.setName((String) curnode.getProperty("name"));
-            newnode.setName(newnode.getName().replace("(", "_").replace(")", "_").replace(" ", "_").replace(":", "_").replace(";", "_"));
+            newnode.setName(GeneralUtils.cleanName(newnode.getName()));
         }
+
         if (newnode.getName().length() == 0) {
-            newnode.setName(nodename);
+            newnode.setName(altName);
         }
+
         if (parent == null) {
             ret = true;
         } else {
@@ -561,12 +603,14 @@ public class GraphExplorer extends GraphBase {
                 newnode.setBL((Double) relcoming.getProperty("branch_length"));
             }
         }
+
         // decide which nodes to continue on
         HashSet<Long> testnodes = new HashSet<Long>();
         HashSet<Long> originaltest = new HashSet<Long>();
         HashMap<Long, Integer> testnodes_scores = new HashMap<Long, Integer>();
         HashMap<Long, HashSet<Long>> storedmrcas = new HashMap<Long, HashSet<Long>>();
         HashMap<Long, Relationship> bestrelrel = new HashMap<Long, Relationship>();
+
         for (Relationship rel : curnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
 
             if (useTaxonomy == false) {
@@ -591,9 +635,11 @@ public class GraphExplorer extends GraphBase {
             // trying to get scores directly from the node
             testnodes_scores.put(tnd, testnodes_scores.get(tnd) + 1);
         }
+
         if (testnodes.size() == 0) {
             return null;
         }
+
         HashSet<Long> deletenodes = new HashSet<Long>();
         for (Long tn : testnodes) {
             if (deletenodes.contains(tn))
@@ -626,15 +672,18 @@ public class GraphExplorer extends GraphBase {
                 }
             }
         }
+
         testnodes.removeAll(deletenodes);
         if (testnodes.size() == 0) {
             return null;
         }
+
         int totalmrcas = ((long[]) curnode.getProperty("mrca")).length;
         int total = 0;
         for (Long nd : testnodes) {
             total += storedmrcas.get(nd).size();
         }
+
         /*
          * If the totalmrcas is not complete then we search for a more complete one despite lower scores
          * 
@@ -676,13 +725,21 @@ public class GraphExplorer extends GraphBase {
             }
             System.out.println("after: " + totalmrcas + " " + total + " " + testnodes.size());
         }
+
         // continue on the nodes
         for (Long nd : testnodes) {
-            preorderConstructNWTBreaker(graphDb.getNodeById(nd), newnode, bestrelrel.get(nd), String.valueOf(testnodes_scores.get(nd)), useTaxonomy, useBranchAndBound);
+
+            // provide an alternative name to be applied to unnamed nodes
+            String _altName = ""; // String.valueOf(testnodes_scores.get(nd));
+
+            // go to next node
+            preorderConstructNewickTieBreakerDEFAULT(graphDb.getNodeById(nd), newnode, bestrelrel.get(nd), _altName, useTaxonomy, useBranchAndBound);
         }
+
         if (ret == true) {
             return newnode;
         }
+
         return null;
     }
 
@@ -692,13 +749,20 @@ public class GraphExplorer extends GraphBase {
      * @param taxname
      * @param sources
      */
-    public void constructNewickSourceTieBreaker(String taxname, String[] sources) {
+    public void constructNewickTieBreakerSOURCE(String taxname, String[] sources, boolean useTaxonomy, boolean useBranchAndBound) {
         Node firstNode = findGraphNodeByName(taxname);
         if (firstNode == null) {
             System.out.println("name not found");
             return;
         }
-        JadeNode root = preorderConstructNWTBreaker(firstNode, null, sources, null);
+
+        if (sinkLostChildrenStrict) {
+            knownIdsInTree = new HashSet<Long>();
+        }
+
+        // NOTE: currently we don't use a branch/bound search when we prefer by source
+        JadeNode root = preorderConstructNewickTieBreakerSOURCE(firstNode, null, sources, null, useTaxonomy /* , useBranchAndBound) */);
+
         JadeTree tree = new JadeTree(root);
         PrintWriter outFile;
         try {
@@ -712,8 +776,9 @@ public class GraphExplorer extends GraphBase {
     }
 
     /**
-     * This function is the preorder function for constructing newick trees given a list of sources. This ONLY considers the sources. There should be a general
-     * function that considers some sort of hierarchy of decisions
+     * This function is the preorder function for constructing newick trees given a list of sources.
+     * 
+     * This ONLY considers the sources. There should be a general function that considers some sort of hierarchy of decisions (WORKING ON THIS - CEH)
      * 
      * TODO: this will need to eventually incorporate more functionality for deciding based on more than the sources
      * 
@@ -723,90 +788,184 @@ public class GraphExplorer extends GraphBase {
      * @param relcoming
      * @return
      */
-    private JadeNode preorderConstructNWTBreaker(Node curnode, JadeNode parent, String[] sources, Relationship relcoming) {
+    private JadeNode preorderConstructNewickTieBreakerSOURCE(Node curnode, JadeNode parent, String[] sources, Relationship relcoming, boolean useTaxonomy /* , boolean useBranchAndBound, */) {
+
         boolean ret = false;
-        JadeNode newnode = new JadeNode();
+        JadeNode newNode = new JadeNode();
+
         if (curnode.hasProperty("name")) {
-            newnode.setName((String) curnode.getProperty("name"));
-            newnode.setName(newnode.getName().replace("(", "_").replace(")", "_").replace(" ", "_").replace(":", "_").replace(";", "_"));
+            newNode.setName((String) curnode.getProperty("name"));
+            newNode.setName(GeneralUtils.cleanName(newNode.getName()));
+            
+            if (sinkLostChildrenStrict)
+                knownIdsInTree.add(curnode.getId());
         }
+
         if (parent == null) {
+            // this is the root of this tree, so set the flag to return it
             ret = true;
+
         } else {
-            parent.addChild(newnode);
+            // add this node as a child of the passed-in parent
+            parent.addChild(newNode);
             if (relcoming.hasProperty("branch_length")) {
-                newnode.setBL((Double) relcoming.getProperty("branch_length"));
+                newNode.setBL((Double) relcoming.getProperty("branch_length"));
             }
         }
-        // decide which nodes to continue on
-        HashMap<Long, HashSet<Long>> storedmrcas = new HashMap<Long, HashSet<Long>>();
-        HashMap<Long, Integer> bestrelint = new HashMap<Long, Integer>();
-        HashMap<Long, Relationship> bestrelrel = new HashMap<Long, Relationship>();
-        HashSet<Long> testnodes = new HashSet<Long>();
-        for (Relationship rel : curnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
-            Long tnd = rel.getStartNode().getId();
-            testnodes.add(tnd);
-            if (storedmrcas.containsKey(tnd) == false) {
-                HashSet<Long> mrcas1 = new HashSet<Long>();
-                long[] dbnodei = (long[]) graphDb.getNodeById(tnd).getProperty("mrca");
-                for (long temp : dbnodei) {
-                    mrcas1.add(temp);
-                }
-                storedmrcas.put(tnd, mrcas1);
-                bestrelrel.put(tnd, rel);
-                bestrelint.put(tnd, sources.length);
+
+        // variables to store information used to make decisions about best paths
+        HashMap<Long, HashSet<Long>> candNodeDescendantIdsMap = new HashMap<Long, HashSet<Long>>();
+        HashMap<Long, Integer> candNodeRankingMap = new HashMap<Long, Integer>();
+        HashMap<Long, Relationship> candNodeRelationshipMap = new HashMap<Long, Relationship>();
+        HashSet<Long> candidateNodeIds = new HashSet<Long>();
+
+        // for every candidate (incoming childof) relationship
+        for (Relationship candRel : curnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+
+            if (useTaxonomy == false) {
+                // skip taxonomy relationships if specified
+                if (candRel.getProperty("source").equals("taxonomy"))
+                    continue;
             }
-            if (bestrelint.get(tnd) != 0) {// 0 is the best so no point continuing
-                String sr = (String) rel.getProperty("source");
+
+            // get the id of the candidate child node
+            Long cid = candRel.getStartNode().getId();
+
+            // if we haven't seen this node yet
+            if (candidateNodeIds.contains(cid) == false) {
+                candidateNodeIds.add(cid);
+
+                // save this candidate's mrca descendants
+                HashSet<Long> descIds = new HashSet<Long>();
+                for (long descId : (long[]) graphDb.getNodeById(cid).getProperty("mrca"))
+                    descIds.add(descId);
+                candNodeDescendantIdsMap.put(cid, descIds);
+
+                // save the current candidate relationship we used to reach this node
+                candNodeRelationshipMap.put(cid, candRel);
+
+                // the first time we see a node, set its ranking to the lowest possible rank
+                candNodeRankingMap.put(cid, sources.length);
+            }
+
+            // update the ranking for this node, based on the current source. if already ranked at the top (rank 0) then don't bother
+            if (candNodeRankingMap.get(cid) != 0) {
+                String sourceName = (String) candRel.getProperty("source");
                 for (int i = 0; i < sources.length; i++) {
-                    if (sr.compareTo(sources[i]) == 0) {
-                        if (bestrelint.get(tnd) > i) {
-                            bestrelint.put(tnd, i);
-                            bestrelrel.put(tnd, rel);
+
+                    // update if the rank of the sourcetree for the current candidate relationship is better than the last saved rank
+                    if (sourceName.compareTo(sources[i]) == 0) {
+                        if (candNodeRankingMap.get(cid) > i) {
+                            candNodeRankingMap.put(cid, i);
+                            candNodeRelationshipMap.put(cid, candRel);
                         }
                         break;
                     }
                 }
             }
         }
-        if (testnodes.size() == 0) {
+
+        // found no candidate relationships; this is an external node so no decisions to be made
+        if (candidateNodeIds.size() == 0) {
             return null;
         }
-        HashSet<Long> deletenodes = new HashSet<Long>();
-        for (Long tn : testnodes) {
-            if (deletenodes.contains(tn))
+
+        HashSet<Long> putativeLostChildIds = null;
+        if (sinkLostChildrenStrict) {
+            // will be used to record children that may be lost during conflict tie-breaking
+            putativeLostChildIds = new HashSet<Long>();
+        }
+
+        // compare all candidate nodes to choose which to remove/keep
+        HashSet<Long> nodesToExclude = new HashSet<Long>();
+        for (Long cid_i : candidateNodeIds) {
+            if (nodesToExclude.contains(cid_i))
                 continue;
-            HashSet<Long> mrcas1 = storedmrcas.get(tn);
-            for (Long tn2 : testnodes) {
-                if (tn2 == tn || deletenodes.contains(tn2))
+            HashSet<Long> descIds_i = candNodeDescendantIdsMap.get(cid_i);
+
+            for (Long cid_j : candidateNodeIds) {
+                if (cid_j == cid_i || nodesToExclude.contains(cid_j))
                     continue;
-                // test intersection
-                HashSet<Long> mrcas2 = storedmrcas.get(tn2);
-                int sizeb = mrcas1.size();
-                HashSet<Long> cmrcas1 = new HashSet<Long>(mrcas1);
-                cmrcas1.removeAll(mrcas2);
-                // System.out.println(sizeb+" "+cmrcas1.size());
-                if ((sizeb - cmrcas1.size()) > 0) {
-                    if (bestrelint.get(tn) < bestrelint.get(tn2)) {
-                        deletenodes.add(tn2);
+                HashSet<Long> descIds_j = candNodeDescendantIdsMap.get(cid_j);
+
+                // get difference of descendant sets for candidates i and j
+                HashSet<Long> descIds_iMinusj = new HashSet<Long>(descIds_i);
+                descIds_iMinusj.removeAll(descIds_j);
+
+                // candidates i and j are in conflict if they overlap
+                if ((descIds_i.size() - descIds_iMinusj.size()) > 0) {
+
+                    // use source ranking to break ties
+                    if (candNodeRankingMap.get(cid_i) < candNodeRankingMap.get(cid_j)) {
+                        nodesToExclude.add(cid_j);
+
+                        // record eventual descendants that may be lost by this choice
+                        if (sinkLostChildrenStrict)
+                            putativeLostChildIds.addAll(descIds_j);
+
                     } else {
-                        deletenodes.add(tn);
-                        break;
+                        nodesToExclude.add(cid_i);
+
+                        // record eventual descendants that may be lost by this choice
+                        if (sinkLostChildrenStrict)
+                            putativeLostChildIds.addAll(descIds_i);
+
+                        // if we're not recording lost children, move on? (@sas, why do we break here?)
+                        else
+                            break;
                     }
                 }
             }
         }
-        testnodes.removeAll(deletenodes);
-        if (testnodes.size() == 0) {
+
+        // remove all nodes that lost the tie-breaking
+        candidateNodeIds.removeAll(nodesToExclude);
+        if (candidateNodeIds.size() == 0) {
             return null;
         }
-        // continue on the nodes
-        for (Long nd : testnodes) {
-            preorderConstructNWTBreaker(graphDb.getNodeById(nd), newnode, sources, bestrelrel.get(nd));
+
+        if (sinkLostChildrenStrict) {
+
+            // get ids of all descendants of accepted candidates
+            HashSet<Long> impliedDescendantIds = new HashSet<Long>();
+            for (Long cid : candidateNodeIds) {
+                for (long descId : (long[]) graphDb.getNodeById(cid).getProperty("mrca"))
+                    impliedDescendantIds.add(descId);
+            }
+
+            for (Long childId : putativeLostChildIds) {
+
+                // only add lost children if they aren't already contained by approved candidate nodes or elsewhere in the tree
+                if (!impliedDescendantIds.contains(childId) && !knownIdsInTree.contains(childId)) {
+
+                    // add as a child of current node
+                    JadeNode addlChild = new JadeNode();
+                    Node graphNodeForChild = graphDb.getNodeById(childId);
+                    if (graphNodeForChild.hasProperty("name")) {
+                        addlChild.setName((String) graphNodeForChild.getProperty("name"));
+                        addlChild.setName(GeneralUtils.cleanName(addlChild.getName()));// + "___" + String.valueOf(curnode.getId()));
+                    }
+                    newNode.addChild(addlChild);
+
+                    // record id so we don't add it again
+                    knownIdsInTree.add(childId);
+                }
+            }
         }
+
+        // ---------------------- MAY WANT TO ADD BRANCH AND BOUND OPTIMIZATION --------------------------
+
+        // continue recursion
+        for (Long cid : candidateNodeIds) {
+            preorderConstructNewickTieBreakerSOURCE(graphDb.getNodeById(cid), newNode, sources, candNodeRelationshipMap.get(cid), useTaxonomy /*, useBranchAndBound */);
+        }
+
+        // hit root of subtree, return it
         if (ret == true) {
-            return newnode;
+            return newNode;
         }
+
+        // @sas, what is this case for?
         return null;
     }
 

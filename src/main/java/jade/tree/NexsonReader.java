@@ -150,17 +150,9 @@ public class NexsonReader {
 						JSONObject m = (JSONObject)meta;
 						String propname = (String)m.get("@property");
 						Object value = m.get("$");
-						if (propname.equals("ot:ottolid")) {
+						if (propname.equals("ot:ottolid"))
 							// Kludge! For important special case
-							if (value instanceof String)
-								value = Long.parseLong((String)value);
-							else if (value instanceof Long)
-								;
-							else if (value instanceof Integer)
-								value = new Long((long)(((Integer)value).intValue()));
-							else
-								throw new RuntimeException("Invalid ottolid value: " + value);
-						}
+							value = Long.parseLong((String)value);
 						jn.assocObject(propname, value);
 					}
 			}
