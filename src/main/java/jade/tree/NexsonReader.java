@@ -45,10 +45,12 @@ public class NexsonReader {
 			System.out.println(tree.getRoot().getNewick(false));
 
 			int i = 0;
-			for (JadeNode node: tree.iterateExternalNodes()) {
+			for (JadeNode node : tree.iterateExternalNodes()) {
 				Object o = node.getObject("ot:ottolid");
 				System.out.println(node.getName() + " / " + o + " " + o.getClass());
-				if (++i > 10) break;
+				if (++i > 10) {
+					break;
+				}
 			}
 		}
 	}
@@ -110,7 +112,6 @@ public class NexsonReader {
 			// tree2 = {"node": [...], "edge": [...]}
 			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), metaList));
 		}
-
 		return result;
 	}
 
