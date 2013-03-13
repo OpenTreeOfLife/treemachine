@@ -31,6 +31,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
@@ -69,7 +70,7 @@ public class GraphExporter extends GraphBase {
 
 	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) {
 		Node firstNode = findTaxNodeByName(taxname);
-		String tofile = getGraphML(firstNode, useTaxonomy);
+		String tofile = getGraphML(firstNode,useTaxonomy);
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(outfile));
@@ -90,8 +91,8 @@ public class GraphExporter extends GraphBase {
 	 * @param startnode
 	 * @return
 	 */
-	private String getGraphML(Node startnode, boolean taxonomy) {
 
+	private String getGraphML(Node startnode,boolean taxonomy){
 		StringBuffer retstring = new StringBuffer("<graphml>\n");
 		retstring.append("<key id=\"d0\" for=\"node\" attr.name=\"taxon\" attr.type=\"string\">\n");
 		retstring.append("<default></default>\n");
@@ -258,37 +259,48 @@ public class GraphExporter extends GraphBase {
 			total /= totalweight;
 			avgdelta.put(curnodeid, total);
 		}
-
 		System.out.println("nodes traversed");
-		// nothing calculated beyond, this is just for writing the file
-		for (Node tnode : nodes) {
-			if (nodesupport.get(tnode.getId()) == 0) {
-				continue;
+		Transaction tx = null;
+		//nothing calculated beyond, this is just for writing the file
+		for(Node tnode: nodes){
+			try{
+				tx = graphDb.beginTx();
+
+				if(nodesupport.get(tnode.getId())==0){
+					continue;
+				}
+				retstring.append("<node id=\"n"+tnode.getId()+"\">\n");
+				if(tnode.hasProperty("name")){
+					retstring.append("<data key=\"d0\">"+((String)tnode.getProperty("name")).replace("&", "_")+"</data>\n");
+				}
+				//not printing the ids as names
+				//			else
+				//				retstring.append("<data key=\"d0\">"+tnode.getId()+"</data>\n");
+				//skip tips
+				if(tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF)){
+					retstring.append("<data key=\"d2\">"+nodesupport.get(tnode.getId())+"</data>\n");
+					tnode.setProperty("nodesupport", nodesupport.get(tnode.getId()));
+				}
+				if(avgeffparnums.containsKey(tnode.getId())){
+					double avgeffpar = avgeffparnums.get(tnode.getId()).get(0)/avgeffparnums.get(tnode.getId()).get(1);
+					retstring.append("<data key=\"d6\">"+(avgeffpar)+"</data>\n");
+					tnode.setProperty("avgeffpar", avgeffpar);
+				}
+				//else{
+				//	retstring.append("<data key=\"d2\">1</data>\n");
+				//}
+				retstring.append("<data key=\"d4\">"+effpar.get(tnode.getId())+"</data>\n");
+				tnode.setProperty("effpar", effpar.get(tnode.getId()));
+				retstring.append("<data key=\"d5\">"+effch.get(tnode.getId())+"</data>\n");
+				tnode.setProperty("effch", effch.get(tnode.getId()));
+				if (avgdelta.containsKey(tnode.getId())==true){
+					retstring.append("<data key=\"d7\">"+(avgdelta.get(tnode.getId())*nodesupport.get(tnode.getId()))+"</data>\n");
+				}
+				retstring.append("</node>\n");
+				tx.success();
+			}finally{
+				tx.finish();
 			}
-			retstring.append("<node id=\"n" + tnode.getId() + "\">\n");
-			if (tnode.hasProperty("name")) {
-				retstring.append("<data key=\"d0\">" + ((String) tnode.getProperty("name")).replace("&", "_") + "</data>\n");
-			}
-			// not printing the ids as names
-			// else
-			// retstring.append("<data key=\"d0\">"+tnode.getId()+"</data>\n");
-			// skip tips
-			if (tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF)) {
-				retstring.append("<data key=\"d2\">" + nodesupport.get(tnode.getId()) + "</data>\n");
-			}
-			if (avgeffparnums.containsKey(tnode.getId())) {
-				double avgeffpar = avgeffparnums.get(tnode.getId()).get(0) / avgeffparnums.get(tnode.getId()).get(1);
-				retstring.append("<data key=\"d6\">" + (avgeffpar) + "</data>\n");
-			}
-			// else{
-			// retstring.append("<data key=\"d2\">1</data>\n");
-			// }
-			retstring.append("<data key=\"d4\">" + effpar.get(tnode.getId()) + "</data>\n");
-			retstring.append("<data key=\"d5\">" + effch.get(tnode.getId()) + "</data>\n");
-			if (avgdelta.containsKey(tnode.getId()) == true) {
-				retstring.append("<data key=\"d7\">" + (avgdelta.get(tnode.getId()) * nodesupport.get(tnode.getId())) + "</data>\n");
-			}
-			retstring.append("</node>\n");
 		}
 		for (Node tnode : nodes) {
 			HashMap<Long, Double> tedgesupport = edgesupport.get(tnode.getId());
