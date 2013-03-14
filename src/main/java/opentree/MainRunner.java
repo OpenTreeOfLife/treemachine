@@ -21,15 +21,16 @@ import org.neo4j.graphdb.Node;
 public class MainRunner {
 	public void taxonomyLoadParser(String [] args) {
 		if (args.length < 3) {
-			System.out.println("arguments should be: filename graphdbfolder");
+			System.out.println("arguments should be: filename synfilename graphdbfolder");
 			return;
 		}
 		String filename = args[1];
-		String graphname = args[2] ;
+		String synfilename = args[2];
+		String graphname = args[3] ;
 		GraphImporter tl = new GraphImporter(graphname);
 		if (args[0].compareTo("inittax") == 0) {
-			System.out.println("initializing taxonomy from " + filename + " to " + graphname);
-			tl.addInitialTaxonomyTableIntoGraph(filename);
+			System.out.println("initializing taxonomy from " + filename + " with synonyms in "+synfilename+" to " + graphname);
+			tl.addInitialTaxonomyTableIntoGraph(filename,synfilename);
 		} else {
 			System.err.println("ERROR: not a known command");
 			tl.shutdownDB();
@@ -305,7 +306,7 @@ public class MainRunner {
 			e.printStackTrace();
 		}
 		//make a temp file to be loaded into the tax loader, a hack for now
-		gi.addInitialTaxonomyTableIntoGraph("tax.temp");
+		gi.addInitialTaxonomyTableIntoGraph("tax.temp","");
 		//Use the taxonomy as the first tree in the composite tree
 		
 		System.out.println("started graph importer");
@@ -576,7 +577,7 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("commands");
 		System.out.println("---initialize---");
-		System.out.println("\tinittax <filename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
+		System.out.println("\tinittax <filename> <synonymfilename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
 		System.out.println("\taddtree <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
