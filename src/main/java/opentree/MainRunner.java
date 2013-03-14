@@ -68,6 +68,8 @@ public class MainRunner {
 	
 	/*
 	 Peek at tree flavour, report back, reset reader for subsequent processing
+	 @param r a tree file reader
+	 @return treeFormat a string indicating recognized tree format
 	*/
 	public String divineTreeFormat(Reader r) throws java.io.IOException {
 		String treeFormat = "";
