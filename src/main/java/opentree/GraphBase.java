@@ -30,6 +30,7 @@ import org.neo4j.graphdb.index.IndexHits;
 public abstract class GraphBase {
 	GraphDatabaseService graphDb;
 	protected static Index<Node> graphNodeIndex;
+	protected static Index<Node> synNodeIndex;
 	protected static Index<Relationship> sourceRelIndex;
 	protected static Index<Node> sourceRootIndex;
 	protected static Index<Node> sourceMetaIndex;
@@ -37,6 +38,7 @@ public abstract class GraphBase {
 	protected static enum RelTypes implements RelationshipType{
 		MRCACHILDOF, //standard rel for graph db, from node to parent
 		TAXCHILDOF, //standard rel for tax db, from node to parent
+		SYNONYMOF,
 		STREECHILDOF, //standard rel for input tree, from node to parent
 		METADATAFOR,
 		//To make tree order not matter, going back to just one type of STREEREL

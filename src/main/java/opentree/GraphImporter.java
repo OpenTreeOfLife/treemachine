@@ -47,6 +47,7 @@ public class GraphImporter extends GraphBase{
 	public GraphImporter(String graphname) {
 		graphDb = new EmbeddedGraphDatabase( graphname );
 		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
+		synNodeIndex = graphDb.index().forNodes("graphNamedNodesSyns");
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
 		sourceMetaIndex = graphDb.index().forNodes("sourceMetaNodes");
@@ -55,6 +56,7 @@ public class GraphImporter extends GraphBase{
 	public GraphImporter(EmbeddedGraphDatabase graphn) {
 		graphDb = graphn;
 		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
+		synNodeIndex = graphDb.index().forNodes("graphNamedNodesSyns");
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
 		sourceMetaIndex = graphDb.index().forNodes("sourceMetaNodes");
@@ -130,17 +132,61 @@ public class GraphImporter extends GraphBase{
 	 * 
 	 * Creates the nodes and TAXCHILDOF relationship for a taxonomy tree
 	 * Node objects will get a "name", "mrca", and "nested_mrca" properties
+	 * 
+	 * They will also get tax_uid, tax_parent_uid, tax_rank, tax_source, tax_sourceid, tax_sourcepid, uniqname
+	 * 
+	 * 
 	 * TAXCHILDOF relationships will get "source" of "ottol", "childid", and "parentid" properties
+	 * with the addition of the new information in the ottol dumps the nodes will also get properties
+	 * 
 	 * STREECHILDOF relationships will get "source" properties as "taxonomy"
 	 * Nodes are indexed in graphNamedNodes with their name as the value for a "name" key
 	 * 
 	 * This will load the taxonomy, adding 
 	 * 
 	 * @param filename file path to the taxonomy file
+	 * @param synonymfile file that has the synonyms as dumped by ottol dump
 	 */
-	public void addInitialTaxonomyTableIntoGraph(String filename) {
+	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile) {
 		String str = "";
 		int count = 0;
+		HashMap<String,ArrayList<ArrayList<String>>> synonymhash = null;
+		boolean synFileExists = false;
+		if (synonymfile.length() > 0){
+			synFileExists = true;
+		}
+		//preprocess the synonym file
+		//key is the id from the taxonomy, the array has the synonym and the type of synonym
+		if (synFileExists) {
+			synonymhash = new HashMap<String,ArrayList<ArrayList<String>>>();
+			try {
+				BufferedReader sbr = new BufferedReader(new FileReader(synonymfile));
+				while ((str = sbr.readLine()) != null) {
+					StringTokenizer st = new StringTokenizer(str,"\t|\t");
+					String uid = st.nextToken();
+					//this is the id that points to the right node
+					String parentuid = st.nextToken();
+					String name = st.nextToken();
+					String type = st.nextToken();
+					String source = st.nextToken();
+					ArrayList<String> tar = new ArrayList<String>();
+					tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
+					if (synonymhash.get(parentuid) == null) {
+						ArrayList<ArrayList<String> > ttar = new ArrayList<ArrayList<String> >();
+						synonymhash.put(parentuid, ttar);
+					}
+					synonymhash.get(parentuid).add(tar);
+				}
+				sbr.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(0);
+			}
+			System.out.println("synonyms: " + synonymhash.size());
+		}
+		//finished processing synonym file
+
+
 		HashMap<String, Node> dbnodes = new HashMap<String, Node>();
 		HashMap<String, String> parents = new HashMap<String, String>();
 		Transaction tx;
@@ -167,21 +213,49 @@ public class GraphImporter extends GraphBase{
 					tx = graphDb.beginTx();
 					try {
 						for (int i = 0; i < templines.size(); i++) {
-							StringTokenizer st = new StringTokenizer(templines.get(i),"\t|\t");
-							int numtok = st.countTokens();
-							String tid = st.nextToken();
-							String pid = "";
-							if (numtok == 3) {
-								pid = st.nextToken();
-							}
-							String name = st.nextToken();
+							StringTokenizer st = new StringTokenizer(templines.get(i),"|");
+							String tid = st.nextToken().trim();
+							String pid = st.nextToken().trim();
+							String name = st.nextToken().trim();
+							String rank = st.nextToken().trim();
+							String srce = st.nextToken().trim();
+							String srce_id = st.nextToken().trim();
+							String srce_pid = st.nextToken().trim();
+							String uniqname = st.nextToken().trim();
+							
 							Node tnode = graphDb.createNode();
 							tnode.setProperty("name", name);
+							tnode.setProperty("tax_uid",tid);
+							tnode.setProperty("tax_parent_uid",pid);
+							tnode.setProperty("tax_rank",rank);
+							tnode.setProperty("tax_source",srce);
+							tnode.setProperty("tax_sourceid",srce_id);
+							tnode.setProperty("tax_sourcepid",srce_pid);
+							tnode.setProperty("uniqname",uniqname);
 							graphNodeIndex.add( tnode, "name", name );
 							if (pid.length() > 0) {
 								parents.put(tid, pid);
 							}
 							dbnodes.put(tid, tnode);
+							// synonym processing
+							if (synFileExists) {
+								if (synonymhash.get(tid) != null) {
+									ArrayList<ArrayList<String>> syns = synonymhash.get(tid);
+									for (int j=0; j < syns.size(); j++) {
+										String tax_uid = syns.get(j).get(0);
+										String synName = syns.get(j).get(1);
+										String synNameType = syns.get(j).get(2);
+										String sourcename = syns.get(j).get(3);
+										Node synode = graphDb.createNode();
+										synode.setProperty("name",synName);
+										synode.setProperty("tax_uid", tax_uid);
+										synode.setProperty("nametype",synNameType);
+										synode.setProperty("source",sourcename);
+										synode.createRelationshipTo(tnode, RelTypes.SYNONYMOF);
+										synNodeIndex.add(tnode, "name", synName);
+									}
+								}
+							}
 						}
 						tx.success();
 					} finally {
@@ -194,23 +268,49 @@ public class GraphImporter extends GraphBase{
 			tx = graphDb.beginTx();
 			try {
 				for (int i = 0; i < templines.size(); i++) {
-					StringTokenizer st = new StringTokenizer(templines.get(i),"\t|\t");
-					int numtok = st.countTokens();
-					String tid = st.nextToken();
-					String pid = "";
-					if (numtok == 3) {
-						pid = st.nextToken();
-					}
-					String name = st.nextToken();
-					count += 1;
+					StringTokenizer st = new StringTokenizer(templines.get(i),"|");
+					String tid = st.nextToken().trim();
+					String pid = st.nextToken().trim();
+					String name = st.nextToken().trim();
+					String rank = st.nextToken().trim();
+					String srce = st.nextToken().trim();
+					String srce_id = st.nextToken().trim();
+					String srce_pid = st.nextToken().trim();
+					String uniqname = st.nextToken().trim();
+
 					Node tnode = graphDb.createNode();
 					tnode.setProperty("name", name);
+					tnode.setProperty("tax_uid",tid);
+					tnode.setProperty("tax_parent_uid",pid);
+					tnode.setProperty("tax_rank",rank);
+					tnode.setProperty("tax_source",srce);
+					tnode.setProperty("tax_sourceid",srce_id);
+					tnode.setProperty("tax_sourcepid",srce_pid);
+					tnode.setProperty("uniqname",uniqname);
 					graphNodeIndex.add( tnode, "name", name );
-					parents.put(tid, pid);
 					if (pid.length() > 0) {
 						parents.put(tid, pid);
 					}
 					dbnodes.put(tid, tnode);
+					// synonym processing
+					if (synFileExists) {
+						if (synonymhash.get(tid) != null) {
+							ArrayList<ArrayList<String>> syns = synonymhash.get(tid);
+							for (int j=0; j < syns.size(); j++) {
+								String tax_uid = syns.get(j).get(0);
+								String synName = syns.get(j).get(1);
+								String synNameType = syns.get(j).get(2);
+								String sourcename = syns.get(j).get(3);
+								Node synode = graphDb.createNode();
+								synode.setProperty("name",synName);
+								synode.setProperty("tax_uid", tax_uid);
+								synode.setProperty("nametype",synNameType);
+								synode.setProperty("source",sourcename);
+								synode.createRelationshipTo(tnode, RelTypes.SYNONYMOF);
+								synNodeIndex.add(tnode, "name", synName);
+							}
+						}
+					}
 				}
 				tx.success();
 			} finally {
