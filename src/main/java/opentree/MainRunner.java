@@ -83,7 +83,7 @@ public class MainRunner {
 		} else if (c == '#') {
 			System.out.println("Error: appears to be a nexus tree file, which is not currently supported. Exiting.");
 			System.exit(1);
-		} else if (c != '(') {
+		} else {
 			System.out.println("Error: don't know what format this tree is in. Exiting.");
 			System.exit(1);
 		}
