@@ -46,7 +46,9 @@ public class GraphImporter extends GraphBase{
 	
 	public GraphImporter(String graphname) {
 		graphDb = new EmbeddedGraphDatabase( graphname );
-		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
+		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );//name is the key
+		graphTaxUIDNodeindex = graphDb.index().forNodes( "graphTaxUIDNodes" );//tax_uid is the key
+		synTaxUIDNodeindex = graphDb.index().forNodes("synTaxUIDNodes");
 		synNodeIndex = graphDb.index().forNodes("graphNamedNodesSyns");
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
@@ -55,7 +57,9 @@ public class GraphImporter extends GraphBase{
 	
 	public GraphImporter(EmbeddedGraphDatabase graphn) {
 		graphDb = graphn;
-		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );
+		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );//name is the key
+		graphTaxUIDNodeindex = graphDb.index().forNodes( "graphTaxUIDNodes" );//tax_uid is the key
+		synTaxUIDNodeindex = graphDb.index().forNodes("synTaxUIDNodes");
 		synNodeIndex = graphDb.index().forNodes("graphNamedNodesSyns");
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
@@ -233,6 +237,9 @@ public class GraphImporter extends GraphBase{
 							tnode.setProperty("tax_sourcepid",srce_pid);
 							tnode.setProperty("uniqname",uniqname);
 							graphNodeIndex.add( tnode, "name", name );
+							if(tid.length()>0){
+								graphTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+							}
 							if (pid.length() > 0) {
 								parents.put(tid, pid);
 							}
@@ -249,6 +256,9 @@ public class GraphImporter extends GraphBase{
 										Node synode = graphDb.createNode();
 										synode.setProperty("name",synName);
 										synode.setProperty("tax_uid", tax_uid);
+										if(tax_uid.length()>0){
+											synTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+										}
 										synode.setProperty("nametype",synNameType);
 										synode.setProperty("source",sourcename);
 										synode.createRelationshipTo(tnode, RelTypes.SYNONYMOF);
@@ -288,6 +298,9 @@ public class GraphImporter extends GraphBase{
 					tnode.setProperty("tax_sourcepid",srce_pid);
 					tnode.setProperty("uniqname",uniqname);
 					graphNodeIndex.add( tnode, "name", name );
+					if(tid.length()>0){
+						graphTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+					}
 					if (pid.length() > 0) {
 						parents.put(tid, pid);
 					}
@@ -304,6 +317,9 @@ public class GraphImporter extends GraphBase{
 								Node synode = graphDb.createNode();
 								synode.setProperty("name",synName);
 								synode.setProperty("tax_uid", tax_uid);
+								if(tax_uid.length()>0){
+									synTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+								}
 								synode.setProperty("nametype",synNameType);
 								synode.setProperty("source",sourcename);
 								synode.createRelationshipTo(tnode, RelTypes.SYNONYMOF);
