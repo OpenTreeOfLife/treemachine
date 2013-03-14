@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -19,6 +20,7 @@ import org.neo4j.graphdb.Node;
 //import org.neo4j.graphdb.index.IndexHits;
 
 public class MainRunner {
+	
 	public void taxonomyLoadParser(String [] args) {
 		if (args.length < 3) {
 			System.out.println("arguments should be: filename graphdbfolder");
@@ -63,6 +65,28 @@ public class MainRunner {
 		gi.shutdownDB();
 	}
 	
+	/*
+	 Peek at tree flavour, report back, reset reader for subsequent processing
+	*/
+	public String divineTreeFormat(Reader r) throws java.io.IOException {
+		String treeFormat = "";
+		r.mark(1);
+		char c = (char)r.read();
+		r.reset();
+		if (c == '(') {
+			treeFormat = "newick";
+		} else if (c == '{') {
+			treeFormat = "nexson";
+		} else if (c == '#') {
+			System.out.println("Error: appears to be a nexus tree file, which is not currently supported. Exiting.");
+			System.exit(1);
+		} else if (c != '(') {
+			System.out.println("Error: don't know what format this tree is in. Exiting.");
+			System.exit(1);
+		}
+		return treeFormat;
+	}
+	
 	public void graphImporterParser(String [] args) {
 		GraphImporter gi = null;
 		if (args[0].compareTo("addtree") == 0) {
@@ -74,10 +98,7 @@ public class MainRunner {
 			String focalgroup = args[2];
 			String sourcename = args[3];
 			String graphname = args[4];
-			
 			int treeCounter = 0;
-			boolean newick = true;
-			
 			gi = new GraphImporter(graphname);
 			System.out.println("adding tree(s) to the graph from file: " + filename);
 			String ts = "";
@@ -85,22 +106,7 @@ public class MainRunner {
 			
 			try {
 				BufferedReader br = new BufferedReader(new FileReader(filename));
-		// 'peek' flavoured check of file, figure out what is coming in, act accordingly
-				br.mark(1);
-				char c = (char)br.read();
-				br.reset();
-				
-				if (c == '{') {
-					newick = false;
-				} else if (c == '#') {
-					System.out.println("Error: appears to be a nexus tree file, which is not currently supported. Exiting.");
-					System.exit(1);
-				} else if (c != '(') {
-					System.out.println("Error: don't know what format this tree is in. Exiting.");
-					System.exit(1);
-				}
-				
-				if (newick) { // newick
+				if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
 					System.out.println("Reading newick file...");
 					TreeReader tr = new TreeReader();
 					while ((ts = br.readLine()) != null) {
@@ -239,34 +245,15 @@ public class MainRunner {
 		}
 		String filename = args[1];
 		String graphname = args[2];
-		
 		int treeCounter = 0;
-		boolean newick = true;
-		
 		GraphImporter gi = new GraphImporter(graphname);
 		//Run through all the trees and get the union of the taxa for a raw taxonomy graph
 		//read the tree from a file
 		String ts = "";
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-		
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-	// 'peek' flavoured check of file, figure out what is coming in, act accordingly
-			br.mark(1);
-			char c = (char)br.read();
-			br.reset();
-			
-			if (c == '{') {
-				newick = false;
-			} else if (c == '#') {
-				System.out.println("Error: appears to be a nexus tree file, which is not currently supported. Exiting.");
-				System.exit(1);
-			} else if (c != '(') {
-				System.out.println("Error: don't know what format this tree is in. Exiting.");
-				System.exit(1);
-			}
-			
-			if (newick) { // newick
+			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
 				System.out.println("Reading newick file...");
 				TreeReader tr = new TreeReader();
 				while ((ts = br.readLine()) != null) {
