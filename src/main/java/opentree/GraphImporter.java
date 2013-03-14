@@ -213,9 +213,7 @@ public class GraphImporter extends GraphBase{
 					tx = graphDb.beginTx();
 					try {
 						for (int i = 0; i < templines.size(); i++) {
-							try{
-								StringTokenizer st = new StringTokenizer(templines.get(i),"|");
-							//int numtok = st.countTokens();
+							StringTokenizer st = new StringTokenizer(templines.get(i),"|");
 							String tid = st.nextToken().trim();
 							String pid = st.nextToken().trim();
 							String name = st.nextToken().trim();
@@ -224,14 +222,6 @@ public class GraphImporter extends GraphBase{
 							String srce_id = st.nextToken().trim();
 							String srce_pid = st.nextToken().trim();
 							String uniqname = st.nextToken().trim();
-							/*if (name.equals("life")) {
-								pid = "";
-								name = pid;
-								srce = st.nextToken();
-								srce_id = st.nextToken();
-							}else{
-								name = st.nextToken();
-							}*/
 							
 							Node tnode = graphDb.createNode();
 							tnode.setProperty("name", name);
@@ -266,15 +256,6 @@ public class GraphImporter extends GraphBase{
 									}
 								}
 							}
-							}catch(Exception e){
-								
-								System.out.println(templines.get(i));
-								StringTokenizer st = new StringTokenizer(templines.get(i),"|");
-								while(st.hasMoreTokens()){
-									System.out.println(st.nextToken());
-								}
-								System.exit(0);
-							}
 						}
 						tx.success();
 					} finally {
@@ -288,7 +269,6 @@ public class GraphImporter extends GraphBase{
 			try {
 				for (int i = 0; i < templines.size(); i++) {
 					StringTokenizer st = new StringTokenizer(templines.get(i),"|");
-					//int numtok = st.countTokens();
 					String tid = st.nextToken().trim();
 					String pid = st.nextToken().trim();
 					String name = st.nextToken().trim();
@@ -297,15 +277,7 @@ public class GraphImporter extends GraphBase{
 					String srce_id = st.nextToken().trim();
 					String srce_pid = st.nextToken().trim();
 					String uniqname = st.nextToken().trim();
-					/*if (name.equals("life")) {
-						pid = "";
-						name = pid;
-						srce = st.nextToken();
-						srce_id = st.nextToken();
-					}else{
-						name = st.nextToken();
-					}*/
-					
+
 					Node tnode = graphDb.createNode();
 					tnode.setProperty("name", name);
 					tnode.setProperty("tax_uid",tid);
