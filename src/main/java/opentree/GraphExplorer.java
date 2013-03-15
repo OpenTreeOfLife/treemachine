@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Stack;
 
-import opentree.GraphBase.RelTypes;
+//import opentree.GraphBase.RelTypes;
 import opentree.synthesis.TreeMakingBandB;
 import opentree.synthesis.TreeMakingExhaustivePairs;
 
@@ -29,9 +29,9 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
+//import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.graphdb.traversal.Evaluators;
+//import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
@@ -747,127 +747,22 @@ public class GraphExplorer extends GraphBase {
     }
 
     /**
-     * Used to add missing external nodes from a JadeNode tree that has just been built by `constructNewickTieBreakerSOURCE`.
-     * Adds nodes based on taxnomy; identifies all the external descendants of each taxon that are absent from the tree, and adds them
-     * at the base of the MRCA of all the external descendants of that taxon that are present in the tree.
-     * 
-     * @param inputRoot -
-     *        the tree to be added
-     * @param taxRootName
-     *        the name of the inclusive taxon to add missing descendants of (will include all descendant taxa)
-     * @return JadeNode tree (the root of a JadeNode tree) with missing children added
-     */
-    private void addMissingChildrenRelaxed(JadeTree tree, String taxRootName) {
-
-        // will hold nodes from the taxonomy to check
-        LinkedList<Node> taxNodes = new LinkedList<Node>();
-
-        // walk taxonomy and save nodes in postorder
-        Node taxRoot = findGraphNodeByName(taxRootName);
-        TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.TAXCHILDOF, Direction.INCOMING);
-        for (Node taxChild : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRoot).nodes()) {
-            taxNodes.add(0, taxChild);
-        }
-
-        // walk taxa from tips down
-        for (Node taxNode : taxNodes) {
-            if (taxNode.hasRelationship(Direction.INCOMING, RelTypes.TAXCHILDOF) == false) {
-                // only consider taxa that are not tips
-                continue;
-            }
-
-//            System.out.println(taxNode.getProperty("name"));
-            
-            // record descendant taxa not in the tree so we can add them
-            HashMap<String, Long> taxaToAdd = new HashMap<String, Long>();
-
-            // just record the names that are already in the tree, used for finding the mrca
-            ArrayList<String> namesInTree = new ArrayList<String>();
-            
-            // get all external descendants of this taxon
-            for (long cid : (long[]) taxNode.getProperty("mrca")) {
-                String name = GeneralUtils.cleanName((String) graphDb.getNodeById(cid).getProperty("name"));
-//                taxChildNames.add(name);
-                if (knownIdsInTree.contains(cid)) {
-                    namesInTree.add(name);
-                    System.out.println("name in tree: " + name);
-                } else {
-                    taxaToAdd.put(name, cid);
-                }
-            }
-            
-            // find the mrca of the names in the tree
-            JadeNode mrca = null;
-            if (namesInTree.size() > 0) {
-                mrca = tree.getMRCAAnyDepthDescendants(namesInTree);
-//                System.out.println("found mrca: " + mrca);
-
-            } else {
-//                System.out.println("zero names in tree!");
-                continue;
-            }
-            
-            if (namesInTree.size() == 1) {
-                // make a new parent if the mrca is a tip
-                // TODO: what to do about the branch length of the single exemplar tip for this mrca?
-                JadeNode newMRCA = new JadeNode();
-                JadeNode parentOfNewMRCA = mrca.getParent();
-                parentOfNewMRCA.addChild(newMRCA);
-                parentOfNewMRCA.removeChild(mrca);
-                newMRCA.addChild(mrca);
-                mrca = newMRCA;
-            }
-            
-            // add any children that are not already in tree
-            // `knownIdsInTree` should already have been started during original construction of `tree`
-            for (Entry<String, Long> entry: taxaToAdd.entrySet()) {
-
-                String taxName = entry.getKey();
-                Long taxId = entry.getValue();
-
-//                System.out.println("attempting to add child: " + taxName + " to " + mrca.getName());
-
-                JadeNode newChild = new JadeNode();
-                newChild.setName(taxName);
-
-                mrca.addChild(newChild);
-                
-                knownIdsInTree.add(taxId);
-            }
-            
-            // update the JadeTree, otherwise we won't always find newly added taxa when we look for mrcas
-            tree.processRoot();
-        }
-    }
-    
-    /**
      * Constructs a newick tree based on the sources. There are currently no other criteria considered in this particular function.
      * 
-     * @param taxName
+     * @param taxname
      * @param sources
      */
-    public void constructNewickTieBreakerSOURCE(String taxName, String[] sources, boolean useTaxonomy, boolean useBranchAndBound) {
-        Node firstNode = findGraphNodeByName(taxName);
+    public void constructNewickSourceTieBreaker(String taxname, String[] sources) {
+        Node firstNode = findGraphNodeByName(taxname);
         if (firstNode == null) {
             System.out.println("name not found");
             return;
         }
-
-        if (sinkLostChildrenStrict || sinkLostChildrenRelaxed) {
-            knownIdsInTree = new HashSet<Long>();
-        }
-
-        // NOTE: currently we don't use a branch/bound search when we prefer by source
-        JadeNode root = preorderConstructNewickTieBreakerSOURCE(firstNode, null, sources, null, useTaxonomy /* , useBranchAndBound) */);
+        JadeNode root = preorderConstructNWTBreaker(firstNode, null, sources, null);
         JadeTree tree = new JadeTree(root);
-
-        if (sinkLostChildrenRelaxed) {
-            addMissingChildrenRelaxed(tree, taxName);
-        }
-        
         PrintWriter outFile;
         try {
-            outFile = new PrintWriter(new FileWriter(taxName + ".tre"));
+            outFile = new PrintWriter(new FileWriter(taxname + ".tre"));
             outFile.write(tree.getRoot().getNewick(true));
             outFile.write(";\n");
             outFile.close();

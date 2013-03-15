@@ -17,6 +17,12 @@ public class TreeReader {
 	public JadeTree readTree(String treeString) {
 		JadeTree tree = new JadeTree();
 		String pb = treeString;
+		
+		if (pb.charAt(pb.length() - 1) != ';') {
+			System.out.println("Tree is invalid: missing concluding semicolon. Exiting.");
+			System.exit(1);
+		}
+		
 		int x = 0;
 		char nextChar = pb.charAt(x);
 		boolean start = true;
@@ -85,9 +91,7 @@ public class TreeReader {
 				// pb.unread(nextChar);
 				x--;
 				pb.charAt(x);
-			}
-			//note
-			else if (nextChar == '[') {
+			} else if (nextChar == '[') { //note
 				x++;
 				nextChar = pb.charAt(x);
 				String note = "";
@@ -106,9 +110,7 @@ public class TreeReader {
 				pb.charAt(x);
 			} else if (nextChar == ' ') {
 
-			}
-			// external named node
-			else {
+			} else { // external named node
 				JadeNode newNode = new JadeNode(currNode);
 				currNode.addChild(newNode);
 				currNode = newNode;
@@ -129,8 +131,9 @@ public class TreeReader {
 				x--;
 				pb.charAt(x);
 			}
-			if (x < pb.length() - 1)//added
+			if (x < pb.length() - 1) {//added
 				x++;
+			}
 			//
 			nextChar = pb.charAt(x);
 			//System.out.println(nextChar);

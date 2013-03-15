@@ -30,13 +30,18 @@ import org.neo4j.graphdb.index.IndexHits;
 public abstract class GraphBase {
 	GraphDatabaseService graphDb;
 	protected static Index<Node> graphNodeIndex;
+	protected static Index<Node> synNodeIndex;
 	protected static Index<Relationship> sourceRelIndex;
 	protected static Index<Node> sourceRootIndex;
 	protected static Index<Node> sourceMetaIndex;
+	protected static Index<Node> graphTaxUIDNodeindex; //tax_uid is the key, the uid from the taxonomy points to this node
+	protected static Index<Node> synTaxUIDNodeindex; //tax_uid is the key, this points to the synonymn node, 
+													//to get the tax that this points to you need to travel synonymof
 	
 	protected static enum RelTypes implements RelationshipType{
 		MRCACHILDOF, //standard rel for graph db, from node to parent
 		TAXCHILDOF, //standard rel for tax db, from node to parent
+		SYNONYMOF,
 		STREECHILDOF, //standard rel for input tree, from node to parent
 		METADATAFOR,
 		//To make tree order not matter, going back to just one type of STREEREL

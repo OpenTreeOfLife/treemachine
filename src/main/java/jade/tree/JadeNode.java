@@ -12,7 +12,7 @@ public class JadeNode {
 	private double BL; //branch lengths
 	private double distance_to_tip;
 	private double distance_from_tip; // distance from the root to a tip (not set automatically)
-	private int number;
+	//private int number;
 	private String name;
 	private JadeNode parent;
 	private ArrayList<JadeNode> children;
@@ -25,7 +25,7 @@ public class JadeNode {
 		this.BL = 0.0;
 		this.distance_to_tip = 0.0;
 		this.distance_from_tip = 0.0;
-		this.number = 0;
+		//this.number = 0;
 		this.name = "";
 		this.parent = null;
 		this.children = new ArrayList<JadeNode> ();
@@ -36,18 +36,18 @@ public class JadeNode {
 		this.BL = 0.0;
 		this.distance_to_tip = 0.0;
 		this.distance_from_tip = 0.0;
-		this.number = 0;
+		//this.number = 0;
 		this.name = "";
 		this.parent = parent;
 		this.children = new ArrayList<JadeNode> ();
 		this.assoc = new ArrayList<NodeObject>();
 	}
 	
-	public JadeNode(double BL, int number, String name, JadeNode parent) {
+	public JadeNode(double BL, String name, JadeNode parent) {
 		this.BL = BL;
 		this.distance_to_tip = 0.0;
 		this.distance_from_tip = 0.0;
-		this.number = number;
+		//this.number = number;
 		this.name = name;
 		this.parent = parent;
 		this.children = new ArrayList<JadeNode> ();
@@ -103,9 +103,9 @@ public class JadeNode {
 	
 	public void setParent(JadeNode p) {this.parent = p;}
 	
-	public int getNumber() {return this.number;}
+	//public int getNumber() {return this.number;}
 	
-	public void setNumber(int n) {this.number = n;}
+	//public void setNumber(int n) {this.number = n;}
 	
 	public double getBL() {return this.BL;}
 	

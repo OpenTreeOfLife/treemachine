@@ -72,29 +72,6 @@ public class JadeTree {
 	}
 
 	/**
-	 * Adds `tn` to the this.externalNodes and uses setNumber to tell the node its index
-	 * @todo it is unclear why we can't just make num a local variable that it equal to the initial externalNodes.size();
-	 */
-	public void addExternalNode(JadeNode tn, int num) {
-		externalNodes.add(tn);
-		externalNodeCount = externalNodes.size();
-		//to nodes
-		nodes.add(tn);
-		tn.setNumber(num);
-	}
-
-	/**
-	 * Adds `tn` to the this.internalNodes and uses setNumber to tell the node its index
-	 * @todo it is unclear why we can't just make num a local variable that it equal to the initial internalNodes.size();
-	 */
-	public void addInternalNode(JadeNode tn, int num) {
-		internalNodes.add(tn);
-		internalNodeCount = internalNodes.size();
-		nodes.add(tn);
-		tn.setNumber(num);
-	}
-
-	/**
 	 * @return a leaf with the index `num` from the externalNodes or throw IndexOutOfBoundsException.
 	 */
 	public JadeNode getExternalNode(int num) throws IndexOutOfBoundsException {
@@ -447,9 +424,9 @@ public class JadeTree {
 			}
 		}
 		if (node.isExternal()) {
-			addExternalNode(node, externalNodeCount);
+			addExternalNode(node);
 		} else {
-			addInternalNode(node, internalNodeCount);
+			addInternalNode(node);
 		}
 	}
 

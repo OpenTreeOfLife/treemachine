@@ -3,11 +3,14 @@ package opentree;
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 
+import jade.tree.NexsonReader;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -17,17 +20,19 @@ import org.neo4j.graphdb.Node;
 //import org.neo4j.graphdb.index.IndexHits;
 
 public class MainRunner {
+	
 	public void taxonomyLoadParser(String [] args) {
 		if (args.length < 3) {
-			System.out.println("arguments should be: filename graphdbfolder");
+			System.out.println("arguments should be: filename synfilename graphdbfolder");
 			return;
 		}
 		String filename = args[1];
-		String graphname = args[2] ;
+		String synfilename = args[2];
+		String graphname = args[3] ;
 		GraphImporter tl = new GraphImporter(graphname);
 		if (args[0].compareTo("inittax") == 0) {
-			System.out.println("initializing taxonomy from " + filename + " to " + graphname);
-			tl.addInitialTaxonomyTableIntoGraph(filename);
+			System.out.println("initializing taxonomy from " + filename + " with synonyms in "+synfilename+" to " + graphname);
+			tl.addInitialTaxonomyTableIntoGraph(filename,synfilename);
 		} else {
 			System.err.println("ERROR: not a known command");
 			tl.shutdownDB();
@@ -61,6 +66,30 @@ public class MainRunner {
 		gi.shutdownDB();
 	}
 	
+	/*
+	 Peek at tree flavour, report back, reset reader for subsequent processing
+	 @param r a tree file reader
+	 @return treeFormat a string indicating recognized tree format
+	*/
+	public String divineTreeFormat(Reader r) throws java.io.IOException {
+		String treeFormat = "";
+		r.mark(1);
+		char c = (char)r.read();
+		r.reset();
+		if (c == '(') {
+			treeFormat = "newick";
+		} else if (c == '{') {
+			treeFormat = "nexson";
+		} else if (c == '#') {
+			System.out.println("Error: appears to be a nexus tree file, which is not currently supported. Exiting.");
+			System.exit(1);
+		} else {
+			System.out.println("Error: don't know what format this tree is in. Exiting.");
+			System.exit(1);
+		}
+		return treeFormat;
+	}
+	
 	public void graphImporterParser(String [] args) {
 		GraphImporter gi = null;
 		if (args[0].compareTo("addtree") == 0) {
@@ -72,21 +101,34 @@ public class MainRunner {
 			String focalgroup = args[2];
 			String sourcename = args[3];
 			String graphname = args[4];
+			int treeCounter = 0;
 			gi = new GraphImporter(graphname);
-			System.out.println("adding tree(s) to the graph: " + filename);
+			System.out.println("adding tree(s) to the graph from file: " + filename);
 			String ts = "";
 			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-			TreeReader tr = new TreeReader();
+			
 			try {
 				BufferedReader br = new BufferedReader(new FileReader(filename));
-				while ((ts = br.readLine())!=null) {
-					if (ts.length() > 1) {
-						jt.add(tr.readTree(ts));
+				if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
+					System.out.println("Reading newick file...");
+					TreeReader tr = new TreeReader();
+					while ((ts = br.readLine()) != null) {
+						if (ts.length() > 1) {
+							jt.add(tr.readTree(ts));
+							treeCounter++;
+						}
+					}
+				} else { // nexson
+					System.out.println("Reading nexson file...");
+					for (JadeTree tree : NexsonReader.readNexson(filename)) {
+						jt.add(tree);
+						treeCounter++;
 					}
 				}
 				br.close();
 			} catch (IOException ioe) {}
-			System.out.println("trees read");
+			System.out.println(treeCounter + " trees read.");
+			
 			//Go through the trees again and add and update as necessary
 			for (int i = 0; i < jt.size(); i++) {
 				System.out.println("adding a tree to the graph: " + i);
@@ -173,6 +215,7 @@ public class MainRunner {
                 return;
             }
 
+	        
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
 			gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound);
@@ -219,6 +262,7 @@ public class MainRunner {
 
 		} else {
 			System.err.println("ERROR: not a known command");
+//			gi.shutdownDB(); // not used.
 			printHelp();
 			System.exit(1);
 		}
@@ -233,6 +277,7 @@ public class MainRunner {
 		}
 		String filename = args[1];
 		String graphname = args[2];
+		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
 		//Run through all the trees and get the union of the taxa for a raw taxonomy graph
 		//read the tree from a file
@@ -241,13 +286,26 @@ public class MainRunner {
 		TreeReader tr = new TreeReader();
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			while ((ts = br.readLine())!=null) {
-				if (ts.length() > 1)
-					jt.add(tr.readTree(ts));
+			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
+				System.out.println("Reading newick file...");
+				TreeReader tr = new TreeReader();
+				while ((ts = br.readLine()) != null) {
+					if (ts.length() > 1) {
+						jt.add(tr.readTree(ts));
+						treeCounter++;
+					}
+				}
+			} else { // nexson
+				System.out.println("Reading nexson file...");
+				for (JadeTree tree : NexsonReader.readNexson(filename)) {
+					jt.add(tree);
+					treeCounter++;
+				}
 			}
 			br.close();
 		} catch (IOException ioe) {}
-		System.out.println("trees read");
+		System.out.println(treeCounter + " trees read.");
+		
 		HashSet<String> names = new HashSet<String>();
 		for (int i = 0; i < jt.size(); i++) {
 			for (int j = 0; j < jt.get(i).getExternalNodeCount(); j++) {
@@ -267,7 +325,7 @@ public class MainRunner {
 			e.printStackTrace();
 		}
 		//make a temp file to be loaded into the tax loader, a hack for now
-		gi.addInitialTaxonomyTableIntoGraph("tax.temp");
+		gi.addInitialTaxonomyTableIntoGraph("tax.temp","");
 		//Use the taxonomy as the first tree in the composite tree
 		
 		System.out.println("started graph importer");
@@ -539,13 +597,13 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("commands");
 		System.out.println("---initialize---");
-		System.out.println("\tinittax <filename> <graphdbfolder> (initializes the tax graph with a tax list)");
-		System.out.println("\n");
+		System.out.println("\tinittax <filename> <synonymfilename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
+
 		System.out.println("---graph input---");
 		System.out.println("\taddtree <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
-		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)");
-		System.out.println("\n");
+		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)\n");
+
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> (constructs a newick file from a particular node)");
@@ -553,8 +611,8 @@ public class MainRunner {
 		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
 		System.out.println("\tmrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
 		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> <usetaxonomy[T|F]> (constructs a graphml file of the region starting from the name)");
-		System.out.println("\tcsvdump <name> <outfile> <graphdbfolder> (dumps the graph in format node,parent,nodename,parentname,source,brlen");
-		System.out.println("\n");
+		System.out.println("\tcsvdump <name> <outfile> <graphdbfolder> (dumps the graph in format node,parent,nodename,parentname,source,brlen\n");
+
 		System.out.println("---graph exploration---");
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
 		System.out.println("\tjusttrees <filename> <graphdbfolder> (loads the trees into a graph)");
@@ -562,14 +620,16 @@ public class MainRunner {
 		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
 		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
 		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
-		System.out.println("\tgetlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)");
-		System.out.println("\n");
+		System.out.println("\tgetlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)\n");
+
 		System.out.println("---tree functions---");
 		System.out.println("(This is temporary and for doing some functions on trees output by the fulltree)");
 		System.out.println("\tcounttips <filename> (count the number of nodes and leaves in a newick)");
 		System.out.println("\tdiversity <filename> (for each node it will print the immediate descendents and their diversity)");
 		System.out.println("\tlabeltips <filename.tre> <filename>");
 	}
+	
+	
 	/**
 	 * @param args
 	 */
@@ -591,9 +651,13 @@ public class MainRunner {
 			}
 			if (args[0].compareTo("inittax") == 0) {
 				mr.taxonomyLoadParser(args);
+				
 			} else if (args[0].compareTo("addtree") == 0) {
 				mr.graphImporterParser(args);
-			} else if (args[0].compareTo("jsgol") == 0 || args[0].compareTo("fulltree") == 0 || args[0].compareTo("fulltree_sources") == 0) {
+				
+			} else if (args[0].compareTo("jsgol") == 0
+					|| args[0].compareTo("fulltree") == 0
+					|| args[0].compareTo("fulltree_sources") == 0) {
 				mr.graphExplorerParser(args);
 			} else if (args[0].compareTo("mrpdump") == 0) {
 				mr.mrpDumpParser(args);
