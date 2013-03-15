@@ -3,7 +3,10 @@ package jade.tree;
 import java.util.*;
 
 public class JadeNode {
-	/*
+    
+    public static final double MIN_BRANCHLENGTH = 0.0000000000000000000001;
+
+    /*
 	 * common associations
 	 */
 	private double BL; //branch lengths
@@ -51,10 +54,41 @@ public class JadeNode {
 		this.assoc = new ArrayList<NodeObject>();
 	}
 
-	/*
-	 * public methods
-	 */
-	
+
+    /* ---------------------------- begin node iterators --------------------------------*/
+
+    public enum NodeOrder {PREORDER, POSTORDER};
+
+    private void addDescendants(JadeNode n, List<JadeNode> children, NodeOrder order) {
+
+        if (order == NodeOrder.PREORDER) {
+            for (JadeNode c : n.children){
+                addDescendants(c, children, order);
+            }
+            children.add(n);
+
+        } else if (order == NodeOrder.POSTORDER) {
+            children.add(n);
+
+            for (JadeNode c : n.children){
+                addDescendants(c, children, order);
+            }
+        }
+    }
+    
+    public Iterable<JadeNode> getDescendants(NodeOrder order) {
+        
+        ArrayList<JadeNode> nodes = new ArrayList<JadeNode>();
+        addDescendants(this, nodes, order);
+        return nodes;
+    }
+    
+    /* ---------------------------- end node iterators --------------------------------*/
+    
+    /*
+     * other public methods
+     */
+    
 	public JadeNode [] getChildrenArr() {return (JadeNode[])this.children.toArray();}
 	
 	public ArrayList<JadeNode> getChildren() {return this.children;}
@@ -121,7 +155,11 @@ public class JadeNode {
 			}
 			ret.append(this.getChild(i).getNewick(bl));
 			if (bl) {
-				ret.append(this.getChild(i).getBL());
+			    double branchLength = this.getChild(i).getBL();
+			    if (branchLength == 0)
+			        branchLength = MIN_BRANCHLENGTH;
+
+			    ret.append(":".concat(String.valueOf(branchLength)));
 			}
 			if (i == this.getChildCount()-1) {
 				ret.append(")");
@@ -292,4 +330,6 @@ public class JadeNode {
 		}
 		return a;
 	}
+
+
 }

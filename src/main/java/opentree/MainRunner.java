@@ -175,6 +175,7 @@ public class MainRunner {
 	
 	public void graphExplorerParser(String [] args) {
 		GraphExplorer gi = null;
+
 		if (args[0].compareTo("jsgol") == 0) {
 			if (args.length != 3) {
 				System.out.println("arguments should be: name graphdbfolder");
@@ -185,6 +186,7 @@ public class MainRunner {
 			GraphExporter ge = new GraphExporter(graphname);
 			System.out.println("constructing a json for: "+ name);
 			ge.writeJSONWithAltParentsToFile(name);
+			
 		} else if (args[0].compareTo("fulltree") == 0) {
 		    String usageString = "arguments should be: name graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
 			if (args.length != 5) {
@@ -204,6 +206,7 @@ public class MainRunner {
 	            System.out.println(usageString);
 	            return;
 	        }
+
 	        boolean useBranchAndBound= false;
             if (_useBranchAndBound.equals("T")) {
                 useBranchAndBound = true;
@@ -211,33 +214,59 @@ public class MainRunner {
                 System.out.println(usageString);
                 return;
             }
+
 	        
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			gi.constructNewickSourceTieBreaker(name, useTaxonomy, useBranchAndBound);
+			gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound);
 			
 		} else if (args[0].compareTo("fulltree_sources") == 0) {
-			if (args.length != 4) {
-				System.out.println("arguments should be: name preferredsource graphdbfolder");
+
+		    String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
+			if (args.length != 6) {
+				System.out.println(usageString);
 				return;
 			}
+			
 			String name = args[1];
-			String sourcename = args[2];
-			String [] sources = sourcename.split(",");
+			String sourcenames = args[2];
+			String graphname = args[3];
+            String _useTaxonomy = args[4];
+            String _useBranchAndBound = args[5];
+            
+			String [] sources = sourcenames.split(",");
 			System.out.println("Sources (in order) that will be used to break conflicts");
 			for (int i = 0; i < sources.length; i++) {
 				System.out.println(sources[i]);
 			}
-			String graphname = args[3];
+
+			boolean useTaxonomy = false;
+			if (_useTaxonomy.equals("T")) {
+			    useTaxonomy = true;
+			} else if (!(_useTaxonomy.equals("F"))) {
+			    System.out.println(usageString);
+			    return;
+			}
+			
+			boolean useBranchAndBound= false;
+			if (_useBranchAndBound.equals("T")) {
+			    useBranchAndBound = true;
+			} else if (!(_useBranchAndBound.equals("F"))) {
+			    System.out.println(usageString);
+			    return;
+			}
+			
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			gi.constructNewickSourceTieBreaker(name, sources);
+			gi.constructNewickTieBreakerSOURCE(name, sources, useTaxonomy, useBranchAndBound);
+
 		} else {
 			System.err.println("ERROR: not a known command");
 //			gi.shutdownDB(); // not used.
 			printHelp();
 			System.exit(1);
 		}
+
 		gi.shutdownDB();
 	}
 	
@@ -254,6 +283,7 @@ public class MainRunner {
 		//read the tree from a file
 		String ts = "";
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+//		TreeReader tr = new TreeReader();
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
@@ -330,6 +360,7 @@ public class MainRunner {
     			System.exit(1);
 			}
 		}
+		
 //	    gi.updateAfterTreeIngest(true);
 		gi.shutdownDB();
 	}
@@ -576,7 +607,7 @@ public class MainRunner {
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> (constructs a newick file from a particular node)");
-		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> (constructs a newick file from a particular node, break tie preferring sources)");
+		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> (constructs a newick file from a particular node, break ties preferring sources)");
 		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
 		System.out.println("\tmrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
 		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> <usetaxonomy[T|F]> (constructs a graphml file of the region starting from the name)");
@@ -612,6 +643,7 @@ public class MainRunner {
 			printHelp();
 			System.exit(0);
 		} else {
+			System.out.println("things will happen here");
 			MainRunner mr = new MainRunner();
 			if (args.length < 2) {
 				System.err.println("ERROR: not the right arguments");
@@ -651,8 +683,7 @@ public class MainRunner {
 				mr.csvDumpParser(args);
 			} else if (args[0].compareTo("getlicanames") == 0) {
 				mr.getlicanames(args);
-			} else if (args[0].compareTo("counttips") == 0
-					|| args[0].compareTo("diversity") == 0
+			} else if (args[0].compareTo("counttips") == 0 || args[0].compareTo("diversity") == 0
 					|| args[0].compareTo("labeltips") == 0) {
 				mr.treeUtils(args);
 			} else {
@@ -662,4 +693,5 @@ public class MainRunner {
 			}
 		}
 	}
+
 }
