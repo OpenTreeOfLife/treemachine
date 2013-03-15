@@ -283,7 +283,7 @@ public class MainRunner {
 		//read the tree from a file
 		String ts = "";
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-		TreeReader tr = new TreeReader();
+//		TreeReader tr = new TreeReader();
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
@@ -607,7 +607,7 @@ public class MainRunner {
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> (constructs a newick file from a particular node)");
-		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> (constructs a newick file from a particular node, break tie preferring sources)");
+		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> (constructs a newick file from a particular node, break ties preferring sources)");
 		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
 		System.out.println("\tmrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
 		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> <usetaxonomy[T|F]> (constructs a graphml file of the region starting from the name)");
