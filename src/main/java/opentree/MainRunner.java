@@ -263,7 +263,6 @@ public class MainRunner {
 
 		} else {
 			System.err.println("ERROR: not a known command");
-//			gi.shutdownDB(); // not used.
 			printHelp();
 			System.exit(1);
 		}
@@ -284,7 +283,7 @@ public class MainRunner {
 		//read the tree from a file
 		String ts = "";
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-//		TreeReader tr = new TreeReader();
+		
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
@@ -313,26 +312,45 @@ public class MainRunner {
 				names.add(jt.get(i).getExternalNode(j).getName());
 			}
 		}
+/*
+ The number of expected properties in "tax.temp" has changed:
+  String tid = st.nextToken().trim();
+  String pid = st.nextToken().trim();
+  String name = st.nextToken().trim(); // good to here
+  String rank = st.nextToken().trim();
+  String srce = st.nextToken().trim();
+  String srce_id = st.nextToken().trim();
+  String srce_pid = st.nextToken().trim();
+  String uniqname = st.nextToken().trim();
+ Now dies a horrible, silent, death.
+ */	
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter("tax.temp"));
-			ArrayList<String> namesal = new ArrayList<String>(); namesal.addAll(names);
+			ArrayList<String> namesal = new ArrayList<String>();
+			namesal.addAll(names);
 			for (int i = 0; i < namesal.size(); i++) {
-				outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
+				//outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
+				outFile.write((i+2)+"|1|"+namesal.get(i)+"| | | | | | |\n");
+				//             tid  pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
 			}
-			outFile.write("1\t|\t0\t|\tlife\t|\t\n");
+			//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
+			outFile.write("1|0|life| | | | | | |\n");
 			outFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		//make a temp file to be loaded into the tax loader, a hack for now
-		gi.addInitialTaxonomyTableIntoGraph("tax.temp","");
+		gi.addInitialTaxonomyTableIntoGraph("tax.temp",""); // dying here...
 		//Use the taxonomy as the first tree in the composite tree
+		
+		//System.out.println("hi. you made it!");
 		
 		System.out.println("started graph importer");
 		//Go through the trees again and add and update as necessary
 		for (int i = 0; i < jt.size(); i++) {
-			System.out.println("adding a tree to the graph: "+ i);
+			System.out.println("adding a tree to the graph: " + i);
 			gi.setTree(jt.get(i));
 			try {
 			    gi.addProcessedTreeToGraph("life", "treeinfile_" + String.valueOf(i));
@@ -348,7 +366,7 @@ public class MainRunner {
 		}
 		//adding them again after all the nodes are there
 		for (int i = 0; i < jt.size(); i++) {
-			System.out.println("adding a tree to the graph: "+ i);
+			System.out.println("adding a tree to the graph: " + i);
 			gi.setTree(jt.get(i));
 			try {
 			    gi.addProcessedTreeToGraph("life","treeinfile_" + String.valueOf(i));
