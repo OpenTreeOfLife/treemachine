@@ -198,21 +198,35 @@ public class NexsonReader {
 				JSONObject j = (JSONObject)meta;
 				// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
 				String propname = (String)j.get("@property");
+				System.out.println("propname = " + propname);
 				if (propname != null) {
 					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
-					Object value = j.get("$");
-					if (value == null) throw new RuntimeException("missing value for " + propname);
-					tree.assocObject(propname, value);
-				} else if ((propname = (String)j.get("@rel")) != null) {
-					System.out.println("propname = " + propname);
-					// String propkind = (String)j.get("@xsi:type");  = nex:ResourceMeta
-					Object value = j.get("@href");
-					if (value == null) {
-						throw new RuntimeException("missing value for " + propname);
+					
+					if ((propname = (String)j.get("$")) != null) {
+						Object value = j.get("$");
+						if (value == null) {
+							throw new RuntimeException("missing value for " + propname);
+						}
+						tree.assocObject(propname, value);
+					} else if ((propname = (String)j.get("@href")) != null) {
+						Object value = j.get("@href");
+						if (value == null) {
+							throw new RuntimeException("missing value for " + propname);
+						}
+						tree.assocObject(propname, value);
 					}
-					tree.assocObject(propname, value);
-				} else {
-					throw new RuntimeException("missing property name" + j);
+//					else if ((propname = (String)j.get("@rel")) != null) {
+//						System.out.println("propname = " + propname);
+//						// String propkind = (String)j.get("@xsi:type");  = nex:ResourceMeta
+//						Object value = j.get("@href");
+//						if (value == null) {
+//							throw new RuntimeException("missing value for " + propname);
+//						}
+//						tree.assocObject(propname, value);
+//					}
+					else {
+						throw new RuntimeException("missing property name" + j);
+					}
 				}
 			}
 		}
