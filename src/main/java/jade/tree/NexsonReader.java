@@ -22,11 +22,9 @@ import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
-import java.io.IOException;
 import java.io.Reader;
 import java.io.FileReader;
 import java.io.BufferedReader;
-import java.io.StringReader;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +64,6 @@ public class NexsonReader {
 		return result;
 	}
 
-	
 	/* Read Nexson study from a Reader */
 
 	public static List<JadeTree> readNexson(Reader r) throws java.io.IOException {
@@ -154,9 +151,18 @@ public class NexsonReader {
 						JSONObject m = (JSONObject)meta;
 						String propname = (String)m.get("@property");
 						Object value = m.get("$");
-						if (propname.equals("ot:ottolid"))
+						if (propname.equals("ot:ottolid")) {
 							// Kludge! For important special case
-							value = Long.parseLong((String)value);
+							if (value instanceof String) {
+								value = Long.parseLong((String)value);
+							} else if (value instanceof Long) {
+								; // what is this about?
+							} else if (value instanceof Integer) {
+								value = new Long((long)(((Integer)value).intValue()));
+							} else {
+								throw new RuntimeException("Invalid ottolid value: " + value);
+							}
+						}
 						jn.assocObject(propname, value);
 					}
 			}
