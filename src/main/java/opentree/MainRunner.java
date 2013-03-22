@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 //import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -591,6 +592,16 @@ public class MainRunner {
 		}
 	}
 	
+	public void pgtesting(){
+		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-03-22");
+		for (Long k: list){
+			List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
+			for(JadeTree j : jt){
+				System.out.println(k+": "+j.getExternalNodeCount());
+			}
+		}
+	}
+	
 	public static void printHelp() {
 		System.out.println("==========================");
 		System.out.println("usage: treemachine command options");
@@ -627,6 +638,9 @@ public class MainRunner {
 		System.out.println("\tcounttips <filename> (count the number of nodes and leaves in a newick)");
 		System.out.println("\tdiversity <filename> (for each node it will print the immediate descendents and their diversity)");
 		System.out.println("\tlabeltips <filename.tre> <filename>");
+		
+		System.out.println("---server functions---");
+		System.out.println("\tgetupdatedlist\n");
 	}
 	
 	
@@ -686,6 +700,8 @@ public class MainRunner {
 			} else if (args[0].compareTo("counttips") == 0 || args[0].compareTo("diversity") == 0
 					|| args[0].compareTo("labeltips") == 0) {
 				mr.treeUtils(args);
+			} else if (args[0].compareTo("getupdatedlist") == 0) {
+				mr.pgtesting();
 			} else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();

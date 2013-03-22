@@ -22,9 +22,11 @@ import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.io.FileReader;
 import java.io.BufferedReader;
+import java.io.StringReader;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +66,7 @@ public class NexsonReader {
 		return result;
 	}
 
+	
 	/* Read Nexson study from a Reader */
 
 	public static List<JadeTree> readNexson(Reader r) throws java.io.IOException {
