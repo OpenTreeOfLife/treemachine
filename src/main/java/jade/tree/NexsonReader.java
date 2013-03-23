@@ -214,7 +214,7 @@ public class NexsonReader {
 							throw new RuntimeException("missing value for " + propname);
 						}
 						tree.assocObject(propname, value);
-					}
+					} // is "@rel" being used?
 //					else if ((propname = (String)j.get("@rel")) != null) {
 //						System.out.println("propname = " + propname);
 //						// String propkind = (String)j.get("@xsi:type");  = nex:ResourceMeta
