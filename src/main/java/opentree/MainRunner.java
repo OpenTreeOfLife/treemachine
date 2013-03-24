@@ -613,9 +613,13 @@ public class MainRunner {
 	public void pgtesting(){
 		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-03-22");
 		for (Long k: list){
+			if ((k == 60) || (k == 106) || (k == 107) || (k == 115) || (k == 116)) {
+				System.out.println("Skipping study " + k);
+				continue;
+			}
 			List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
-			for(JadeTree j : jt){
-				System.out.println(k+": "+j.getExternalNodeCount());
+			for (JadeTree j : jt) {
+				System.out.println(k + ": " + j.getExternalNodeCount());
 			}
 		}
 	}
