@@ -28,6 +28,9 @@ public class PhylografterConnector {
 	 */
 	public static ArrayList<Long> getUpdateStudyList(String datefrom, String dateto){
 		String urlbase = "http://www.reelab.net/phylografter/study/modified_list.json/url?from="+datefrom+"T00:00:00&to="+dateto+"T10:00:00";
+		System.out.println("Looking up: " + urlbase);
+		urlbase = "http://www.reelab.net/phylografter/study/modified_list.json/";
+		System.out.println("Looking up: " + urlbase);
 		try {
 			URL phurl = new URL(urlbase);
 			URLConnection conn = phurl.openConnection();
@@ -52,6 +55,7 @@ public class PhylografterConnector {
 	
 	public static List<JadeTree> fetchTreesFromStudy(Long studyid){
 		String urlbase = "http://www.reelab.net/phylografter/study/export_NexSON.json/"+String.valueOf(studyid);
+		System.out.println("Looking up study: " + urlbase);
 		try {
 			URL phurl = new URL(urlbase);
 			URLConnection conn = phurl.openConnection();

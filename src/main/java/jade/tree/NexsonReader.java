@@ -159,9 +159,14 @@ public class NexsonReader {
 								; // what is this about?
 							} else if (value instanceof Integer) {
 								value = new Long((long)(((Integer)value).intValue()));
+							} else if (value == null) {
+								System.out.println("Warning: dealing with null ot:ottolid here.");
 							} else {
+								System.out.println("Error with: " + m);
 								throw new RuntimeException("Invalid ottolid value: " + value);
 							}
+						} else {
+							System.out.println("Warning: dealing with property: " + propname + ". Don't know what to do...");
 						}
 						jn.assocObject(propname, value);
 					}
@@ -198,7 +203,7 @@ public class NexsonReader {
 				JSONObject j = (JSONObject)meta;
 				// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
 				String propname = (String)j.get("@property");
-				System.out.println("propname = " + propname);
+				//System.out.println("propname = " + propname);
 				if (propname != null) {
 					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
 					
