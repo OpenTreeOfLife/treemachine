@@ -203,24 +203,25 @@ public class NexsonReader {
 				JSONObject j = (JSONObject)meta;
 				// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
 				String propname = (String)j.get("@property");
-				//System.out.println("propname = " + propname);
+				// System.out.println("propname = " + propname);
 				if (propname != null) {
 					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
-					
-					if ((propname = (String)j.get("$")) != null) {
+					if (((String)j.get("$")) != null) {
 						Object value = j.get("$");
 						if (value == null) {
 							throw new RuntimeException("missing value for " + propname);
 						}
 						tree.assocObject(propname, value);
-					} else if ((propname = (String)j.get("@href")) != null) {
+						// System.out.println("Added propname (" + propname + "): " + value);
+					} else if (((String)j.get("@href")) != null) {
 						Object value = j.get("@href");
 						if (value == null) {
 							throw new RuntimeException("missing value for " + propname);
 						}
 						tree.assocObject(propname, value);
+						// System.out.println("Added propname (" + propname + "): " + value);
 					} // is "@rel" being used?
-//					else if ((propname = (String)j.get("@rel")) != null) {
+//					else if ((val = (String)j.get("@rel")) != null) {
 //						System.out.println("propname = " + propname);
 //						// String propkind = (String)j.get("@xsi:type");  = nex:ResourceMeta
 //						Object value = j.get("@href");
@@ -230,8 +231,10 @@ public class NexsonReader {
 //						tree.assocObject(propname, value);
 //					}
 					else {
-						throw new RuntimeException("missing property name" + j);
+						throw new RuntimeException("missing property value for name: " + j);
 					}
+				} else {
+					throw new RuntimeException("missing property name: " + j);
 				}
 			}
 		}
