@@ -28,7 +28,7 @@ public class PhylografterConnector {
 	 */
 	public static ArrayList<Long> getUpdateStudyList(String datefrom, String dateto){
 		String urlbase = "http://www.reelab.net/phylografter/study/modified_list.json/url?from="+datefrom+"T00:00:00&to="+dateto+"T10:00:00";
-		System.out.println("Looking up: " + urlbase);
+		System.out.println("Grabbing list of updated studies from: " + urlbase);
 //		urlbase = "http://www.reelab.net/phylografter/study/modified_list.json/";
 //		System.out.println("Looking up: " + urlbase);
 		try {

@@ -2,9 +2,7 @@ package opentree;
 
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
-
 import jade.tree.NexsonReader;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -130,19 +128,19 @@ public class MainRunner {
 			} catch (IOException ioe) {}
 			System.out.println(treeCounter + " trees read.");
 			
-			//Go through the trees again and add and update as necessary
+			// Go through the trees again and add and update as necessary
 			for (int i = 0; i < jt.size(); i++) {
 				System.out.println("adding a tree to the graph: " + i);
 				gi.setTree(jt.get(i));
 				try {
 					if (jt.size() == 1) {
 						gi.addProcessedTreeToGraph(focalgroup, sourcename);
-						gi.updateAfterTreeIngest(false);//TODO: this still needs work
+						gi.updateAfterTreeIngest(false);// TODO: this still needs work
 					} else {
 						gi.addProcessedTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
 					    gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
 					}
-				    //gi.updateAfterTreeIngest(false);
+				    // gi.updateAfterTreeIngest(false);
 				} catch (TaxonNotFoundException tnfx) {
 	    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
 	    			System.exit(1);
@@ -279,8 +277,8 @@ public class MainRunner {
 		String graphname = args[2];
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
-		//Run through all the trees and get the union of the taxa for a raw taxonomy graph
-		//read the tree from a file
+		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
+		// read the tree from a file
 		String ts = "";
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
 		
@@ -316,13 +314,13 @@ public class MainRunner {
  The number of expected properties in "tax.temp" has changed:
   String tid = st.nextToken().trim();
   String pid = st.nextToken().trim();
-  String name = st.nextToken().trim(); // good to here
+  String name = st.nextToken().trim();
   String rank = st.nextToken().trim();
   String srce = st.nextToken().trim();
   String srce_id = st.nextToken().trim();
   String srce_pid = st.nextToken().trim();
   String uniqname = st.nextToken().trim();
- Now dies a horrible, silent, death.
+ "tax.temp" is updated below. Note use of " " vs. original "\t" for easier reading
  */	
 		PrintWriter outFile;
 		try {
@@ -341,14 +339,12 @@ public class MainRunner {
 			e.printStackTrace();
 		}
 		
-		//make a temp file to be loaded into the tax loader, a hack for now
-		gi.addInitialTaxonomyTableIntoGraph("tax.temp",""); // dying here...
-		//Use the taxonomy as the first tree in the composite tree
-		
-		//System.out.println("hi. you made it!");
+		// make a temp file to be loaded into the tax loader, a hack for now
+		gi.addInitialTaxonomyTableIntoGraph("tax.temp", "");
+		// Use the taxonomy as the first tree in the composite tree
 		
 		System.out.println("started graph importer");
-		//Go through the trees again and add and update as necessary
+		// Go through the trees again and add and update as necessary
 		for (int i = 0; i < jt.size(); i++) {
 			System.out.println("adding a tree to the graph: " + i);
 			gi.setTree(jt.get(i));
@@ -364,13 +360,13 @@ public class MainRunner {
     			System.exit(1);
 			}
 		}
-		//adding them again after all the nodes are there
+		// adding them again after all the nodes are there
 		for (int i = 0; i < jt.size(); i++) {
 			System.out.println("adding a tree to the graph: " + i);
 			gi.setTree(jt.get(i));
 			try {
-			    gi.addProcessedTreeToGraph("life","treeinfile_" + String.valueOf(i));
-			    //gi.updateAfterTreeIngest(false);
+			    gi.addProcessedTreeToGraph("life", "treeinfile_" + String.valueOf(i));
+			    // gi.updateAfterTreeIngest(false);
 			} catch (TaxonNotFoundException tnfx) {
     			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
     			System.exit(1);
@@ -613,10 +609,10 @@ public class MainRunner {
 	public void pgtesting(){
 		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-03-22");
 		for (Long k: list){
-			if ((k == 60) || (k == 106) || (k == 107) || (k == 115) || (k == 116)) {
-				System.out.println("Skipping study " + k);
-				continue;
-			}
+//			if ((k == 60) || (k == 105) || (k == 106) || (k == 107) || (k == 115) || (k == 116)) { // some bad studies
+//				System.out.println("Skipping study " + k);
+//				continue;
+//			}
 			List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 			for (JadeTree j : jt) {
 				System.out.println(k + ": " + j.getExternalNodeCount());

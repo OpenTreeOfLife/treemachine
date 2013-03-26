@@ -8,7 +8,7 @@ public class JadeTree {
 	 */
 	private JadeNode root;
 
-	private ArrayList<JadeNode> nodes; // @todo this does not appear to be used (and it is just the union of internalNodes and externalNodes, but it does provide a preorder traversal)
+	private ArrayList<JadeNode> nodes; // TODO this does not appear to be used (and it is just the union of internalNodes and externalNodes, but it does provide a preorder traversal)
 
 	private ArrayList<JadeNode> internalNodes; // stored in preorder
 
@@ -16,9 +16,9 @@ public class JadeTree {
 
 	private HashMap<String,Object> assoc;
 
-	private int internalNodeCount;  // @todo could be removed by relying on internalNodes.size()
+	private int internalNodeCount;  // TODO could be removed by relying on internalNodes.size()
 
-	private int externalNodeCount; // @todo could be removed by relying on externalNodes.size()
+	private int externalNodeCount; // TODO could be removed by relying on externalNodes.size()
 
 	/*
 	 * constructors

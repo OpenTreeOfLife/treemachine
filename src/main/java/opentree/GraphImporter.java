@@ -33,6 +33,12 @@ import org.neo4j.kernel.Traversal;
 
 import scala.actors.threadpool.Arrays;
 
+/**
+ * GraphImporter is intended to control the initial creation 
+ * and addition of trees to the tree graph.
+ */
+
+
 public class GraphImporter extends GraphBase{
 	//static Logger _LOG = Logger.getLogger(GraphImporter.class);
 
@@ -44,10 +50,21 @@ public class GraphImporter extends GraphBase{
 	private HashSet<Node> updatedSuperLICAs;
 	private Transaction	tx;
 	
+	/* TODO: Need to add metadata (if present) from jadetree coming from nexson.
+	   See vocabulary: https://docs.google.com/spreadsheet/ccc?key=0ArYBkaCSQjOwdDE0MXlKMktvRFR1dllrTXQxQTY5V0E#gid=0
+	   Fields at present:
+		ot:studyPublicationReference - string: ot:studyPublicationReference "long string"
+		ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
+		ot:curatorName - string: ot:curatorName "Jane Doe"
+		ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
+		ot:studyID - string: ot:studyId "123"
+		ot:ottolid - integer: ot:ottolid 783941
+	*/
+	
 	public GraphImporter(String graphname) {
 		graphDb = new EmbeddedGraphDatabase( graphname );
-		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );//name is the key
-		graphTaxUIDNodeindex = graphDb.index().forNodes( "graphTaxUIDNodes" );//tax_uid is the key
+		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" ); // name is the key
+		graphTaxUIDNodeindex = graphDb.index().forNodes( "graphTaxUIDNodes" ); // tax_uid is the key
 		synTaxUIDNodeindex = graphDb.index().forNodes("synTaxUIDNodes");
 		synNodeIndex = graphDb.index().forNodes("graphNamedNodesSyns");
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
@@ -57,8 +74,8 @@ public class GraphImporter extends GraphBase{
 	
 	public GraphImporter(EmbeddedGraphDatabase graphn) {
 		graphDb = graphn;
-		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" );//name is the key
-		graphTaxUIDNodeindex = graphDb.index().forNodes( "graphTaxUIDNodes" );//tax_uid is the key
+		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" ); // name is the key
+		graphTaxUIDNodeindex = graphDb.index().forNodes( "graphTaxUIDNodes" ); // tax_uid is the key
 		synTaxUIDNodeindex = graphDb.index().forNodes("synTaxUIDNodes");
 		synNodeIndex = graphDb.index().forNodes("graphNamedNodesSyns");
 		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
@@ -74,7 +91,7 @@ public class GraphImporter extends GraphBase{
 	 * @param filename name of file with a newick tree representation
 	 */
 	public void preProcessTree(String filename) {
-		//read the tree from a file
+		// read the tree from a file
 		String ts = "";
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
@@ -85,7 +102,7 @@ public class GraphImporter extends GraphBase{
 		TreeReader tr = new TreeReader();
 		jt = tr.readTree(ts);
 		System.out.println("tree read");
-		//System.exit(0);
+		// System.exit(0);
 	}
 	
 	/**
@@ -95,7 +112,7 @@ public class GraphImporter extends GraphBase{
 	 */
 	public void setTree(JadeTree tree) {
 		jt = tree;
-		treestring = jt.getRoot().getNewick(true)+";";
+		treestring = jt.getRoot().getNewick(true) + ";";
 		System.out.println("tree set");
 	}
 	
@@ -511,35 +528,36 @@ public class GraphImporter extends GraphBase{
 		updatedSuperLICAs = new HashSet<Node>();
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
-		//We'll Create a list of the internal IDs for each taxonomic node that matches
+		// We'll Create a list of the internal IDs for each taxonomic node that matches
 		//		the name of leaf in the tree to be ingested.
 
-		//TODO: could take this out and make it a seperate procedure
-		/*@todo making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
+		// TODO: could take this out and make it a separate procedure
+		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
 		  would make the look ups faster. See comment in testIsMRCA */
 		HashSet<Long> ndids = new HashSet<Long>(); 
-		//We'll map each Jade node to the internal ID of its taxonomic node.
+		// We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
-		//same as above but added for nested nodes, so more comprehensive and 
+		// same as above but added for nested nodes, so more comprehensive and 
 		//		used just for searching. the others are used for storage
 		HashSet<Long> ndidssearch = new HashSet<Long>();
 		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
-		//TODO: when receiving trees in the future the ids should already be set so we don't have to 
+		// TODO: when receiving trees in the future the ids should already be set so we don't have to 
 		//	  do this kind of fuzzy matching
-		//TODO: this could be modified to account for internal node name mapping
+		// TODO: this could be modified to account for internal node name mapping
 		for (int j = 0; j < nds.size(); j++) {
-			//find all the tip taxa and with doubles pick the taxon closest to the focal group
+			// find all the tip taxa and with doubles pick the taxon closest to the focal group
 			Node hitnode = null;
-			String processedname = nds.get(j).getName();//.replace("_", " "); //@todo processing syntactic rules like '_' -> ' ' should be done on input parsing. 
+			String processedname = nds.get(j).getName(); //.replace("_", " ");
+			// TODO processing syntactic rules like '_' -> ' ' should be done on input parsing. 
 			IndexHits<Node> hits = graphNodeIndex.get("name", processedname);
 			int numh = hits.size();
 			if (numh == 1) {
 				hitnode = hits.getSingle();
 			} else if (numh > 1) {
 				System.out.println(processedname + " gets " + numh +" hits");
-				int shortest = 1000;//this is shortest to the focal, could reverse this
+				int shortest = 1000; // this is shortest to the focal, could reverse this
 				Node shortn = null;
 				for (Node tnode : hits) {
 					Path tpath = pf.findSinglePath(tnode, focalnode);
@@ -551,12 +569,12 @@ public class GraphImporter extends GraphBase{
 							shortest = tpath.length();
 							shortn = tnode;
 						}
-//						System.out.println(shortest+" "+tpath.length());
+//						System.out.println(shortest + " " + tpath.length());
 					} else {
 						System.out.println("one taxon is not within "+ focalgroup);
 					}
 				}
-				assert shortn != null; // @todo this could happen if there are multiple hits outside the focalgroup, and none inside the focalgroup.  We should develop an AmbiguousTaxonException class
+				assert shortn != null; // TODO this could happen if there are multiple hits outside the focalgroup, and none inside the focalgroup.  We should develop an AmbiguousTaxonException class
 				hitnode = shortn;
 			}
 			hits.close();
@@ -564,7 +582,7 @@ public class GraphImporter extends GraphBase{
 				assert numh == 0;
 				throw new TaxonNotFoundException(processedname);
 			}
-			//added for nested nodes 
+			// added for nested nodes 
 			long [] mrcas = (long[])hitnode.getProperty("mrca");
 			ArrayList<Long> tset = new ArrayList<Long>(); 
 			for (int k = 0; k < mrcas.length; k++) {
@@ -572,18 +590,18 @@ public class GraphImporter extends GraphBase{
 				tset.add((Long)mrcas[k]);
 			}
 
-			hashnodeidssearch.put(nds.get(j),tset);
+			hashnodeidssearch.put(nds.get(j), tset);
 			ndids.add(hitnode.getId());
 			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
 		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
 		jt.getRoot().assocObject("ndids", ndids);
-		jt.getRoot().assocObject("hashnodeids",hashnodeids);
-		jt.getRoot().assocObject("ndidssearch",ndidssearch);
-		jt.getRoot().assocObject("hashnodeidssearch",hashnodeidssearch);
+		jt.getRoot().assocObject("hashnodeids", hashnodeids);
+		jt.getRoot().assocObject("ndidssearch", ndidssearch);
+		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
 		try {
 			tx = graphDb.beginTx();
-			postOrderaddProcessedTreeToGraph(jt.getRoot(),jt.getRoot(),sourcename, focalnode);
+			postOrderaddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, focalnode);
 			tx.success();
 		} finally {
 			tx.finish();
@@ -618,16 +636,16 @@ public class GraphImporter extends GraphBase{
 			postOrderaddProcessedTreeToGraph(inode.getChild(i), root, sourcename, focalnode);
 		}
 		//		_LOG.trace("children: "+inode.getChildCount());
-		//roothash are the actual ids with the nested names -- used for storing
-		//roothashsearch are the ids with nested exploded -- used for searching
-		HashMap<JadeNode,Long> roothash = ((HashMap<JadeNode,Long>)root.getObject("hashnodeids"));
-		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode,ArrayList<Long>>)root.getObject("hashnodeidssearch"));
+		// roothash are the actual ids with the nested names -- used for storing
+		// roothashsearch are the ids with nested exploded -- used for searching
+		HashMap<JadeNode, Long> roothash = ((HashMap<JadeNode, Long>)root.getObject("hashnodeids"));
+		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode, ArrayList<Long>>)root.getObject("hashnodeidssearch"));
 
 		if (inode.getChildCount() > 0) {
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
-			//store the hits for each of the nodes in the tips
+			// store the hits for each of the nodes in the tips
 			for (int j = 0; j < nds.size(); j++) {
 				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
 				ArrayList<Long> tlist = roothashsearch.get(nds.get(j));
@@ -635,8 +653,8 @@ public class GraphImporter extends GraphBase{
 					hit_nodes_search.add(graphDb.getNodeById(tlist.get(k)));
 				}
 			}
-			//get all the childids even if they aren't in the tree, this is the postorder part
-			HashSet<Long> childndids =new HashSet<Long> (); 
+			// get all the childids even if they aren't in the tree, this is the postorder part
+			HashSet<Long> childndids = new HashSet<Long> (); 
 			
 			for (int i = 0; i < inode.getChildCount(); i++) {
 				Node [] dbnodesob = (Node [])inode.getChild(i).getObject("dbnodes"); 
@@ -654,9 +672,9 @@ public class GraphImporter extends GraphBase{
 			HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
 			
 			//			_LOG.trace("ancestor "+ancestor);
-			//_LOG.trace(ancestor.getProperty("name"));
+			// _LOG.trace(ancestor.getProperty("name"));
 			if (ancestors.size() > 0) {
-				inode.assocObject("dbnodes",ancestors.toArray(new Node[ancestors.size()]));
+				inode.assocObject("dbnodes", ancestors.toArray(new Node[ancestors.size()]));
 				long[] ret = new long[hit_nodes.size()];
 				for (int i = 0; i < hit_nodes.size(); i++) {
 					ret[i] = hit_nodes.get(i).getId();
@@ -669,18 +687,18 @@ public class GraphImporter extends GraphBase{
 					ret2[i] = chl2.next().longValue();
 					i++;
 				}
-				inode.assocObject("exclusive_mrca",ret);
-				inode.assocObject("root_exclusive_mrca",ret2);
+				inode.assocObject("exclusive_mrca", ret);
+				inode.assocObject("root_exclusive_mrca", ret2);
 			} else {
 				//				_LOG.trace("need to make a new node");
-				//make a node
-				//get the super lica, or what would be the licas if we didn't have the other taxa in the tree
-				//this is used to connect the new nodes to their licas for easier traversals
+				// make a node
+				// get the super lica, or what would be the licas if we didn't have the other taxa in the tree
+				// this is used to connect the new nodes to their licas for easier traversals
 				HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
-				//steps
-				//1. create a node
-				//2. store the mrcas
-				//3. assoc with the node
+				// steps
+				// 1. create a node
+				// 2. store the mrcas
+				// 3. assoc with the node
 				Node dbnode = graphDb.createNode();
 				//					inode.assocObject("dbnode",dbnode);
 				Node [] nar = {dbnode};
@@ -710,9 +728,9 @@ public class GraphImporter extends GraphBase{
 				}
 				Arrays.sort(ret2);
 				inode.assocObject("root_exclusive_mrca",ret2);
-				//					for (int i=0;i<inode.getChildCount();i++) {
-				//						Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
-				//					}
+				//	for (int i=0;i<inode.getChildCount();i++) {
+				//		Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
+				//	}
 				Iterator<Node> itrsl = superlica.iterator();
 				while (itrsl.hasNext()) {
 					Node itrnext = itrsl.next();
@@ -720,14 +738,14 @@ public class GraphImporter extends GraphBase{
 					updatedSuperLICAs.add(itrnext);
 				}
 				tx.success();
-				//add new nodes so they can be used for updating after tree ingest
+				// add new nodes so they can be used for updating after tree ingest
 				updatedNodes.add(dbnode);
 			}
 			addProcessedNodeRelationships(inode, sourcename);
 		} else {
-//			inode.assocObject("dbnode",graphDb.getNodeById(roothash.get(inode)));
+//			inode.assocObject("dbnode", graphDb.getNodeById(roothash.get(inode)));
 			Node [] nar = {graphDb.getNodeById(roothash.get(inode))};
-			inode.assocObject("dbnodes",nar);
+			inode.assocObject("dbnodes", nar);
 		}
 	}
 	
@@ -744,41 +762,91 @@ public class GraphImporter extends GraphBase{
 	private void addProcessedNodeRelationships(JadeNode inode, String sourcename) throws TreeIngestException{
 		// At this point the inode is guaranteed to be associated with a dbnode
 		// add the actual branches for the source
-		//			Node currGoLNode = (Node)(inode.getObject("dbnode"));
+		// Node currGoLNode = (Node)(inode.getObject("dbnode"));
 		Node [] allGoLNodes = (Node [])(inode.getObject("dbnodes"));
-		//for use if this node will be an incluchildof and we want to store the relationships for faster retrieval
+		// for use if this node will be an incluchildof and we want to store the relationships for faster retrieval
 		ArrayList<Relationship> inclusiverelationships = new ArrayList<Relationship>();
 		for (int k = 0; k < allGoLNodes.length; k++) {
 			Node currGoLNode = allGoLNodes[k];
-			//add the root index for the source trail
+			// add the root index for the source trail
 			if (inode.isTheRoot()) {
-				//TODO: this will need to be updated when trees are updated
+				// TODO: this will need to be updated when trees are updated
 				System.out.println("placing root in index");
 				sourceRootIndex.add(currGoLNode, "rootnode", sourcename);
+				
+				
+				/* TODO: Need to add metadata (if present) from jadetree coming from nexson.
+				   Fields at present:
+					ot:studyPublicationReference - string: ot:studyPublicationReference "long string"
+					ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
+					ot:curatorName - string: ot:curatorName "Jane Doe"
+					ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
+					ot:studyID - string / integer ot:studyId "123"
+					ot:ottolid - integer: ot:ottolid 783941
+				*/
+				
+				// Note: setProperty throws IllegalArgumentException - if value is of an unsupported type (including null)
+				
 				Node metadatanode = null;
 				metadatanode = graphDb.createNode();
+				
+		// first (ugly) go at this. do we want new (shorter) names (keys)?
+		// if property does not exist, do we want 1) nothing, or 2) an empty property?
+				if ((String)jt.getObject("ot:studyPublicationReference") != null) {
+					System.out.println("Adding property 'ot:studyPublicationReference' for tree " + sourcename);
+					metadatanode.setProperty("ot:studyPublicationReference", jt.getObject("ot:studyPublicationReference"));
+				} else {
+					System.out.println("Property 'ot:studyPublicationReference' does not exist for tree " + sourcename);
+				}
+				if ((String)jt.getObject("ot:studyPublication") != null) {
+					System.out.println("Adding property 'ot:studyPublication' for tree " + sourcename);
+					metadatanode.setProperty("ot:studyPublication", jt.getObject("ot:studyPublication"));
+				} else {
+					System.out.println("Property 'ot:studyPublication' does not exist for tree " + sourcename);
+				}
+				if ((String)jt.getObject("ot:curatorName") != null) {
+					System.out.println("Adding property 'ot:curatorName' for tree " + sourcename);
+					metadatanode.setProperty("ot:curatorName", jt.getObject("ot:curatorName"));
+				} else {
+					System.out.println("Property 'ot:curatorName' does not exist for tree " + sourcename);
+				}
+				if ((String)jt.getObject("ot:dataDeposit") != null) {
+					System.out.println("Adding property 'ot:dataDeposit' for tree " + sourcename);
+					metadatanode.setProperty("ot:dataDeposit", jt.getObject("ot:dataDeposit"));
+				} else {
+					System.out.println("Property 'ot:dataDeposit' does not exist for tree " + sourcename);
+				}
+				if ((String)jt.getObject("ot:studyID") != null) {
+					System.out.println("Adding property 'ot:studyID' for tree " + sourcename);
+					metadatanode.setProperty("ot:studyID", jt.getObject("ot:studyID"));
+				} else {
+					System.out.println("Property 'ot:studyID' does not exist for tree " + sourcename);
+				}
+				
+		// should studyID replace sourcename?
 				metadatanode.setProperty("source", sourcename);
-				metadatanode.setProperty("author", "no one");
-				metadatanode.setProperty("newick",treestring);
-				sourceMetaIndex.add(metadatanode,"source",sourcename);
-				//TODO: doesn't account for multiple root nodes
+				metadatanode.setProperty("author", "no one"); // seems deprecated now
+				metadatanode.setProperty("newick", treestring); // this could be giant. do we want to do this?
+								
+				sourceMetaIndex.add(metadatanode, "source", sourcename);
+				// TODO: doesn't account for multiple root nodes
 				metadatanode.createRelationshipTo(currGoLNode, RelTypes.METADATAFOR);
 			}
 			for (int i = 0; i < inode.getChildCount(); i++) {
 				JadeNode childJadeNode = inode.getChild(i);
-//					Node childGoLNode = (Node)childJadeNode.getObject("dbnode");
+//				Node childGoLNode = (Node)childJadeNode.getObject("dbnode");
 				Node [] allChildGoLNodes = (Node [])(childJadeNode.getObject("dbnodes"));
 				for (int m = 0; m < allChildGoLNodes.length; m++) {
 					Node childGoLNode = allChildGoLNodes[m];
 					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREECHILDOF);
 					sourceRelIndex.add(rel, "source", sourcename);
-					rel.setProperty("exclusive_mrca",(long [])inode.getObject("exclusive_mrca"));
-					rel.setProperty("root_exclusive_mrca",(long []) inode.getObject("root_exclusive_mrca"));
+					rel.setProperty("exclusive_mrca", (long [])inode.getObject("exclusive_mrca"));
+					rel.setProperty("root_exclusive_mrca", (long []) inode.getObject("root_exclusive_mrca"));
 					long [] licaids = new long[allGoLNodes.length];
 					for (int n = 0; n < licaids.length; n++) {
 						licaids[n] = allGoLNodes[n].getId();
 					}
-					rel.setProperty("licas",licaids);
+					rel.setProperty("licas", licaids);
 					inclusiverelationships.add(rel);
 
 					// check to make sure the parent and child nodes are distinct entities...
@@ -795,9 +863,10 @@ public class GraphImporter extends GraphBase{
 						errbuff.append("\nThe tree has been partially imported into the db.\n");
 						throw new TreeIngestException(errbuff.toString());
 					}
-					//METADATA ENTRY
+					// METADATA ENTRY
 					rel.setProperty("source", sourcename);
-					if (childJadeNode.getBL() > 0.0) { //@todo this if will cause us to drop 0 length branches. We probably need a "has branch length" flag in JadeNode...
+					// TODO this if will cause us to drop 0 length branches. We probably need a "has branch length" flag in JadeNode...
+					if (childJadeNode.getBL() > 0.0) {
 						rel.setProperty("branch_length", childJadeNode.getBL());
 					}
 					boolean mrca_rel = false;
@@ -810,8 +879,8 @@ public class GraphImporter extends GraphBase{
 					if (mrca_rel == false) {
 						Relationship rel2 = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.MRCACHILDOF);
 						// I'm not sure how this assert could ever trip, given that we create a 
-						//	childGoLNode -> currGoLNode relationship above and raise an exception
-						//	if the endpoints have the same ID.
+						// childGoLNode -> currGoLNode relationship above and raise an exception
+						// if the endpoints have the same ID.
 						assert rel2.getStartNode().getId() != rel2.getEndNode().getId();
 					}
 				}
@@ -895,12 +964,12 @@ public class GraphImporter extends GraphBase{
 	}
 	
 	public void deleteTreeBySource(String source) {
-		System.out.println("deleting: "+source);
+		System.out.println("deleting: " + source);
 		IndexHits <Relationship> hits = sourceRelIndex.get("source", source);
 		Transaction	tx = graphDb.beginTx();
 		try {
 //			Iterator<Relationship> itrel = tobedeleted.iterator();
-			for (Relationship itrel: hits) {
+			for (Relationship itrel : hits) {
 				itrel.delete();
 				sourceRelIndex.remove(itrel, "source", source);
 			}
@@ -923,7 +992,7 @@ public class GraphImporter extends GraphBase{
 		shits = sourceMetaIndex.get("source", source);
 		tx = graphDb.beginTx();
 		try {
-			for (Node itrel: shits) {
+			for (Node itrel : shits) {
 				sourceMetaIndex.remove(itrel, "source", source);
 				itrel.getRelationships(RelTypes.METADATAFOR).iterator().next().delete();
 				itrel.delete();
@@ -956,7 +1025,7 @@ public class GraphImporter extends GraphBase{
 //				System.out.println(tnext);
 				for (Relationship rel: tnext.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
 //					System.out.print(rel+"\n");
-					if (((String)rel.getProperty("source")).compareTo("taxonomy")==0) {
+					if (((String)rel.getProperty("source")).compareTo("taxonomy") == 0) {
 						continue;
 					}
 					boolean add = true;
