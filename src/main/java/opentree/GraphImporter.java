@@ -964,7 +964,7 @@ public class GraphImporter extends GraphBase{
 	}
 	
 	public void deleteTreeBySource(String source) {
-		System.out.println("deleting: " + source);
+		System.out.println("deleting tree: " + source);
 		IndexHits <Relationship> hits = sourceRelIndex.get("source", source);
 		Transaction	tx = graphDb.beginTx();
 		try {

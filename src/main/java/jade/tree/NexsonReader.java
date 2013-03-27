@@ -33,7 +33,6 @@ import java.util.ArrayList;
 public class NexsonReader {
 
 	/* main method for testing - just dumps out Newick */
-
 	public static void main(String argv[]) throws Exception {
 		String filename = "study15.json";
 		if (argv.length == 1) {
@@ -56,7 +55,6 @@ public class NexsonReader {
 	}
 
 	/* Read Nexson study from a file, given file name */
-
 	public static List<JadeTree> readNexson(String filename) throws java.io.IOException {
 		Reader r = new BufferedReader(new FileReader(filename));
 		List<JadeTree> result = readNexson(r);
@@ -65,7 +63,6 @@ public class NexsonReader {
 	}
 
 	/* Read Nexson study from a Reader */
-
 	public static List<JadeTree> readNexson(Reader r) throws java.io.IOException {
 		JSONObject all = (JSONObject)JSONValue.parse(r);
 
