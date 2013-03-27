@@ -792,40 +792,40 @@ public class GraphImporter extends GraphBase{
 				
 		// first (ugly) go at this. do we want new (shorter) names (keys)?
 		// if property does not exist, do we want 1) nothing, or 2) an empty property?
-				if ((String)jt.getObject("ot:studyPublicationReference") != null) {
-					System.out.println("Adding property 'ot:studyPublicationReference' for tree " + sourcename);
+				if (jt.getObject("ot:studyPublicationReference") != null) {
+					System.out.println("Adding property 'ot:studyPublicationReference' for tree " + sourcename + ": " + jt.getObject("ot:studyPublicationReference"));
 					metadatanode.setProperty("ot:studyPublicationReference", jt.getObject("ot:studyPublicationReference"));
 				} else {
 					System.out.println("Property 'ot:studyPublicationReference' does not exist for tree " + sourcename);
 				}
-				if ((String)jt.getObject("ot:studyPublication") != null) {
-					System.out.println("Adding property 'ot:studyPublication' for tree " + sourcename);
+				if (jt.getObject("ot:studyPublication") != null) {
+					System.out.println("Adding property 'ot:studyPublication' for tree " + sourcename + ": " + jt.getObject("ot:studyPublication"));
 					metadatanode.setProperty("ot:studyPublication", jt.getObject("ot:studyPublication"));
 				} else {
 					System.out.println("Property 'ot:studyPublication' does not exist for tree " + sourcename);
 				}
-				if ((String)jt.getObject("ot:curatorName") != null) {
-					System.out.println("Adding property 'ot:curatorName' for tree " + sourcename);
+				if (jt.getObject("ot:curatorName") != null) {
+					System.out.println("Adding property 'ot:curatorName' for tree " + sourcename + ": " + jt.getObject("ot:curatorName"));
 					metadatanode.setProperty("ot:curatorName", jt.getObject("ot:curatorName"));
 				} else {
 					System.out.println("Property 'ot:curatorName' does not exist for tree " + sourcename);
 				}
-				if ((String)jt.getObject("ot:dataDeposit") != null) {
-					System.out.println("Adding property 'ot:dataDeposit' for tree " + sourcename);
+				if (jt.getObject("ot:dataDeposit") != null) {
+					System.out.println("Adding property 'ot:dataDeposit' for tree " + sourcename + ": " + jt.getObject("ot:dataDeposit"));
 					metadatanode.setProperty("ot:dataDeposit", jt.getObject("ot:dataDeposit"));
 				} else {
 					System.out.println("Property 'ot:dataDeposit' does not exist for tree " + sourcename);
 				}
-				if ((String)jt.getObject("ot:studyID") != null) {
-					System.out.println("Adding property 'ot:studyID' for tree " + sourcename);
-					metadatanode.setProperty("ot:studyID", jt.getObject("ot:studyID"));
+				if (jt.getObject("ot:studyid") != null) {
+					System.out.println("Adding property 'ot:studyid' for tree " + sourcename + ": " + jt.getObject("ot:studyid"));
+					metadatanode.setProperty("ot:studyID", jt.getObject("ot:studyid"));
 				} else {
 					System.out.println("Property 'ot:studyID' does not exist for tree " + sourcename);
 				}
 				
 		// should studyID replace sourcename?
 				metadatanode.setProperty("source", sourcename);
-				metadatanode.setProperty("author", "no one"); // seems deprecated now
+				//metadatanode.setProperty("author", "no one"); // seems deprecated now
 				metadatanode.setProperty("newick", treestring); // this could be giant. do we want to do this?
 								
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
