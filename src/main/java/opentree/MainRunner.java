@@ -133,6 +133,9 @@ public class MainRunner {
 				System.out.println("adding a tree to the graph: " + i);
 				gi.setTree(jt.get(i));
 				try {
+					if (jt.get(i).getObject("ot:studyid") != null) { // use studyid (if present) as sourcename
+						sourcename = (String)jt.get(i).getObject("ot:studyid");
+					}
 					if (jt.size() == 1) {
 						gi.addProcessedTreeToGraph(focalgroup, sourcename);
 						gi.updateAfterTreeIngest(false);// TODO: this still needs work
@@ -151,6 +154,9 @@ public class MainRunner {
 			}
 			if (jt.size() > 1) {
 				for (int i = 0; i < jt.size(); i++) {
+					if (jt.get(i).getObject("ot:studyid") != null) { // use studyid (if present) as sourcename
+						sourcename = (String)jt.get(i).getObject("ot:studyid");
+					}
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
 					try {
@@ -346,11 +352,17 @@ public class MainRunner {
 		System.out.println("started graph importer");
 		// Go through the trees again and add and update as necessary
 		for (int i = 0; i < jt.size(); i++) {
-			System.out.println("adding a tree to the graph: " + i);
+			String sourcename = "treeinfile";
+			if (jt.get(i).getObject("ot:studyid") != null) { // use studyid (if present) as sourcename
+				sourcename = (String)jt.get(i).getObject("ot:studyid");
+			}
+			sourcename += "_" + String.valueOf(i);
+			
+			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
 			try {
-			    gi.addProcessedTreeToGraph("life", "treeinfile_" + String.valueOf(i));
-			    gi.deleteTreeBySource("treeinfile_" + String.valueOf(i));
+			    gi.addProcessedTreeToGraph("life", sourcename);
+			    gi.deleteTreeBySource(sourcename);
 			    //gi.updateAfterTreeIngest(false);
 			} catch (TaxonNotFoundException tnfx) {
     			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
@@ -362,10 +374,16 @@ public class MainRunner {
 		}
 		// adding them again after all the nodes are there
 		for (int i = 0; i < jt.size(); i++) {
-			System.out.println("adding a tree to the graph: " + i);
+			String sourcename = "treeinfile";
+			if (jt.get(i).getObject("ot:studyid") != null) { // use studyid (if present) as sourcename
+				sourcename = (String)jt.get(i).getObject("ot:studyid");
+			}
+			sourcename += "_" + String.valueOf(i);
+			
+			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
 			try {
-			    gi.addProcessedTreeToGraph("life", "treeinfile_" + String.valueOf(i));
+			    gi.addProcessedTreeToGraph("life", sourcename);
 			    // gi.updateAfterTreeIngest(false);
 			} catch (TaxonNotFoundException tnfx) {
     			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
