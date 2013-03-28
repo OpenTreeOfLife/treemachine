@@ -30,8 +30,8 @@ public class MainRunner {
 		String graphname = args[3] ;
 		GraphImporter tl = new GraphImporter(graphname);
 		if (args[0].compareTo("inittax") == 0) {
-			System.out.println("initializing taxonomy from " + filename + " with synonyms in "+synfilename+" to " + graphname);
-			tl.addInitialTaxonomyTableIntoGraph(filename,synfilename);
+			System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
+			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename);
 		} else {
 			System.err.println("ERROR: not a known command");
 			tl.shutdownDB();
@@ -133,12 +133,12 @@ public class MainRunner {
 				System.out.println("adding a tree to the graph: " + i);
 				gi.setTree(jt.get(i));
 				try {
-					if (jt.get(i).getObject("ot:studyid") != null) { // use studyid (if present) as sourcename
-						sourcename = (String)jt.get(i).getObject("ot:studyid");
+					if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+						sourcename = (String)jt.get(i).getObject("ot:studyId");
 					}
 					if (jt.size() == 1) {
 						gi.addProcessedTreeToGraph(focalgroup, sourcename);
-						gi.updateAfterTreeIngest(false);// TODO: this still needs work
+						gi.updateAfterTreeIngest(false); // TODO: this still needs work
 					} else {
 						gi.addProcessedTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
 					    gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
@@ -154,8 +154,8 @@ public class MainRunner {
 			}
 			if (jt.size() > 1) {
 				for (int i = 0; i < jt.size(); i++) {
-					if (jt.get(i).getObject("ot:studyid") != null) { // use studyid (if present) as sourcename
-						sourcename = (String)jt.get(i).getObject("ot:studyid");
+					if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+						sourcename = (String)jt.get(i).getObject("ot:studyId");
 					}
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
@@ -353,8 +353,8 @@ public class MainRunner {
 		// Go through the trees again and add and update as necessary
 		for (int i = 0; i < jt.size(); i++) {
 			String sourcename = "treeinfile";
-			if (jt.get(i).getObject("ot:studyid") != null) { // use studyid (if present) as sourcename
-				sourcename = (String)jt.get(i).getObject("ot:studyid");
+			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+				sourcename = (String)jt.get(i).getObject("ot:studyId");
 			}
 			sourcename += "_" + String.valueOf(i);
 			
@@ -375,8 +375,8 @@ public class MainRunner {
 		// adding them again after all the nodes are there
 		for (int i = 0; i < jt.size(); i++) {
 			String sourcename = "treeinfile";
-			if (jt.get(i).getObject("ot:studyid") != null) { // use studyid (if present) as sourcename
-				sourcename = (String)jt.get(i).getObject("ot:studyid");
+			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+				sourcename = (String)jt.get(i).getObject("ot:studyId");
 			}
 			sourcename += "_" + String.valueOf(i);
 			

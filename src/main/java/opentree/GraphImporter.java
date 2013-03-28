@@ -57,7 +57,7 @@ public class GraphImporter extends GraphBase{
 		ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
 		ot:curatorName - string: ot:curatorName "Jane Doe"
 		ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
-		ot:studyID - string: ot:studyId "123"
+		ot:studyId - string: ot:studyId "123"
 		ot:ottolid - integer: ot:ottolid 783941
 	*/
 	
@@ -781,7 +781,7 @@ public class GraphImporter extends GraphBase{
 					ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
 					ot:curatorName - string: ot:curatorName "Jane Doe"
 					ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
-					ot:studyID - string / integer ot:studyId "123"
+					ot:studyId - string / integer ot:studyId "123"
 					ot:ottolid - integer: ot:ottolid 783941
 				*/
 				
@@ -816,11 +816,11 @@ public class GraphImporter extends GraphBase{
 				} else {
 					System.out.println("Property 'ot:dataDeposit' does not exist for tree " + sourcename);
 				}
-				if (jt.getObject("ot:studyid") != null) {
-					System.out.println("Adding property 'ot:studyid' for tree " + sourcename + ": " + jt.getObject("ot:studyid"));
-					metadatanode.setProperty("ot:studyID", jt.getObject("ot:studyid"));
+				if (jt.getObject("ot:studyId") != null) {
+					System.out.println("Adding property 'ot:studyId' for tree " + sourcename + ": " + jt.getObject("ot:studyId"));
+					metadatanode.setProperty("ot:studyId", jt.getObject("ot:studyId"));
 				} else {
-					System.out.println("Property 'ot:studyID' does not exist for tree " + sourcename);
+					System.out.println("Property 'ot:studyId' does not exist for tree " + sourcename);
 				}
 				
 		// should studyID replace sourcename?
