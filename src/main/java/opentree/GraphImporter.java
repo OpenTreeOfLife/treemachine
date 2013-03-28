@@ -504,6 +504,71 @@ public class GraphImporter extends GraphBase{
 			dbnode.setProperty("nested_mrca", ret2);
 		}
 	}
+
+	/**
+	 * Ingest the current JadeTree (in the jt data member) to the GoL.
+	 *
+	 * This will assume that the JadeNodes all have a property set as ot:ottolid
+	 * 		that will be the preset ottol id identifier that will be found by index.
+	 * 		ALL THE NAMES HAVE TO BE SET FOR THIS FUNCTION
+	 *
+	 * @param sourcename the name to be registered as the "source" property for
+	 *		every edge in this tree.
+	 */
+	public void addSetTreeToGraphWIdsSet(String sourcename) throws TaxonNotFoundException,TreeIngestException {
+		updatedNodes = new ArrayList<Node>();
+		updatedSuperLICAs = new HashSet<Node>();
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
+		ArrayList<JadeNode> nds = jt.getRoot().getTips();
+
+		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
+		  would make the look ups faster. See comment in testIsMRCA */
+		HashSet<Long> ndids = new HashSet<Long>(); 
+		// We'll map each Jade node to the internal ID of its taxonomic node.
+		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
+		// same as above but added for nested nodes, so more comprehensive and 
+		//		used just for searching. the others are used for storage
+		HashSet<Long> ndidssearch = new HashSet<Long>();
+		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
+		// this loop fills ndids and hashnodeids or throws an Exception (for 
+		//		errors in matching leaves to the taxonomy). No other side effects.
+		// TODO: this could be modified to account for internal node name mapping
+		for (int j = 0; j < nds.size(); j++) {
+			//use the internal node id to get the nodes mapped 
+			Node hitnode = null;
+			Long ottolid = (Long)nds.get(j).getObject("ot:ottolid");
+			IndexHits<Node> hits = graphTaxUIDNodeindex.get("tax_uid", ottolid);
+			int numh = hits.size();
+			if(numh == 0){
+				throw new TaxonNotFoundException(String.valueOf(ottolid));
+			}
+			assert numh == 1;
+			hitnode = hits.getSingle();
+			hits.close();
+			// added for nested nodes 
+			long [] mrcas = (long[])hitnode.getProperty("mrca");
+			ArrayList<Long> tset = new ArrayList<Long>(); 
+			for (int k = 0; k < mrcas.length; k++) {
+				ndidssearch.add(mrcas[k]);
+				tset.add((Long)mrcas[k]);
+			}
+			hashnodeidssearch.put(nds.get(j), tset);
+			ndids.add(hitnode.getId());
+			hashnodeids.put(nds.get(j), hitnode.getId());
+		}
+		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
+		jt.getRoot().assocObject("ndids", ndids);
+		jt.getRoot().assocObject("hashnodeids", hashnodeids);
+		jt.getRoot().assocObject("ndidssearch", ndidssearch);
+		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
+		try {
+			tx = graphDb.beginTx();
+			postOrderaddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename);
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+	}
 	
 	/**
 	 * Ingest the current JadeTree (in the jt data member) to the GoL.
@@ -522,14 +587,12 @@ public class GraphImporter extends GraphBase{
 	 *		this we could just randomly choose one of the edges that is connected
 	 *		to the root node that is in the index
 	 */
-	public void addProcessedTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException, TreeIngestException {
+	public void addSetTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException, TreeIngestException {
 		Node focalnode = findTaxNodeByName(focalgroup);
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
-		// We'll Create a list of the internal IDs for each taxonomic node that matches
-		//		the name of leaf in the tree to be ingested.
 
 		// TODO: could take this out and make it a separate procedure
 		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
@@ -543,8 +606,6 @@ public class GraphImporter extends GraphBase{
 		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
-		// TODO: when receiving trees in the future the ids should already be set so we don't have to 
-		//	  do this kind of fuzzy matching
 		// TODO: this could be modified to account for internal node name mapping
 		for (int j = 0; j < nds.size(); j++) {
 			// find all the tip taxa and with doubles pick the taxon closest to the focal group
@@ -601,7 +662,7 @@ public class GraphImporter extends GraphBase{
 		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
 		try {
 			tx = graphDb.beginTx();
-			postOrderaddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, focalnode);
+			postOrderaddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename);
 			tx.success();
 		} finally {
 			tx.finish();
@@ -617,9 +678,6 @@ public class GraphImporter extends GraphBase{
 	 * This will update the class member updatedNodes so they can be used for updating 
 	 * existing relationships.
 	 *
-	 * @param focalgroup a taxonomic name of the ancestor of the leaves in the tree
-	 *		this is only used in disambiguating taxa when there are multiple hits 
-	 *		for a leaf's taxonomic name
 	 * @param sourcename the name to be registered as the "source" property for
 	 *		every edge in this tree.
 	 * @todo note that if a TreeIngestException the database will not have been reverted
@@ -630,10 +688,10 @@ public class GraphImporter extends GraphBase{
 	 *		
 	 */
 	@SuppressWarnings("unchecked")
-	private void postOrderaddProcessedTreeToGraph(JadeNode inode, JadeNode root, String sourcename, Node focalnode) throws TreeIngestException {
+	private void postOrderaddProcessedTreeToGraph(JadeNode inode, JadeNode root, String sourcename) throws TreeIngestException {
 		// postorder traversal via recursion
 		for (int i = 0; i < inode.getChildCount(); i++) {
-			postOrderaddProcessedTreeToGraph(inode.getChild(i), root, sourcename, focalnode);
+			postOrderaddProcessedTreeToGraph(inode.getChild(i), root, sourcename);
 		}
 		//		_LOG.trace("children: "+inode.getChildCount());
 		// roothash are the actual ids with the nested names -- used for storing
@@ -940,6 +998,9 @@ public class GraphImporter extends GraphBase{
 		}
 	}
 	
+	/**
+	 * TODO: update this for the new method
+	 */
 	public void deleteAllTreesAndReprocess() {
 		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
 		System.out.println(hits.size());
@@ -952,7 +1013,7 @@ public class GraphImporter extends GraphBase{
 			System.out.println("tree read");
 			setTree(jt,trees);
 			try {
-				addProcessedTreeToGraph("life",source);
+				addSetTreeToGraph("life",source);
 			} catch (TaxonNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

@@ -137,10 +137,10 @@ public class MainRunner {
 						sourcename = (String)jt.get(i).getObject("ot:studyId");
 					}
 					if (jt.size() == 1) {
-						gi.addProcessedTreeToGraph(focalgroup, sourcename);
+						gi.addSetTreeToGraph(focalgroup, sourcename);
 						gi.updateAfterTreeIngest(false); // TODO: this still needs work
 					} else {
-						gi.addProcessedTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
+						gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
 					    gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
 					}
 				    // gi.updateAfterTreeIngest(false);
@@ -160,7 +160,7 @@ public class MainRunner {
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
 					try {
-						gi.addProcessedTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
+						gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
 					} catch (TaxonNotFoundException tnfx) {
 		    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
 		    			System.exit(1);
@@ -361,7 +361,7 @@ public class MainRunner {
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
 			try {
-			    gi.addProcessedTreeToGraph("life", sourcename);
+			    gi.addSetTreeToGraph("life", sourcename);
 			    gi.deleteTreeBySource(sourcename);
 			    //gi.updateAfterTreeIngest(false);
 			} catch (TaxonNotFoundException tnfx) {
@@ -383,7 +383,7 @@ public class MainRunner {
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
 			try {
-			    gi.addProcessedTreeToGraph("life", sourcename);
+			    gi.addSetTreeToGraph("life", sourcename);
 			    // gi.updateAfterTreeIngest(false);
 			} catch (TaxonNotFoundException tnfx) {
     			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
@@ -631,9 +631,17 @@ public class MainRunner {
 //				System.out.println("Skipping study " + k);
 //				continue;
 //			}
-			List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
-			for (JadeTree j : jt) {
-				System.out.println(k + ": " + j.getExternalNodeCount());
+			if (k > 10)
+				break;
+			try{
+				List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
+				for (JadeTree j : jt) {
+					System.out.println(k + ": " + j.getExternalNodeCount());
+				}
+				PhylografterConnector.fixNamesFromTrees(jt);
+			}catch(java.lang.NullPointerException e){
+				System.out.println("failed to get study "+k);
+				continue;
 			}
 		}
 	}
