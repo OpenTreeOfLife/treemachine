@@ -180,6 +180,7 @@ public class MainRunner {
 	
 	public void graphExplorerParser(String [] args) {
 		GraphExplorer gi = null;
+		GraphExporter ge = null;
 
 		if (args[0].compareTo("jsgol") == 0) {
 			if (args.length != 3) {
@@ -188,7 +189,7 @@ public class MainRunner {
 			}
 			String name = args[1];
 			String graphname = args[2];
-			GraphExporter ge = new GraphExporter(graphname);
+			ge = new GraphExporter(graphname);
 			System.out.println("constructing a json for: "+ name);
 			ge.writeJSONWithAltParentsToFile(name);
 			
@@ -270,8 +271,12 @@ public class MainRunner {
 			printHelp();
 			System.exit(1);
 		}
-
-		gi.shutdownDB();
+		if (gi != null) {
+			gi.shutdownDB();
+		}
+		if (ge != null) {
+			ge.shutdownDB();
+		}
 	}
 	
 	public void justTreeAnalysis(String [] args) {
