@@ -26,10 +26,10 @@
         <version>2.7.7.RC1</version>
       </dependency>
     <dependency>
-  	  <groupId>org.neo4j</groupId>
-  	  <artifactId>neo4j</artifactId>
-  	  <version>1.9.M05</version>
-  	</dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j</artifactId>
+      <version>1.9.M05</version>
+    </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-kernel</artifactId>
@@ -48,34 +48,34 @@
       <version>1.1.1</version>
     </dependency>
     <dependency>
-    	<groupId>org.codehaus.jackson</groupId>
-    	<artifactId>jackson-mapper-asl</artifactId>
-    	<version>1.9.9</version>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-mapper-asl</artifactId>
+      <version>1.9.9</version>
     </dependency>
     <dependency>
-    	<groupId>org.apache.httpcomponents</groupId>
-    	<artifactId>httpclient</artifactId>
-    	<version>4.2.1</version>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.2.1</version>
     </dependency>
     <dependency>
-    	<groupId>org.apache.httpcomponents</groupId>
-    	<artifactId>httpclient-cache</artifactId>
-    	<version>4.2.1</version>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient-cache</artifactId>
+      <version>4.2.1</version>
     </dependency>
     <dependency>
-    	<groupId>org.apache.httpcomponents</groupId>
-    	<artifactId>httpcore</artifactId>
-    	<version>4.2.2</version>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+      <version>4.2.2</version>
     </dependency>
     <dependency>
-    	<groupId>org.apache.httpcomponents</groupId>
-    	<artifactId>httpmime</artifactId>
-    	<version>4.2.1</version>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpmime</artifactId>
+      <version>4.2.1</version>
     </dependency>
     <dependency>
-    	<groupId>org.dspace</groupId>
-    	<artifactId>cql-java</artifactId>
-    	<version>1.0</version>
+      <groupId>org.dspace</groupId>
+      <artifactId>cql-java</artifactId>
+      <version>1.0</version>
     </dependency>
       <dependency>
       <groupId>com.sun.jersey</groupId>
@@ -90,8 +90,8 @@
        <targetPath>META-INF</targetPath>
      </resource>
    </resources>
-  	<plugins>
-  		<plugin>
+    <plugins>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>2.4</version>
@@ -102,15 +102,15 @@
           </includes>
         </configuration>
       </plugin>
-  		<plugin>
-  			<groupId>org.apache.maven.plugins</groupId>
-  			<artifactId>maven-compiler-plugin</artifactId>
-  			<version>2.5</version>
-			<configuration>
-				<source>1.6</source>
-				<target>1.6</target>
-			</configuration>
-  		</plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.5</version>
+      <configuration>
+        <source>1.6</source>
+        <target>1.6</target>
+      </configuration>
+      </plugin>
       
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -141,6 +141,6 @@
         </executions>
       </plugin>
 
-  	</plugins>
+    </plugins>
   </build>
 </project>
