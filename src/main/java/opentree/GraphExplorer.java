@@ -69,14 +69,15 @@ public class GraphExplorer extends GraphBase {
 
     /* --------------------- end info: collapsing children based on taxonomy ---------------------- */
 
-    public GraphExplorer() {
+    public GraphExplorer(String graphname) {
         cne = new ChildNumberEvaluator();
         cne.setChildThreshold(100);
         se = new SpeciesEvaluator();
         tle = new TaxaListEvaluator();
+        this.setEmbeddedDB(graphname);
     }
 
-    public void setEmbeddedDB(String graphname) {
+    private void setEmbeddedDB(String graphname) {
         graphDb = new EmbeddedGraphDatabase(graphname);
         graphNodeIndex = graphDb.index().forNodes("graphNamedNodes");
         sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");

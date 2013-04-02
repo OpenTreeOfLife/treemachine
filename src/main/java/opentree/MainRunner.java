@@ -222,8 +222,7 @@ public class MainRunner {
             }
 
 	        
-			gi = new GraphExplorer();
-			gi.setEmbeddedDB(graphname);
+			gi = new GraphExplorer(graphname);
 			gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound);
 			
 		} else if (args[0].compareTo("fulltree_sources") == 0) {
@@ -262,8 +261,7 @@ public class MainRunner {
 			    return;
 			}
 			
-			gi = new GraphExplorer();
-			gi.setEmbeddedDB(graphname);
+			gi = new GraphExplorer(graphname);
 			gi.constructNewickTieBreakerSOURCE(name, sources, useTaxonomy, useBranchAndBound);
 
 		} else {
@@ -423,8 +421,7 @@ public class MainRunner {
 		System.out.println("read " + speciesnames.size() + " taxa from " + filename);
 		System.out.println("(these will have to match exactly, so doing that check now)");
 		String graphname = args[3];
-		GraphExplorer gi = new GraphExplorer();
-		gi.setEmbeddedDB(graphname);
+		GraphExplorer gi = new GraphExplorer(graphname);
 		HashSet<Long> fnodes = new HashSet<Long>();
 		for (String tn: speciesnames) {
 			Node t = gi.findGraphNodeByName(tn);
@@ -452,8 +449,7 @@ public class MainRunner {
 		}
 		String sourcename = args[1];
 		String graphname = args[2];
-		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
+		GraphExplorer ge = new GraphExplorer(graphname);
 		ge.reconstructSource(sourcename);
 		ge.shutdownDB();
 	}
@@ -464,8 +460,7 @@ public class MainRunner {
 			return;
 		}
 		String graphname = args[1];
-		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
+		GraphExplorer ge = new GraphExplorer(graphname);
 		System.out.print(ge.getSourceList());
 		ge.shutdownDB();
 	}
@@ -476,8 +471,7 @@ public class MainRunner {
 			return;
 		}
 		String graphname = args[1];
-		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
+		GraphExplorer ge = new GraphExplorer(graphname);
 		ge.getBipartSupport("life"); // need to change this from hardcoded
 		ge.shutdownDB();
 	}
@@ -490,8 +484,7 @@ public class MainRunner {
 		String infile = args[1];
 		String outfile = args[2];
 		String graphname = args[3];
-		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
+		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
 			ge.getMapTreeSupport(infile, outfile);
 		} catch (TaxonNotFoundException tnfx) {
@@ -558,8 +551,7 @@ public class MainRunner {
 		}
 		String nodeid = args[1];
 		String graphname = args[2];
-		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
+		GraphExplorer ge = new GraphExplorer(graphname);
 		ge.printLicaNames(nodeid);
 		ge.shutdownDB();
 	}
@@ -751,6 +743,9 @@ public class MainRunner {
 				mr.treeUtils(args);
 			} else if (args[0].compareTo("getupdatedlist") == 0) {
 				mr.pgtesting();
+			} else if (args[0].compareTo("getsourcetreeids") == 0) {
+				// currently alias to listSources to share a name with the web service name
+				mr.listSources(args);
 			} else {
 				System.err.println("Unrecognized command \"" + args[0] + "\"");
 				printHelp();
