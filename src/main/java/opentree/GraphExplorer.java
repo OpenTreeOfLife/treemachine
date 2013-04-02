@@ -1150,7 +1150,7 @@ public class GraphExplorer extends GraphBase {
      */
     public String getSourceList() {
         StringBuffer sb = new StringBuffer();
-        IndexHits<Node> hits = sourceMetaIndex.query("**");
+        IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         while (hits.hasNext()) {
             Node n = hits.next();
             sb.append(n.getProperty("source") + "\n");
