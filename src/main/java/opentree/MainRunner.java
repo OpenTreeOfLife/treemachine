@@ -691,7 +691,7 @@ public class MainRunner {
 	public static void main(String[] args) {
 		PropertyConfigurator.configure(System.getProperties());
 		System.out.println("treemachine version alpha.alpha.prealpha");
-		if (args.length < 2) {
+		if (args.length < 1) {
 			printHelp();
 			System.exit(1);
 		} else if (args[0] == "help") {

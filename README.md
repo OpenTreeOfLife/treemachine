@@ -43,12 +43,13 @@ with the command:
 ### Taxonomy Loading
 The code has been refactored to have only one taxonomy (the preferred taxonomy). Loading multiple taxonomies has been moved to taxomachine.
 
-As an example of usage, you can load the Primate subset of these taxonomies 
-in a test.db with:
+As an example of usage to load the snapshot of OTToL into test.db:
 
-	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar inittax example/ncbi_primates.txt test.db
+	wget https://bitbucket.org/blackrim/avatol-taxonomies/downloads/ottol_dumpv1_w_preottol_ids_uniqunames.tar.gz
+	tar xf ottol_dumpv1_w_preottol_ids_uniqunames.tar.gz
+	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar inittax inittax ottol_dump_w_uniquenames_preottol_ids ottol_dump.synonyms test.db
 
-Full description on loading the taxonomies for the full ToL at 
+An older description on loading the taxonomies for the full ToL at 
 https://docs.google.com/document/d/1J82ZvgqMwv9Y43SqSGcw1ZjqWEPHaFQww5deuFFV7Js/edit
 
 
