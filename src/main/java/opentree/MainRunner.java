@@ -141,15 +141,15 @@ public class MainRunner {
 						gi.updateAfterTreeIngest(false); // TODO: this still needs work
 					} else {
 						gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
-					    gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
+						gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
 					}
-				    // gi.updateAfterTreeIngest(false);
+					// gi.updateAfterTreeIngest(false);
 				} catch (TaxonNotFoundException tnfx) {
-	    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-	    			System.exit(1);
+					System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+					System.exit(1);
 				} catch (TreeIngestException tix) {
-	    			System.err.println("Tree could not be imported.\n" + tix.toString());
-	    			System.exit(1);
+					System.err.println("Tree could not be imported.\n" + tix.toString());
+					System.exit(1);
 				}
 			}
 			if (jt.size() > 1) {
@@ -162,11 +162,11 @@ public class MainRunner {
 					try {
 						gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
 					} catch (TaxonNotFoundException tnfx) {
-		    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-		    			System.exit(1);
+						System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+						System.exit(1);
 					} catch (TreeIngestException tix) {
-		    			System.err.println("Tree could not be imported.\n" + tix.toString());
-		    			System.exit(1);
+						System.err.println("Tree could not be imported.\n" + tix.toString());
+						System.exit(1);
 					}
 				}
 			}
@@ -194,7 +194,7 @@ public class MainRunner {
 			ge.writeJSONWithAltParentsToFile(name);
 			
 		} else if (args[0].compareTo("fulltree") == 0) {
-		    String usageString = "arguments should be: name graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
+			String usageString = "arguments should be: name graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
 			if (args.length != 5) {
 				System.out.println(usageString);
 				return;
@@ -206,29 +206,29 @@ public class MainRunner {
 			String _useBranchAndBound = args[4];
 			
 			boolean useTaxonomy = false;
-	        if (_useTaxonomy.equals("T")) {
-	            useTaxonomy = true;
-	        } else if (!(_useTaxonomy.equals("F"))) {
-	            System.out.println(usageString);
-	            return;
-	        }
+			if (_useTaxonomy.equals("T")) {
+				useTaxonomy = true;
+			} else if (!(_useTaxonomy.equals("F"))) {
+				System.out.println(usageString);
+				return;
+			}
 
-	        boolean useBranchAndBound= false;
-            if (_useBranchAndBound.equals("T")) {
-                useBranchAndBound = true;
-            } else if (!(_useBranchAndBound.equals("F"))) {
-                System.out.println(usageString);
-                return;
-            }
+			boolean useBranchAndBound= false;
+			if (_useBranchAndBound.equals("T")) {
+				useBranchAndBound = true;
+			} else if (!(_useBranchAndBound.equals("F"))) {
+				System.out.println(usageString);
+				return;
+			}
 
-	        
+			
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
 			gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound);
 			
 		} else if (args[0].compareTo("fulltree_sources") == 0) {
 
-		    String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
+			String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
 			if (args.length != 6) {
 				System.out.println(usageString);
 				return;
@@ -237,9 +237,9 @@ public class MainRunner {
 			String name = args[1];
 			String sourcenames = args[2];
 			String graphname = args[3];
-            String _useTaxonomy = args[4];
-            String _useBranchAndBound = args[5];
-            
+			String _useTaxonomy = args[4];
+			String _useBranchAndBound = args[5];
+			
 			String [] sources = sourcenames.split(",");
 			System.out.println("Sources (in order) that will be used to break conflicts");
 			for (int i = 0; i < sources.length; i++) {
@@ -248,18 +248,18 @@ public class MainRunner {
 
 			boolean useTaxonomy = false;
 			if (_useTaxonomy.equals("T")) {
-			    useTaxonomy = true;
+				useTaxonomy = true;
 			} else if (!(_useTaxonomy.equals("F"))) {
-			    System.out.println(usageString);
-			    return;
+				System.out.println(usageString);
+				return;
 			}
 			
 			boolean useBranchAndBound= false;
 			if (_useBranchAndBound.equals("T")) {
-			    useBranchAndBound = true;
+				useBranchAndBound = true;
 			} else if (!(_useBranchAndBound.equals("F"))) {
-			    System.out.println(usageString);
-			    return;
+				System.out.println(usageString);
+				return;
 			}
 			
 			gi = new GraphExplorer();
@@ -366,15 +366,15 @@ public class MainRunner {
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
 			try {
-			    gi.addSetTreeToGraph("life", sourcename);
-			    gi.deleteTreeBySource(sourcename);
-			    //gi.updateAfterTreeIngest(false);
+				gi.addSetTreeToGraph("life", sourcename);
+				gi.deleteTreeBySource(sourcename);
+				//gi.updateAfterTreeIngest(false);
 			} catch (TaxonNotFoundException tnfx) {
-    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-    			System.exit(1);
+				System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+				System.exit(1);
 			} catch (TreeIngestException tix) {
-    			System.err.println("Tree could not be imported.\n" + tix.toString());
-    			System.exit(1);
+				System.err.println("Tree could not be imported.\n" + tix.toString());
+				System.exit(1);
 			}
 		}
 		// adding them again after all the nodes are there
@@ -388,14 +388,14 @@ public class MainRunner {
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
 			try {
-			    gi.addSetTreeToGraph("life", sourcename);
-			    // gi.updateAfterTreeIngest(false);
+				gi.addSetTreeToGraph("life", sourcename);
+				// gi.updateAfterTreeIngest(false);
 			} catch (TaxonNotFoundException tnfx) {
-    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-    			System.exit(1);
+				System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
+				System.exit(1);
 			} catch (TreeIngestException tix) {
-    			System.err.println("Tree could not be imported.\n" + tix.toString());
-    			System.exit(1);
+				System.err.println("Tree could not be imported.\n" + tix.toString());
+				System.exit(1);
 			}
 		}
 		
@@ -502,7 +502,7 @@ public class MainRunner {
 	}
 	
 	public void graphExporter(String [] args) {
-	    String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
+		String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
 		if (args.length > 5) {
 			System.out.println(usageString);
 			return;
@@ -514,10 +514,10 @@ public class MainRunner {
 		
 		boolean useTaxonomy = false;
 		if (_useTaxonomy.equals("T")) {
-		    useTaxonomy = true;
+			useTaxonomy = true;
 		} else if (!(_useTaxonomy.equals("F"))) {
-		    System.out.println(usageString);
-		    return;
+			System.out.println(usageString);
+			return;
 		}
 		
 		GraphExporter ge = new GraphExporter(graphname);
