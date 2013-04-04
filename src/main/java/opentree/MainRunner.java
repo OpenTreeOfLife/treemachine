@@ -104,7 +104,7 @@ public class MainRunner {
 	 * @returns 0 for success, 1 for error, 2 for error with a request that the generic help be displayed
 	 */
 	public int graphImporterParser(String [] args) 
-					throws TaxonNotFoundException, DataFormatException {
+					throws TaxonNotFoundException, DataFormatException, TreeIngestException {
 		if (args[0].compareTo("addtree") != 0) {
 			return 2;
 		}
@@ -149,22 +149,18 @@ public class MainRunner {
 			for (int i = 0; i < jt.size(); i++) {
 				System.out.println("adding a tree to the graph: " + i);
 				gi.setTree(jt.get(i));
-				try {
-					if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-						sourcename = (String)jt.get(i).getObject("ot:studyId");
-					}
-					if (jt.size() == 1) {
-						gi.addSetTreeToGraph(focalgroup, sourcename);
-						gi.updateAfterTreeIngest(false); // TODO: this still needs work
-					} else {
-						gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
-						gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
-					}
-					// gi.updateAfterTreeIngest(false);
-				} catch (TreeIngestException tix) {
-					System.err.println("Tree could not be imported.\n" + tix.toString());
-					System.exit(1);
+				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)jt.get(i).getObject("ot:studyId");
 				}
+				if (jt.size() == 1) {
+					gi.addSetTreeToGraph(focalgroup, sourcename);
+					gi.updateAfterTreeIngest(false); // TODO: this still needs work
+				} else {
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
+					gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
+				}
+				// gi.updateAfterTreeIngest(false);
+				
 			}
 			if (jt.size() > 1) {
 				for (int i = 0; i < jt.size(); i++) {
@@ -173,12 +169,7 @@ public class MainRunner {
 					}
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
-					try {
-						gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
-					} catch (TreeIngestException tix) {
-						System.err.println("Tree could not be imported.\n" + tix.toString());
-						System.exit(1);
-					}
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
 				}
 			}
 		} finally {
@@ -295,7 +286,7 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int justTreeAnalysis(String [] args)
-				throws DataFormatException, TaxonNotFoundException {
+				throws DataFormatException, TaxonNotFoundException, TreeIngestException{
 		if (args.length > 3) {
 			System.out.println("arguments should be: filename graphdbfolder");
 			return 1;
@@ -382,14 +373,9 @@ public class MainRunner {
 				
 				System.out.println("adding tree '" + sourcename + "' to the graph");
 				gi.setTree(jt.get(i));
-				try {
-					gi.addSetTreeToGraph("life", sourcename);
-					gi.deleteTreeBySource(sourcename);
-					//gi.updateAfterTreeIngest(false);
-				} catch (TreeIngestException tix) {
-					System.err.println("Tree could not be imported.\n" + tix.toString());
-					System.exit(1);
-				}
+				gi.addSetTreeToGraph("life", sourcename);
+				gi.deleteTreeBySource(sourcename);
+				//gi.updateAfterTreeIngest(false);
 			}
 			// adding them again after all the nodes are there
 			for (int i = 0; i < jt.size(); i++) {
@@ -401,13 +387,8 @@ public class MainRunner {
 				
 				System.out.println("adding tree '" + sourcename + "' to the graph");
 				gi.setTree(jt.get(i));
-				try {
-					gi.addSetTreeToGraph("life", sourcename);
-					// gi.updateAfterTreeIngest(false);
-				} catch (TreeIngestException tix) {
-					System.err.println("Tree could not be imported.\n" + tix.toString());
-					System.exit(1);
-				}
+				gi.addSetTreeToGraph("life", sourcename);
+				// gi.updateAfterTreeIngest(false);
 			}
 			//	gi.updateAfterTreeIngest(true);
 		} finally {
@@ -824,6 +805,9 @@ public class MainRunner {
 		} catch (TaxonNotFoundException tnfx) {
 			String action = "Command \"" + command + "\"";
 			tnfx.reportFailedAction(System.err, action);
+		} catch (TreeIngestException tix) {
+			String action = "Command \"" + command + "\"";
+			tix.reportFailedAction(System.err, action);
 		} catch (DataFormatException dfx) {
 			String action = "Command \"" + command + "\"";
 			dfx.reportFailedAction(System.err, action);
