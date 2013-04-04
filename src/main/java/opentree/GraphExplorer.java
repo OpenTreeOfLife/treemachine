@@ -1156,6 +1156,7 @@ public class GraphExplorer extends GraphBase {
         while (hits.hasNext()) {
             Node n = hits.next();
             sourceArray[index] = (String) n.getProperty("source");
+            index++;
         }
         return sourceArray;
     }
