@@ -636,7 +636,7 @@ public class MainRunner {
 //				System.out.println("Skipping study " + k);
 //				continue;
 //			}
-			if (k > 10)
+			if (k > 20)
 				break;
 			try{
 				List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
