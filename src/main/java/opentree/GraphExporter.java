@@ -55,17 +55,17 @@ public class GraphExporter extends GraphBase {
 		cne.setChildThreshold(100);
 		se = new SpeciesEvaluator();
 		tle = new TaxaListEvaluator();
-		graphDb = new EmbeddedGraphDatabase(graphname);
-		graphNodeIndex = graphDb.index().forNodes("graphNamedNodes");
-		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
-		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
+		graphDb = new GraphDatabaseAgent(graphname);
+		graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
+		sourceRelIndex = graphDb.getRelIndex("sourceRels");
+		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
 	}
 
 	public GraphExporter(EmbeddedGraphDatabase graphn) {
-		graphDb = graphn;
-		graphNodeIndex = graphDb.index().forNodes("graphNamedNodes");
-		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
-		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
+		graphDb = new GraphDatabaseAgent(graphn);
+		graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
+		sourceRelIndex = graphDb.getRelIndex("sourceRels");
+		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
 	}
 
 	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) 

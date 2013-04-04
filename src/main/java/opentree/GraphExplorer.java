@@ -26,6 +26,7 @@ import opentree.synthesis.TreeMakingExhaustivePairs;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
@@ -70,19 +71,24 @@ public class GraphExplorer extends GraphBase {
     /* --------------------- end info: collapsing children based on taxonomy ---------------------- */
 
     public GraphExplorer(String graphname) {
+        graphDb = new GraphDatabaseAgent(graphname);
+        finishInitialization();
+    }
+
+    public GraphExplorer(GraphDatabaseService gdb) {
+        graphDb = new GraphDatabaseAgent(gdb);
+        finishInitialization();
+    }
+
+    private void finishInitialization() {
         cne = new ChildNumberEvaluator();
         cne.setChildThreshold(100);
         se = new SpeciesEvaluator();
         tle = new TaxaListEvaluator();
-        this.setEmbeddedDB(graphname);
-    }
-
-    private void setEmbeddedDB(String graphname) {
-        graphDb = new EmbeddedGraphDatabase(graphname);
-        graphNodeIndex = graphDb.index().forNodes("graphNamedNodes");
-        sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
-        sourceRelIndex = graphDb.index().forRelationships("sourceRels");
-        sourceMetaIndex = graphDb.index().forNodes("sourceMetaNodes");
+        graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
+        sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
+        sourceRelIndex = graphDb.getRelIndex("sourceRels");
+        sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
     }
 
     public void printLicaNames(String nodeid) {
@@ -1149,16 +1155,14 @@ public class GraphExplorer extends GraphBase {
      * Get the list of sources that have been loaded in the graph
      * @returns array of strings that are the values of the "source" property of nodes stored in sourceMetaIndex
      */
-    public String [] getSourceList() {
+    public ArrayList<String> getSourceList() {
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
-        String [] sourceArray = new String[hits.size()];
-        int index = 0;
+        ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
         while (hits.hasNext()) {
             Node n = hits.next();
-            sourceArray[index] = (String) n.getProperty("source");
-            index++;
+            sourceArrayList.add((String) n.getProperty("source"));
         }
-        return sourceArray;
+        return sourceArrayList;
     }
 
     /**

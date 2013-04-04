@@ -89,6 +89,13 @@ public class GraphDatabaseAgent {
             return graphDbService.getNodeById(arg0);
     }
 
+    public Relationship getRelationshipById(Long arg0) {
+        if (embedded)
+            return embeddedGraphDb.getRelationshipById(arg0);
+        else
+            return graphDbService.getRelationshipById(arg0);
+    }
+
     public void shutdownDb() {
         registerShutdownHook();
     }

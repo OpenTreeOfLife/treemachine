@@ -1,6 +1,5 @@
 package opentree;
 
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
@@ -28,7 +27,7 @@ import org.neo4j.graphdb.index.IndexHits;
  */
 
 public abstract class GraphBase {
-	GraphDatabaseService graphDb;
+	GraphDatabaseAgent graphDb;
 	protected static Index<Node> graphNodeIndex;
 	protected static Index<Node> synNodeIndex;
 	protected static Index<Relationship> sourceRelIndex;
@@ -52,17 +51,8 @@ public abstract class GraphBase {
 		//ISCALLED @deprecated once the taxonomy graph was moved out// is called ,from node in graph of life to node in tax graph 
 	}
 	
-	protected static void registerShutdownHook( final GraphDatabaseService graphDb ){
-		Runtime.getRuntime().addShutdownHook( new Thread(){
-			@Override
-			public void run(){
-				graphDb.shutdown();
-			}
-		});
-	}
-	
 	public void shutdownDB(){
-		 registerShutdownHook( graphDb );
+		graphDb.shutdownDb();
 	}
 	
 	/**

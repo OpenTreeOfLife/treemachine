@@ -62,25 +62,25 @@ public class GraphImporter extends GraphBase{
 	*/
 	
 	public GraphImporter(String graphname) {
-		graphDb = new EmbeddedGraphDatabase( graphname );
+		graphDb = new GraphDatabaseAgent(graphname);
 		this.initializeIndices();
 	}
 
 	public GraphImporter(EmbeddedGraphDatabase graphn) {
-		graphDb = graphn;
+		graphDb = new GraphDatabaseAgent(graphn);
 		this.initializeIndices();
 	}
 	/**
 	 * Helper function called by constructors so that we can update the list of indices in one place.
 	 */
 	private void initializeIndices() {
-		graphNodeIndex = graphDb.index().forNodes( "graphNamedNodes" ); // name is the key
-		graphTaxUIDNodeindex = graphDb.index().forNodes( "graphTaxUIDNodes" ); // tax_uid is the key
-		synTaxUIDNodeindex = graphDb.index().forNodes("synTaxUIDNodes");
-		synNodeIndex = graphDb.index().forNodes("graphNamedNodesSyns");
-		sourceRelIndex = graphDb.index().forRelationships("sourceRels");
-		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
-		sourceMetaIndex = graphDb.index().forNodes("sourceMetaNodes");
+		graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
+		graphTaxUIDNodeindex = graphDb.getNodeIndex( "graphTaxUIDNodes" ); // tax_uid is the key
+		synTaxUIDNodeindex = graphDb.getNodeIndex("synTaxUIDNodes");
+		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
+		sourceRelIndex = graphDb.getRelIndex("sourceRels");
+		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
+		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
 	}
 	
 	/**

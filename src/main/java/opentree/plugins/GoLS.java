@@ -12,7 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 
-import opentree.GraphDatabaseAgent; 
+import opentree.GraphExplorer; 
 
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
@@ -33,13 +33,9 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSourceTreeIDs(
 			@Source GraphDatabaseService graphDb) {
-		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-		Index<Node> sourceRootIndex = gdb.getNodeIndex("sourceRootNodes");
-		int results = 0;
-		for (Node rootNd : sourceRootIndex.query("rootnode", "*")) {
-			results += 1;
-		}
-		gdb.shutdownDb();
-		return OpenTreeMachineRepresentationConverter.convert(results);
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		ArrayList<String>  sourceArrayList = ge.getSourceList();
+		ge.shutdownDB();
+		return OpenTreeMachineRepresentationConverter.convert(sourceArrayList);
 	}
 }
