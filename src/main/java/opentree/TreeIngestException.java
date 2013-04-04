@@ -1,5 +1,6 @@
 package opentree;
 import java.lang.Exception;
+import java.io.PrintStream;
 
 /**
  * Thrown when more specific errors classes do not apply, and a tree 
@@ -21,4 +22,10 @@ public class TreeIngestException extends Exception {
     public String toString(){
         return "TreeIngestException: " + this.msg;
     }
+
+    public void reportFailedAction(PrintStream out, String failedAction) {
+        String m = failedAction + " failed due to " + this.toString();
+        out.println(m);
+    }
+
 }

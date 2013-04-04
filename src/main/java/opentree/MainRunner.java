@@ -18,51 +18,64 @@ import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
 //import org.neo4j.graphdb.index.IndexHits;
 
+import opentree.TaxonNotFoundException;
+
 public class MainRunner {
-	
-	public void taxonomyLoadParser(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int taxonomyLoadParser(String [] args) {
 		if (args.length < 3) {
 			System.out.println("arguments should be: filename synfilename graphdbfolder");
-			return;
+			return 1;
 		}
 		String filename = args[1];
 		String synfilename = args[2];
 		String graphname = args[3] ;
-		GraphImporter tl = new GraphImporter(graphname);
-		if (args[0].compareTo("inittax") == 0) {
-			System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
-			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename);
-		} else {
+		if (args[0].compareTo("inittax") != 0) {
 			System.err.println("ERROR: not a known command");
+			return 1;
+		}
+		GraphImporter tl = new GraphImporter(graphname);
+		System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
+		try {
+			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename);
+		} finally {
 			tl.shutdownDB();
-			printHelp();
-			System.exit(1);
 		}
-		tl.shutdownDB();
+		return 0;
 	}
 	
-	public void graphReloadTrees(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int graphReloadTrees(String [] args) {
 		GraphImporter gi = null;
 		if (args.length != 2) {
 			System.out.println("arguments should be: graphdbfolder");
-			return;
+			return 1;
 		}
 		String graphname = args[1];
 		gi = new GraphImporter(graphname);
-		gi.deleteAllTreesAndReprocess();
-		gi.shutdownDB();
+		try {
+			gi.deleteAllTreesAndReprocess();
+		} finally {
+			gi.shutdownDB();
+		}
+		return 0;
 	}
 	
-	public void graphDeleteTrees(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int graphDeleteTrees(String [] args) {
 		GraphImporter gi = null;
 		if (args.length != 2) {
 			System.out.println("arguments should be: graphdbfolder");
-			return;
+			return 1;
 		}
 		String graphname = args[1];
 		gi = new GraphImporter(graphname);
-		gi.deleteAllTrees();
-		gi.shutdownDB();
+		try {
+			gi.deleteAllTrees();
+		} finally {
+			gi.shutdownDB();
+		}
+		return 0;
 	}
 	
 	/*
@@ -70,7 +83,7 @@ public class MainRunner {
 	 @param r a tree file reader
 	 @return treeFormat a string indicating recognized tree format
 	*/
-	public String divineTreeFormat(Reader r) throws java.io.IOException {
+	public String divineTreeFormat(Reader r) throws java.io.IOException, DataFormatException {
 		String treeFormat = "";
 		r.mark(1);
 		char c = (char)r.read();
@@ -80,28 +93,32 @@ public class MainRunner {
 		} else if (c == '{') {
 			treeFormat = "nexson";
 		} else if (c == '#') {
-			System.out.println("Error: appears to be a nexus tree file, which is not currently supported. Exiting.");
-			System.exit(1);
+			throw new DataFormatException("Appears to be a nexus tree file, which is not currently supported.");
 		} else {
-			System.out.println("Error: don't know what format this tree is in. Exiting.");
-			System.exit(1);
+			throw new DataFormatException("We don't know what format this tree is in.");
 		}
 		return treeFormat;
 	}
 	
-	public void graphImporterParser(String [] args) {
-		GraphImporter gi = null;
-		if (args[0].compareTo("addtree") == 0) {
-			if (args.length != 5) {
-				System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
-				return;
-			}
-			String filename = args[1];
-			String focalgroup = args[2];
-			String sourcename = args[3];
-			String graphname = args[4];
-			int treeCounter = 0;
-			gi = new GraphImporter(graphname);
+	/**
+	 * @returns 0 for success, 1 for error, 2 for error with a request that the generic help be displayed
+	 */
+	public int graphImporterParser(String [] args) 
+					throws TaxonNotFoundException, DataFormatException, TreeIngestException {
+		if (args[0].compareTo("addtree") != 0) {
+			return 2;
+		}
+		if (args.length != 5) {
+			System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
+			return 1;
+		}
+		String filename = args[1];
+		String focalgroup = args[2];
+		String sourcename = args[3];
+		String graphname = args[4];
+		int treeCounter = 0;
+		GraphImporter gi = new GraphImporter(graphname);
+		try {
 			System.out.println("adding tree(s) to the graph from file: " + filename);
 			String ts = "";
 			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
@@ -132,25 +149,18 @@ public class MainRunner {
 			for (int i = 0; i < jt.size(); i++) {
 				System.out.println("adding a tree to the graph: " + i);
 				gi.setTree(jt.get(i));
-				try {
-					if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-						sourcename = (String)jt.get(i).getObject("ot:studyId");
-					}
-					if (jt.size() == 1) {
-						gi.addSetTreeToGraph(focalgroup, sourcename);
-						gi.updateAfterTreeIngest(false); // TODO: this still needs work
-					} else {
-						gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
-					    gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
-					}
-				    // gi.updateAfterTreeIngest(false);
-				} catch (TaxonNotFoundException tnfx) {
-	    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-	    			System.exit(1);
-				} catch (TreeIngestException tix) {
-	    			System.err.println("Tree could not be imported.\n" + tix.toString());
-	    			System.exit(1);
+				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)jt.get(i).getObject("ot:studyId");
 				}
+				if (jt.size() == 1) {
+					gi.addSetTreeToGraph(focalgroup, sourcename);
+					gi.updateAfterTreeIngest(false); // TODO: this still needs work
+				} else {
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
+					gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
+				}
+				// gi.updateAfterTreeIngest(false);
+				
 			}
 			if (jt.size() > 1) {
 				for (int i = 0; i < jt.size(); i++) {
@@ -159,45 +169,41 @@ public class MainRunner {
 					}
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
-					try {
-						gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
-					} catch (TaxonNotFoundException tnfx) {
-		    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-		    			System.exit(1);
-					} catch (TreeIngestException tix) {
-		    			System.err.println("Tree could not be imported.\n" + tix.toString());
-		    			System.exit(1);
-					}
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
 				}
 			}
-		} else {
-			System.err.println("ERROR: not a known command");
-			printHelp();
-			System.exit(1);
+		} finally {
+			gi.shutdownDB();
 		}
-		gi.shutdownDB();
+		return 0;
 	}
 	
-	public void graphExplorerParser(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int graphExplorerParser(String [] args)
+			throws TaxonNotFoundException {
 		GraphExplorer gi = null;
 		GraphExporter ge = null;
-
 		if (args[0].compareTo("jsgol") == 0) {
 			if (args.length != 3) {
 				System.out.println("arguments should be: name graphdbfolder");
-				return;
+				return 1;
 			}
 			String name = args[1];
 			String graphname = args[2];
 			ge = new GraphExporter(graphname);
-			System.out.println("constructing a json for: "+ name);
-			ge.writeJSONWithAltParentsToFile(name);
+			try {
+				System.out.println("constructing a json for: "+ name);
+				ge.writeJSONWithAltParentsToFile(name);
+			} finally {
+				ge.shutdownDB();
+			}
+			return 0;
 			
 		} else if (args[0].compareTo("fulltree") == 0) {
-		    String usageString = "arguments should be: name graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
+			String usageString = "arguments should be: name graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
 			if (args.length != 5) {
 				System.out.println(usageString);
-				return;
+				return 1;
 			}
 
 			String name = args[1];
@@ -206,40 +212,42 @@ public class MainRunner {
 			String _useBranchAndBound = args[4];
 			
 			boolean useTaxonomy = false;
-	        if (_useTaxonomy.equals("T")) {
-	            useTaxonomy = true;
-	        } else if (!(_useTaxonomy.equals("F"))) {
-	            System.out.println(usageString);
-	            return;
-	        }
+			if (_useTaxonomy.equals("T")) {
+				useTaxonomy = true;
+			} else if (!(_useTaxonomy.equals("F"))) {
+				System.out.println(usageString);
+				return 1;
+			}
 
-	        boolean useBranchAndBound= false;
-            if (_useBranchAndBound.equals("T")) {
-                useBranchAndBound = true;
-            } else if (!(_useBranchAndBound.equals("F"))) {
-                System.out.println(usageString);
-                return;
-            }
+			boolean useBranchAndBound= false;
+			if (_useBranchAndBound.equals("T")) {
+				useBranchAndBound = true;
+			} else if (!(_useBranchAndBound.equals("F"))) {
+				System.out.println(usageString);
+				return 1;
+			}
 
-	        
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound);
-			
+			try {
+				gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound);
+			} finally {
+				gi.shutdownDB();
+			}
+			return 0;
 		} else if (args[0].compareTo("fulltree_sources") == 0) {
-
-		    String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
+			String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
 			if (args.length != 6) {
 				System.out.println(usageString);
-				return;
+				return 1;
 			}
 			
 			String name = args[1];
 			String sourcenames = args[2];
 			String graphname = args[3];
-            String _useTaxonomy = args[4];
-            String _useBranchAndBound = args[5];
-            
+			String _useTaxonomy = args[4];
+			String _useBranchAndBound = args[5];
+			
 			String [] sources = sourcenames.split(",");
 			System.out.println("Sources (in order) that will be used to break conflicts");
 			for (int i = 0; i < sources.length; i++) {
@@ -248,165 +256,152 @@ public class MainRunner {
 
 			boolean useTaxonomy = false;
 			if (_useTaxonomy.equals("T")) {
-			    useTaxonomy = true;
+				useTaxonomy = true;
 			} else if (!(_useTaxonomy.equals("F"))) {
-			    System.out.println(usageString);
-			    return;
+				System.out.println(usageString);
+				return 1;
 			}
 			
 			boolean useBranchAndBound= false;
 			if (_useBranchAndBound.equals("T")) {
-			    useBranchAndBound = true;
+				useBranchAndBound = true;
 			} else if (!(_useBranchAndBound.equals("F"))) {
-			    System.out.println(usageString);
-			    return;
+				System.out.println(usageString);
+				return 1;
 			}
 			
 			gi = new GraphExplorer();
 			gi.setEmbeddedDB(graphname);
-			gi.constructNewickTieBreakerSOURCE(name, sources, useTaxonomy, useBranchAndBound);
-
+			try {
+				gi.constructNewickTieBreakerSOURCE(name, sources, useTaxonomy, useBranchAndBound);
+			} finally {
+				gi.shutdownDB();
+			}
+			return 0;
 		} else {
 			System.err.println("ERROR: not a known command");
-			printHelp();
-			System.exit(1);
-		}
-		if (gi != null) {
-			gi.shutdownDB();
-		}
-		if (ge != null) {
-			ge.shutdownDB();
+			return 2;
 		}
 	}
 	
-	public void justTreeAnalysis(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int justTreeAnalysis(String [] args)
+				throws DataFormatException, TaxonNotFoundException, TreeIngestException{
 		if (args.length > 3) {
 			System.out.println("arguments should be: filename graphdbfolder");
-			return;
+			return 1;
 		}
 		String filename = args[1];
 		String graphname = args[2];
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
-		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
-		// read the tree from a file
-		String ts = "";
-		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-		
 		try {
-			BufferedReader br = new BufferedReader(new FileReader(filename));
-			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
-				System.out.println("Reading newick file...");
-				TreeReader tr = new TreeReader();
-				while ((ts = br.readLine()) != null) {
-					if (ts.length() > 1) {
-						jt.add(tr.readTree(ts));
+			// Run through all the trees and get the union of the taxa for a raw taxonomy graph
+			// read the tree from a file
+			String ts = "";
+			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+			
+			try {
+				BufferedReader br = new BufferedReader(new FileReader(filename));
+				if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
+					System.out.println("Reading newick file...");
+					TreeReader tr = new TreeReader();
+					while ((ts = br.readLine()) != null) {
+						if (ts.length() > 1) {
+							jt.add(tr.readTree(ts));
+							treeCounter++;
+						}
+					}
+				} else { // nexson
+					System.out.println("Reading nexson file...");
+					for (JadeTree tree : NexsonReader.readNexson(filename)) {
+						jt.add(tree);
 						treeCounter++;
 					}
 				}
-			} else { // nexson
-				System.out.println("Reading nexson file...");
-				for (JadeTree tree : NexsonReader.readNexson(filename)) {
-					jt.add(tree);
-					treeCounter++;
+				br.close();
+			} catch (IOException ioe) {}
+			System.out.println(treeCounter + " trees read.");
+			
+			HashSet<String> names = new HashSet<String>();
+			for (int i = 0; i < jt.size(); i++) {
+				for (int j = 0; j < jt.get(i).getExternalNodeCount(); j++) {
+					names.add(jt.get(i).getExternalNode(j).getName());
+					}
 				}
-			}
-			br.close();
-		} catch (IOException ioe) {}
-		System.out.println(treeCounter + " trees read.");
-		
-		HashSet<String> names = new HashSet<String>();
-		for (int i = 0; i < jt.size(); i++) {
-			for (int j = 0; j < jt.get(i).getExternalNodeCount(); j++) {
-				names.add(jt.get(i).getExternalNode(j).getName());
-			}
-		}
-/*
- The number of expected properties in "tax.temp" has changed:
-  String tid = st.nextToken().trim();
-  String pid = st.nextToken().trim();
-  String name = st.nextToken().trim();
-  String rank = st.nextToken().trim();
-  String srce = st.nextToken().trim();
-  String srce_id = st.nextToken().trim();
-  String srce_pid = st.nextToken().trim();
-  String uniqname = st.nextToken().trim();
- "tax.temp" is updated below. Note use of " " vs. original "\t" for easier reading
- */	
-		PrintWriter outFile;
-		try {
-			outFile = new PrintWriter(new FileWriter("tax.temp"));
-			ArrayList<String> namesal = new ArrayList<String>();
-			namesal.addAll(names);
-			for (int i = 0; i < namesal.size(); i++) {
-				//outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
-				outFile.write((i+2)+"|1|"+namesal.get(i)+"| | | | | | |\n");
-				//             tid  pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
-			}
-			//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
-			outFile.write("1|0|life| | | | | | |\n");
-			outFile.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		// make a temp file to be loaded into the tax loader, a hack for now
-		gi.addInitialTaxonomyTableIntoGraph("tax.temp", "");
-		// Use the taxonomy as the first tree in the composite tree
-		
-		System.out.println("started graph importer");
-		// Go through the trees again and add and update as necessary
-		for (int i = 0; i < jt.size(); i++) {
-			String sourcename = "treeinfile";
-			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-				sourcename = (String)jt.get(i).getObject("ot:studyId");
-			}
-			sourcename += "_" + String.valueOf(i);
-			
-			System.out.println("adding tree '" + sourcename + "' to the graph");
-			gi.setTree(jt.get(i));
+			/*
+			 The number of expected properties in "tax.temp" has changed:
+			  String tid = st.nextToken().trim();
+			  String pid = st.nextToken().trim();
+			  String name = st.nextToken().trim();
+			  String rank = st.nextToken().trim();
+			  String srce = st.nextToken().trim();
+			  String srce_id = st.nextToken().trim();
+			  String srce_pid = st.nextToken().trim();
+			  String uniqname = st.nextToken().trim();
+			 "tax.temp" is updated below. Note use of " " vs. original "\t" for easier reading
+			 */	
+			PrintWriter outFile;
 			try {
-			    gi.addSetTreeToGraph("life", sourcename);
-			    gi.deleteTreeBySource(sourcename);
-			    //gi.updateAfterTreeIngest(false);
-			} catch (TaxonNotFoundException tnfx) {
-    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-    			System.exit(1);
-			} catch (TreeIngestException tix) {
-    			System.err.println("Tree could not be imported.\n" + tix.toString());
-    			System.exit(1);
+				outFile = new PrintWriter(new FileWriter("tax.temp"));
+				ArrayList<String> namesal = new ArrayList<String>();
+				namesal.addAll(names);
+				for (int i = 0; i < namesal.size(); i++) {
+					//outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
+					outFile.write((i+2)+"|1|"+namesal.get(i)+"| | | | | | |\n");
+					//             tid  pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
+				}
+				//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
+				outFile.write("1|0|life| | | | | | |\n");
+				outFile.close();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-		}
-		// adding them again after all the nodes are there
-		for (int i = 0; i < jt.size(); i++) {
-			String sourcename = "treeinfile";
-			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-				sourcename = (String)jt.get(i).getObject("ot:studyId");
-			}
-			sourcename += "_" + String.valueOf(i);
 			
-			System.out.println("adding tree '" + sourcename + "' to the graph");
-			gi.setTree(jt.get(i));
-			try {
-			    gi.addSetTreeToGraph("life", sourcename);
-			    // gi.updateAfterTreeIngest(false);
-			} catch (TaxonNotFoundException tnfx) {
-    			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-    			System.exit(1);
-			} catch (TreeIngestException tix) {
-    			System.err.println("Tree could not be imported.\n" + tix.toString());
-    			System.exit(1);
+			// make a temp file to be loaded into the tax loader, a hack for now
+			gi.addInitialTaxonomyTableIntoGraph("tax.temp", "");
+			// Use the taxonomy as the first tree in the composite tree
+			
+			System.out.println("started graph importer");
+			// Go through the trees again and add and update as necessary
+			for (int i = 0; i < jt.size(); i++) {
+				String sourcename = "treeinfile";
+				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)jt.get(i).getObject("ot:studyId");
+				}
+				sourcename += "_" + String.valueOf(i);
+				
+				System.out.println("adding tree '" + sourcename + "' to the graph");
+				gi.setTree(jt.get(i));
+				gi.addSetTreeToGraph("life", sourcename);
+				gi.deleteTreeBySource(sourcename);
+				//gi.updateAfterTreeIngest(false);
 			}
+			// adding them again after all the nodes are there
+			for (int i = 0; i < jt.size(); i++) {
+				String sourcename = "treeinfile";
+				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)jt.get(i).getObject("ot:studyId");
+				}
+				sourcename += "_" + String.valueOf(i);
+				
+				System.out.println("adding tree '" + sourcename + "' to the graph");
+				gi.setTree(jt.get(i));
+				gi.addSetTreeToGraph("life", sourcename);
+				// gi.updateAfterTreeIngest(false);
+			}
+			//	gi.updateAfterTreeIngest(true);
+		} finally {
+			gi.shutdownDB();
 		}
-		
-//	    gi.updateAfterTreeIngest(true);
-		gi.shutdownDB();
+		return 0;
 	}
 	
-	public void graphListPruner(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int graphListPruner(String [] args) {
 		if (args.length != 4) {
 			System.out.println("arguments should be: name preferredsource graphdbfolder");
-			return;
+			return 1;
 		}
 
 		String filename = args[1];
@@ -424,88 +419,108 @@ public class MainRunner {
 		System.out.println("(these will have to match exactly, so doing that check now)");
 		String graphname = args[3];
 		GraphExplorer gi = new GraphExplorer();
-		gi.setEmbeddedDB(graphname);
-		HashSet<Long> fnodes = new HashSet<Long>();
-		for (String tn: speciesnames) {
-			Node t = gi.findGraphNodeByName(tn);
-			if (t != null) {
-				fnodes.add(t.getId());
-			} else {
-				System.out.println(tn + " not found");
+		try {
+			gi.setEmbeddedDB(graphname);
+			HashSet<Long> fnodes = new HashSet<Long>();
+			for (String tn: speciesnames) {
+				Node t = gi.findGraphNodeByName(tn);
+				if (t != null) {
+					fnodes.add(t.getId());
+				} else {
+					System.out.println(tn + " not found");
+				}
 			}
+			String sourcename = args[2];
+			String [] sources = sourcename.split(",");
+			System.out.println("Sources (in order) that will be used to break conflicts");
+			for (int i = 0; i < sources.length; i++) {
+				System.out.println(sources[i]);
+			}
+			gi.constructNewickTaxaListTieBreaker(fnodes,sources);
+			//gi.constructNewickSourceTieBreaker(name, sources);
+		} finally {
+			gi.shutdownDB();
 		}
-		String sourcename = args[2];
-		String [] sources = sourcename.split(",");
-		System.out.println("Sources (in order) that will be used to break conflicts");
-		for (int i = 0; i < sources.length; i++) {
-			System.out.println(sources[i]);
-		}
-		gi.constructNewickTaxaListTieBreaker(fnodes,sources);
-		//gi.constructNewickSourceTieBreaker(name, sources);
-		gi.shutdownDB();
+		return 0;
 	}
 	
-	public void sourceTreeExplorer(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int sourceTreeExplorer(String [] args) {
 		if (args.length > 3) {
 			System.out.println("arguments should be: sourcename graphdbfolder");
-			return;
+			return 1;
 		}
 		String sourcename = args[1];
 		String graphname = args[2];
 		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
-		ge.reconstructSource(sourcename);
-		ge.shutdownDB();
+		try {
+			ge.setEmbeddedDB(graphname);
+			ge.reconstructSource(sourcename);
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
 	}
 
-	public void listSources(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int listSources(String [] args) {
 		if (args.length != 2) {
 			System.out.println("arguments should be: graphdbfolder");
-			return;
+			return 1;
 		}
 		String graphname = args[1];
 		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
-		System.out.print(ge.getSourceList());
-		ge.shutdownDB();
+		try {
+			ge.setEmbeddedDB(graphname);
+			System.out.print(ge.getSourceList());
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
 	}
-	
-	public void graphExplorerBiparts(String [] args) {
+
+	/// @returns 0 for success, 1 for poorly formed command
+	public int graphExplorerBiparts(String [] args) {
 		if (args.length != 2) {
 			System.out.println("arguments should be: graphdbfolder");
-			return;
+			return 1;
 		}
 		String graphname = args[1];
 		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
-		ge.getBipartSupport("life"); // need to change this from hardcoded
-		ge.shutdownDB();
+		try {
+			ge.setEmbeddedDB(graphname);
+			ge.getBipartSupport("life"); // need to change this from hardcoded
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
 	}
 	
-	public void graphExplorerMapSupport(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int graphExplorerMapSupport(String [] args) throws TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be infile outfile graphdbfolder");
-			return;
+			return 1;
 		}
 		String infile = args[1];
 		String outfile = args[2];
 		String graphname = args[3];
 		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
 		try {
+			ge.setEmbeddedDB(graphname);
 			ge.getMapTreeSupport(infile, outfile);
-		} catch (TaxonNotFoundException tnfx) {
-			System.err.println("Tree could not be read because the taxon " + tnfx.getQuotedName() + " was not recognized");
-			System.exit(1);
+		} finally {
+			ge.shutdownDB();
 		}
-		ge.shutdownDB();
+		return 0;
 	}
 	
-	public void graphExporter(String [] args) {
-	    String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
+	/// @returns 0 for success, 1 for poorly formed command
+	public int graphExporter(String [] args) throws TaxonNotFoundException {
+		String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
 		if (args.length > 5) {
 			System.out.println(usageString);
-			return;
+			return 1;
 		}
 		String taxon = args[1];
 		String outfile = args[2];
@@ -514,59 +529,78 @@ public class MainRunner {
 		
 		boolean useTaxonomy = false;
 		if (_useTaxonomy.equals("T")) {
-		    useTaxonomy = true;
+			useTaxonomy = true;
 		} else if (!(_useTaxonomy.equals("F"))) {
-		    System.out.println(usageString);
-		    return;
+			System.out.println(usageString);
+			return 1;
 		}
 		
 		GraphExporter ge = new GraphExporter(graphname);
-		ge.writeGraphML(taxon, outfile, useTaxonomy);
-		ge.shutdownDB();
+		try {
+			ge.writeGraphML(taxon, outfile, useTaxonomy);
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
 	}
 	
-	public void mrpDumpParser(String [] args) {
+	public int mrpDumpParser(String [] args) throws TaxonNotFoundException {
 		if (args.length > 4) {
 			System.out.println("arguments should be name outfile graphdbfolder");
-			return;
+			return 1;
 		}
 		String taxon = args[1];
 		String outfile = args[2];
 		String graphname = args[3];
 		GraphExporter ge = new GraphExporter(graphname);
-		ge.mrpDump(taxon, outfile);
-		ge.shutdownDB();
+		try {
+			ge.mrpDump(taxon, outfile);
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
 	}
 	
-	public void csvDumpParser(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int csvDumpParser(String [] args) {
 		if (args.length != 4) {
 			System.out.println("arguments should be name outfile graphdbfolder");
-			return;
+			return 1;
 		}
 		String taxon = args[1];
 		String outfile = args[2];
 		String graphname = args[3];
 		GraphExporter ge = new GraphExporter(graphname);
-		ge.dumpCSV(taxon, outfile,true);
-		ge.shutdownDB();
+		try {
+			ge.dumpCSV(taxon, outfile,true);
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
 	}
 	
-	public void getlicanames(String [] args) {
+	/// @returns 0 for success, 1 for poorly formed command
+	public int getLicaNames(String [] args) {
 		if (args.length != 3) {
 			System.out.println("arguments should be nodeid graphdbfolder");
-			return;
+			return 1;
 		}
 		String nodeid = args[1];
 		String graphname = args[2];
 		GraphExplorer ge = new GraphExplorer();
-		ge.setEmbeddedDB(graphname);
-		ge.printLicaNames(nodeid);
-		ge.shutdownDB();
+		try {
+			ge.setEmbeddedDB(graphname);
+			ge.printLicaNames(nodeid);
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
 	}
 	
-	public void treeUtils(String [] args) {
+	public int treeUtils(String [] args) {
 		if (args.length < 2) {
 			System.out.println("arguments need to at least be a treefilename");
+			return 1;
 		}
 		String filename = args[1];
 		String ts = "";
@@ -583,7 +617,9 @@ public class MainRunner {
 		System.out.println("trees read");
 		if (args[0].equals("counttips")) {
 			System.out.println("int: " + jt.get(0).getInternalNodeCount() + " ext:" + jt.get(0).getExternalNodeCount());
-		} else if (args[0].equals("diversity")) {
+			return 0;
+		}
+		if (args[0].equals("diversity")) {
 			for (int i = 0; i < jt.get(0).getInternalNodeCount(); i++) {
 				if (jt.get(0).getInternalNode(i).getName().length() > 0) {
 					System.out.print(jt.get(0).getInternalNode(i).getName() + " :" + jt.get(0).getInternalNode(i).getTipCount());
@@ -593,7 +629,9 @@ public class MainRunner {
 					System.out.print("\n");
 				}
 			}
-		} else if (args[0].equals("labeltips")) {
+			return 0;
+		}
+		if (args[0].equals("labeltips")) {
 			String filename2 = args[2];
 			ts = "";
 			int count = 0;
@@ -626,11 +664,15 @@ public class MainRunner {
 			}
 			System.out.println(count);
 			System.out.println(jt.get(0).getRoot().getNewick(true) + ";");
+			return 0;
 		}
+		System.err.println("Unrecognized command argument \"" + args[0] + "\"");
+		return 2;
 	}
 	
-	public void pgtesting(){
+	public int pgtesting(){
 		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-03-22");
+		int rc = 0;
 		for (Long k: list){
 //			if ((k == 60) || (k == 105) || (k == 106) || (k == 107) || (k == 115) || (k == 116)) { // some bad studies
 //				System.out.println("Skipping study " + k);
@@ -644,11 +686,13 @@ public class MainRunner {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
 				PhylografterConnector.fixNamesFromTrees(jt);
-			}catch(java.lang.NullPointerException e){
+			} catch(java.lang.NullPointerException e){
 				System.out.println("failed to get study "+k);
+				rc = 1;
 				continue;
 			}
 		}
+		return rc;
 	}
 	
 	public static void printHelp() {
@@ -702,61 +746,75 @@ public class MainRunner {
 		if (args.length < 1) {
 			printHelp();
 			System.exit(1);
-		} else if (args[0] == "help") {
+		}
+		String command = args[0];
+		if (command.compareTo("help") == 0) {
 			printHelp();
 			System.exit(0);
-		} else {
-			System.out.println("things will happen here");
+		}
+		System.out.println("things will happen here");
+		int cmdReturnCode = 0;
+		try {
 			MainRunner mr = new MainRunner();
 			if (args.length < 2) {
 				System.err.println("ERROR: not the right arguments");
 				printHelp();
 			}
-			if (args[0].compareTo("inittax") == 0) {
-				mr.taxonomyLoadParser(args);
-				
-			} else if (args[0].compareTo("addtree") == 0) {
-				mr.graphImporterParser(args);
-				
-			} else if (args[0].compareTo("jsgol") == 0
-					|| args[0].compareTo("fulltree") == 0
-					|| args[0].compareTo("fulltree_sources") == 0) {
-				mr.graphExplorerParser(args);
-			} else if (args[0].compareTo("mrpdump") == 0) {
-				mr.mrpDumpParser(args);
-			} else if (args[0].compareTo("fulltreelist") == 0) {
-				mr.graphListPruner(args);
-			} else if (args[0].compareTo("justtrees") == 0) {
-				mr.justTreeAnalysis(args);
-			} else if (args[0].compareTo("sourceexplorer") == 0) {
-				mr.sourceTreeExplorer(args);
-			} else if (args[0].compareTo("listsources") == 0) {
-				mr.listSources(args);
-			} else if (args[0].compareTo("graphml") == 0) {
-				mr.graphExporter(args);
-			} else if (args[0].compareTo("biparts") == 0) {
-				mr.graphExplorerBiparts(args);
-			} else if (args[0].compareTo("mapsupport") == 0) {
-				mr.graphExplorerMapSupport(args);
-			} else if (args[0].compareTo("reprocess") == 0) {
-				mr.graphReloadTrees(args);
-			} else if (args[0].compareTo("deletetrees") == 0) {
-				mr.graphDeleteTrees(args);
-			} else if (args[0].compareTo("csvdump") == 0) {
-				mr.csvDumpParser(args);
-			} else if (args[0].compareTo("getlicanames") == 0) {
-				mr.getlicanames(args);
-			} else if (args[0].compareTo("counttips") == 0 || args[0].compareTo("diversity") == 0
-					|| args[0].compareTo("labeltips") == 0) {
-				mr.treeUtils(args);
-			} else if (args[0].compareTo("getupdatedlist") == 0) {
-				mr.pgtesting();
+			if (command.compareTo("inittax") == 0) {
+				cmdReturnCode = mr.taxonomyLoadParser(args);
+			} else if (command.compareTo("addtree") == 0) {
+				cmdReturnCode = mr.graphImporterParser(args);
+			} else if (command.compareTo("jsgol") == 0
+					|| command.compareTo("fulltree") == 0
+					|| command.compareTo("fulltree_sources") == 0) {
+				cmdReturnCode = mr.graphExplorerParser(args);
+			} else if (command.compareTo("mrpdump") == 0) {
+				cmdReturnCode = mr.mrpDumpParser(args);
+			} else if (command.compareTo("fulltreelist") == 0) {
+				cmdReturnCode = mr.graphListPruner(args);
+			} else if (command.compareTo("justtrees") == 0) {
+				cmdReturnCode = mr.justTreeAnalysis(args);
+			} else if (command.compareTo("sourceexplorer") == 0) {
+				cmdReturnCode = mr.sourceTreeExplorer(args);
+			} else if (command.compareTo("listsources") == 0) {
+				cmdReturnCode = mr.listSources(args);
+			} else if (command.compareTo("graphml") == 0) {
+				cmdReturnCode = mr.graphExporter(args);
+			} else if (command.compareTo("biparts") == 0) {
+				cmdReturnCode = mr.graphExplorerBiparts(args);
+			} else if (command.compareTo("mapsupport") == 0) {
+				cmdReturnCode = mr.graphExplorerMapSupport(args);
+			} else if (command.compareTo("reprocess") == 0) {
+				cmdReturnCode = mr.graphReloadTrees(args);
+			} else if (command.compareTo("deletetrees") == 0) {
+				cmdReturnCode = mr.graphDeleteTrees(args);
+			} else if (command.compareTo("csvdump") == 0) {
+				cmdReturnCode = mr.csvDumpParser(args);
+			} else if (command.compareTo("getlicanames") == 0) {
+				cmdReturnCode = mr.getLicaNames(args);
+			} else if (command.compareTo("counttips") == 0
+					|| command.compareTo("diversity") == 0
+					|| command.compareTo("labeltips") == 0) {
+				cmdReturnCode = mr.treeUtils(args);
+			} else if (command.compareTo("getupdatedlist") == 0) {
+				cmdReturnCode = mr.pgtesting();
 			} else {
-				System.err.println("Unrecognized command \"" + args[0] + "\"");
-				printHelp();
-				System.exit(1);
+				System.err.println("Unrecognized command \"" + command + "\"");
+				cmdReturnCode = 2;
 			}
+		} catch (TaxonNotFoundException tnfx) {
+			String action = "Command \"" + command + "\"";
+			tnfx.reportFailedAction(System.err, action);
+		} catch (TreeIngestException tix) {
+			String action = "Command \"" + command + "\"";
+			tix.reportFailedAction(System.err, action);
+		} catch (DataFormatException dfx) {
+			String action = "Command \"" + command + "\"";
+			dfx.reportFailedAction(System.err, action);
 		}
+		if (cmdReturnCode == 2) {
+			printHelp();
+		}
+		System.exit(cmdReturnCode);
 	}
-
 }
