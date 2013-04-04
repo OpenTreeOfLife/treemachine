@@ -68,7 +68,8 @@ public class GraphExporter extends GraphBase {
 		sourceRootIndex = graphDb.index().forNodes("sourceRootNodes");
 	}
 
-	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) {
+	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) 
+				throws TaxonNotFoundException {
 		Node firstNode = findTaxNodeByName(taxname);
 		String tofile = getGraphML(firstNode,useTaxonomy);
 		PrintWriter outFile;
@@ -354,7 +355,7 @@ public class GraphExporter extends GraphBase {
 		}
 	}
 
-	public void mrpDump(String taxname, String outfile) {
+	public void mrpDump(String taxname, String outfile) throws TaxonNotFoundException  {
 		Node firstNode = findTaxNodeByName(taxname);
 		String tofile = getMRPDump(firstNode);
 		PrintWriter outFile;
@@ -417,7 +418,8 @@ public class GraphExporter extends GraphBase {
 	 * {"name":"Caprifoliaceae",nodeid:"nodeid"}]
 	 */
 
-	public void writeJSONWithAltParentsToFile(String taxname) {
+	public void writeJSONWithAltParentsToFile(String taxname)
+				throws TaxonNotFoundException {
 		Node firstNode = findTaxNodeByName(taxname);
 		if (firstNode == null) {
 			System.out.println("name not found");

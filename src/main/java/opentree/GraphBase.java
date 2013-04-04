@@ -81,10 +81,13 @@ public abstract class GraphBase {
 	 *  the node using IndexHits<Node>.getSingle()
 	 * helper function primarily written to avoid forgetting to call hits.close();
 	 */
-    Node findTaxNodeByName(final String name) {
+    Node findTaxNodeByName(final String name) throws TaxonNotFoundException {
         IndexHits<Node> hits = this.graphNodeIndex.get("name", name);
 		Node firstNode = hits.getSingle();
 		hits.close();
+		if (firstNode == null) {
+			throw new TaxonNotFoundException(name);
+		}
 		return firstNode;
 	}
 
