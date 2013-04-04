@@ -13,7 +13,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+
 //import org.apache.log4j.Logger;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
 //import org.neo4j.graphdb.index.IndexHits;
@@ -467,7 +469,7 @@ public class MainRunner {
 		String graphname = args[1];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
-			System.out.print(ge.getSourceList());
+			System.out.println(StringUtils.join(ge.getSourceList(), "\n"));
 		} finally {
 			ge.shutdownDB();
 		}

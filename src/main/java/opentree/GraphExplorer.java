@@ -1147,15 +1147,17 @@ public class GraphExplorer extends GraphBase {
 
     /**
      * Get the list of sources that have been loaded in the graph
+     * @returns array of strings that are the values of the "source" property of nodes stored in sourceMetaIndex
      */
-    public String getSourceList() {
-        StringBuffer sb = new StringBuffer();
+    public String [] getSourceList() {
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
+        String [] sourceArray = new String[hits.size()];
+        int index = 0;
         while (hits.hasNext()) {
             Node n = hits.next();
-            sb.append(n.getProperty("source") + "\n");
+            sourceArray[index] = (String) n.getProperty("source");
         }
-        return sb.toString();
+        return sourceArray;
     }
 
     /**
