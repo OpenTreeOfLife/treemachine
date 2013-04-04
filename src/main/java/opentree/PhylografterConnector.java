@@ -1,5 +1,6 @@
 package opentree;
 
+import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
 
@@ -127,7 +128,22 @@ public class PhylografterConnector {
 		String urlbasefetch = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/doTNRSForNames";
 		System.out.println("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
-
+			//get the names that don't have ids
+			//if the number is 0 then break
+			ArrayList<JadeNode> searchnds = new ArrayList<JadeNode>();
+			HashMap<String,JadeNode> namenodemap = new HashMap<String,JadeNode>();
+			for (int j = 0; j < trees.get(i).getExternalNodeCount(); j++) {
+				if(trees.get(i).getExternalNode(j).getObject("ot:ottolid")==null){
+					System.out.println("looking for:"+trees.get(i).getExternalNode(j).getName());
+					searchnds.add(trees.get(i).getExternalNode(j));
+					namenodemap.put(trees.get(i).getExternalNode(j).getName(), trees.get(i).getExternalNode(j));
+				}
+			}
+			if (searchnds.size() == 0){
+				System.out.println("all nodes have ottolids");
+				break;
+			}
+			
 			StringBuffer sb = new StringBuffer();
 
 			// build the parameter string for the context query
@@ -148,44 +164,58 @@ public class PhylografterConnector {
 	        // query for the context
 	        String contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
 	        JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
-	        System.out.println(contextResponseJSON);
-	        System.out.println(contextResponse);
+	        String cn = (String)contextResponse.get("context_name");
+	        
+	        //getting the names for each of the speices
+	        sb = new StringBuffer();
 
-/*			try {
-				URL phurl = new URL(urlbasecontext);
-				System.out.println(urlbasecontext);
-				URLConnection conn = (URLConnection) phurl.openConnection();
-				// conn.setDoOutput(true);
-				conn.setDoInput(true);
-				// conn.setInstanceFollowRedirects(false);
-				// conn.setRequestMethod("GET");
-				// conn.setRequestProperty("Content-Type", "Application/json");
-				// conn.setRequestProperty("charset", "utf-8");
-				// conn.setRequestProperty("Content-Length", "" +
-				// Integer.toString(urlParameters.getBytes().length));
-				// conn.setUseCaches (false);
-				conn.connect();
-				// DataOutputStream wr = new
-				// DataOutputStream(conn.getOutputStream ());
-				/*
-				 * OutputStreamWriter writer = new
-				 * OutputStreamWriter(conn.getOutputStream());
-				 * writer.write(urlParameters); writer.flush();
-				 *
-				BufferedReader un = new BufferedReader(new InputStreamReader(
-						conn.getInputStream()));
-				JSONObject all = (JSONObject) JSONValue.parse(un);
-				System.out.println(all);
-				un.close();
-				// writer.close();
-				// conn.disconnect();
-			} catch (MalformedURLException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} */
+			// build the parameter string for the context query
+			sb.append("{\"queryString\":\"");
+			sb.append(searchnds.get(0).getName());
+			for (int j = 1; j < searchnds.size(); j++) {
+				if(searchnds.get(j).getObject("ot:ottolid")==null){
+					sb.append("," + searchnds.get(j).getName());
+				}
+			}
+			sb.append("\",\"contextName\":\""+cn+"\"}");
+			contextQueryParameters = sb.toString();
 
-		
+	        // set up the connection to the TNRS context query
+	        cc = new DefaultClientConfig();
+	        c = Client.create(cc);
+	        contextQuery = c.resource(urlbasefetch);
+
+	        // query for the context
+	        contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
+	        contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
+	        JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
+	        int unmcount = 0;
+	        for (Object id: unm){
+//	        	System.out.println("unmatched: "+id);
+	        	unmcount += 1;
+	        }
+//	        System.out.println("total unmatched: "+unmcount);
+	        JSONArray res = (JSONArray) contextResponse.get("results");
+	        //if the match is with score 1, then we keep
+	        for (Object id: res){
+	        	JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
+	        	for(Object tid: tres){
+	        		Double score = (Double)((JSONObject)tid).get("score");
+	        		boolean permat = (Boolean)((JSONObject)tid).get("isPerfectMatch");
+	        		String ottolid = (String)((JSONObject)tid).get("matchedOttolID");
+	        		String searchString = (String)((JSONObject)tid).get("searchString");
+//	        		System.out.println(score+" "+permat+" "+ottolid);
+	        		if (score >= 1){
+	        			namenodemap.get(searchString).assocObject("ot:ottolid", Long.valueOf(ottolid));
+	        			namenodemap.remove(searchString);
+	        			break;
+	        		}
+	        	}
+	        }
+	        //add the ones that didn't map
+	        for(String name: namenodemap.keySet()){
+	        	System.out.println("still need to add "+name);
+	        }
 		}
 	}
 }
