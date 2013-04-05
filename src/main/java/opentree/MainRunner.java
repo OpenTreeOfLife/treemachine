@@ -18,6 +18,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
 import opentree.TaxonNotFoundException;
@@ -664,7 +665,10 @@ public class MainRunner {
 		return 2;
 	}
 	
-	public int pgtesting(){
+	public int pgtesting(String [] args){
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+		if (args.length != 2)
+			return 1;
 		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-03-22");
 		int rc = 0;
 		for (Long k: list){
@@ -672,20 +676,23 @@ public class MainRunner {
 //				System.out.println("Skipping study " + k);
 //				continue;
 //			}
-			if (k > 20)
+			if (k > 15)
 				break;
 			try{
 				List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
-				PhylografterConnector.fixNamesFromTrees(jt);
+				
+				PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+				
 			} catch(java.lang.NullPointerException e){
 				System.out.println("failed to get study "+k);
 				rc = 1;
 				continue;
 			}
 		}
+		graphDb.shutdownDb();
 		return rc;
 	}
 	
@@ -792,7 +799,7 @@ public class MainRunner {
 					|| command.compareTo("labeltips") == 0) {
 				cmdReturnCode = mr.treeUtils(args);
 			} else if (command.compareTo("getupdatedlist") == 0) {
-				cmdReturnCode = mr.pgtesting();
+				cmdReturnCode = mr.pgtesting(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;

@@ -20,9 +20,15 @@ import java.util.Map;
 
 import javax.ws.rs.core.MediaType;
 
+import opentree.GraphBase.RelTypes;
+
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.index.Index;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
@@ -121,7 +127,7 @@ public class PhylografterConnector {
 	 * @param trees
 	 *            that have been processed from fetchTreesFromStudy
 	 */
-	public static void fixNamesFromTrees(List<JadeTree> trees) {
+	public static void fixNamesFromTrees(Long studyid,List<JadeTree> trees, GraphDatabaseAgent graphDb) {
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
 		String urlbasecontext = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/getContextForNames";
@@ -165,7 +171,7 @@ public class PhylografterConnector {
 	        String contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
 	        JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
 	        String cn = (String)contextResponse.get("context_name");
-	        
+	        System.out.println(contextResponse);
 	        //getting the names for each of the speices
 	        sb = new StringBuffer();
 
@@ -188,12 +194,8 @@ public class PhylografterConnector {
 	        // query for the context
 	        contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
 	        contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
+	        System.out.println(contextResponse);
 	        JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
-	        int unmcount = 0;
-	        for (Object id: unm){
-//	        	System.out.println("unmatched: "+id);
-	        	unmcount += 1;
-	        }
 //	        System.out.println("total unmatched: "+unmcount);
 	        JSONArray res = (JSONArray) contextResponse.get("results");
 	        //if the match is with score 1, then we keep
@@ -213,8 +215,33 @@ public class PhylografterConnector {
 	        	}
 	        }
 	        //add the ones that didn't map
+	        /*
+	         * The process is to use the id for the context that is obtained above
+	         * 0. we assign a new temporary ottolid -- need to know how to autoincrement
+	         * 1. for each name we add a taxon name in the taxonomy in treemachine
+	         * 2. we add this to the taxonomy index
+	         * 3. we add this to the index of new names to add
+	         */
+	        Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
+	        Index<Node> graphTaxUIDNodeindex = graphDb.getNodeIndex( "graphTaxUIDNodes" );
 	        for(String name: namenodemap.keySet()){
 	        	System.out.println("still need to add "+name);
+	        	//generate ottol id
+	        	//Long ottol_id = 1000000000
+	        	/*Node tnode = graphDb.createNode();
+				tnode.setProperty("name", name);
+				tnode.setProperty("tax_uid",tid);
+				tnode.setProperty("tax_parent_uid",pid);
+				tnode.setProperty("tax_source",srce);
+				tnode.setProperty("tax_sourceid",srce_id);
+				tnode.setProperty("phylografter_study",);//has to link back
+				graphNodeIndex.add( tnode, "name", name );
+				graphTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+				Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
+				rel.setProperty("childid",tid);
+				rel.setProperty("parentid",pid);
+				rel.setProperty("source","temporary_new_name_phylografter_ingest");
+				*/
 	        }
 		}
 	}
