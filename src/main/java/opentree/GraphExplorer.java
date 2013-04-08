@@ -22,6 +22,8 @@ import java.util.Stack;
 //import opentree.GraphBase.RelTypes;
 import opentree.synthesis.TreeMakingBandB;
 import opentree.synthesis.TreeMakingExhaustivePairs;
+import opentree.TreeNotFoundException;
+
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
@@ -1171,9 +1173,12 @@ public class GraphExplorer extends GraphBase {
      * @param sourcename
      *            the name of the source
      */
-    public void reconstructSource(String sourcename) {
+    public void reconstructSource(String sourcename) throws TreeNotFoundException {
         boolean printlengths = false;
         IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
+        if (hits == null || hits.size() == 0) {
+            throw new TreeNotFoundException(sourcename);
+        }
         IndexHits<Relationship> hitsr = sourceRelIndex.get("source", sourcename);
         // really only need one
         HashMap<Node, JadeNode> jadenode_map = new HashMap<Node, JadeNode>();

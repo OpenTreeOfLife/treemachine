@@ -21,6 +21,8 @@ import org.neo4j.graphdb.Node;
 //import org.neo4j.graphdb.index.IndexHits;
 
 import opentree.TaxonNotFoundException;
+import opentree.TreeNotFoundException;
+import opentree.StoredEntityNotFoundException;
 
 public class MainRunner {
 	/// @returns 0 for success, 1 for poorly formed command
@@ -121,6 +123,10 @@ public class MainRunner {
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
 		try {
+			if (gi.hasSoureTreeName(sourcename)) {
+				String emsg = "Tree with the name \"" + sourcename + "\" already exists in this db.";
+				throw new TreeIngestException(emsg);
+			}
 			System.out.println("adding tree(s) to the graph from file: " + filename);
 			String ts = "";
 			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
@@ -444,7 +450,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int sourceTreeExplorer(String [] args) {
+	public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
 		if (args.length > 3) {
 			System.out.println("arguments should be: sourcename graphdbfolder");
 			return 1;
@@ -797,7 +803,7 @@ public class MainRunner {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}
-		} catch (TaxonNotFoundException tnfx) {
+		} catch (StoredEntityNotFoundException tnfx) {
 			String action = "Command \"" + command + "\"";
 			tnfx.reportFailedAction(System.err, action);
 		} catch (TreeIngestException tix) {

@@ -82,7 +82,11 @@ public class GraphImporter extends GraphBase{
 		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
 		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
 	}
-	
+
+	public boolean hasSoureTreeName(String sourcename) {
+		IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
+		return (hits != null && hits.size() > 0);
+	}
 	/**
 	 * Sets the jt member by reading a JadeTree from filename.
 	 *
