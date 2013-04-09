@@ -572,17 +572,14 @@ public class GraphExporter extends GraphBase {
 
 		PathFinder<Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(defaultchildtype, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
-		if (taxonomy == false) {
-			root.setName((String) firstNode.getProperty("name"));
-		} else {
-			root.setName((String) firstNode.getProperty("name"));
-		}
+		root.setName((String) firstNode.getProperty("name"));
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
 				.relationships(defaultchildtype, Direction.INCOMING);
 		ArrayList<Node> visited = new ArrayList<Node>();
 		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
 		HashMap<Node, JadeNode> nodejademap = new HashMap<Node, JadeNode>();
 		HashMap<JadeNode, Node> jadeparentmap = new HashMap<JadeNode, Node>();
+		//@diff visited.add(firstNode);
 		nodejademap.put(firstNode, root);
 		root.assocObject("nodeid", firstNode.getId());
 		// These are the altrels that actually made it in the tree
