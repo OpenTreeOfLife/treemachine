@@ -2,6 +2,7 @@ package opentree;
 
 //import java.util.Arrays;
 //import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
@@ -158,6 +159,44 @@ public class LicaUtil {
 				if (going == false) {
 					break;
 				}
+			}
+		}
+		return retaln;
+	}
+	
+	/**
+	 * This will return the MRCA using the taxonomic relationships. This only
+	 * requires the nodes that we are looking for.
+	 * 
+	 * @param nodeSet
+	 * @return
+	 */
+	public static Node getTaxonomicLICA(List<Node> nodeSet){
+		Node retaln = null;
+		Node firstNode = nodeSet.get(0);//taxonomy should have only one parent so no matter which one
+		Node innode = firstNode;
+		ArrayList<Long> nodeSetLongs = new ArrayList<Long>();
+		for(Node nd:nodeSet){
+			nodeSetLongs.add(nd.getId());
+		}
+		boolean going = true;
+		while(going){
+			//get parent
+			innode = innode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+			long [] dbnodei = (long []) innode.getProperty("mrca");
+			HashSet<Long> Ldbnodei = new HashSet<Long>();
+			for (long temp:dbnodei) {
+				Ldbnodei.add(temp);
+			}
+			//should look to apache commons primitives for a better solution to this
+			//this gets all, but we want to only include the exact if one exists
+			boolean containsall = Ldbnodei.containsAll(nodeSetLongs);
+			if (containsall ==true) {
+				retaln = innode;
+				going = false;
+			}
+			if (going == false) {
+				break;
 			}
 		}
 		return retaln;

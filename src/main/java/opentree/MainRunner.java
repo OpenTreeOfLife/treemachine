@@ -676,16 +676,14 @@ public class MainRunner {
 //				System.out.println("Skipping study " + k);
 //				continue;
 //			}
-			if (k > 15)
+			if (k > 20)
 				break;
 			try{
 				List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
-				
 				PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
-				
 			} catch(java.lang.NullPointerException e){
 				System.out.println("failed to get study "+k);
 				rc = 1;
