@@ -36,6 +36,8 @@ public abstract class GraphBase {
 	protected static Index<Node> graphTaxUIDNodeindex; //tax_uid is the key, the uid from the taxonomy points to this node
 	protected static Index<Node> synTaxUIDNodeindex; //tax_uid is the key, this points to the synonymn node, 
 													//to get the tax that this points to you need to travel synonymof
+	protected static Index<Node> graphTaxNewNodes;
+	
 	
 	protected static enum RelTypes implements RelationshipType{
 		MRCACHILDOF, //standard rel for graph db, from node to parent

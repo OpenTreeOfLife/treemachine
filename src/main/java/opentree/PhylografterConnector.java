@@ -28,6 +28,7 @@ import org.json.simple.JSONArray;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 
@@ -36,8 +37,15 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 
+
+
 public class PhylografterConnector {
 
+	//this is used to prepend the new tax ids as they are created
+	//this should be autoincremented and this is just the starting number
+	//the current number can be retrieved by graphDb.getGraphProperty("newTaxUIDCurIter")
+	private static Long newtaxidstart = (long) 1000000000;
+	
 	/**
 	 * This will get the list of studies that have been updated in phylografter
 	 * since a particular date and to another date
@@ -231,6 +239,8 @@ public class PhylografterConnector {
 	         */
 	        Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
 	        Index<Node> graphTaxUIDNodeindex = graphDb.getNodeIndex( "graphTaxUIDNodes" );
+	        Index<Node> graphTaxNewNodes = graphDb.getNodeIndex("graphTaxNewNodes");
+	        
 	        for(String name: namenodemap.keySet()){
 	        	System.out.println("still need to add "+name);
 	        	JadeNode jnode = namenodemap.get(name);
@@ -260,21 +270,37 @@ public class PhylografterConnector {
 	        	System.out.println("parentnode:"+parentnode);
 	        	System.out.println("will add node");
 	        	//generate ottol id
-	        	//Long ottol_id = 1000000000
-	        	/*Node tnode = graphDb.createNode();
-				tnode.setProperty("name", name);
-				tnode.setProperty("tax_uid",tid);
-				tnode.setProperty("tax_parent_uid",pid);
-				tnode.setProperty("tax_source",srce);
-				tnode.setProperty("tax_sourceid",srce_id);
-				tnode.setProperty("phylografter_study",);//has to link back
-				graphNodeIndex.add( tnode, "name", name );
-				graphTaxUIDNodeindex.add(tnode, "tax_uid", tid);
-				Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
-				rel.setProperty("childid",tid);
-				rel.setProperty("parentid",pid);
-				rel.setProperty("source","temporary_new_name_phylografter_ingest");
-				*/
+	        	Long ottol_id = null; 
+	        	//GET HIGHEST NUMBER FROM INDEX, increment by one
+	        	if(graphDb.getGraphProperty("newTaxUIDCurIter")==null){
+	        		graphDb.setGraphProperty("newTaxUIDCurIter", newtaxidstart);
+	        	}else{
+	        		ottol_id = ((Long) graphDb.getGraphProperty("newTaxUIDCurIter"));
+	        		graphDb.setGraphProperty("newTaxUIDCurIter", ottol_id+1);
+	        	}
+	        	Transaction tx = graphDb.beginTx();
+	        	try{
+		        	Node tnode = graphDb.createNode();
+		        	Long pid = Long.valueOf((String)parentnode.getProperty("tax_uid"));
+					tnode.setProperty("name", name);
+					tnode.setProperty("tax_uid",ottol_id);
+					tnode.setProperty("tax_parent_uid",pid);
+					String srce = "temporary_new_name_phylografter_ingest";
+					tnode.setProperty("tax_source",srce);//studyid
+					tnode.setProperty("tax_sourceid",studyid);//studyid
+					tnode.setProperty("phylografter_study",studyid);//has to link back
+					graphNodeIndex.add( tnode, "name", name );
+					graphTaxUIDNodeindex.add(tnode, "tax_uid", ottol_id);
+					graphTaxNewNodes.add(tnode, "tax_uid", ottol_id);
+					graphTaxNewNodes.add(tnode, "phylografter_study", studyid);
+					Relationship rel = tnode.createRelationshipTo(parentnode, RelTypes.TAXCHILDOF);
+					rel.setProperty("childid",ottol_id);
+					rel.setProperty("parentid",pid);
+					rel.setProperty("source","temporary_new_name_phylografter_ingest");
+					tx.success();
+				} finally {
+					tx.finish();
+				}
 	        }
 		}
 	}
