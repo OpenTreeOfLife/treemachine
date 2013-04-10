@@ -450,9 +450,6 @@ public class MainRunner {
 		return 0;
 	}
 	
-	/// @returns 0 for success, 1 for poorly formed command
-	public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
-		if (args.length > 3) {
 	public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
 		if (args.length != 3) {
 			System.out.println("arguments should be: sourcename graphdbfolder");
