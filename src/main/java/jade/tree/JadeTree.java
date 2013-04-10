@@ -20,18 +20,22 @@ public class JadeTree {
 
 	private int externalNodeCount; // TODO could be removed by relying on externalNodes.size()
 
+	private boolean hasBranchLengths; //false by default
+
 	/*
 	 * constructors
 	 */
 	public JadeTree() {
 		root = null;
 		assoc = new HashMap<String,Object>();
+		hasBranchLengths = false;
 		processRoot();
 	}
 
 	public JadeTree(JadeNode root) {
 		this.root = root;
 		assoc = new HashMap<String,Object>();
+		hasBranchLengths = false;
 		processRoot();
 	}
 
@@ -492,4 +496,11 @@ public class JadeTree {
 		}
 		return null;
 	}
+	public void setHasBranchLengths(boolean v) {
+		hasBranchLengths = v;
+	}
+	public boolean getHasBranchLengths() {
+		return hasBranchLengths;
+	}
+		
 }

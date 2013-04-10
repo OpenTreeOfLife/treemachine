@@ -1173,7 +1173,7 @@ public class GraphExplorer extends GraphBase {
      * @param sourcename
      *            the name of the source
      */
-    public void reconstructSource(String sourcename) throws TreeNotFoundException {
+    public JadeTree reconstructSource(String sourcename) throws TreeNotFoundException {
         boolean printlengths = false;
         IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
         if (hits == null || hits.size() == 0) {
@@ -1256,6 +1256,7 @@ public class GraphExplorer extends GraphBase {
         }
         // print the newick string
         JadeTree tree = new JadeTree(root);
-        System.out.println(tree.getRoot().getNewick(printlengths) + ";");
+        tree.setHasBranchLengths(printlengths);
+        return tree;
     }
 }

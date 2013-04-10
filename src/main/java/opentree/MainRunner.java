@@ -459,7 +459,9 @@ public class MainRunner {
 		String graphname = args[2];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
-			ge.reconstructSource(sourcename);
+			JadeTree tree = ge.reconstructSource(sourcename);
+			final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
+			System.out.println(newick + ";");
 		} finally {
 			ge.shutdownDB();
 		}
