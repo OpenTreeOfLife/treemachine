@@ -446,7 +446,7 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int sourceTreeExplorer(String [] args) {
-		if (args.length > 3) {
+		if (args.length != 3) {
 			System.out.println("arguments should be: sourcename graphdbfolder");
 			return 1;
 		}
