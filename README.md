@@ -49,6 +49,10 @@ As an example of usage to load the snapshot of OTToL into test.db:
 	tar xf ottol_dumpv1_w_preottol_ids_uniqunames.tar.gz
 	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar inittax inittax ottol_dump_w_uniquenames_preottol_ids ottol_dump.synonyms test.db
 
+To load a tree:
+
+	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addtree ex.nexson rosids WangEtAl2009-studyid-15 test.db
+
 An older description on loading the taxonomies for the full ToL at 
 https://docs.google.com/document/d/1J82ZvgqMwv9Y43SqSGcw1ZjqWEPHaFQww5deuFFV7Js/edit
 

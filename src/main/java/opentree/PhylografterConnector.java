@@ -20,9 +20,16 @@ import java.util.Map;
 
 import javax.ws.rs.core.MediaType;
 
+import opentree.GraphBase.RelTypes;
+
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
@@ -118,10 +125,13 @@ public class PhylografterConnector {
 	 * name to the taxonomy. This is a special case when adding things from
 	 * phylografter
 	 * 
+	 * The names that are added need to be searched if there were not matches in 
+	 * the TNRS
+	 * 
 	 * @param trees
 	 *            that have been processed from fetchTreesFromStudy
 	 */
-	public static void fixNamesFromTrees(List<JadeTree> trees) {
+	public static void fixNamesFromTrees(Long studyid,List<JadeTree> trees, GraphDatabaseAgent graphDb) {
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
 		String urlbasecontext = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/getContextForNames";
@@ -132,6 +142,7 @@ public class PhylografterConnector {
 			//if the number is 0 then break
 			ArrayList<JadeNode> searchnds = new ArrayList<JadeNode>();
 			HashMap<String,JadeNode> namenodemap = new HashMap<String,JadeNode>();
+			ArrayList<JadeNode> matchednodes = new ArrayList<JadeNode>();
 			for (int j = 0; j < trees.get(i).getExternalNodeCount(); j++) {
 				if(trees.get(i).getExternalNode(j).getObject("ot:ottolid")==null){
 					System.out.println("looking for:"+trees.get(i).getExternalNode(j).getName());
@@ -165,7 +176,8 @@ public class PhylografterConnector {
 	        String contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
 	        JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
 	        String cn = (String)contextResponse.get("context_name");
-	        
+	        Long cnid = (Long)contextResponse.get("content_rootnode_ottol_id");
+	        System.out.println(contextResponse);
 	        //getting the names for each of the speices
 	        sb = new StringBuffer();
 
@@ -188,12 +200,8 @@ public class PhylografterConnector {
 	        // query for the context
 	        contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
 	        contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
+	        System.out.println(contextResponse);
 	        JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
-	        int unmcount = 0;
-	        for (Object id: unm){
-//	        	System.out.println("unmatched: "+id);
-	        	unmcount += 1;
-	        }
 //	        System.out.println("total unmatched: "+unmcount);
 	        JSONArray res = (JSONArray) contextResponse.get("results");
 	        //if the match is with score 1, then we keep
@@ -207,14 +215,66 @@ public class PhylografterConnector {
 //	        		System.out.println(score+" "+permat+" "+ottolid);
 	        		if (score >= 1){
 	        			namenodemap.get(searchString).assocObject("ot:ottolid", Long.valueOf(ottolid));
+	        			matchednodes.add(namenodemap.get(searchString));
 	        			namenodemap.remove(searchString);
 	        			break;
 	        		}
 	        	}
 	        }
 	        //add the ones that didn't map
+	        /*
+	         * The process is to use the id for the context that is obtained above
+	         * 0. we assign a new temporary ottolid -- need to know how to autoincrement
+	         * 1. for each name we add a taxon name in the taxonomy in treemachine
+	         * 2. we add this to the taxonomy index
+	         * 3. we add this to the index of new names to add
+	         */
+	        Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
+	        Index<Node> graphTaxUIDNodeindex = graphDb.getNodeIndex( "graphTaxUIDNodes" );
 	        for(String name: namenodemap.keySet()){
 	        	System.out.println("still need to add "+name);
+	        	JadeNode jnode = namenodemap.get(name);
+	        	//get the nodes from the parent
+	        	JadeNode jnp = jnode;
+        		ArrayList<Node> nodeSet = new ArrayList<Node>(); 
+	        	while(jnp.hasParent()){
+	        		jnp = jnp.getParent();
+	        		for(JadeNode jnn: jnp.getTips()){
+	        			if (matchednodes.contains(jnn)){
+	        				IndexHits<Node> ihn = graphTaxUIDNodeindex.get("tax_uid", (Long)jnn.getObject("ot:ottolid"));
+	        				nodeSet.add(ihn.getSingle());
+	        				ihn.close();
+	        			}
+	        		}
+	        		if (nodeSet.size() > 0){
+	        			break;
+	        		}
+	        	}
+	        	//if there is still no set of nodes, should take context, but breaking for now
+	        	Node parentnode = null;
+	        	if(nodeSet.size() == 0){
+	        		parentnode = graphDb.getNodeById(cnid);
+	        	}else{
+	        		parentnode = LicaUtil.getTaxonomicLICA(nodeSet);
+	        	}
+	        	System.out.println("parentnode:"+parentnode);
+	        	System.out.println("will add node");
+	        	//generate ottol id
+	        	//Long ottol_id = 1000000000
+	        	/*Node tnode = graphDb.createNode();
+				tnode.setProperty("name", name);
+				tnode.setProperty("tax_uid",tid);
+				tnode.setProperty("tax_parent_uid",pid);
+				tnode.setProperty("tax_source",srce);
+				tnode.setProperty("tax_sourceid",srce_id);
+				tnode.setProperty("phylografter_study",);//has to link back
+				graphNodeIndex.add( tnode, "name", name );
+				graphTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+				Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
+				rel.setProperty("childid",tid);
+				rel.setProperty("parentid",pid);
+				rel.setProperty("source","temporary_new_name_phylografter_ingest");
+				*/
 	        }
 		}
 	}
