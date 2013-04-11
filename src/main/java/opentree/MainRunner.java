@@ -110,17 +110,40 @@ public class MainRunner {
 	 */
 	public int graphImporterParser(String [] args) 
 					throws TaxonNotFoundException, DataFormatException, TreeIngestException {
-		if (args[0].compareTo("addtree") != 0) {
+		boolean readingNewick = false;
+		boolean readingNexson = false;
+		if (args[0].compareTo("addnewick") == 0) {
+			readingNewick = true;
+		}if (args[0].compareTo("addnexson") == 0) {
+			readingNexson = true;
+		} else {
 			return 2;
 		}
-		if (args.length != 5) {
-			System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
-			return 1;
+		String filename;
+		String idfilename = "";
+		String focalgroup;
+		String sourcename;
+		String graphname;
+		if (readingNewick) {
+			if (args.length != 6) {
+				System.out.println("arguments should be: filename idfilename focalgroup sourcename graphdbfolder");
+				return 1;
+			}
+			filename = args[1];
+			idfilename = args[2];
+			focalgroup = args[3];
+			sourcename = args[4];
+			graphname = args[5];
+		} else {
+			if (args.length != 5) {
+				System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
+				return 1;
+			}
+			filename = args[1];
+			focalgroup = args[2];
+			sourcename = args[3];
+			graphname = args[4];
 		}
-		String filename = args[1];
-		String focalgroup = args[2];
-		String sourcename = args[3];
-		String graphname = args[4];
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
 		try {
@@ -129,20 +152,33 @@ public class MainRunner {
 				throw new TreeIngestException(emsg);
 			}
 			System.out.println("adding tree(s) to the graph from file: " + filename);
-			String ts = "";
 			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-			
 			try {
-				BufferedReader br = new BufferedReader(new FileReader(filename));
-				if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
+				if (readingNewick) { // newick
 					System.out.println("Reading newick file...");
 					TreeReader tr = new TreeReader();
+					BufferedReader ibr = new BufferedReader(new FileReader(idfilename));
+					String treeID;
+					String ts = "";
+					BufferedReader br = new BufferedReader(new FileReader(filename));
+					int treeNum = 0;
 					while ((ts = br.readLine()) != null) {
 						if (ts.length() > 1) {
-							jt.add(tr.readTree(ts));
+							++treeNum;
+							treeID = "";
+							while (treeID.length() == 0) {
+								if (null  == (treeID = ibr.readLine())) {
+									String emsg = "Newick treefile \"" + filename + "\" has (at least) " + treeNum + " line(s), but the file of IDs \"" + idfilename + "\" does not have that many ids. Expecting one ID per line.";
+									throw new TreeIngestException(emsg);
+								}
+							}
+							JadeTree newestTree = tr.readTree(ts);
+							newestTree.assocObject("id", treeID);
+							jt.add(newestTree);
 							treeCounter++;
 						}
 					}
+					br.close();
 				} else { // nexson
 					System.out.println("Reading nexson file...");
 					for (JadeTree tree : NexsonReader.readNexson(filename)) {
@@ -150,7 +186,6 @@ public class MainRunner {
 						treeCounter++;
 					}
 				}
-				br.close();
 			} catch (IOException ioe) {}
 			System.out.println(treeCounter + " trees read.");
 			
@@ -178,7 +213,7 @@ public class MainRunner {
 					}
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
-					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i)); //@QUERY treeID has been added, so I'm not sure we want to munge the sourcename
 				}
 			}
 		} finally {
@@ -710,7 +745,8 @@ public class MainRunner {
 		System.out.println("\tinittax <filename> <synonymfilename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
-		System.out.println("\taddtree <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnewick <filename> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
 		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)\n");
 
