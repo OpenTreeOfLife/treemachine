@@ -229,6 +229,25 @@ public class PhylografterConnector {
 	        		}
 	        	}
 	        }
+	        Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
+
+	        //check to make sure that they aren't already in the new index
+	        ArrayList<String> removenames = new ArrayList<String>();
+	        for(String name: namenodemap.keySet()){
+	        	IndexHits <Node> hits = graphNodeIndex.get("name", name);
+	        	if (hits.size() == 1){
+	        		Long lid = (Long) hits.getSingle().getProperty("tax_uid");
+	        		namenodemap.get(name).assocObject("ot:ottolid", Long.valueOf(lid));
+	        		removenames.add(name);
+	        	}else{
+	        		System.out.println(hits.size());
+	        	}
+	        	hits.close();
+	        }
+	        //remove the ones that are added
+	        for(String name: removenames){
+	        	namenodemap.remove(name);
+	        }
 	        //add the ones that didn't map
 	        /*
 	         * The process is to use the id for the context that is obtained above
@@ -237,7 +256,6 @@ public class PhylografterConnector {
 	         * 2. we add this to the taxonomy index
 	         * 3. we add this to the index of new names to add
 	         */
-	        Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
 	        Index<Node> graphTaxUIDNodeindex = graphDb.getNodeIndex( "graphTaxUIDNodes" );
 	        Index<Node> graphTaxNewNodes = graphDb.getNodeIndex("graphTaxNewNodes");
 	        
@@ -280,6 +298,7 @@ public class PhylografterConnector {
 	        	}
 	        	Transaction tx = graphDb.beginTx();
 	        	try{
+	        		namenodemap.get(name).assocObject("ot:ottolid", Long.valueOf(ottol_id));
 		        	Node tnode = graphDb.createNode();
 		        	Long pid = Long.valueOf((String)parentnode.getProperty("tax_uid"));
 					tnode.setProperty("name", name);
