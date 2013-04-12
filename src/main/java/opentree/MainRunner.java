@@ -804,7 +804,8 @@ public class MainRunner {
 			}
 			if (command.compareTo("inittax") == 0) {
 				cmdReturnCode = mr.taxonomyLoadParser(args);
-			} else if (command.compareTo("addtree") == 0) {
+			} else if (command.compareTo("addnewick") == 0
+					|| command.compareTo("addnexson") == 0) {
 				cmdReturnCode = mr.graphImporterParser(args);
 			} else if (command.compareTo("jsgol") == 0
 					|| command.compareTo("fulltree") == 0
