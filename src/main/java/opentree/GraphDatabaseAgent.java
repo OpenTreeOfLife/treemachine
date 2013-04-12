@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
@@ -81,7 +82,7 @@ public class GraphDatabaseAgent {
         else
             return graphDbService.beginTx();
     }
-
+    
     public Node getNodeById(Long arg0) {
         if (embedded)
             return embeddedGraphDb.getNodeById(arg0);
@@ -100,6 +101,52 @@ public class GraphDatabaseAgent {
         registerShutdownHook();
     }
 
+    /**
+     * These assume that the graph properties will be stored at the 
+     * root node as properties. The root node should always be node 0
+     * @param propname
+     * @return
+     */
+    public Object getGraphProperty(String propname){
+    	if(embedded){
+    		if (embeddedGraphDb.getNodeById(0).hasProperty(propname))
+    			return embeddedGraphDb.getNodeById(0).getProperty(propname);
+    		else
+    			return null;
+    	}else{
+    		if (graphDbService.getNodeById(0).hasProperty(propname))
+    			return graphDbService.getNodeById(0).getProperty(propname);
+    		else
+    			return null; 	    		
+    	}
+    }
+    
+    /**
+     * These assume that the graph properties will be stored at the 
+     * root node as properties. The root node should always be node 0
+     * @param propname
+     * @return
+     */
+    public void setGraphProperty(String propname, Object prop){
+    	if(embedded){
+    		Transaction tx = embeddedGraphDb.beginTx();
+    		try{
+    			embeddedGraphDb.getNodeById(0).setProperty(propname,prop);
+    			tx.success();
+    		}finally{
+    			tx.finish();
+    		}
+    	}else{
+    		Transaction tx = graphDbService.beginTx();
+    		try{
+    			graphDbService.getNodeById(0).setProperty(propname,prop);
+    			tx.success();
+    		}finally{
+    			tx.finish();
+    		}
+    	}
+    }
+    
     protected /*static */ void registerShutdownHook() {
         Runtime.getRuntime().addShutdownHook(new Thread() {
 
@@ -112,4 +159,6 @@ public class GraphDatabaseAgent {
             }
         });
     }
+ 
+
 }
