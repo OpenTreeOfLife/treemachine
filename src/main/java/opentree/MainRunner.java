@@ -684,10 +684,46 @@ public class MainRunner {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
 				PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+		        for(JadeTree j: jt){
+		        	GraphImporter gi = new GraphImporter(graphDb);
+		        	boolean doubname = false;
+		        	HashSet<Long> ottols = new HashSet<Long>();
+		        	for(int m=0;m<j.getExternalNodeCount();m++){
+		        		if(j.getExternalNode(m).getObject("ot:ottolid")==null){//use doubname as also 
+		        			doubname = true;
+		        			break;
+		        		}
+		        		if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid"))==true){
+		        			doubname = true;
+		        			break;
+		        		}else{
+		        			ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
+		        		}
+		        	}
+		        	//check for any duplicate ottol:id
+					if(doubname == true){
+						System.out.println("there are duplicate names");
+					}else{
+						System.out.println("this is being added");
+						gi.setTree(j);
+						String sourcename = "";
+						if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+							sourcename = (String)j.getObject("ot:studyId");
+						}
+						gi.addSetTreeToGraphWIdsSet(sourcename);
+					}
+		        }
+		        
 			} catch(java.lang.NullPointerException e){
 				System.out.println("failed to get study "+k);
 				rc = 1;
 				continue;
+			} catch (TaxonNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (TreeIngestException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 		graphDb.shutdownDb();
