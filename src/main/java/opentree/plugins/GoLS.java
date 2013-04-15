@@ -45,7 +45,7 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(sourceArrayList);
 	}
 
-	@Description("Returns newick for the specified source tree ID")
+	@Description("Returns if format is \"newick\" then return JSON will have two fields: newick and treeID. If format = \"arguson\" then the return object will be the form of JSON expected by argus")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSourceTree(
 			@Source GraphDatabaseService graphDb,
