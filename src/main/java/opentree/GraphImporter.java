@@ -70,6 +70,12 @@ public class GraphImporter extends GraphBase{
 		graphDb = new GraphDatabaseAgent(graphn);
 		this.initializeIndices();
 	}
+	
+	public GraphImporter(GraphDatabaseAgent graphn) {
+		graphDb = graphn;
+		this.initializeIndices();
+	}
+	
 	/**
 	 * Helper function called by constructors so that we can update the list of indices in one place.
 	 */

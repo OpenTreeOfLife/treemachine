@@ -25,12 +25,15 @@ import opentree.GraphBase.RelTypes;
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+
+import scala.actors.threadpool.Arrays;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
@@ -281,7 +284,7 @@ public class PhylografterConnector {
 	        	//if there is still no set of nodes, should take context, but breaking for now
 	        	Node parentnode = null;
 	        	if(nodeSet.size() == 0){
-	        		parentnode = graphDb.getNodeById(cnid);
+	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", cnid).getSingle();
 	        	}else{
 	        		parentnode = LicaUtil.getTaxonomicLICA(nodeSet);
 	        	}
@@ -316,6 +319,24 @@ public class PhylografterConnector {
 					rel.setProperty("childid",ottol_id);
 					rel.setProperty("parentid",pid);
 					rel.setProperty("source","temporary_new_name_phylografter_ingest");
+					//need to walk back and add mrcas
+					Node par = tnode;
+					long [] tla = {tnode.getId()};
+					tnode.setProperty("mrca", tla);
+					long [] tla2 = {};
+					tnode.setProperty("nested_mrca", tla2);
+					boolean going = true;
+					while(going){
+						par = par.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+						long [] ttl = (long []) par.getProperty("mrca");
+						long [] tl = Arrays.copyOf(ttl,ttl.length+1);
+						tl[ttl.length] = tnode.getId();
+						par.setProperty("mrca", ttl);
+						if (par.hasRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING) == false){
+							going = false;
+							break;
+						}
+					}
 					tx.success();
 				} finally {
 					tx.finish();

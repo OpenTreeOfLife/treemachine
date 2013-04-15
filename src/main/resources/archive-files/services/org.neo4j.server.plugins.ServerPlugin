@@ -1,2 +1,3 @@
 opentree.plugins.GetJsons
 opentree.plugins.GoLS
+opentree.plugins.PhylografterUpdater
