@@ -34,15 +34,15 @@ import jade.tree.*;
 
 public class GetJsons extends ServerPlugin {
 	protected static enum RelTypes implements RelationshipType{
-	    MRCACHILDOF, //standard rel for graph db, from node to parent
-	    TAXCHILDOF, //standard rel for tax db, from node to parent
-	    STREECHILDOF, //standard rel for input tree, from node to parent  
-	    ISCALLED // is called ,from node in graph of life to node in tax graph 
+		MRCACHILDOF, //standard rel for graph db, from node to parent
+		TAXCHILDOF, //standard rel for tax db, from node to parent
+		STREECHILDOF, //standard rel for input tree, from node to parent  
+		ISCALLED // is called ,from node in graph of life to node in tax graph 
 	}
 	
 	@Description( "Return a JSON with alternative parents presented" )
 	@PluginTarget( Node.class )
-    public String getConflictJson(@Source Node source){
+	public String getConflictJson(@Source Node source) {
 		Node firstNode = source;
 		GraphExporter ge = new GraphExporter();
 		return ge.constructJSONAltParents(firstNode);
@@ -56,15 +56,15 @@ public class GetJsons extends ServerPlugin {
 			@Description( "The list of alternative relationships to prefer." )
 			@Parameter( name = "altrels", optional = true ) Long[] altrels,
 			@Description( "A new relationship nub." )
-    		@Parameter( name = "nubrel", optional = true ) Long nubrel ){
+			@Parameter( name = "nubrel", optional = true ) Long nubrel ) {
 		String retst="";
 		int maxdepth = 3;
 		GraphExporter ge = new GraphExporter();
-		if(nubrel != null){
+		if (nubrel != null){
 			Relationship rel = source.getGraphDatabase().getRelationshipById(nubrel);
 			ArrayList<Long> rels = new ArrayList<Long>();
-			if(altrels != null) {
-				for (int i=0;i<altrels.length;i++) {
+			if (altrels != null) {
+				for (int i = 0; i < altrels.length; i++) {
 					rels.add(altrels[i]);
 				}
 			}
@@ -72,10 +72,10 @@ public class GetJsons extends ServerPlugin {
 											(String)rel.getProperty("source"),
 											rels,
 											maxdepth);
-		}else{
+		} else {
 			ArrayList<Long> rels = new ArrayList<Long>();
 			if(altrels != null) {
-				for (int i=0;i<altrels.length;i++){
+				for (int i = 0; i < altrels.length; i++) {
 					rels.add(altrels[i]);
 				}
 			}
@@ -88,19 +88,19 @@ public class GetJsons extends ServerPlugin {
 	@PluginTarget (GraphDatabaseService.class)
 	public String getNodeIDJSONFromName(@Source GraphDatabaseService graphDb,
 			@Description("Name of node to find.")
-			@Parameter( name = "nodename", optional= true ) String nodename ){
+			@Parameter( name = "nodename", optional= true ) String nodename ) {
 		String retst = "";
 		System.out.println(nodename);
 		IndexHits<Node> hits = graphDb.index().forNodes("taxNamedNodes").get("name",nodename);
-		try{
+		try {
 			Node firstNode = hits.next();
 			hits.close();
-			if(firstNode == null){
+			if(firstNode == null) {
 				retst = "[]";
-			}else{
+			} else {
 				retst="[{\"nodeid\":"+firstNode.getId()+"}]";
 			}
-		}catch(java.lang.Exception jle){
+		} catch (java.lang.Exception jle) {
 			retst = "[]";
 		}
 		return retst;
