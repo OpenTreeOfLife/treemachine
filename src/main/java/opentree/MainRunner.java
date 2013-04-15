@@ -486,15 +486,31 @@ public class MainRunner {
 	}
 	
 	public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
-		if (args.length != 3) {
+		String sourcename = null;
+		String treeID = null;
+		String graphname = null;
+		if (args.length == 3) {
+			sourcename = args[1];
+			graphname = args[2];
+		} else if (args.length == 4) {
+			if (args[1].compareTo("id") != 0) {
+				System.out.println("arguments should be:\n <sourcename> <graphdbfolder>\nor\n id <sourcename> <graphdbfolder>\n");
+				return 1;
+			}
+			treeID = args[2];
+			graphname = args[3];
+		} else {
 			System.out.println("arguments should be: sourcename graphdbfolder");
 			return 1;
 		}
-		String sourcename = args[1];
-		String graphname = args[2];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
-			JadeTree tree = ge.reconstructSource(sourcename);
+			JadeTree tree;
+			if (treeID == null) {
+				tree = ge.reconstructSource(sourcename);
+			} else {
+				tree = ge.reconstructSourceByTreeID(treeID);
+			}
 			final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
 			System.out.println(newick + ";");
 		} finally {
@@ -784,7 +800,7 @@ public class MainRunner {
 	 */
 	public static void main(String[] args) {
 		PropertyConfigurator.configure(System.getProperties());
-		System.out.println("treemachine version alpha.alpha.prealpha");
+		System.err.println("treemachine version alpha.alpha.prealpha");
 		if (args.length < 1) {
 			printHelp();
 			System.exit(1);
@@ -794,7 +810,7 @@ public class MainRunner {
 			printHelp();
 			System.exit(0);
 		}
-		System.out.println("things will happen here");
+		System.err.println("things will happen here");
 		int cmdReturnCode = 0;
 		try {
 			MainRunner mr = new MainRunner();

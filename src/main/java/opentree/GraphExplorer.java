@@ -1167,6 +1167,44 @@ public class GraphExplorer extends GraphBase {
         return sourceArrayList;
     }
 
+    public JadeTree reconstructSourceByTreeID(String treeID) throws TreeNotFoundException {
+        IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);
+        if (hits == null || hits.size() == 0) {
+            throw new TreeNotFoundException(treeID);
+        }
+        String sourcename = findSourceNameFromTreeID(treeID);
+        // really only need one
+        Node rootnode = hits.next();
+        hits.close();
+        return reconstructSourceTreeHelper(rootnode, sourcename);
+    }
+
+    public String findSourceNameFromTreeID(String treeID) throws TreeNotFoundException {
+        Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
+        assert metadataNode != null;
+        return (String)metadataNode.getProperty("source");
+    }
+    public Node findTreeMetadataNodeFromTreeID(String treeID) throws TreeNotFoundException {
+        IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);
+        if (hits == null || hits.size() == 0) {
+            throw new TreeNotFoundException(treeID);
+        }
+        // really only need one
+        Node rootnode = hits.next();
+        hits.close();
+        Node metadataNode = null;
+        Iterable<Relationship> it = rootnode.getRelationships(RelTypes.METADATAFOR, Direction.INCOMING);
+        for (Relationship rel : it) {
+            Node m = rel.getStartNode();
+            String mtid = (String) m.getProperty("treeID");
+            if (mtid.compareTo(treeID) == 0) {
+                return m;
+            }
+        }
+        assert false; // if we find a rootnode, we should be able to get the metadata...
+        return null;
+    }
+
     /**
      * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
      * 
@@ -1174,20 +1212,25 @@ public class GraphExplorer extends GraphBase {
      *            the name of the source
      */
     public JadeTree reconstructSource(String sourcename) throws TreeNotFoundException {
-        boolean printlengths = false;
         IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
         if (hits == null || hits.size() == 0) {
             throw new TreeNotFoundException(sourcename);
         }
-        IndexHits<Relationship> hitsr = sourceRelIndex.get("source", sourcename);
         // really only need one
-        HashMap<Node, JadeNode> jadenode_map = new HashMap<Node, JadeNode>();
-        JadeNode root = new JadeNode();
         Node rootnode = hits.next();
-        jadenode_map.put(rootnode, root);
-        if (rootnode.hasProperty("name"))
-            root.setName((String) rootnode.getProperty("name"));
         hits.close();
+        return reconstructSourceTreeHelper(rootnode, sourcename);
+    }
+
+
+    private JadeTree reconstructSourceTreeHelper(Node rootnode, String sourcename) {
+        JadeNode root = new JadeNode();
+        if (rootnode.hasProperty("name")) {
+            root.setName((String) rootnode.getProperty("name"));
+        }
+        IndexHits<Relationship> hitsr = sourceRelIndex.get("source", sourcename);
+        HashMap<Node, JadeNode> jadenode_map = new HashMap<Node, JadeNode>();
+        jadenode_map.put(rootnode, root);
         // System.out.println(hitsr.size());
         HashMap<Node, ArrayList<Relationship>> startnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
         HashMap<Node, ArrayList<Relationship>> endnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
@@ -1206,6 +1249,7 @@ public class GraphExplorer extends GraphBase {
             endnode_rel_map.get(trel.getEndNode()).add(trel);
         }
         hitsr.close();
+        boolean printlengths = false;
         Stack<Node> treestack = new Stack<Node>();
         treestack.push(rootnode);
         HashSet<Node> ignoreCycles = new HashSet<Node>();

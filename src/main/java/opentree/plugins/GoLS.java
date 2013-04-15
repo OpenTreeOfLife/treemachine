@@ -49,17 +49,19 @@ public class GoLS extends ServerPlugin {
 	public Representation getSourceTreeNewick(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The identifier for the source tree to return")
-			@Parameter(name = "souretreeid", optional = false) String sourceName) throws TreeNotFoundException {
+			@Parameter(name = "treeID", optional = false) String treeID) throws TreeNotFoundException {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		JadeTree tree;
 		String newick;
-	try {
-			tree = ge.reconstructSource(sourceName);
+		try {
+			tree = ge.reconstructSourceByTreeID(treeID);
 			newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
 		} finally {
 			ge.shutdownDB();
 		}
-
-		return OpenTreeMachineRepresentationConverter.convert(newick);
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+		responseMap.put("newick", newick);
+		responseMap.put("treeID", treeID);
+		return OpenTreeMachineRepresentationConverter.convert(responseMap);
 	}
 }
