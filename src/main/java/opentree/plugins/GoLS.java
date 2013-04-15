@@ -37,7 +37,7 @@ public class GoLS extends ServerPlugin {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		ArrayList<String>  sourceArrayList;
 		try {
-			sourceArrayList = ge.getSourceList();
+			sourceArrayList = ge.getTreeIDList();
 		} finally {
 			ge.shutdownDB();
 		}

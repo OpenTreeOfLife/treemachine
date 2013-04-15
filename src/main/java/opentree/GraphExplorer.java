@@ -1157,6 +1157,20 @@ public class GraphExplorer extends GraphBase {
      * Get the list of sources that have been loaded in the graph
      * @returns array of strings that are the values of the "source" property of nodes stored in sourceMetaIndex
      */
+    public ArrayList<String> getTreeIDList() {
+        IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
+        ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
+        while (hits.hasNext()) {
+            Node n = hits.next();
+            sourceArrayList.add((String) n.getProperty("treeID"));
+        }
+        return sourceArrayList;
+    }
+
+    /**
+     * Get the list of sources that have been loaded in the graph
+     * @returns array of strings that are the values of the "source" property of nodes stored in sourceMetaIndex
+     */
     public ArrayList<String> getSourceList() {
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());

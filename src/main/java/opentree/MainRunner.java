@@ -521,14 +521,30 @@ public class MainRunner {
 
 	/// @returns 0 for success, 1 for poorly formed command
 	public int listSources(String [] args) {
-		if (args.length != 2) {
+		boolean listIDs = false;
+		String graphname;
+		if (args.length == 2) {
+			graphname = args[1];
+		} else if (args.length == 3) {
+			if (args[1].compareTo("id") != 0) {
+				System.out.println("arguments should be:\n <graphdbfolder>\nor\n id <graphdbfolder>\n");
+				return 1;
+			}
+			graphname = args[2];
+			listIDs = true;
+		} else {
 			System.out.println("arguments should be: graphdbfolder");
 			return 1;
 		}
-		String graphname = args[1];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
-			System.out.println(StringUtils.join(ge.getSourceList(), "\n"));
+			ArrayList<String> result;
+			if (listIDs) {
+				result = ge.getTreeIDList();
+			} else {
+				result = ge.getSourceList();
+			}
+			System.out.println(StringUtils.join(result, "\n"));
 		} finally {
 			ge.shutdownDB();
 		}
