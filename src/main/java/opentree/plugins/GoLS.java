@@ -46,12 +46,20 @@ public class GoLS extends ServerPlugin {
 
 	@Description("Returns newick for the specified source tree ID")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation getSourceTreeNewick(
+	public Representation getSourceTree(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The identifier for the source tree to return")
-			@Parameter(name = "treeID", optional = false) String treeID) throws TreeNotFoundException {
+			@Parameter(name = "treeID", optional = false) String treeID,
+			@Description( "The name of the return format (default is newick)")
+			@Parameter(name = "format", optional = true) String format) throws TreeNotFoundException {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		JadeTree tree;
+		boolean emitNewick = false;
+		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
+			emitNewick = true;
+		} else if (!format.equalsIgnoreCase("arguson")) {//@TEMP what is the name of the format argus likes???
+			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
+		}
 		String newick;
 		try {
 			tree = ge.reconstructSourceByTreeID(treeID);
