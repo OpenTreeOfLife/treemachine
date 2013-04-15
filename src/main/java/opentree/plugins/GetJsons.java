@@ -58,18 +58,28 @@ public class GetJsons extends ServerPlugin {
 			@Description( "A new relationship nub." )
     		@Parameter( name = "nubrel", optional = true ) Long nubrel ){
 		String retst="";
+		int maxdepth = 3;
 		GraphExporter ge = new GraphExporter();
 		if(nubrel != null){
 			Relationship rel = source.getGraphDatabase().getRelationshipById(nubrel);
 			ArrayList<Long> rels = new ArrayList<Long>();
-			if(altrels != null)
-				for (int i=0;i<altrels.length;i++){rels.add(altrels[i]);}
-			retst = ge.constructJSONAltRels(rel.getEndNode(), (String)rel.getProperty("source"),rels);
+			if(altrels != null) {
+				for (int i=0;i<altrels.length;i++) {
+					rels.add(altrels[i]);
+				}
+			}
+			retst = ge.constructJSONAltRels(rel.getEndNode(),
+											(String)rel.getProperty("source"),
+											rels,
+											maxdepth);
 		}else{
 			ArrayList<Long> rels = new ArrayList<Long>();
-			if(altrels != null)
-				for (int i=0;i<altrels.length;i++){rels.add(altrels[i]);}
-			retst = ge.constructJSONAltRels(source,domsource,rels);
+			if(altrels != null) {
+				for (int i=0;i<altrels.length;i++){
+					rels.add(altrels[i]);
+				}
+			}
+			retst = ge.constructJSONAltRels(source, domsource, rels, maxdepth);
 		}
 		return retst;
 	}

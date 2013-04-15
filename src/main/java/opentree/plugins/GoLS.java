@@ -13,7 +13,8 @@ import java.util.List;
 
 import jade.tree.JadeTree;
 
-import opentree.GraphExplorer; 
+import opentree.GraphExplorer;
+import opentree.GraphExporter;
 
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
@@ -52,24 +53,42 @@ public class GoLS extends ServerPlugin {
 			@Parameter(name = "treeID", optional = false) String treeID,
 			@Description( "The name of the return format (default is newick)")
 			@Parameter(name = "format", optional = true) String format) throws TreeNotFoundException {
-		GraphExplorer ge = new GraphExplorer(graphDb);
-		JadeTree tree;
 		boolean emitNewick = false;
 		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
 			emitNewick = true;
 		} else if (!format.equalsIgnoreCase("arguson")) {//@TEMP what is the name of the format argus likes???
 			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
 		}
-		String newick;
+		String newick = "";
+		String retst = ""; // suppressing uninit warning
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		GraphExporter gExporter = null;
 		try {
-			tree = ge.reconstructSourceByTreeID(treeID);
-			newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
+			if (emitNewick) {
+				JadeTree tree = ge.reconstructSourceByTreeID(treeID);
+				newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
+			} else {
+				// Code from GetJsons.java getConflictTaxJsonAltRel
+				ArrayList<Long> rels = new ArrayList<Long>();
+				gExporter = new GraphExporter(graphDb);
+				Node rootNode = ge.getRootNodeByTreeID(treeID);
+				int maxdepth = 3;
+				String sourcename = ge.findSourceNameFromTreeID(treeID);
+				retst = gExporter.constructJSONAltRels(rootNode, sourcename, rels, maxdepth);
+			}
 		} finally {
 			ge.shutdownDB();
+			if (gExporter != null) {
+				gExporter.shutdownDB();
+			}
 		}
-		HashMap<String, Object> responseMap = new HashMap<String, Object>();
-		responseMap.put("newick", newick);
-		responseMap.put("treeID", treeID);
-		return OpenTreeMachineRepresentationConverter.convert(responseMap);
+		if (emitNewick) {
+			HashMap<String, Object> responseMap = new HashMap<String, Object>();
+			responseMap.put("newick", newick);
+			responseMap.put("treeID", treeID);
+			return OpenTreeMachineRepresentationConverter.convert(responseMap);
+		} else {
+			return OpenTreeMachineRepresentationConverter.convert(retst); // double wrapping string
+		}
 	}
 }

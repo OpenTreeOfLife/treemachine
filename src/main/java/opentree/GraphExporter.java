@@ -25,6 +25,7 @@ import java.util.Stack;
 //import opentree.GraphBase.RelTypes;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -44,28 +45,34 @@ public class GraphExporter extends GraphBase {
 	private TaxaListEvaluator tle;
 
 	public GraphExporter() {
-		cne = new ChildNumberEvaluator();
-		cne.setChildThreshold(100);
-		se = new SpeciesEvaluator();
-		tle = new TaxaListEvaluator();
+		finishInitialization();
 	}
 
 	public GraphExporter(String graphname) {
-		cne = new ChildNumberEvaluator();
-		cne.setChildThreshold(100);
-		se = new SpeciesEvaluator();
-		tle = new TaxaListEvaluator();
 		graphDb = new GraphDatabaseAgent(graphname);
-		graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
-		sourceRelIndex = graphDb.getRelIndex("sourceRels");
-		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
+		finishInitialization();
 	}
 
 	public GraphExporter(EmbeddedGraphDatabase graphn) {
 		graphDb = new GraphDatabaseAgent(graphn);
-		graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
-		sourceRelIndex = graphDb.getRelIndex("sourceRels");
-		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
+		finishInitialization();
+	}
+
+	public GraphExporter(GraphDatabaseService gdb) {
+		graphDb = new GraphDatabaseAgent(gdb);
+		finishInitialization();
+	}
+
+	private void finishInitialization() {
+		cne = new ChildNumberEvaluator();
+		cne.setChildThreshold(100);
+		se = new SpeciesEvaluator();
+		tle = new TaxaListEvaluator();
+		if (graphDb != null) {
+			graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
+			sourceRelIndex = graphDb.getRelIndex("sourceRels");
+			sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
+		}
 	}
 
 	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) 
@@ -427,7 +434,7 @@ public class GraphExporter extends GraphBase {
 		}
 		// String tofile = constructJSONAltParents(firstNode);
 		ArrayList<Long> alt = new ArrayList<Long>();
-		String tofile = constructJSONAltRels(firstNode, null, alt);
+		String tofile = constructJSONAltRels(firstNode, null, alt, 3);
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(taxname + ".json"));
@@ -551,11 +558,13 @@ public class GraphExporter extends GraphBase {
 	 * 
 	 * Should work with taxonomy or with the graph and determines this based on relationships around the node
 	 */
-	public String constructJSONAltRels(Node firstNode, String domsource, ArrayList<Long> altrels) {
+	public String constructJSONAltRels(Node firstNode,
+									   String domsource, 
+									   ArrayList<Long> altrels,
+									   int maxdepth) {
 		cne.setStartNode(firstNode);
 		cne.setChildThreshold(200);
 		se.setStartNode(firstNode);
-		int maxdepth = 3;
 		boolean taxonomy = true;
 		RelationshipType defaultchildtype = RelTypes.TAXCHILDOF;
 		RelationshipType defaultsourcetype = RelTypes.TAXCHILDOF;

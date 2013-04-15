@@ -1182,15 +1182,20 @@ public class GraphExplorer extends GraphBase {
     }
 
     public JadeTree reconstructSourceByTreeID(String treeID) throws TreeNotFoundException {
+        Node rootnode = getRootNodeByTreeID(treeID);
+        String sourcename = findSourceNameFromTreeID(treeID);
+        return reconstructSourceTreeHelper(rootnode, sourcename);
+    }
+
+    public Node getRootNodeByTreeID(String treeID) throws TreeNotFoundException {
         IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);
         if (hits == null || hits.size() == 0) {
             throw new TreeNotFoundException(treeID);
         }
-        String sourcename = findSourceNameFromTreeID(treeID);
         // really only need one
         Node rootnode = hits.next();
         hits.close();
-        return reconstructSourceTreeHelper(rootnode, sourcename);
+        return rootnode;
     }
 
     public String findSourceNameFromTreeID(String treeID) throws TreeNotFoundException {
@@ -1198,14 +1203,9 @@ public class GraphExplorer extends GraphBase {
         assert metadataNode != null;
         return (String)metadataNode.getProperty("source");
     }
+
     public Node findTreeMetadataNodeFromTreeID(String treeID) throws TreeNotFoundException {
-        IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);
-        if (hits == null || hits.size() == 0) {
-            throw new TreeNotFoundException(treeID);
-        }
-        // really only need one
-        Node rootnode = hits.next();
-        hits.close();
+        Node rootnode = getRootNodeByTreeID(treeID);
         Node metadataNode = null;
         Iterable<Relationship> it = rootnode.getRelationships(RelTypes.METADATAFOR, Direction.INCOMING);
         for (Relationship rel : it) {
