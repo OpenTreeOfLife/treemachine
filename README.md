@@ -47,7 +47,7 @@ As an example of usage to load the snapshot of OTToL into test.db:
 
 	wget https://bitbucket.org/blackrim/avatol-taxonomies/downloads/ottol_dumpv1_w_preottol_ids_uniqunames.tar.gz
 	tar xf ottol_dumpv1_w_preottol_ids_uniqunames.tar.gz
-	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar inittax inittax ottol_dump_w_uniquenames_preottol_ids ottol_dump.synonyms test.db
+	java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar inittax ottol_dump_w_uniquenames_preottol_ids ottol_dump.synonyms test.db
 
 To load a tree:
 
