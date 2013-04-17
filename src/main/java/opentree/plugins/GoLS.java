@@ -64,17 +64,21 @@ public class GoLS extends ServerPlugin {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		GraphExporter gExporter = null;
 		try {
+			JadeTree tree = ge.reconstructSourceByTreeID(treeID);
 			if (emitNewick) {
-				JadeTree tree = ge.reconstructSourceByTreeID(treeID);
 				newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
 			} else {
 				// Code from GetJsons.java getConflictTaxJsonAltRel
+				/*
 				ArrayList<Long> rels = new ArrayList<Long>();
 				gExporter = new GraphExporter(graphDb);
 				Node rootNode = ge.getRootNodeByTreeID(treeID);
-				int maxdepth = 3;
+				int maxdepth = 5;
 				String sourcename = ge.findSourceNameFromTreeID(treeID);
 				retst = gExporter.constructJSONAltRels(rootNode, sourcename, rels, maxdepth);
+				*/
+				// not sure why argus wants a list...
+				retst = "[" + tree.getRoot().getJSON(false) + "]";
 			}
 		} finally {
 			ge.shutdownDB();
