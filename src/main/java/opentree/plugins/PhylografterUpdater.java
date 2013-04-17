@@ -30,7 +30,6 @@ public class PhylografterUpdater extends ServerPlugin{
 //			@Description("Last date to check")
 //			@Parameter( date = "date", optional= true ) String date){
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
-		PhylografterConnector pc = new PhylografterConnector();
 		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-03-22");
 		int rc = 0;
 		for (Long k: list){
