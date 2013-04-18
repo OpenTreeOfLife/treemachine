@@ -22,6 +22,8 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
 import opentree.TaxonNotFoundException;
+import opentree.TreeNotFoundException;
+import opentree.StoredEntityNotFoundException;
 
 public class MainRunner {
 	/// @returns 0 for success, 1 for poorly formed command
@@ -108,35 +110,75 @@ public class MainRunner {
 	 */
 	public int graphImporterParser(String [] args) 
 					throws TaxonNotFoundException, DataFormatException, TreeIngestException {
-		if (args[0].compareTo("addtree") != 0) {
+		boolean readingNewick = false;
+		boolean readingNexson = false;
+		if (args[0].compareTo("addnewick") == 0) {
+			readingNewick = true;
+		}if (args[0].compareTo("addnexson") == 0) {
+			readingNexson = true;
+		} else {
 			return 2;
 		}
-		if (args.length != 5) {
-			System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
-			return 1;
+		String filename;
+		String idfilename = "";
+		String focalgroup;
+		String sourcename;
+		String graphname;
+		if (readingNewick) {
+			if (args.length != 6) {
+				System.out.println("arguments should be: filename idfilename focalgroup sourcename graphdbfolder");
+				return 1;
+			}
+			filename = args[1];
+			idfilename = args[2];
+			focalgroup = args[3];
+			sourcename = args[4];
+			graphname = args[5];
+		} else {
+			if (args.length != 5) {
+				System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
+				return 1;
+			}
+			filename = args[1];
+			focalgroup = args[2];
+			sourcename = args[3];
+			graphname = args[4];
 		}
-		String filename = args[1];
-		String focalgroup = args[2];
-		String sourcename = args[3];
-		String graphname = args[4];
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
 		try {
+			if (gi.hasSoureTreeName(sourcename)) {
+				String emsg = "Tree with the name \"" + sourcename + "\" already exists in this db.";
+				throw new TreeIngestException(emsg);
+			}
 			System.out.println("adding tree(s) to the graph from file: " + filename);
-			String ts = "";
 			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-			
 			try {
-				BufferedReader br = new BufferedReader(new FileReader(filename));
-				if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
+				if (readingNewick) { // newick
 					System.out.println("Reading newick file...");
 					TreeReader tr = new TreeReader();
+					BufferedReader ibr = new BufferedReader(new FileReader(idfilename));
+					String treeID;
+					String ts = "";
+					BufferedReader br = new BufferedReader(new FileReader(filename));
+					int treeNum = 0;
 					while ((ts = br.readLine()) != null) {
 						if (ts.length() > 1) {
-							jt.add(tr.readTree(ts));
+							++treeNum;
+							treeID = "";
+							while (treeID.length() == 0) {
+								if (null  == (treeID = ibr.readLine())) {
+									String emsg = "Newick treefile \"" + filename + "\" has (at least) " + treeNum + " line(s), but the file of IDs \"" + idfilename + "\" does not have that many ids. Expecting one ID per line.";
+									throw new TreeIngestException(emsg);
+								}
+							}
+							JadeTree newestTree = tr.readTree(ts);
+							newestTree.assocObject("id", treeID);
+							jt.add(newestTree);
 							treeCounter++;
 						}
 					}
+					br.close();
 				} else { // nexson
 					System.out.println("Reading nexson file...");
 					for (JadeTree tree : NexsonReader.readNexson(filename)) {
@@ -144,7 +186,6 @@ public class MainRunner {
 						treeCounter++;
 					}
 				}
-				br.close();
 			} catch (IOException ioe) {}
 			System.out.println(treeCounter + " trees read.");
 			
@@ -172,7 +213,7 @@ public class MainRunner {
 					}
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
-					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i)); //@QUERY treeID has been added, so I'm not sure we want to munge the sourcename
 				}
 			}
 		} finally {
@@ -444,17 +485,34 @@ public class MainRunner {
 		return 0;
 	}
 	
-	/// @returns 0 for success, 1 for poorly formed command
-	public int sourceTreeExplorer(String [] args) {
-		if (args.length != 3) {
+	public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
+		String sourcename = null;
+		String treeID = null;
+		String graphname = null;
+		if (args.length == 3) {
+			sourcename = args[1];
+			graphname = args[2];
+		} else if (args.length == 4) {
+			if (args[1].compareTo("id") != 0) {
+				System.out.println("arguments should be:\n <sourcename> <graphdbfolder>\nor\n id <sourcename> <graphdbfolder>\n");
+				return 1;
+			}
+			treeID = args[2];
+			graphname = args[3];
+		} else {
 			System.out.println("arguments should be: sourcename graphdbfolder");
 			return 1;
 		}
-		String sourcename = args[1];
-		String graphname = args[2];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
-			ge.reconstructSource(sourcename);
+			JadeTree tree;
+			if (treeID == null) {
+				tree = ge.reconstructSource(sourcename);
+			} else {
+				tree = ge.reconstructSourceByTreeID(treeID);
+			}
+			final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
+			System.out.println(newick + ";");
 		} finally {
 			ge.shutdownDB();
 		}
@@ -463,14 +521,30 @@ public class MainRunner {
 
 	/// @returns 0 for success, 1 for poorly formed command
 	public int listSources(String [] args) {
-		if (args.length != 2) {
+		boolean listIDs = false;
+		String graphname;
+		if (args.length == 2) {
+			graphname = args[1];
+		} else if (args.length == 3) {
+			if (args[1].compareTo("id") != 0) {
+				System.out.println("arguments should be:\n <graphdbfolder>\nor\n id <graphdbfolder>\n");
+				return 1;
+			}
+			graphname = args[2];
+			listIDs = true;
+		} else {
 			System.out.println("arguments should be: graphdbfolder");
 			return 1;
 		}
-		String graphname = args[1];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
-			System.out.println(StringUtils.join(ge.getSourceList(), "\n"));
+			ArrayList<String> result;
+			if (listIDs) {
+				result = ge.getTreeIDList();
+			} else {
+				result = ge.getSourceList();
+			}
+			System.out.println(StringUtils.join(result, "\n"));
 		} finally {
 			ge.shutdownDB();
 		}
@@ -739,7 +813,8 @@ public class MainRunner {
 		System.out.println("\tinittax <filename> <synonymfilename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
-		System.out.println("\taddtree <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnewick <filename> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
 		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)\n");
 
@@ -777,7 +852,7 @@ public class MainRunner {
 	 */
 	public static void main(String[] args) {
 		PropertyConfigurator.configure(System.getProperties());
-		System.out.println("treemachine version alpha.alpha.prealpha");
+		System.err.println("treemachine version alpha.alpha.prealpha");
 		if (args.length < 1) {
 			printHelp();
 			System.exit(1);
@@ -787,7 +862,7 @@ public class MainRunner {
 			printHelp();
 			System.exit(0);
 		}
-		System.out.println("things will happen here");
+		System.err.println("things will happen here");
 		int cmdReturnCode = 0;
 		try {
 			MainRunner mr = new MainRunner();
@@ -797,7 +872,8 @@ public class MainRunner {
 			}
 			if (command.compareTo("inittax") == 0) {
 				cmdReturnCode = mr.taxonomyLoadParser(args);
-			} else if (command.compareTo("addtree") == 0) {
+			} else if (command.compareTo("addnewick") == 0
+					|| command.compareTo("addnexson") == 0) {
 				cmdReturnCode = mr.graphImporterParser(args);
 			} else if (command.compareTo("jsgol") == 0
 					|| command.compareTo("fulltree") == 0
@@ -838,7 +914,7 @@ public class MainRunner {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}
-		} catch (TaxonNotFoundException tnfx) {
+		} catch (StoredEntityNotFoundException tnfx) {
 			String action = "Command \"" + command + "\"";
 			tnfx.reportFailedAction(System.err, action);
 		} catch (TreeIngestException tix) {

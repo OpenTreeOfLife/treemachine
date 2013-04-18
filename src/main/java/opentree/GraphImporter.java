@@ -88,7 +88,11 @@ public class GraphImporter extends GraphBase{
 		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
 		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
 	}
-	
+
+	public boolean hasSoureTreeName(String sourcename) {
+		IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
+		return (hits != null && hits.size() > 0);
+	}
 	/**
 	 * Sets the jt member by reading a JadeTree from filename.
 	 *
@@ -96,7 +100,7 @@ public class GraphImporter extends GraphBase{
 	 * another form later
 	 * @param filename name of file with a newick tree representation
 	 */
-	public void preProcessTree(String filename) {
+	public void preProcessTree(String filename, String treeID) {
 		// read the tree from a file
 		String ts = "";
 		try {
@@ -107,6 +111,7 @@ public class GraphImporter extends GraphBase{
 		} catch(IOException ioe) {}
 		TreeReader tr = new TreeReader();
 		jt = tr.readTree(ts);
+		jt.assocObject("id", treeID);
 		System.out.println("tree read");
 		// System.exit(0);
 	}
@@ -569,7 +574,7 @@ public class GraphImporter extends GraphBase{
 		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
 		try {
 			tx = graphDb.beginTx();
-			postOrderaddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename);
+			postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
 			tx.success();
 		} finally {
 			tx.finish();
@@ -668,7 +673,7 @@ public class GraphImporter extends GraphBase{
 		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
 		try {
 			tx = graphDb.beginTx();
-			postOrderaddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename);
+			postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
 			tx.success();
 		} finally {
 			tx.finish();
@@ -694,10 +699,10 @@ public class GraphImporter extends GraphBase{
 	 *		
 	 */
 	@SuppressWarnings("unchecked")
-	private void postOrderaddProcessedTreeToGraph(JadeNode inode, JadeNode root, String sourcename) throws TreeIngestException {
+	private void postOrderAddProcessedTreeToGraph(JadeNode inode, JadeNode root, String sourcename, String treeID) throws TreeIngestException {
 		// postorder traversal via recursion
 		for (int i = 0; i < inode.getChildCount(); i++) {
-			postOrderaddProcessedTreeToGraph(inode.getChild(i), root, sourcename);
+			postOrderAddProcessedTreeToGraph(inode.getChild(i), root, sourcename, treeID);
 		}
 		//		_LOG.trace("children: "+inode.getChildCount());
 		// roothash are the actual ids with the nested names -- used for storing
@@ -805,7 +810,7 @@ public class GraphImporter extends GraphBase{
 				// add new nodes so they can be used for updating after tree ingest
 				updatedNodes.add(dbnode);
 			}
-			addProcessedNodeRelationships(inode, sourcename);
+			addProcessedNodeRelationships(inode, sourcename, treeID);
 		} else {
 //			inode.assocObject("dbnode", graphDb.getNodeById(roothash.get(inode)));
 			Node [] nar = {graphDb.getNodeById(roothash.get(inode))};
@@ -823,7 +828,7 @@ public class GraphImporter extends GraphBase{
 	 * @param inode current focal node from postorderaddprocessedtreetograph 
 	 * @param source source name for the tree
 	 */
-	private void addProcessedNodeRelationships(JadeNode inode, String sourcename) throws TreeIngestException{
+	private void addProcessedNodeRelationships(JadeNode inode, String sourcename, String treeID) throws TreeIngestException{
 		// At this point the inode is guaranteed to be associated with a dbnode
 		// add the actual branches for the source
 		// Node currGoLNode = (Node)(inode.getObject("dbnode"));
@@ -837,6 +842,8 @@ public class GraphImporter extends GraphBase{
 				// TODO: this will need to be updated when trees are updated
 				System.out.println("placing root in index");
 				sourceRootIndex.add(currGoLNode, "rootnode", sourcename);
+				sourceRootIndex.add(currGoLNode, "rootnodeForID", treeID);
+
 				
 				
 				/* TODO: Need to add metadata (if present) from jadetree coming from nexson.
@@ -891,7 +898,7 @@ public class GraphImporter extends GraphBase{
 				metadatanode.setProperty("source", sourcename);
 				//metadatanode.setProperty("author", "no one"); // seems deprecated now
 				metadatanode.setProperty("newick", treestring); // this could be giant. do we want to do this?
-								
+				metadatanode.setProperty("treeID", treeID);
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
 				// TODO: doesn't account for multiple root nodes
 				metadatanode.createRelationshipTo(currGoLNode, RelTypes.METADATAFOR);
@@ -1013,9 +1020,11 @@ public class GraphImporter extends GraphBase{
 		for (Node itrel: hits) {
 			String source = (String)itrel.getProperty("source");
 			String trees = (String)itrel.getProperty("newick");
+			String treeID = (String)itrel.getProperty("treeID");
 			deleteTreeBySource(source);
 			TreeReader tr = new TreeReader();
 			jt = tr.readTree(trees);
+			jt.assocObject("id", treeID);
 			System.out.println("tree read");
 			setTree(jt,trees);
 			try {

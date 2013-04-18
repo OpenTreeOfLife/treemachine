@@ -106,8 +106,12 @@ public class NexsonReader {
 		// Process each tree in turn, yielding a JadeTree
 		for (Object tree : treeList) {
 			JSONObject tree2 = (JSONObject)tree;
+			String treeID = (String)tree2.get("@id");
+			if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
+				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
+			}
 			// tree2 = {"node": [...], "edge": [...]}
-			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), metaList));
+			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), metaList, treeID));
 		}
 		return result;
 	}
@@ -117,7 +121,8 @@ public class NexsonReader {
 	private static JadeTree importTree(Map<String,JSONObject> otuMap,
 									   JSONArray nodeList,
 									   JSONArray edgeList,
-									   List<Object> metaList) {
+									   List<Object> metaList,
+									   String treeID) {
 		System.out.println(nodeList.size() + " nodes, " + edgeList.size() + " edges");
 		Map<String, JadeNode> nodeMap = new HashMap<String, JadeNode>();
 
@@ -235,6 +240,7 @@ public class NexsonReader {
 				}
 			}
 		}
+		tree.assocObject("id", treeID);
 		return tree;
 	}
 
