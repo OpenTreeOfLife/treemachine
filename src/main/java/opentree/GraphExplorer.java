@@ -1242,6 +1242,7 @@ public class GraphExplorer extends GraphBase {
         if (rootnode.hasProperty("name")) {
             root.setName((String) rootnode.getProperty("name"));
         }
+        root.assocObject("nodeid", rootnode.getId());
         IndexHits<Relationship> hitsr = sourceRelIndex.get("source", sourcename);
         HashMap<Node, JadeNode> jadenode_map = new HashMap<Node, JadeNode>();
         jadenode_map.put(rootnode, root);
@@ -1299,8 +1300,10 @@ public class GraphExplorer extends GraphBase {
                         Node tnodechild = endnode_rel_map.get(tnode).get(i).getStartNode();
                         treestack.push(tnodechild);
                         JadeNode tchild = new JadeNode();
-                        if (tnodechild.hasProperty("name"))
+                        if (tnodechild.hasProperty("name")) {
                             tchild.setName((String) tnodechild.getProperty("name"));
+                        }
+                        tchild.assocObject("nodeid", tnodechild.getId());
                         if (endnode_rel_map.get(tnode).get(i).hasProperty("branch_length")) {
                             printlengths = true;
                             tchild.setBL((Double) endnode_rel_map.get(tnode).get(i).getProperty("branch_length"));
