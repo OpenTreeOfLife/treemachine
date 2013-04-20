@@ -31,6 +31,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 //import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
@@ -613,10 +614,19 @@ public class GraphExplorer extends GraphBase {
 
     	Node rootNode = graphDb.getNodeById(nodeId);
 
-    	graphDb.beginTx();
-        // get the tree structure and store it in a JadeNode object
+    	Transaction tx = null;
+    	if (recordSyntheticRels) {
+    		tx = graphDb.beginTx();
+    	}
+
+    	// get the tree structure and store it in a JadeNode object
         JadeNode root = defaultSynthesisRecur(rootNode, null, null, null, "", useBranchAndBound, useTaxonomy, recordSyntheticRels);
 
+        if (tx != null) {
+        	tx.success();
+        	tx.finish();
+        }
+        
         // return the tree wrapped in a JadeTree object
         return new JadeTree(root);
     }
