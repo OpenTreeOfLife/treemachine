@@ -31,6 +31,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.index.Index;
 //import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
 //import org.neo4j.graphdb.traversal.Evaluators;
@@ -90,6 +91,8 @@ public class GraphExplorer extends GraphBase {
         sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
         sourceRelIndex = graphDb.getRelIndex("sourceRels");
         sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
+    	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes"); // tax_uid is the key, this points to the tax node
+    	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns"); //tax_uid is the key, this points to the synonymn node, 
     }
 
     public void printLicaNames(String nodeid) {
@@ -560,7 +563,7 @@ public class GraphExplorer extends GraphBase {
         	nodeId = firstNode.getId();
         }
         
-        JadeTree tree = constructJadeTreeTieBreakerDEFAULT(nodeId, useTaxonomy, useBranchAndBound, recordSyntheticRels);
+        JadeTree tree = defaultSynthesis(nodeId, useTaxonomy, useBranchAndBound, recordSyntheticRels);
 
         // write newick tree to a file
         PrintWriter outFile;
@@ -595,7 +598,7 @@ public class GraphExplorer extends GraphBase {
         	nodeId = firstNode.getId();
         }
         
-        constructJadeTreeTieBreakerDEFAULT(nodeId, useTaxonomy, useBranchAndBound, recordSyntheticRels);
+        defaultSynthesis(nodeId, useTaxonomy, useBranchAndBound, recordSyntheticRels);
         
         return true;
         
@@ -606,12 +609,13 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param nodeId
      */
-    public JadeTree constructJadeTreeTieBreakerDEFAULT(Long nodeId, boolean useTaxonomy, boolean useBranchAndBound, boolean recordSyntheticRels) {
+    public JadeTree defaultSynthesis(Long nodeId, boolean useTaxonomy, boolean useBranchAndBound, boolean recordSyntheticRels) {
 
     	Node rootNode = graphDb.getNodeById(nodeId);
-    	
+
+    	graphDb.beginTx();
         // get the tree structure and store it in a JadeNode object
-        JadeNode root = preorderConstructNewickTieBreakerDEFAULT(rootNode, null, null, null, "", useBranchAndBound, useTaxonomy, recordSyntheticRels);
+        JadeNode root = defaultSynthesisRecur(rootNode, null, null, null, "", useBranchAndBound, useTaxonomy, recordSyntheticRels);
 
         // return the tree wrapped in a JadeTree object
         return new JadeTree(root);
@@ -631,7 +635,7 @@ public class GraphExplorer extends GraphBase {
      * @return
      */
     // TODO: need to be able to ignore taxonomy
-    private JadeNode preorderConstructNewickTieBreakerDEFAULT(Node curGraphNode, Node parentGraphNode, JadeNode parentJadeNode, Relationship relcoming, String altName, boolean useTaxonomy,
+    private JadeNode defaultSynthesisRecur(Node curGraphNode, Node parentGraphNode, JadeNode parentJadeNode, Relationship relcoming, String altName, boolean useTaxonomy,
             boolean useBranchAndBound, boolean recordSyntheticRels) {
 
     	if (parentGraphNode != null) {
@@ -789,7 +793,7 @@ public class GraphExplorer extends GraphBase {
             String _altName = ""; // String.valueOf(testnodes_scores.get(nd));
 
             // go to next node
-            preorderConstructNewickTieBreakerDEFAULT(graphDb.getNodeById(nd), curGraphNode, newJadeNode, bestrelrel.get(nd), _altName, useTaxonomy, useBranchAndBound, recordSyntheticRels);
+            defaultSynthesisRecur(graphDb.getNodeById(nd), curGraphNode, newJadeNode, bestrelrel.get(nd), _altName, useTaxonomy, useBranchAndBound, recordSyntheticRels);
         }
 
         if (ret == true) {
