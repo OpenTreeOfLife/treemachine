@@ -271,9 +271,11 @@ public class MainRunner {
 				return 1;
 			}
 
+			boolean reportBranchLength = true;
+			
 			gi = new GraphExplorer(graphname);
 			try {
-				gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound);
+				gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound, reportBranchLength);
 			} finally {
 				gi.shutdownDB();
 			}
@@ -739,6 +741,34 @@ public class MainRunner {
 		return 2;
 	}
 	
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
+	public int synthesizeDefault(String [] args) throws OttolIdNotFoundException {
+		if (args.length != 3) {
+			System.out.println("arguments should be rootOTToLid graphdbfolder");
+			return 1;
+		}
+		String ottolId = args[1];
+		String graphname = args[2];
+		GraphExplorer ge = new GraphExplorer(graphname);
+		
+		boolean useTaxonomy = true;
+
+		boolean success = false;
+		try {
+			success = ge.synthesizeAndStoreBranches(ottolId, useTaxonomy);
+		} catch (OttolIdNotFoundException oex) {
+			oex.printStackTrace();
+		} finally {
+			ge.shutdownDB();
+		}
+		
+		if (success)
+			return 0;
+		else
+			return -1;
+	}
+	
+	
 	public int pgtesting(String [] args){
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 		if (args.length != 2)
@@ -840,8 +870,11 @@ public class MainRunner {
 		System.out.println("(This is temporary and for doing some functions on trees output by the fulltree)");
 		System.out.println("\tcounttips <filename> (count the number of nodes and leaves in a newick)");
 		System.out.println("\tdiversity <filename> (for each node it will print the immediate descendents and their diversity)");
-		System.out.println("\tlabeltips <filename.tre> <filename>");
-		
+		System.out.println("\tlabeltips <filename.tre> <filename>\n");
+
+		System.out.println("---synthesis functions---");
+		System.out.println("\tdefaultsynthstorerels <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using branch and bound optimization and store the synthesized relationships)\n");
+				
 		System.out.println("---server functions---");
 		System.out.println("\tgetupdatedlist\n");
 	}
@@ -908,6 +941,8 @@ public class MainRunner {
 					|| command.compareTo("diversity") == 0
 					|| command.compareTo("labeltips") == 0) {
 				cmdReturnCode = mr.treeUtils(args);
+			} else if (command.compareTo("defaultsynthstorerels") == 0) {
+				cmdReturnCode = mr.synthesizeDefault(args);
 			} else if (command.compareTo("getupdatedlist") == 0) {
 				cmdReturnCode = mr.pgtesting(args);
 			} else {

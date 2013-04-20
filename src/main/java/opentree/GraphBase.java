@@ -24,17 +24,20 @@ import org.neo4j.graphdb.index.IndexHits;
  * 			inclusive_relids - the list of other relationship ids involved in this set
  * 			source - name of the source tree
  * 			branch_length - branch length
+ * 
+ * 		SYNTHCHILDOF
  */
 
 public abstract class GraphBase {
 	GraphDatabaseAgent graphDb;
+	
 	protected static Index<Node> graphNodeIndex;
 	protected static Index<Node> synNodeIndex;
 	protected static Index<Relationship> sourceRelIndex;
 	protected static Index<Node> sourceRootIndex;
 	protected static Index<Node> sourceMetaIndex;
-	protected static Index<Node> graphTaxUIDNodeindex; //tax_uid is the key, the uid from the taxonomy points to this node
-	protected static Index<Node> synTaxUIDNodeindex; //tax_uid is the key, this points to the synonymn node, 
+	protected static Index<Node> graphTaxUIDNodeIndex; //tax_uid is the key, the uid from the taxonomy points to this node
+	protected static Index<Node> synTaxUIDNodeIndex; //tax_uid is the key, this points to the synonymn node, 
 													//to get the tax that this points to you need to travel synonymof
 	protected static Index<Node> graphTaxNewNodes;
 	
@@ -44,6 +47,7 @@ public abstract class GraphBase {
 		TAXCHILDOF, //standard rel for tax db, from node to parent
 		SYNONYMOF,
 		STREECHILDOF, //standard rel for input tree, from node to parent
+		SYNTHCHILDOF, // standard rel for stored synthesis tree
 		METADATAFOR,
 		//To make tree order not matter, going back to just one type of STREEREL
 		//STREEEXACTCHILDOF, //these refer to branches from the input tree that have NO ADDITIONAL 
@@ -62,18 +66,31 @@ public abstract class GraphBase {
 	 *  the node using IndexHits<Node>.getSingle()
 	 * helper function primarily written to avoid forgetting to call hits.close();
 	 */
-    Node findGraphNodeByName(final String name) {
+    public Node findGraphNodeByName(final String name) {
         IndexHits<Node> hits = this.graphNodeIndex.get("name", name);
 		Node firstNode = hits.getSingle();
 		hits.close();
 		return firstNode;
 	}
+    
+	/**
+	 * @return Checks graphTaxUIDNodes for `name` and returns null (if the name is not found) or 
+	 *  the node using IndexHits<Node>.getSingle()
+	 * helper function primarily written to avoid forgetting to call hits.close();
+	 */
+    public Node findGraphTaxNodeByUID(final String taxUID) {
+        IndexHits<Node> hits = this.graphTaxUIDNodeIndex.get("tax_uid", taxUID);
+		Node firstNode = hits.getSingle();
+		hits.close();
+		return firstNode;
+	}
+    
 	/**
 	 * @return Checks taxNodeIndex for `name` and returns null (if the name is not found) or 
 	 *  the node using IndexHits<Node>.getSingle()
 	 * helper function primarily written to avoid forgetting to call hits.close();
 	 */
-    Node findTaxNodeByName(final String name) throws TaxonNotFoundException {
+    public Node findTaxNodeByName(final String name) throws TaxonNotFoundException {
         IndexHits<Node> hits = this.graphNodeIndex.get("name", name);
 		Node firstNode = hits.getSingle();
 		hits.close();

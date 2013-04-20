@@ -24,7 +24,6 @@ import opentree.synthesis.TreeMakingBandB;
 import opentree.synthesis.TreeMakingExhaustivePairs;
 import opentree.TreeNotFoundException;
 
-
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -543,27 +542,25 @@ public class GraphExplorer extends GraphBase {
     }
 
     /**
-     * Constructs a newick breaking ties based on support (or random)
-     * 
-     * TODO: instead of random, needs to be based on nested or not or other factors
+     * Constructs a newick string containing a synthetic tree, breaking ties based on branch and bound, support, or other factors
      * 
      * @param taxname
      */
-    public void constructNewickTieBreakerDEFAULT(String taxname, boolean useTaxonomy, boolean useBranchAndBound) {
+    public void constructNewickTieBreakerDEFAULT(String taxname, boolean useTaxonomy, boolean useBranchAndBound, boolean reportBranchLength) {
 
-        // TODO: make this user-settable
-        boolean reportBranchLength = false;
+    	boolean recordSyntheticRels = false;
 
         // find the start node
-        Node firstNode = findGraphNodeByName(taxname);
+        Node firstNode = this.findGraphNodeByName(taxname);
+        Long nodeId = null;
         if (firstNode == null) {
             System.out.println("name not found");
             return;
+        } else {
+        	nodeId = firstNode.getId();
         }
-
-        // get the tree structure as a JadeTree object
-        JadeNode root = preorderConstructNewickTieBreakerDEFAULT(firstNode, null, null, "", useBranchAndBound, useTaxonomy);
-        JadeTree tree = new JadeTree(root);
+        
+        JadeTree tree = constructJadeTreeTieBreakerDEFAULT(nodeId, useTaxonomy, useBranchAndBound, recordSyntheticRels);
 
         // write newick tree to a file
         PrintWriter outFile;
@@ -575,6 +572,49 @@ public class GraphExplorer extends GraphBase {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
+    }
+
+    /**
+     * Just synthesize using the default branch and bound query and store the branches
+     * 
+     * @param ottolId
+     * @throws OttolIdNotFoundException 
+     */
+    public boolean synthesizeAndStoreBranches(String ottolId, boolean useTaxonomy) throws OttolIdNotFoundException {
+
+    	boolean recordSyntheticRels = true;
+    	boolean useBranchAndBound = true;
+
+        // find the start node
+        Node firstNode = this.findGraphTaxNodeByUID(ottolId);
+        Long nodeId = null;
+        if (firstNode == null) {
+            throw new opentree.OttolIdNotFoundException(ottolId);
+        } else {
+        	nodeId = firstNode.getId();
+        }
+        
+        constructJadeTreeTieBreakerDEFAULT(nodeId, useTaxonomy, useBranchAndBound, recordSyntheticRels);
+        
+        return true;
+        
+    }
+    
+    /**
+     * Constructs a JadeTree object containing a synthetic tree, breaking ties based on branch and bound, support, or other factors
+     * 
+     * @param nodeId
+     */
+    public JadeTree constructJadeTreeTieBreakerDEFAULT(Long nodeId, boolean useTaxonomy, boolean useBranchAndBound, boolean recordSyntheticRels) {
+
+    	Node rootNode = graphDb.getNodeById(nodeId);
+    	
+        // get the tree structure and store it in a JadeNode object
+        JadeNode root = preorderConstructNewickTieBreakerDEFAULT(rootNode, null, null, null, "", useBranchAndBound, useTaxonomy, recordSyntheticRels);
+
+        // return the tree wrapped in a JadeTree object
+        return new JadeTree(root);
     }
 
     /**
@@ -583,36 +623,40 @@ public class GraphExplorer extends GraphBase {
      * 
      * TODO: add more criteria
      * 
-     * @param curnode
-     * @param parent
+     * @param curGraphNode
+     * @param parentJadeNode
      * @param relcoming
      * @param nodename
      * @param bandb
      * @return
      */
     // TODO: need to be able to ignore taxonomy
-    private JadeNode preorderConstructNewickTieBreakerDEFAULT(Node curnode, JadeNode parent, Relationship relcoming, String altName, boolean useTaxonomy,
-            boolean useBranchAndBound) {
+    private JadeNode preorderConstructNewickTieBreakerDEFAULT(Node curGraphNode, Node parentGraphNode, JadeNode parentJadeNode, Relationship relcoming, String altName, boolean useTaxonomy,
+            boolean useBranchAndBound, boolean recordSyntheticRels) {
 
+    	if (parentGraphNode != null) {
+    		curGraphNode.createRelationshipTo(parentGraphNode, RelTypes.SYNTHCHILDOF);
+    	}
+    	
         // System.out.println("starting +"+curnode.getId());
         boolean ret = false;
-        JadeNode newnode = new JadeNode();
+        JadeNode newJadeNode = new JadeNode();
 
-        if (curnode.hasProperty("name")) {
-            newnode.setName((String) curnode.getProperty("name"));
-            newnode.setName(GeneralUtils.cleanName(newnode.getName()));
+        if (curGraphNode.hasProperty("name")) {
+            newJadeNode.setName((String) curGraphNode.getProperty("name"));
+            newJadeNode.setName(GeneralUtils.cleanName(newJadeNode.getName()));
         }
 
-        if (newnode.getName().length() == 0) {
-            newnode.setName(altName);
+        if (newJadeNode.getName().length() == 0) {
+            newJadeNode.setName(altName);
         }
 
-        if (parent == null) {
+        if (parentJadeNode == null) {
             ret = true;
         } else {
-            parent.addChild(newnode);
+            parentJadeNode.addChild(newJadeNode);
             if (relcoming.hasProperty("branch_length")) {
-                newnode.setBL((Double) relcoming.getProperty("branch_length"));
+                newJadeNode.setBL((Double) relcoming.getProperty("branch_length"));
             }
         }
 
@@ -623,7 +667,7 @@ public class GraphExplorer extends GraphBase {
         HashMap<Long, HashSet<Long>> storedmrcas = new HashMap<Long, HashSet<Long>>();
         HashMap<Long, Relationship> bestrelrel = new HashMap<Long, Relationship>();
 
-        for (Relationship rel : curnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+        for (Relationship rel : curGraphNode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
 
             if (useTaxonomy == false) {
                 if (rel.getProperty("source").equals("taxonomy"))
@@ -690,7 +734,7 @@ public class GraphExplorer extends GraphBase {
             return null;
         }
 
-        int totalmrcas = ((long[]) curnode.getProperty("mrca")).length;
+        int totalmrcas = ((long[]) curGraphNode.getProperty("mrca")).length;
         int total = 0;
         for (Long nd : testnodes) {
             total += storedmrcas.get(nd).size();
@@ -745,11 +789,11 @@ public class GraphExplorer extends GraphBase {
             String _altName = ""; // String.valueOf(testnodes_scores.get(nd));
 
             // go to next node
-            preorderConstructNewickTieBreakerDEFAULT(graphDb.getNodeById(nd), newnode, bestrelrel.get(nd), _altName, useTaxonomy, useBranchAndBound);
+            preorderConstructNewickTieBreakerDEFAULT(graphDb.getNodeById(nd), curGraphNode, newJadeNode, bestrelrel.get(nd), _altName, useTaxonomy, useBranchAndBound, recordSyntheticRels);
         }
 
         if (ret == true) {
-            return newnode;
+            return newJadeNode;
         }
 
         return null;
