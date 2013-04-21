@@ -1,5 +1,6 @@
 package opentree;
 
+
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.TreeReader;
@@ -23,7 +24,7 @@ import java.util.Stack;
 import opentree.synthesis.TreeMakingBandB;
 import opentree.synthesis.TreeMakingExhaustivePairs;
 import opentree.TreeNotFoundException;
-
+import opentree.FilterByPropertyRelIterator;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
@@ -34,12 +35,18 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 //import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
-//import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
+import org.neo4j.kernel.Uniqueness;
+import org.apache.log4j.Logger;
 
 public class GraphExplorer extends GraphBase {
+    static Logger _LOG = Logger.getLogger(GraphExplorer.class);
     private SpeciesEvaluator se;
     private ChildNumberEvaluator cne;
     private TaxaListEvaluator tle;
@@ -1181,10 +1188,30 @@ public class GraphExplorer extends GraphBase {
         return sourceArrayList;
     }
 
-    public JadeTree reconstructSourceByTreeID(String treeID) throws TreeNotFoundException {
+    /**
+     * @returns the source tree with the specified treeID
+     * @param maxDepth is the max number of edges between the root and an included node
+     *      if non-negative this can be used to prune off subtrees that exceed the threshold
+     *      distance from the root. If maxDepth is negative, no threshold is applied
+     */
+    public JadeTree reconstructSourceByTreeID(String treeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeID(treeID);
         String sourcename = findSourceNameFromTreeID(treeID);
-        return reconstructSourceTreeHelper(rootnode, sourcename);
+        return reconstructSourceTreeHelper(rootnode, sourcename, maxDepth);
+    }
+
+    /**
+     * @returns a subtree of the source tree with the specified treeID
+     * @param subtreeNodeID the ID of the node that will be used as the root of the returned tree.
+     *      the node must be a node in the tree
+     * @param maxDepth is the max number of edges between the root and an included node
+     *      if non-negative this can be used to prune off subtrees that exceed the threshold
+     *      distance from the root. If maxDepth is negative, no threshold is applied
+     */
+    public JadeTree reconstructSourceByTreeID(String treeID, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
+        Node rootnode = graphDb.getNodeById(subtreeNodeID);
+        String sourcename = findSourceNameFromTreeID(treeID);
+        return reconstructSourceTreeHelper(rootnode, sourcename, maxDepth);
     }
 
     public Node getRootNodeByTreeID(String treeID) throws TreeNotFoundException {
@@ -1201,7 +1228,9 @@ public class GraphExplorer extends GraphBase {
     public String findSourceNameFromTreeID(String treeID) throws TreeNotFoundException {
         Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
         assert metadataNode != null;
-        return (String)metadataNode.getProperty("source");
+        String s = (String)metadataNode.getProperty("source");
+        _LOG.debug("Found source = \"" + s + "\" for treeID = \"" + treeID + "\"");
+        return s;
     }
 
     public Node findTreeMetadataNodeFromTreeID(String treeID) throws TreeNotFoundException {
@@ -1224,8 +1253,11 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param sourcename
      *            the name of the source
+     * @param maxDepth is the max number of edges between the root and an included node
+     *      if non-negative this can be used to prune off subtrees that exceed the threshold
+     *      distance from the root. If maxDepth is negative, no threshold is applied
      */
-    public JadeTree reconstructSource(String sourcename) throws TreeNotFoundException {
+    public JadeTree reconstructSource(String sourcename, int maxDepth) throws TreeNotFoundException {
         IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
         if (hits == null || hits.size() == 0) {
             throw new TreeNotFoundException(sourcename);
@@ -1233,87 +1265,134 @@ public class GraphExplorer extends GraphBase {
         // really only need one
         Node rootnode = hits.next();
         hits.close();
-        return reconstructSourceTreeHelper(rootnode, sourcename);
+        return reconstructSourceTreeHelper(rootnode, sourcename, maxDepth);
+    }
+    /**
+     * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
+     * 
+     * @param sourcename
+     *            the name of the source
+     * @param maxDepth is the max number of edges between the root and an included node
+     *      if non-negative this can be used to prune off subtrees that exceed the threshold
+     *      distance from the root. If maxDepth is negative, no threshold is applied
+     */
+    public JadeTree reconstructSource(String sourcename, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
+        Node rootnode = graphDb.getNodeById(subtreeNodeID);
+        return reconstructSourceTreeHelper(rootnode, sourcename, maxDepth);
     }
 
-
-    private JadeTree reconstructSourceTreeHelper(Node rootnode, String sourcename) {
+    /**
+     * @param maxDepth is the max number of edges between the root and an included node
+     *      if non-negative this can be used to prune off subtrees that exceed the threshold
+     *      distance from the root. If maxDepth is negative, no threshold is applied
+     */
+    private JadeTree reconstructSourceTreeHelper(Node rootnode, String sourcename, int maxDepth) {
         JadeNode root = new JadeNode();
         if (rootnode.hasProperty("name")) {
             root.setName((String) rootnode.getProperty("name"));
         }
         root.assocObject("nodeid", rootnode.getId());
-        IndexHits<Relationship> hitsr = sourceRelIndex.get("source", sourcename);
-        HashMap<Node, JadeNode> jadenode_map = new HashMap<Node, JadeNode>();
-        jadenode_map.put(rootnode, root);
-        // System.out.println(hitsr.size());
-        HashMap<Node, ArrayList<Relationship>> startnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
-        HashMap<Node, ArrayList<Relationship>> endnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
-        while (hitsr.hasNext()) {
-            Relationship trel = hitsr.next();
-            if (startnode_rel_map.containsKey(trel.getStartNode()) == false) {
-                ArrayList<Relationship> trels = new ArrayList<Relationship>();
-                startnode_rel_map.put(trel.getStartNode(), trels);
-            }
-            if (endnode_rel_map.containsKey(trel.getEndNode()) == false) {
-                ArrayList<Relationship> trels = new ArrayList<Relationship>();
-                endnode_rel_map.put(trel.getEndNode(), trels);
-            }
-            // System.out.println(trel.getStartNode()+" "+trel.getEndNode());
-            startnode_rel_map.get(trel.getStartNode()).add(trel);
-            endnode_rel_map.get(trel.getEndNode()).add(trel);
-        }
-        hitsr.close();
         boolean printlengths = false;
-        Stack<Node> treestack = new Stack<Node>();
-        treestack.push(rootnode);
-        HashSet<Node> ignoreCycles = new HashSet<Node>();
-        while (treestack.isEmpty() == false) {
-            Node tnode = treestack.pop();
-            // if(tnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
-            // System.out.println(tnode + " "+tnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-            // }else{
-            // System.out.println(tnode);
-            // }
-            // TODO: move down one more node
-            if (endnode_rel_map.containsKey(tnode)) {
-                for (int i = 0; i < endnode_rel_map.get(tnode).size(); i++) {
-                    if (endnode_rel_map.containsKey(endnode_rel_map.get(tnode).get(i).getStartNode())) {
-                        ArrayList<Relationship> rels = endnode_rel_map.get(endnode_rel_map.get(tnode).get(i).getStartNode());
-                        for (int j = 0; j < rels.size(); j++) {
-                            if (rels.get(j).hasProperty("licas")) {
-                                long[] licas = (long[]) rels.get(j).getProperty("licas");
-                                if (licas.length > 1) {
-                                    for (int k = 1; k < licas.length; k++) {
-                                        ignoreCycles.add(graphDb.getNodeById(licas[k]));
-                                        // System.out.println("ignoring: "+licas[k]);
+        HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
+        node2JadeNode.put(rootnode, root);
+        if (true) {  // new way  -- does not (yet) ignore cycles, but does only build requested part of the tree. 
+            // does not use the sourceRelIndex...
+            FilterByPropertyRelIterator stri = FilterByPropertyRelIterator.getSourceTreeRelIterator(rootnode, maxDepth, sourcename);
+            while (stri.hasNext()) {
+                Relationship r = stri.next();
+                Node parNode = r.getEndNode();
+                Node childNode = r.getStartNode();
+                //_LOG.debug("returned path rel: " + r.toString());
+                JadeNode jChild = new JadeNode();
+                final long cid = childNode.getId();
+                if (childNode.hasProperty("name")) {
+                    jChild.setName((String) childNode.getProperty("name"));
+                } else {
+                    //jChild.setName("_unnamed_node_id_" + String.valueOf(cid));
+                }
+                jChild.assocObject("nodeid", cid);
+                if (r.hasProperty("branch_length")) {
+                    printlengths = true;
+                    jChild.setBL((Double) r.getProperty("branch_length"));
+                }
+                node2JadeNode.get(parNode).addChild(jChild);
+                node2JadeNode.put(childNode, jChild);
+            }
+        } else {
+            // OLD version - deals with cycles via an ignoreCycles set of logic. Need to add this to the FilterByPropertyRelIterator
+               // OLD version build the entire tree (though we could easily prune it to return a subtree of the desired start node and depth)
+            //TraversalDescription
+            
+            IndexHits<Relationship> hitsr = sourceRelIndex.get("source", sourcename);
+            // System.out.println(hitsr.size());
+            HashMap<Node, ArrayList<Relationship>> startnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
+            HashMap<Node, ArrayList<Relationship>> endnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
+            while (hitsr.hasNext()) {
+                Relationship trel = hitsr.next();
+                if (startnode_rel_map.containsKey(trel.getStartNode()) == false) {
+                    ArrayList<Relationship> trels = new ArrayList<Relationship>();
+                    startnode_rel_map.put(trel.getStartNode(), trels);
+                }
+                if (endnode_rel_map.containsKey(trel.getEndNode()) == false) {
+                    ArrayList<Relationship> trels = new ArrayList<Relationship>();
+                    endnode_rel_map.put(trel.getEndNode(), trels);
+                }
+                // System.out.println(trel.getStartNode()+" "+trel.getEndNode());
+                startnode_rel_map.get(trel.getStartNode()).add(trel);
+                endnode_rel_map.get(trel.getEndNode()).add(trel);
+            }
+            hitsr.close();
+            Stack<Node> treestack = new Stack<Node>();
+            treestack.push(rootnode);
+            HashSet<Node> ignoreCycles = new HashSet<Node>();
+            while (treestack.isEmpty() == false) {
+                Node tnode = treestack.pop();
+                // if(tnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
+                // System.out.println(tnode + " "+tnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+                // }else{
+                // System.out.println(tnode);
+                // }
+                // TODO: move down one more node
+                if (endnode_rel_map.containsKey(tnode)) {
+                    for (int i = 0; i < endnode_rel_map.get(tnode).size(); i++) {
+                        Node childNode = endnode_rel_map.get(tnode).get(i).getStartNode();
+                        if (endnode_rel_map.containsKey(childNode)) {
+                            ArrayList<Relationship> rels = endnode_rel_map.get(childNode);
+                            for (int j = 0; j < rels.size(); j++) {
+                                if (rels.get(j).hasProperty("licas")) {
+                                    long[] licas = (long[]) rels.get(j).getProperty("licas");
+                                    if (licas.length > 1) {
+                                        for (int k = 1; k < licas.length; k++) {
+                                            ignoreCycles.add(graphDb.getNodeById(licas[k]));
+                                            _LOG.debug("ignoring: "+licas[k]);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
-            if (endnode_rel_map.containsKey(tnode)) {
-                for (int i = 0; i < endnode_rel_map.get(tnode).size(); i++) {
-                    if (ignoreCycles.contains(endnode_rel_map.get(tnode).get(i).getStartNode()) == false) {
-                        Node tnodechild = endnode_rel_map.get(tnode).get(i).getStartNode();
-                        treestack.push(tnodechild);
-                        JadeNode tchild = new JadeNode();
-                        if (tnodechild.hasProperty("name")) {
-                            tchild.setName((String) tnodechild.getProperty("name"));
+                if (endnode_rel_map.containsKey(tnode)) {
+                    for (int i = 0; i < endnode_rel_map.get(tnode).size(); i++) {
+                        if (ignoreCycles.contains(endnode_rel_map.get(tnode).get(i).getStartNode()) == false) {
+                            Node tnodechild = endnode_rel_map.get(tnode).get(i).getStartNode();
+                            treestack.push(tnodechild);
+                            JadeNode tchild = new JadeNode();
+                            if (tnodechild.hasProperty("name")) {
+                                tchild.setName((String) tnodechild.getProperty("name"));
+                            }
+                            tchild.assocObject("nodeid", tnodechild.getId());
+                            if (endnode_rel_map.get(tnode).get(i).hasProperty("branch_length")) {
+                                printlengths = true;
+                                tchild.setBL((Double) endnode_rel_map.get(tnode).get(i).getProperty("branch_length"));
+                            }
+                            node2JadeNode.get(tnode).addChild(tchild);
+                            node2JadeNode.put(tnodechild, tchild);
+                            // System.out.println("pushing: "+endnode_rel_map.get(tnode).get(i).getStartNode());
                         }
-                        tchild.assocObject("nodeid", tnodechild.getId());
-                        if (endnode_rel_map.get(tnode).get(i).hasProperty("branch_length")) {
-                            printlengths = true;
-                            tchild.setBL((Double) endnode_rel_map.get(tnode).get(i).getProperty("branch_length"));
-                        }
-                        jadenode_map.get(tnode).addChild(tchild);
-                        jadenode_map.put(tnodechild, tchild);
-                        // System.out.println("pushing: "+endnode_rel_map.get(tnode).get(i).getStartNode());
                     }
                 }
-            }
+            } 
         }
         // print the newick string
         JadeTree tree = new JadeTree(root);

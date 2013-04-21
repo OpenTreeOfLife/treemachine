@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 
 
-//import org.apache.log4j.Logger;
+import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
@@ -26,6 +26,8 @@ import opentree.TreeNotFoundException;
 import opentree.StoredEntityNotFoundException;
 
 public class MainRunner {
+	static Logger _LOG = Logger.getLogger(MainRunner.class);
+    
 	/// @returns 0 for success, 1 for poorly formed command
 	public int taxonomyLoadParser(String [] args) {
 		if (args.length < 3) {
@@ -489,27 +491,61 @@ public class MainRunner {
 		String sourcename = null;
 		String treeID = null;
 		String graphname = null;
-		if (args.length == 3) {
-			sourcename = args[1];
-			graphname = args[2];
-		} else if (args.length == 4) {
-			if (args[1].compareTo("id") != 0) {
-				System.out.println("arguments should be:\n <sourcename> <graphdbfolder>\nor\n id <sourcename> <graphdbfolder>\n");
+		String rootNodeID = null;
+		int maxDepth = -1;
+		if (args[0].equalsIgnoreCase("sourceexplorer")) {
+			if (args.length == 3) {
+				sourcename = args[1];
+				graphname = args[2];
+			} else if (args.length == 4) {
+				if (args[1].compareTo("id") != 0) {
+					System.out.println("arguments should be:\n <sourcename> <graphdbfolder>\nor\n id <sourcename> <graphdbfolder>\n");
+					return 1;
+				}
+				treeID = args[2];
+				graphname = args[3];
+			} else {
+				System.out.println("arguments should be: <sourcename> <graphdbfolder>");
 				return 1;
 			}
-			treeID = args[2];
-			graphname = args[3];
 		} else {
-			System.out.println("arguments should be: sourcename graphdbfolder");
-			return 1;
+			if (args.length == 5) {
+				sourcename = args[1];
+				rootNodeID = args[2];
+				maxDepth = Integer.parseInt(args[3]);
+				graphname = args[4];
+			} else if (args.length == 6) {
+				if (args[1].compareTo("id") != 0) {
+					System.out.println("arguments should be:\n <sourcename> <rootNodeID> <maxDepth> <graphdbfolder>\nor\n id <sourcename> <graphdbfolder>\n");
+					return 1;
+				}
+				treeID = args[2];
+				rootNodeID = args[3];
+				maxDepth = Integer.parseInt(args[4]);
+				graphname = args[5];
+			} else {
+				System.out.println("arguments should be: <sourcename> <rootNodeID> <maxDepth> <graphdbfolder>");
+				return 1;
+			}
 		}
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
+			_LOG.debug("calling sourceTreeExplorer");
 			JadeTree tree;
-			if (treeID == null) {
-				tree = ge.reconstructSource(sourcename);
+			if (rootNodeID == null) {
+				if (treeID == null) {
+					tree = ge.reconstructSource(sourcename, maxDepth);
+				} else {
+					tree = ge.reconstructSourceByTreeID(treeID, maxDepth);
+				}
 			} else {
-				tree = ge.reconstructSourceByTreeID(treeID);
+				long rootNodeIDParsed = Long.parseLong(rootNodeID);
+				if (treeID == null) {
+					tree = ge.reconstructSource(sourcename, rootNodeIDParsed, maxDepth);
+				} else {
+					_LOG.debug("calling reconstructSourceByTreeID");
+					tree = ge.reconstructSourceByTreeID(treeID, rootNodeIDParsed, maxDepth);
+				}
 			}
 			final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
 			System.out.println(newick + ";");
@@ -831,6 +867,7 @@ public class MainRunner {
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
 		System.out.println("\tjusttrees <filename> <graphdbfolder> (loads the trees into a graph)");
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
+		System.out.println("\tsourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
 		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
 		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
@@ -851,7 +888,7 @@ public class MainRunner {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		PropertyConfigurator.configure(System.getProperties());
+		//PropertyConfigurator.configure(System.getProperties());
 		System.err.println("treemachine version alpha.alpha.prealpha");
 		if (args.length < 1) {
 			printHelp();
@@ -885,7 +922,8 @@ public class MainRunner {
 				cmdReturnCode = mr.graphListPruner(args);
 			} else if (command.compareTo("justtrees") == 0) {
 				cmdReturnCode = mr.justTreeAnalysis(args);
-			} else if (command.compareTo("sourceexplorer") == 0) {
+			} else if (command.compareTo("sourceexplorer") == 0
+					|| command.equalsIgnoreCase("sourcepruner")) {
 				cmdReturnCode = mr.sourceTreeExplorer(args);
 			} else if (command.compareTo("listsources") == 0
 					|| command.compareTo("getsourcetreeids") == 0) {
