@@ -81,8 +81,8 @@ public class GraphImporter extends GraphBase{
 	 */
 	private void initializeIndices() {
 		graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
-		graphTaxUIDNodeindex = graphDb.getNodeIndex( "graphTaxUIDNodes" ); // tax_uid is the key
-		synTaxUIDNodeindex = graphDb.getNodeIndex("synTaxUIDNodes");
+		graphTaxUIDNodeIndex = graphDb.getNodeIndex( "graphTaxUIDNodes" ); // tax_uid is the key
+		synTaxUIDNodeIndex = graphDb.getNodeIndex("synTaxUIDNodes");
 		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
 		sourceRelIndex = graphDb.getRelIndex("sourceRels");
 		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
@@ -266,7 +266,7 @@ public class GraphImporter extends GraphBase{
 							tnode.setProperty("uniqname",uniqname);
 							graphNodeIndex.add( tnode, "name", name );
 							if(tid.length()>0){
-								graphTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+								graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 							}
 							if (pid.length() > 0) {
 								parents.put(tid, pid);
@@ -285,7 +285,7 @@ public class GraphImporter extends GraphBase{
 										synode.setProperty("name",synName);
 										synode.setProperty("tax_uid", tax_uid);
 										if(tax_uid.length()>0){
-											synTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+											synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 										}
 										synode.setProperty("nametype",synNameType);
 										synode.setProperty("source",sourcename);
@@ -327,7 +327,7 @@ public class GraphImporter extends GraphBase{
 					tnode.setProperty("uniqname",uniqname);
 					graphNodeIndex.add( tnode, "name", name );
 					if(tid.length()>0){
-						graphTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+						graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 					}
 					if (pid.length() > 0) {
 						parents.put(tid, pid);
@@ -346,7 +346,7 @@ public class GraphImporter extends GraphBase{
 								synode.setProperty("name",synName);
 								synode.setProperty("tax_uid", tax_uid);
 								if(tax_uid.length()>0){
-									synTaxUIDNodeindex.add(tnode, "tax_uid", tid);
+									synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 								}
 								synode.setProperty("nametype",synNameType);
 								synode.setProperty("source",sourcename);
@@ -548,7 +548,7 @@ public class GraphImporter extends GraphBase{
 			//use the internal node id to get the nodes mapped 
 			Node hitnode = null;
 			Long ottolid = (Long)nds.get(j).getObject("ot:ottolid");
-			IndexHits<Node> hits = graphTaxUIDNodeindex.get("tax_uid", ottolid);
+			IndexHits<Node> hits = graphTaxUIDNodeIndex.get("tax_uid", ottolid);
 			int numh = hits.size();
 			if(numh == 0){
 				throw new TaxonNotFoundException(String.valueOf(ottolid));

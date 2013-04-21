@@ -15,6 +15,7 @@ import jade.tree.JadeTree;
 
 import opentree.GraphExplorer;
 import opentree.GraphExporter;
+import opentree.OttolIdNotFoundException;
 
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
@@ -28,6 +29,7 @@ import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OpenTreeMachineRepresentationConverter;
 import opentree.TreeNotFoundException;
+
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
 
@@ -45,6 +47,24 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(sourceArrayList);
 	}
 
+	@Description("Initiate the default synthesis process (and store the synthesized branches) for the subgraph starting from a given root node")
+	@PluginTarget(GraphDatabaseService.class)
+	public boolean synthesizeSubtree(
+			@Source GraphDatabaseService graphDb,
+			@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+			@Parameter(name = "rootNodeOttolID", optional = true) String rootOttolID) throws OttolIdNotFoundException {
+
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		boolean useTaxonomy = true;
+		
+		if (rootOttolID == null || rootOttolID.length() == 0)
+			rootOttolID = (String) ge.findGraphNodeByName("life").getProperty("tax_uid");
+		
+		return ge.synthesizeAndStoreBranches(rootOttolID, useTaxonomy);
+
+	}
+	
+	/* shouldn't this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh */
 	// subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
 	@Description("Returns if format is \"newick\" then return JSON will have two fields: newick and treeID. If format = \"arguson\" then the return object will be the form of JSON expected by argus")
 	@PluginTarget(GraphDatabaseService.class)
