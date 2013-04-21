@@ -10,7 +10,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 
 /**
  * Iterator which does a preorder traversal from a particular node of only relationships which have:
@@ -18,7 +18,7 @@ import org.apache.log4j.Logger;
  *      2. a specifiec property value
  */
 public class FilterByPropertyRelIterator implements Iterator<Relationship> {
-    static Logger _LOG = Logger.getLogger(FilterByPropertyRelIterator.class);
+    //static Logger _LOG = Logger.getLogger(FilterByPropertyRelIterator.class);
     private Relationship lastReturned;
     private Relationship nextToReturn;
     int maxDepth;

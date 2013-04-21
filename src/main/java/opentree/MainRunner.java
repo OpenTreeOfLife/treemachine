@@ -14,9 +14,9 @@ import java.util.HashSet;
 import java.util.List;
 
 
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.PropertyConfigurator;
+//import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
@@ -26,8 +26,8 @@ import opentree.TreeNotFoundException;
 import opentree.StoredEntityNotFoundException;
 
 public class MainRunner {
-	static Logger _LOG = Logger.getLogger(MainRunner.class);
-    
+	//static Logger _LOG = Logger.getLogger(MainRunner.class);
+
 	/// @returns 0 for success, 1 for poorly formed command
 	public int taxonomyLoadParser(String [] args) {
 		if (args.length < 3) {
@@ -532,7 +532,6 @@ public class MainRunner {
 		}
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
-			_LOG.debug("calling sourceTreeExplorer");
 			JadeTree tree;
 			if (rootNodeID == null) {
 				if (treeID == null) {
@@ -545,7 +544,6 @@ public class MainRunner {
 				if (treeID == null) {
 					tree = ge.reconstructSource(sourcename, rootNodeIDParsed, maxDepth);
 				} else {
-					_LOG.debug("calling reconstructSourceByTreeID");
 					tree = ge.reconstructSourceByTreeID(treeID, rootNodeIDParsed, maxDepth);
 				}
 			}
@@ -922,7 +920,7 @@ public class MainRunner {
 	 */
 	public static void main(String[] args) {
 		//PropertyConfigurator.configure(System.getProperties());
-		System.err.println("treemachine version alpha.alpha.prealpha");
+		//System.err.println("treemachine version alpha.alpha.prealpha");
 		if (args.length < 1) {
 			printHelp();
 			System.exit(1);

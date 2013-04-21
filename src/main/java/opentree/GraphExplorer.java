@@ -42,10 +42,10 @@ import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 import org.neo4j.kernel.Uniqueness;
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 
 public class GraphExplorer extends GraphBase {
-    static Logger _LOG = Logger.getLogger(GraphExplorer.class);
+    //static Logger _LOG = Logger.getLogger(GraphExplorer.class);
     private SpeciesEvaluator se;
     private ChildNumberEvaluator cne;
     private TaxaListEvaluator tle;
@@ -1285,7 +1285,7 @@ public class GraphExplorer extends GraphBase {
         Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
         assert metadataNode != null;
         String s = (String)metadataNode.getProperty("source");
-        _LOG.debug("Found source = \"" + s + "\" for treeID = \"" + treeID + "\"");
+        //_LOG.debug("Found source = \"" + s + "\" for treeID = \"" + treeID + "\"");
         return s;
     }
 
@@ -1420,7 +1420,7 @@ public class GraphExplorer extends GraphBase {
                                     if (licas.length > 1) {
                                         for (int k = 1; k < licas.length; k++) {
                                             ignoreCycles.add(graphDb.getNodeById(licas[k]));
-                                            _LOG.debug("ignoring: "+licas[k]);
+                                            //_LOG.debug("ignoring: "+licas[k]);
                                         }
                                     }
                                 }
