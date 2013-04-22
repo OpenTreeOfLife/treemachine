@@ -40,7 +40,9 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 
-
+// for gzipped nexsons
+import java.util.zip.*;
+import java.io.FileInputStream;
 
 public class PhylografterConnector {
 
@@ -115,6 +117,47 @@ public class PhylografterConnector {
 			conn.connect();
 			BufferedReader un = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
+			List<JadeTree> trees = NexsonReader.readNexson(un);
+			un.close();
+			conn.disconnect();
+			return trees;
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * Same as above, but takes in gzipped nexsons.
+	 * 
+	 * Given a studyid, this will extract the list of JadeTrees contained within
+	 * Nexson as sent by phylografter
+	 * 
+	 * Not all of the ottolids will be set so these trees should be run through
+	 * fixNamesFromTrees after processing here
+	 * 
+	 * @param studyid
+	 *            that is being requested
+	 * @return a List<JadeTree> of the trees processed
+	 */
+	public static List<JadeTree> fetchGzippedTreesFromStudy(Long studyid) {
+		String urlbase = "http://www.reelab.net/phylografter/study/export_gzipNexSON.json/"
+				+ String.valueOf(studyid);
+		System.out.println("Looking up study: " + urlbase);
+
+		try {
+			URL phurl = new URL(urlbase);
+			HttpURLConnection conn = (HttpURLConnection) phurl.openConnection();
+			conn.connect();
+			
+			GZIPInputStream gzip = new GZIPInputStream(conn.getInputStream());
+			
+			BufferedReader un = new BufferedReader(new InputStreamReader(gzip));
+			
+//			BufferedReader un = new BufferedReader(new InputStreamReader(
+//					conn.getInputStream()));
 			List<JadeTree> trees = NexsonReader.readNexson(un);
 			un.close();
 			conn.disconnect();
