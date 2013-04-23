@@ -116,9 +116,10 @@ public class MainRunner {
 		boolean readingNexson = false;
 		if (args[0].compareTo("addnewick") == 0) {
 			readingNewick = true;
-		}if (args[0].compareTo("addnexson") == 0) {
+		} else if (args[0].compareTo("addnexson") == 0) {
 			readingNexson = true;
 		} else {
+			System.out.println("Unrecognized command \"" + args[0] + "\" ");
 			return 2;
 		}
 		String filename;
