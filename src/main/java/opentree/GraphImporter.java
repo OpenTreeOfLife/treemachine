@@ -842,7 +842,8 @@ public class GraphImporter extends GraphBase{
 				// TODO: this will need to be updated when trees are updated
 				System.out.println("placing root in index");
 				sourceRootIndex.add(currGoLNode, "rootnode", sourcename);
-				sourceRootIndex.add(currGoLNode, "rootnodeForID", treeID);
+				if (treeID != null)
+					sourceRootIndex.add(currGoLNode, "rootnodeForID", treeID);
 
 				
 				
@@ -898,7 +899,8 @@ public class GraphImporter extends GraphBase{
 				metadatanode.setProperty("source", sourcename);
 				//metadatanode.setProperty("author", "no one"); // seems deprecated now
 				metadatanode.setProperty("newick", treestring); // this could be giant. do we want to do this?
-				metadatanode.setProperty("treeID", treeID);
+				if (treeID != null)
+					metadatanode.setProperty("treeID", treeID);
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
 				// TODO: doesn't account for multiple root nodes
 				metadatanode.createRelationshipTo(currGoLNode, RelTypes.METADATAFOR);

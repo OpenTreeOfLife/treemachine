@@ -116,9 +116,10 @@ public class MainRunner {
 		boolean readingNexson = false;
 		if (args[0].compareTo("addnewick") == 0) {
 			readingNewick = true;
-		}if (args[0].compareTo("addnexson") == 0) {
+		} else if (args[0].compareTo("addnexson") == 0) {
 			readingNexson = true;
 		} else {
+			System.out.println("Unrecognized command \"" + args[0] + "\" ");
 			return 2;
 		}
 		String filename;
@@ -855,19 +856,21 @@ public class MainRunner {
 	
 	public int pgtesting(String [] args){
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
-		if (args.length != 2)
+		if (args.length != 2) {
 			return 1;
-		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-03-22");
+		}
+		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-04-22");
 		int rc = 0;
-		for (Long k: list){
-//			if ((k == 60) || (k == 105) || (k == 106) || (k == 107) || (k == 115) || (k == 116)) { // some bad studies
-//				System.out.println("Skipping study " + k);
-//				continue;
-//			}
-			if (k > 20)
+		
+		long start = System.currentTimeMillis();
+		
+		for (Long k: list) {
+			if (k > 20) {
 				break;
-			try{
-				List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
+			}
+			try {
+				//List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
+				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k);
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
@@ -877,21 +880,21 @@ public class MainRunner {
 		        	boolean doubname = false;
 		        	HashSet<Long> ottols = new HashSet<Long>();
 		        	for(int m=0;m<j.getExternalNodeCount();m++){
-		        		if(j.getExternalNode(m).getObject("ot:ottolid")==null){//use doubname as also 
+		        		if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
 		        			doubname = true;
 		        			break;
 		        		}
-		        		if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid"))==true){
+		        		if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid")) == true){
 		        			doubname = true;
 		        			break;
-		        		}else{
+		        		} else {
 		        			ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
 		        		}
 		        	}
 		        	//check for any duplicate ottol:id
-					if(doubname == true){
+					if (doubname == true){
 						System.out.println("there are duplicate names");
-					}else{
+					} else {
 						System.out.println("this is being added");
 						gi.setTree(j);
 						String sourcename = "";
@@ -914,6 +917,11 @@ public class MainRunner {
 				e.printStackTrace();
 			}
 		}
+		
+		long elapsedTimeMillis = System.currentTimeMillis() - start;
+		float elapsedTimeSec = elapsedTimeMillis/1000F;
+		System.out.println("elapsed time: " + elapsedTimeSec);
+		
 		graphDb.shutdownDb();
 		return rc;
 	}
