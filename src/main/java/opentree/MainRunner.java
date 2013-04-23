@@ -801,6 +801,56 @@ public class MainRunner {
 		else
 			return -1;
 	}
+
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
+	public int extractStoredSyntheticTree(String [] args) throws OttolIdNotFoundException {
+		if (args.length != 4) {
+			System.out.println("arguments should be rootOTToLid outFileName graphdbfolder");
+			return 1;
+		}
+		String ottolId = args[1];
+		String outFileName = args[2];
+		String graphname = args[3];
+		GraphExplorer ge = new GraphExplorer(graphname);
+		
+		JadeTree synthTree = null;
+		try {
+			synthTree = ge.extractStoredSyntheticTree(ottolId);
+		} catch (OttolIdNotFoundException oex) {
+			oex.printStackTrace();
+		}
+
+		if (synthTree == null) {
+			return -1;
+		}
+		
+		PrintWriter outFile = null;
+		try {
+			outFile = new PrintWriter(new FileWriter(outFileName));
+			outFile.write(synthTree.getRoot().getNewick(true));
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			outFile.close();
+		}
+		
+		return 0;
+		
+/*		boolean success = false;
+		try {
+			success = ge.synthesizeAndStoreBranches(ottolId, useTaxonomy);
+		} catch (OttolIdNotFoundException oex) {
+			oex.printStackTrace();
+		} finally {
+			ge.shutdownDB();
+		}
+		
+		if (success)
+			return 0;
+		else
+			return -1; */
+	}
+
 	
 	
 	public int pgtesting(String [] args){
@@ -908,7 +958,8 @@ public class MainRunner {
 		System.out.println("\tlabeltips <filename.tre> <filename>\n");
 
 		System.out.println("---synthesis functions---");
-		System.out.println("\tdefaultsynthstorerels <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using branch and bound optimization and store the synthesized relationships)\n");
+		System.out.println("\tdefaultsynthstorerels <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using branch and bound optimization and store the synthesized relationships)");
+		System.out.println("\textractdefaultsynthtree <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
 				
 		System.out.println("---server functions---");
 		System.out.println("\tgetupdatedlist\n");
@@ -979,6 +1030,8 @@ public class MainRunner {
 				cmdReturnCode = mr.treeUtils(args);
 			} else if (command.compareTo("defaultsynthstorerels") == 0) {
 				cmdReturnCode = mr.synthesizeDefault(args);
+			} else if (command.compareTo("extractdefaultsynthtree") == 0) {
+				cmdReturnCode = mr.extractStoredSyntheticTree(args);
 			} else if (command.compareTo("getupdatedlist") == 0) {
 				cmdReturnCode = mr.pgtesting(args);
 			} else {

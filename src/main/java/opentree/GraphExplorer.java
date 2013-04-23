@@ -37,6 +37,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 //import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
@@ -49,6 +50,8 @@ public class GraphExplorer extends GraphBase {
     private SpeciesEvaluator se;
     private ChildNumberEvaluator cne;
     private TaxaListEvaluator tle;
+    
+    private static final TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.SYNTHCHILDOF, Direction.INCOMING).evaluator(Evaluators.toDepth(1));
 
     /* -------------------- begin info: collapsing children based on taxonomy ----------------------- */
 
@@ -98,7 +101,7 @@ public class GraphExplorer extends GraphBase {
         sourceRelIndex = graphDb.getRelIndex("sourceRels");
         sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
     	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes"); // tax_uid is the key, this points to the tax node
-    	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns"); //tax_uid is the key, this points to the synonymn node, 
+    	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns"); //tax_uid is the key, this points to the synonymn node
     }
 
     public void printLicaNames(String nodeid) {
@@ -636,6 +639,62 @@ public class GraphExplorer extends GraphBase {
         return new JadeTree(root);
     }
 
+    /**
+     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
+     * External function that uses the ottol id to find the root node in the db.
+     * 
+     * @param nodeId
+     * @throws OttolIdNotFoundException 
+     */
+    public JadeTree extractStoredSyntheticTree(String ottolId) throws OttolIdNotFoundException {
+
+        // find the start node
+        Node firstNode = this.findGraphTaxNodeByUID(ottolId);
+        if (firstNode == null) {
+            throw new opentree.OttolIdNotFoundException(ottolId);
+        }
+        
+        return new JadeTree(extractStoredSyntheticTreeRecur(firstNode, null));
+    }
+    
+    /**
+     * Recursively creates a JadeNode hierarchy containing the structure defined by the SYNTHCHILDOF relationships present below a given node,
+     * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
+     * 
+     * @param nodeId
+     */
+    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode) {
+    	
+        JadeNode curNode = new JadeNode();
+        
+        if (curGraphNode.hasProperty("name")) {
+            curNode.setName((String) curGraphNode.getProperty("name"));
+            curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+        }
+
+        // add the current node to the tree we're building
+        if (parentJadeNode != null) {
+        	parentJadeNode.addChild(curNode);
+            if (relcoming.hasProperty("branch_length")) {
+                newJadeNode.setBL((Double) relcoming.getProperty("branch_length"));
+            }
+        }
+        
+        // get the immediate synth children of the current node
+        LinkedList<Node> synthChildren = new LinkedList<Node>();
+        for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)) {
+            synthChildren.add(synthChildRel.getStartNode());
+        }
+
+        // recursively add the children to the tree we're building
+        for (Node synthChild : synthChildren) {
+        	extractStoredSyntheticTreeRecur(synthChild, curNode);
+        }
+        
+        return curNode;
+
+    }
+    
     /**
      * This is the preorder function for constructing a newick tree based only on graph decisions. If the resulting decisions do not contain all of the taxa,
      * either a branch and bound search or exhaustive pair search will attempt to find a better (more complete) scenario.

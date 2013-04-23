@@ -49,10 +49,10 @@ public class GoLS extends ServerPlugin {
 
 	@Description("Initiate the default synthesis process (and store the synthesized branches) for the subgraph starting from a given root node")
 	@PluginTarget(GraphDatabaseService.class)
-	public boolean synthesizeSubtree(
+	public String synthesizeSubtree(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
-			@Parameter(name = "rootNodeOttolID", optional = true) String rootOttolID) throws OttolIdNotFoundException {
+			@Parameter(name = "rootOttolID", optional = true) String rootOttolID) throws OttolIdNotFoundException {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		boolean useTaxonomy = true;
@@ -60,11 +60,14 @@ public class GoLS extends ServerPlugin {
 		if (rootOttolID == null || rootOttolID.length() == 0)
 			rootOttolID = (String) ge.findGraphNodeByName("life").getProperty("tax_uid");
 		
-		return ge.synthesizeAndStoreBranches(rootOttolID, useTaxonomy);
-
+		if (ge.synthesizeAndStoreBranches(rootOttolID, useTaxonomy)) {
+			return "Success. Synthesized relationships stored for ottolid=" + rootOttolID;
+		} else {
+			return "Failure. Nothing stored for ottolid=" + rootOttolID;
+		}
 	}
 	
-	/* shouldn't this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh */
+	/* should this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh */
 	// subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
 	@Description("Returns if format is \"newick\" then return JSON will have two fields: newick and treeID. If format = \"arguson\" then the return object will be the form of JSON expected by argus")
 	@PluginTarget(GraphDatabaseService.class)
