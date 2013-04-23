@@ -653,7 +653,7 @@ public class GraphExplorer extends GraphBase {
     private JadeNode defaultSynthesisRecur(Node curGraphNode, Node parentGraphNode, JadeNode parentJadeNode, Relationship relcoming, String altName, boolean useTaxonomy,
             boolean useBranchAndBound, boolean recordSyntheticRels) {
 
-    	if (parentGraphNode != null) {
+    	if (parentGraphNode != null && recordSyntheticRels) {
     		curGraphNode.createRelationshipTo(parentGraphNode, RelTypes.SYNTHCHILDOF);
     	}
     	
