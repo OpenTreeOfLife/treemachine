@@ -902,6 +902,18 @@ public class GraphImporter extends GraphBase{
 				if (treeID != null)
 					metadatanode.setProperty("treeID", treeID);
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
+				//add the source taxa ids
+				HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) jt.getRoot().getObject("ndids"));
+				long[] ret2 = new long[rootids.size()];
+				Iterator<Long> chl2 = rootids.iterator();
+				int i = 0;
+				while (chl2.hasNext()) {
+					ret2[i] = chl2.next().longValue();
+					i++;
+				}
+				Arrays.sort(ret2);
+				metadatanode.setProperty("original_taxa_map",ret2);
+				//end add source taxa ids
 				// TODO: doesn't account for multiple root nodes
 				metadatanode.createRelationshipTo(currGoLNode, RelTypes.METADATAFOR);
 			}
