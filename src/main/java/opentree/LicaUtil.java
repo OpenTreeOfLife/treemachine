@@ -145,10 +145,12 @@ public class LicaUtil {
 				//HashSet<Long> Ldbnodei = new HashSet<Long>();
 				//for(long temp:dbnodei) {Ldbnodei.add(temp);}
 				TLongArrayList Ldbnodei = new TLongArrayList((long[]) tnode.getProperty("mrca"));
+				Ldbnodei.sort();
 				//should look to apache commons primitives for a better solution to this
-				int beforesize = Ldbnodei.size();
-				Ldbnodei.removeAll(fullIdSet);
-				if (Ldbnodei.size() == beforesize) {
+//				int beforesize = Ldbnodei.size();
+//				Ldbnodei.removeAll(fullIdSet);
+				if(containsAnySortedt4j(Ldbnodei,fullIdSet) == false){
+//				if (Ldbnodei.size() == beforesize) {
 					//this gets all, but we want to only include the exact if one exists
 					boolean containsall = Ldbnodei.containsAll(inIdSet);
 					if (containsall) {
@@ -167,6 +169,42 @@ public class LicaUtil {
 		//elapsedTimeSec = elapsedTimeMillis/1000F;
 		//System.out.println("elapsed inloop: "+elapsedTimeSec);
 		return retaln;
+	}
+	
+	/**
+	 * This will check for a contains any of ar1 contains any ar2. This currently doesn't 
+	 * account for sorted arrays
+	 * @return
+	 */
+	private static boolean containsAnyt4j(TLongArrayList ar1, TLongArrayList ar2){
+		boolean retv = false;
+		for (int i=0;i<ar2.size();i++){
+			if(ar1.contains(ar2.getQuick(i))){
+				retv = true;
+				break;
+			}
+		}
+		return retv;
+	}
+	
+	/**
+	 * This will check for a contains any of ar1 contains any ar2. This currently doesn't 
+	 * account for sorted arrays
+	 * @return
+	 */
+	private static boolean containsAnySortedt4j(TLongArrayList ar1, TLongArrayList ar2){
+		boolean retv = false;
+		for (int i=0;i<ar2.size();i++){
+			for(int j=0;j<ar1.size();j++){
+				if (ar2.getQuick(i) == ar1.getQuick(j)){
+					retv = true;
+					return retv;
+				}if(ar1.getQuick(j) > ar2.getQuick(i)){
+					break;
+				}
+			}
+		}
+		return retv;
 	}
 	
 	/**

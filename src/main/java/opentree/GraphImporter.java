@@ -51,17 +51,8 @@ public class GraphImporter extends GraphBase{
 	private ArrayList<Node> updatedNodes;
 	private HashSet<Node> updatedSuperLICAs;
 	private Transaction	tx;
-	
-	/* TODO: Need to add metadata (if present) from jadetree coming from nexson.
-	   See vocabulary: https://docs.google.com/spreadsheet/ccc?key=0ArYBkaCSQjOwdDE0MXlKMktvRFR1dllrTXQxQTY5V0E#gid=0
-	   Fields at present:
-		ot:studyPublicationReference - string: ot:studyPublicationReference "long string"
-		ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
-		ot:curatorName - string: ot:curatorName "Jane Doe"
-		ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
-		ot:studyId - string: ot:studyId "123"
-		ot:ottolid - integer: ot:ottolid 783941
-	*/
+	//THIS IS FOR PERFORMANCE
+	private TLongArrayList root_ndids;
 	
 	public GraphImporter(String graphname) {
 		graphDb = new GraphDatabaseAgent(graphname);
@@ -536,12 +527,13 @@ public class GraphImporter extends GraphBase{
 
 		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
 		  would make the look ups faster. See comment in testIsMRCA */
-		HashSet<Long> ndids = new HashSet<Long>(); 
+		TLongArrayList ndids = new TLongArrayList(); 
 		// We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
 		// same as above but added for nested nodes, so more comprehensive and 
 		//		used just for searching. the others are used for storage
-		HashSet<Long> ndidssearch = new HashSet<Long>();
+		//HashSet<Long> ndidssearch = new HashSet<Long>();
+		TLongArrayList ndidssearch = new TLongArrayList();
 		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
@@ -570,10 +562,13 @@ public class GraphImporter extends GraphBase{
 			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
 		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
-		jt.getRoot().assocObject("ndids", ndids);
+		//jt.getRoot().assocObject("ndids", ndids);
 		jt.getRoot().assocObject("hashnodeids", hashnodeids);
+		ndidssearch.sort();
 		jt.getRoot().assocObject("ndidssearch", ndidssearch);
 		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
+		ndids.sort();
+		root_ndids = ndids;
 		try {
 			tx = graphDb.beginTx();
 			postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
@@ -610,13 +605,13 @@ public class GraphImporter extends GraphBase{
 		// TODO: could take this out and make it a separate procedure
 		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
 		  would make the look ups faster. See comment in testIsMRCA */
-		HashSet<Long> ndids = new HashSet<Long>(); 
+		TLongArrayList ndids = new TLongArrayList(); 
 		// We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
 		// same as above but added for nested nodes, so more comprehensive and 
 		//		used just for searching. the others are used for storage
 		//HashSet<Long> ndidssearch = new HashSet<Long>();
-		TLongHashSet ndidssearch = new TLongHashSet();
+		TLongArrayList ndidssearch = new TLongArrayList();
 		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
@@ -670,10 +665,13 @@ public class GraphImporter extends GraphBase{
 			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
 		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
-		jt.getRoot().assocObject("ndids", ndids);
+		//jt.getRoot().assocObject("ndids", ndids);
 		jt.getRoot().assocObject("hashnodeids", hashnodeids);
+		ndidssearch.sort();
 		jt.getRoot().assocObject("ndidssearch", ndidssearch);
 		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
+		ndids.sort();
+		root_ndids = ndids;
 		try {
 			tx = graphDb.beginTx();
 			postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
@@ -742,7 +740,8 @@ public class GraphImporter extends GraphBase{
 			}
 			//			_LOG.trace("finished names");
 			//HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
-			TLongArrayList rootids = new TLongArrayList((TLongHashSet) root.getObject("ndidssearch"));
+			TLongArrayList rootids = new TLongArrayList((TLongArrayList) root.getObject("ndidssearch"));
+			childndids.sort();
 			//HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
 			HashSet<Node> ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, rootids);
 			
@@ -754,14 +753,16 @@ public class GraphImporter extends GraphBase{
 				for (int i = 0; i < hit_nodes.size(); i++) {
 					ret[i] = hit_nodes.get(i).getId();
 				}
-				HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				long[] ret2 = new long[trootids.size()];
-				Iterator<Long> chl2 = trootids.iterator();
-				int i = 0;
-				while (chl2.hasNext()) {
-					ret2[i] = chl2.next().longValue();
-					i++;
-				}
+				//HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				//TLongHashSet trootids = new TLongHashSet((TLongHashSet) root.getObject("ndids"));
+				long [] ret2 = root_ndids.toArray();
+				//long[] ret2 = new long[trootids.size()];
+				//Iterator<Long> chl2 = trootids.iterator();
+				//int i = 0;
+				//while (chl2.hasNext()) {
+				//	ret2[i] = chl2.next().longValue();
+				//	i++;
+				//}
 				inode.assocObject("exclusive_mrca", ret);
 				inode.assocObject("root_exclusive_mrca", ret2);
 			} else {
@@ -795,14 +796,16 @@ public class GraphImporter extends GraphBase{
 				}
 				Arrays.sort(rete);
 				inode.assocObject("exclusive_mrca",rete);
-				HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				long[] ret2 = new long[trootids.size()];
-				Iterator<Long> chl2 = trootids.iterator();
-				int i = 0;
-				while (chl2.hasNext()) {
-					ret2[i] = chl2.next().longValue();
-					i++;
-				}
+				//HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				//TLongHashSet trootids = new TLongHashSet((TLongHashSet) root.getObject("ndids"));
+				long [] ret2 = root_ndids.toArray();
+				//long[] ret2 = new long[trootids.size()];
+				//Iterator<Long> chl2 = trootids.iterator();
+				//int i = 0;
+				//while (chl2.hasNext()) {
+				//	ret2[i] = chl2.next().longValue();
+				//	i++;
+				//}
 				Arrays.sort(ret2);
 				inode.assocObject("root_exclusive_mrca",ret2);
 				//	for (int i=0;i<inode.getChildCount();i++) {
@@ -914,7 +917,7 @@ public class GraphImporter extends GraphBase{
 					metadatanode.setProperty("treeID", treeID);
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
 				//add the source taxa ids
-				HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) jt.getRoot().getObject("ndids"));
+				/*HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) jt.getRoot().getObject("ndids"));
 				long[] ret2 = new long[rootids.size()];
 				Iterator<Long> chl2 = rootids.iterator();
 				int i = 0;
@@ -922,7 +925,8 @@ public class GraphImporter extends GraphBase{
 					ret2[i] = chl2.next().longValue();
 					i++;
 				}
-				Arrays.sort(ret2);
+				Arrays.sort(ret2);*/
+				long[]ret2 = root_ndids.toArray();
 				metadatanode.setProperty("original_taxa_map",ret2);
 				//end add source taxa ids
 				// TODO: doesn't account for multiple root nodes
@@ -1010,15 +1014,16 @@ public class GraphImporter extends GraphBase{
 	private boolean testIsMRCA(Node dbnode,JadeNode root, JadeNode inode) {
 		boolean ret = true;
 		long [] dbnodei = (long []) dbnode.getProperty("mrca");
-		@SuppressWarnings("unchecked")
-		ArrayList<Long> rootids = new ArrayList<Long>((HashSet<Long>) root.getObject("ndids"));
+		//@SuppressWarnings("unchecked")
+		//ArrayList<Long> rootids = new ArrayList<Long>((HashSet<Long>) root.getObject("ndids"));
+		TLongArrayList rootids = new TLongArrayList(root_ndids);
 		@SuppressWarnings("unchecked")
 		ArrayList<Long> inodeids =(ArrayList<Long>) inode.getObject("ndids");
 //		System.out.println(rootids.size());
 		rootids.removeAll(inodeids);
 //		System.out.println(rootids.size());
 		for (int i = 0; i < dbnodei.length; i++) {
-			if (rootids.contains(dbnodei[i])) { //@todo this is the Order(N) lookup that could be log(N) or constant time if ndids was not an ArrayList<Long>
+			if (root_ndids.contains(dbnodei[i])) { //@todo this is the Order(N) lookup that could be log(N) or constant time if ndids was not an ArrayList<Long>
 				ret = false;
 				break;
 			}
