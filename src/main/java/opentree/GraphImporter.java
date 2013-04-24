@@ -186,7 +186,7 @@ public class GraphImporter extends GraphBase{
 		int count = 0;
 		HashMap<String,ArrayList<ArrayList<String>>> synonymhash = null;
 		boolean synFileExists = false;
-		if (synonymfile.length() > 0){
+		if (synonymfile.length() > 0) {
 			synFileExists = true;
 		}
 		//preprocess the synonym file
@@ -267,7 +267,7 @@ public class GraphImporter extends GraphBase{
 							tnode.setProperty("tax_sourcepid",srce_pid);
 							tnode.setProperty("uniqname",uniqname);
 							graphNodeIndex.add( tnode, "name", name );
-							if(tid.length()>0){
+							if (tid.length() > 0) {
 								graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 							}
 							if (pid.length() > 0) {
@@ -278,7 +278,7 @@ public class GraphImporter extends GraphBase{
 							if (synFileExists) {
 								if (synonymhash.get(tid) != null) {
 									ArrayList<ArrayList<String>> syns = synonymhash.get(tid);
-									for (int j=0; j < syns.size(); j++) {
+									for (int j = 0; j < syns.size(); j++) {
 										String tax_uid = syns.get(j).get(0);
 										String synName = syns.get(j).get(1);
 										String synNameType = syns.get(j).get(2);
@@ -286,7 +286,7 @@ public class GraphImporter extends GraphBase{
 										Node synode = graphDb.createNode();
 										synode.setProperty("name",synName);
 										synode.setProperty("tax_uid", tax_uid);
-										if(tax_uid.length()>0){
+										if (tax_uid.length() > 0) {
 											synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 										}
 										synode.setProperty("nametype",synNameType);
@@ -328,7 +328,7 @@ public class GraphImporter extends GraphBase{
 					tnode.setProperty("tax_sourcepid",srce_pid);
 					tnode.setProperty("uniqname",uniqname);
 					graphNodeIndex.add( tnode, "name", name );
-					if(tid.length()>0){
+					if (tid.length() > 0) {
 						graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 					}
 					if (pid.length() > 0) {
@@ -347,7 +347,7 @@ public class GraphImporter extends GraphBase{
 								Node synode = graphDb.createNode();
 								synode.setProperty("name",synName);
 								synode.setProperty("tax_uid", tax_uid);
-								if(tax_uid.length()>0){
+								if (tax_uid.length()>0) {
 									synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 								}
 								synode.setProperty("nametype",synNameType);
@@ -552,7 +552,7 @@ public class GraphImporter extends GraphBase{
 			Long ottolid = (Long)nds.get(j).getObject("ot:ottolid");
 			IndexHits<Node> hits = graphTaxUIDNodeIndex.get("tax_uid", ottolid);
 			int numh = hits.size();
-			if(numh == 0){
+			if (numh == 0) {
 				throw new TaxonNotFoundException(String.valueOf(ottolid));
 			}
 			assert numh == 1;
@@ -636,7 +636,7 @@ public class GraphImporter extends GraphBase{
 				Node shortn = null;
 				for (Node tnode : hits) {
 					Path tpath = pf.findSinglePath(tnode, focalnode);
-					if (tpath!= null) {
+					if (tpath != null) {
 						if (shortn == null) {
 							shortn = tnode;
 						}
@@ -870,8 +870,8 @@ public class GraphImporter extends GraphBase{
 				Node metadatanode = null;
 				metadatanode = graphDb.createNode();
 				
-		// first (ugly) go at this. do we want new (shorter) names (keys)?
-		// if property does not exist, do we want 1) nothing, or 2) an empty property?
+		// first (ugly) go at this. find more concise way to do this.
+		// if property does not exist, do we want 1) nothing, or 2) an empty property? answer: the former.
 				if (jt.getObject("ot:studyPublicationReference") != null) {
 					System.out.println("Adding property 'ot:studyPublicationReference' for tree " + sourcename + ": " + jt.getObject("ot:studyPublicationReference"));
 					metadatanode.setProperty("ot:studyPublicationReference", jt.getObject("ot:studyPublicationReference"));
@@ -899,6 +899,9 @@ public class GraphImporter extends GraphBase{
 				if (jt.getObject("ot:studyId") != null) {
 					System.out.println("Adding property 'ot:studyId' for tree " + sourcename + ": " + jt.getObject("ot:studyId"));
 					metadatanode.setProperty("ot:studyId", jt.getObject("ot:studyId"));
+				} if (jt.getObject("ot:studyYear") != null) {
+					System.out.println("Adding property 'ot:studyTear' for tree " + sourcename + ": " + jt.getObject("ot:studyYear"));
+					metadatanode.setProperty("ot:studyYear", jt.getObject("ot:studyYear"));
 				} else {
 					System.out.println("Property 'ot:studyId' does not exist for tree " + sourcename);
 				}
@@ -1292,7 +1295,7 @@ public class GraphImporter extends GraphBase{
 						relidsfin[j] = finrels.get(j).getId();
 					}
 					for (j = 0; j < finrels.size(); j++) {
-						finrels.get(j).setProperty("inclusive_relids",relidsfin);
+						finrels.get(j).setProperty("inclusive_relids", relidsfin);
 					}
 
 					//connect the new ancestors to the original parents
@@ -1311,7 +1314,7 @@ public class GraphImporter extends GraphBase{
 						ArrayList<Relationship> new_rels = new ArrayList<Relationship>();
 						long [] oldrelids = (long [])toldone.getProperty("inclusive_relids");
 						ArrayList<Long> newrelids = new ArrayList<Long>();
-						for (j = 0; j < oldrelids.length; j++) {System.out.println("adding original rel: " + oldrelids[j]);newrelids.add(oldrelids[j]);}
+						for (j = 0; j < oldrelids.length; j++) {System.out.println("adding original rel: " + oldrelids[j]); newrelids.add(oldrelids[j]);}
 						/*for (Relationship toldrel: oldones) {
 							long oldid = toldrel.getId();
 							System.out.println("deleting the old bad rel: "+oldid);
@@ -1349,7 +1352,7 @@ public class GraphImporter extends GraphBase{
 						long [] finalnewrelids = new long[newrelids.size()];
 						System.out.print("newrelids: ");
 						for (j = 0; j < finalnewrelids.length; j++) {
-							System.out.print(" "+newrelids.get(j));
+							System.out.print(" " + newrelids.get(j));
 							finalnewrelids[j] = newrelids.get(j);
 						}
 						System.out.print("\n");
@@ -1372,12 +1375,12 @@ public class GraphImporter extends GraphBase{
 		try {
 //			Iterator<Relationship> itrel = tobedeleted.iterator();
 			for (Relationship itrel: tobedeleted) {
-				System.out.println("actually deleting: "+itrel);
+				System.out.println("actually deleting: " + itrel);
 //			while (itrel.hasNext()) {
 				try {
 					itrel.delete();
 //					itrel.next().delete();
-				} catch(org.neo4j.graphdb.NotFoundException f) {
+				} catch (org.neo4j.graphdb.NotFoundException f) {
 					System.out.println("seems " + f.getMessage());
 				}
 			}
