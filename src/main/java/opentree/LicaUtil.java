@@ -6,6 +6,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.*;
+import gnu.trove.set.hash.TLongHashSet;
+
 import opentree.GraphBase.RelTypes;
 
 import org.neo4j.graphdb.Direction;
@@ -101,6 +105,70 @@ public class LicaUtil {
 		return retaln;
 	}
 	
+	public static HashSet<Node> getAllLICAt4j(List<Node> nodeSet, TLongArrayList inIdSet, TLongArrayList fullIdSet) {
+		HashSet<Node> retaln = new HashSet<Node>();
+		Node firstNode = nodeSet.get(0);//should be the node with the fewest outgoing relationships
+		int fewestnumrel = 10000000;
+		//long start = System.currentTimeMillis();
+		for (int i = 0; i < nodeSet.size(); i++) {
+			int num = 0;
+			//only way to get number of relationships.
+			for (Relationship rel: nodeSet.get(i).getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
+				num++;
+			}
+		// exit on first node (if any) with only one relationship; same result, potentially fewer iterations
+			if (num == 1) {
+				firstNode = nodeSet.get(i);
+				break;
+			}
+			if (num < fewestnumrel) {
+				fewestnumrel = num;
+				firstNode = nodeSet.get(i);
+			}
+		}
+		//long elapsedTimeMillis = System.currentTimeMillis()-start;
+		//float elapsedTimeSec = elapsedTimeMillis/1000F;
+		//System.out.println("elapsed 1: "+elapsedTimeSec);
+		//remove everything but that which is in the outgroup
+		fullIdSet.removeAll(inIdSet);
+		
+		Node innode = firstNode;
+		//start = System.currentTimeMillis();
+		for ( Path pa : Traversal.description()
+			.breadthFirst()//was depthFirst
+			.relationships( RelTypes.MRCACHILDOF, Direction.OUTGOING )
+			.traverse( innode ) ) {
+			boolean going = true;
+			for (Node tnode: pa.nodes()) {
+				//as long as these are sorted we can do a faster comparison
+				//long [] dbnodei = (long []) tnode.getProperty("mrca");
+				//HashSet<Long> Ldbnodei = new HashSet<Long>();
+				//for(long temp:dbnodei) {Ldbnodei.add(temp);}
+				TLongArrayList Ldbnodei = new TLongArrayList((long[]) tnode.getProperty("mrca"));
+				//should look to apache commons primitives for a better solution to this
+				int beforesize = Ldbnodei.size();
+				Ldbnodei.removeAll(fullIdSet);
+				if (Ldbnodei.size() == beforesize) {
+					//this gets all, but we want to only include the exact if one exists
+					boolean containsall = Ldbnodei.containsAll(inIdSet);
+					if (containsall) {
+						retaln.add(tnode);
+						going = false;
+					}
+				} else {
+					going = false;
+				}
+				if (going == false) {
+					break;
+				}
+			}
+		}
+		//elapsedTimeMillis = System.currentTimeMillis()-start;
+		//elapsedTimeSec = elapsedTimeMillis/1000F;
+		//System.out.println("elapsed inloop: "+elapsedTimeSec);
+		return retaln;
+	}
+	
 	/**
 	 * This should find all the least inclusive common ancestors (LICA) ignoring 
 	 * the sampling of the outgroup or other sampling in the source tree. The idea
@@ -144,6 +212,54 @@ public class LicaUtil {
 				for (long temp:dbnodei) {
 					Ldbnodei.add(temp);
 				}
+				//should look to apache commons primitives for a better solution to this
+				//this gets all, but we want to only include the exact if one exists
+				boolean containsall = Ldbnodei.containsAll(inIdSet);
+				if (containsall && inIdSet.size() == Ldbnodei.size()) {
+					//NOT SURE IF WE SHOULD EMPTY THE LIST IF IT IS EXACT OR RETAIN ALL THE LICAS
+					//retaln.clear();
+					retaln.add(tnode);
+					going = false;
+				} else if (containsall) {
+					retaln.add(tnode);
+					going = false;
+				}
+				if (going == false) {
+					break;
+				}
+			}
+		}
+		return retaln;
+	}
+	
+	public static HashSet<Node> getSuperLICAt4j(List<Node> nodeSet, TLongArrayList inIdSet) {
+		HashSet<Node> retaln = new HashSet<Node>();
+		Node firstNode = nodeSet.get(0);//should be the node with the fewest outgoing relationships
+		int fewestnumrel = 10000000;
+		for (int i = 0; i < nodeSet.size(); i++) {
+			int num = 0;
+			//only way to get number of relationships
+			for (Relationship rel: nodeSet.get(i).getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
+				num++;
+			}
+		// exit on first node (if any) with only one relationship; same result, potentially fewer iterations
+			if (num == 1) {
+				firstNode = nodeSet.get(i);
+				break;
+			}
+			if (num < fewestnumrel) {
+				fewestnumrel = num;
+				firstNode = nodeSet.get(i);
+			}
+		}
+		Node innode = firstNode;
+		for ( Path pa : Traversal.description()
+			.depthFirst()
+			.relationships( RelTypes.MRCACHILDOF, Direction.OUTGOING )
+			.traverse( innode ) ) {
+			boolean going = true;
+			for (Node tnode: pa.nodes()) {
+				TLongSet Ldbnodei = new TLongHashSet((long[]) tnode.getProperty("mrca"));
 				//should look to apache commons primitives for a better solution to this
 				//this gets all, but we want to only include the exact if one exists
 				boolean containsall = Ldbnodei.containsAll(inIdSet);

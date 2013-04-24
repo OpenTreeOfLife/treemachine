@@ -1,5 +1,7 @@
 package opentree;
 
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.*;
 
 import java.lang.StringBuffer;
@@ -613,7 +615,8 @@ public class GraphImporter extends GraphBase{
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
 		// same as above but added for nested nodes, so more comprehensive and 
 		//		used just for searching. the others are used for storage
-		HashSet<Long> ndidssearch = new HashSet<Long>();
+		//HashSet<Long> ndidssearch = new HashSet<Long>();
+		TLongHashSet ndidssearch = new TLongHashSet();
 		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
@@ -723,22 +726,25 @@ public class GraphImporter extends GraphBase{
 				}
 			}
 			// get all the childids even if they aren't in the tree, this is the postorder part
-			HashSet<Long> childndids = new HashSet<Long> (); 
-			
+			//HashSet<Long> childndids = new HashSet<Long> (); 
+			TLongArrayList childndids = new TLongArrayList();
 			for (int i = 0; i < inode.getChildCount(); i++) {
 				Node [] dbnodesob = (Node [])inode.getChild(i).getObject("dbnodes"); 
 				for (int k = 0; k < dbnodesob.length; k++) {
 					long [] mrcas = ((long[])dbnodesob[k].getProperty("mrca"));
-					for (int j = 0; j < mrcas.length; j++) {
-						if (childndids.contains(mrcas[j]) == false) {
-							childndids.add(mrcas[j]);
-						}
-					}
+					childndids.addAll(mrcas);
+					//for (int j = 0; j < mrcas.length; j++) {
+					//	if (childndids.contains(mrcas[j]) == false) {
+					//		childndids.add(mrcas[j]);
+					//	}
+					//}
 				}
 			}
 			//			_LOG.trace("finished names");
-			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
-			HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
+			//HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
+			TLongArrayList rootids = new TLongArrayList((TLongHashSet) root.getObject("ndidssearch"));
+			//HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
+			HashSet<Node> ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, rootids);
 			
 			//			_LOG.trace("ancestor "+ancestor);
 			// _LOG.trace(ancestor.getProperty("name"));
@@ -748,9 +754,9 @@ public class GraphImporter extends GraphBase{
 				for (int i = 0; i < hit_nodes.size(); i++) {
 					ret[i] = hit_nodes.get(i).getId();
 				}
-				rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				long[] ret2 = new long[rootids.size()];
-				Iterator<Long> chl2 = rootids.iterator();
+				HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				long[] ret2 = new long[trootids.size()];
+				Iterator<Long> chl2 = trootids.iterator();
 				int i = 0;
 				while (chl2.hasNext()) {
 					ret2[i] = chl2.next().longValue();
@@ -763,7 +769,8 @@ public class GraphImporter extends GraphBase{
 				// make a node
 				// get the super lica, or what would be the licas if we didn't have the other taxa in the tree
 				// this is used to connect the new nodes to their licas for easier traversals
-				HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
+				//HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
+				HashSet<Node> superlica = LicaUtil.getSuperLICAt4j(hit_nodes_search, childndids);
 				// steps
 				// 1. create a node
 				// 2. store the mrcas
@@ -772,13 +779,14 @@ public class GraphImporter extends GraphBase{
 				//					inode.assocObject("dbnode",dbnode);
 				Node [] nar = {dbnode};
 				inode.assocObject("dbnodes",nar);
-				long[] ret = new long[childndids.size()];
-				Iterator<Long> chl = childndids.iterator();
-				int i = 0;
-				while (chl.hasNext()) {
-					ret[i] = chl.next().longValue();
-					i++;
-				}
+				//long[] ret = new long[childndids.size()];
+				long[] ret = childndids.toArray();
+				//Iterator<Long> chl = childndids.iterator();
+				//int i = 0;
+				//while (chl.hasNext()) {
+				//	ret[i] = chl.next().longValue();
+				//	i++;
+				//}
 				Arrays.sort(ret);
 				dbnode.setProperty("mrca", ret);
 				long[] rete = new long[hit_nodes.size()];
@@ -787,10 +795,10 @@ public class GraphImporter extends GraphBase{
 				}
 				Arrays.sort(rete);
 				inode.assocObject("exclusive_mrca",rete);
-				rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				long[] ret2 = new long[rootids.size()];
-				Iterator<Long> chl2 = rootids.iterator();
-				i = 0;
+				HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				long[] ret2 = new long[trootids.size()];
+				Iterator<Long> chl2 = trootids.iterator();
+				int i = 0;
 				while (chl2.hasNext()) {
 					ret2[i] = chl2.next().longValue();
 					i++;
