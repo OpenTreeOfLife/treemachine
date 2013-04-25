@@ -135,7 +135,7 @@ public class LicaUtil {
 		Node innode = firstNode;
 		//start = System.currentTimeMillis();
 		for ( Path pa : Traversal.description()
-			.breadthFirst()//was depthFirst
+			.depthFirst()
 			.relationships( RelTypes.MRCACHILDOF, Direction.OUTGOING )
 			.traverse( innode ) ) {
 			boolean going = true;
