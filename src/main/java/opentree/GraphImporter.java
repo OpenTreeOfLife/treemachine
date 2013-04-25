@@ -263,6 +263,10 @@ public class GraphImporter extends GraphBase{
 							}
 							if (pid.length() > 0) {
 								parents.put(tid, pid);
+							}else{//root node
+								Node mdnode = graphDb.createNode();
+								mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
+								sourceMetaIndex.add(mdnode, "source", "taxonomy");
 							}
 							dbnodes.put(tid, tnode);
 							// synonym processing
@@ -324,6 +328,10 @@ public class GraphImporter extends GraphBase{
 					}
 					if (pid.length() > 0) {
 						parents.put(tid, pid);
+					}else{//root node
+						Node mdnode = graphDb.createNode();
+						mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
+						sourceMetaIndex.add(mdnode, "source", "taxonomy");
 					}
 					dbnodes.put(tid, tnode);
 					// synonym processing
