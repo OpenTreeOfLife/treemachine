@@ -15,7 +15,7 @@ import java.util.StringTokenizer;
 
 import opentree.TaxonNotFoundException;
 import opentree.TreeIngestException;
-//import opentree.GraphBase.RelTypes;
+//import opentree.RelTypes;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;

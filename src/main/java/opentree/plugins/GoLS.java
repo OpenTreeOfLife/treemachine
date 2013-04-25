@@ -55,12 +55,22 @@ public class GoLS extends ServerPlugin {
 			@Parameter(name = "rootOttolID", optional = true) String rootOttolID) throws OttolIdNotFoundException {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
-		boolean useTaxonomy = true;
 		
 		if (rootOttolID == null || rootOttolID.length() == 0)
 			rootOttolID = (String) ge.findGraphNodeByName("life").getProperty("tax_uid");
 		
-		if (ge.synthesizeAndStoreBranches(rootOttolID, useTaxonomy)) {
+    	// TODO: need to build the ordered list of studies, refer to the study list on the dev server to create this
+		LinkedList<String> preferredSources = new LinkedList<String>();
+		preferredSources.add("15");
+		preferredSources.add("taxonomy");
+		
+        // find the start node
+        Node firstNode = ge.findGraphTaxNodeByUID(rootOttolID);
+        if (firstNode == null) {
+            throw new opentree.OttolIdNotFoundException(rootOttolID);
+        }
+		
+		if (ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources)) {
 			return "Success. Synthesized relationships stored for ottolid=" + rootOttolID;
 		} else {
 			return "Failure. Nothing stored for ottolid=" + rootOttolID;

@@ -20,7 +20,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.MediaType;
 
-import opentree.GraphBase.RelTypes;
+import opentree.RelTypes;
 
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;

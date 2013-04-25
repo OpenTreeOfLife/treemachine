@@ -14,7 +14,9 @@ import java.util.*;
 public class GeneralUtils {
 
     // all common non-alphanumeric chars except "_" and "-", for use when cleaning strings
-    public final static String badchars = "`!@#$%^&*()+=;':\",.<>/\\?|\b\t\n\f\r";
+//    public final static String badchars = "`!@#$%^&*()+=;':\",.<>/\\?|\b\t\n\f\r";
+
+    public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
 
     public static int sum_ints(List<Integer> list){
 		if(list==null || list.size()<1)
@@ -28,15 +30,19 @@ public class GeneralUtils {
 	}
 
 	/**
-	 * Replaces non-alphanumeric characters (excluding "_" and "-") in `dirtyName` with "_" and returns the cleaned name. Currently slow and crappy, should be updated to use regex and just do a single pass over the string.
+	 * Replaces non-alphanumeric characters (excluding "_" and "-") in `dirtyName` with "_" and returns the cleaned name.
+	 * Currently slow and crappy, should be updated to use regex and just do a single pass over the string.
+	 * 
 	 * @param dirtyName
 	 * @return cleaned name
 	 */
 	public static String cleanName(String dirtyName) {
-	    String cleanName = dirtyName;
-	    for (char bad : badchars.toCharArray()) {
-	        cleanName.replace(bad, '_');
-	    }
+	    String cleanName = dirtyName.replaceAll(offendingChars, "_");
+//	    for (char bad : badchars.toCharArray()) {
+//	        cleanName.replace(bad, '_');
+//	    }
+	    
+	    
 	    return cleanName;
 	}
 }

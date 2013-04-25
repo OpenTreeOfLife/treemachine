@@ -2,7 +2,7 @@ package opentree;
 
 import java.util.HashSet;
 
-import opentree.GraphBase.RelTypes;
+import opentree.RelTypes;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;

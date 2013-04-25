@@ -22,7 +22,7 @@ import java.util.HashSet;
 //import java.util.Iterator;
 import java.util.Stack;
 
-//import opentree.GraphBase.RelTypes;
+//import opentree.RelTypes;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphdb.GraphDatabaseService;

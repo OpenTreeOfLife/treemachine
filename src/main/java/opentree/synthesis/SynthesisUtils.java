@@ -9,6 +9,7 @@ import java.util.Iterator;
 
 import opentree.TaxonNotFoundException;
 import opentree.GraphBase;
+import opentree.RelTypes;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;

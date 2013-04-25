@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -18,6 +19,8 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 //import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.index.Index;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
@@ -225,7 +228,12 @@ public class MainRunner {
 		return 0;
 	}
 	
-	/// @returns 0 for success, 1 for poorly formed command
+	/**
+	 * 
+	 * @param args
+	 * @return 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
+	 * @throws TaxonNotFoundException
+	 */
 	public int graphExplorerParser(String [] args)
 			throws TaxonNotFoundException {
 		GraphExplorer gi = null;
@@ -247,8 +255,8 @@ public class MainRunner {
 			return 0;
 			
 		} else if (args[0].compareTo("fulltree") == 0) {
-			String usageString = "arguments should be: name graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
-			if (args.length != 5) {
+			String usageString = "arguments should be: name graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F] sinklostchildren[T|F]";
+			if (args.length != 6) {
 				System.out.println(usageString);
 				return 1;
 			}
@@ -257,7 +265,8 @@ public class MainRunner {
 			String graphname = args[2];
 			String _useTaxonomy = args[3];
 			String _useBranchAndBound = args[4];
-			
+			String _sinkLostChildren = args[5];
+
 			boolean useTaxonomy = false;
 			if (_useTaxonomy.equals("T")) {
 				useTaxonomy = true;
@@ -266,7 +275,7 @@ public class MainRunner {
 				return 1;
 			}
 
-			boolean useBranchAndBound= false;
+			boolean useBranchAndBound = false;
 			if (_useBranchAndBound.equals("T")) {
 				useBranchAndBound = true;
 			} else if (!(_useBranchAndBound.equals("F"))) {
@@ -274,17 +283,45 @@ public class MainRunner {
 				return 1;
 			}
 
-			boolean reportBranchLength = true;
-			
-			gi = new GraphExplorer(graphname);
-			try {
-				gi.constructNewickTieBreakerDEFAULT(name, useTaxonomy, useBranchAndBound, reportBranchLength);
-			} finally {
-				gi.shutdownDB();
+			boolean sinkLostChildren = false;
+			if (_sinkLostChildren.equals("T")) {
+				sinkLostChildren = true;
+			} else if (!(_sinkLostChildren.equals("F"))) {
+				System.out.println(usageString);
+				return 1;
 			}
-			return 0;
+
+			gi = new GraphExplorer(graphname);
+			gi.setSinkLostChildren(sinkLostChildren);
+			
+	        // find the start node
+	        Node firstNode = gi.findGraphNodeByName(name);
+	        Long nodeId = null;
+	        if (firstNode == null) {
+	            System.out.println("name not found");
+	            return -1;
+	        } else {
+	        	nodeId = firstNode.getId();
+	        }
+	        JadeTree synthTree = gi.graphSynthesis(firstNode, useTaxonomy, useBranchAndBound);
+	        gi.shutdownDB();
+
+	        // write newick tree to a file
+	        PrintWriter outFile;
+	        try {
+	            outFile = new PrintWriter(new FileWriter(name + ".tre"));
+	            boolean reportBranchLength = false;
+	            outFile.write(synthTree.getRoot().getNewick(reportBranchLength));
+	            outFile.write(";\n");
+	            outFile.close();
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	        }
+	        
+	        return 0;
+
 		} else if (args[0].compareTo("fulltree_sources") == 0) {
-			String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] usebranchandbound[T|F]";
+			String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] sinklostchildren[T|F]";
 			if (args.length != 6) {
 				System.out.println(usageString);
 				return 1;
@@ -294,7 +331,7 @@ public class MainRunner {
 			String sourcenames = args[2];
 			String graphname = args[3];
 			String _useTaxonomy = args[4];
-			String _useBranchAndBound = args[5];
+			String _sinkLostChildren = args[5];
 			
 			String [] sources = sourcenames.split(",");
 			System.out.println("Sources (in order) that will be used to break conflicts");
@@ -309,22 +346,39 @@ public class MainRunner {
 				System.out.println(usageString);
 				return 1;
 			}
-			
-			boolean useBranchAndBound= false;
-			if (_useBranchAndBound.equals("T")) {
-				useBranchAndBound = true;
-			} else if (!(_useBranchAndBound.equals("F"))) {
+
+			boolean sinkLostChildren = false;
+			if (_sinkLostChildren.equals("T")) {
+				sinkLostChildren = true;
+			} else if (!(_sinkLostChildren.equals("F"))) {
 				System.out.println(usageString);
 				return 1;
 			}
-			
+
 			gi = new GraphExplorer(graphname);
-			try {
-				gi.constructNewickTieBreakerSOURCE(name, sources, useTaxonomy, useBranchAndBound);
-			} finally {
-				gi.shutdownDB();
-			}
+			gi.setSinkLostChildren(sinkLostChildren);
+			
+			Node firstNode = gi.findGraphNodeByName(name);
+	        if (firstNode == null) {
+	            System.out.println("name not found");
+	            return -1;
+	        }
+		
+	        JadeTree synthTree = gi.sourceSynthesis(firstNode, sources, useTaxonomy);
+			gi.shutdownDB();
+
+	        PrintWriter outFile;
+	        try {
+	            outFile = new PrintWriter(new FileWriter(name + ".tre"));
+	            outFile.write(synthTree.getRoot().getNewick(true));
+	            outFile.write(";\n");
+	            outFile.close();
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	        }
+			
 			return 0;
+
 		} else {
 			System.err.println("ERROR: not a known command");
 			return 2;
@@ -777,7 +831,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int synthesizeDefault(String [] args) throws OttolIdNotFoundException {
+	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException {
 		if (args.length != 3) {
 			System.out.println("arguments should be rootOTToLid graphdbfolder");
 			return 1;
@@ -786,11 +840,20 @@ public class MainRunner {
 		String graphname = args[2];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		
-		boolean useTaxonomy = true;
-
+		// build the list of preferred sources, this should probably be done externally
+		LinkedList<String> preferredSources = new LinkedList<String>();
+		preferredSources.add("15");
+		preferredSources.add("taxonomy");
+		
+        // find the start node
+        Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+        if (firstNode == null) {
+            throw new opentree.OttolIdNotFoundException(ottolId);
+        }
+		
 		boolean success = false;
 		try {
-			success = ge.synthesizeAndStoreBranches(ottolId, useTaxonomy);
+			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources);
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
@@ -804,7 +867,7 @@ public class MainRunner {
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractStoredSyntheticTree(String [] args) throws OttolIdNotFoundException {
+	public int extractDraftTree(String [] args) throws OttolIdNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be rootOTToLid outFileName graphdbfolder");
 			return 1;
@@ -814,9 +877,15 @@ public class MainRunner {
 		String graphname = args[3];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		
+		// find the start node
+        Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+        if (firstNode == null) {
+            throw new opentree.OttolIdNotFoundException(ottolId);
+        }
+		
 		JadeTree synthTree = null;
 		try {
-			synthTree = ge.extractStoredSyntheticTree(ottolId);
+			synthTree = ge.extractDraftTree(firstNode, ge.DRAFTTREENAME);
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
 		}
@@ -833,25 +902,41 @@ public class MainRunner {
 			e.printStackTrace();
 		} finally {
 			outFile.close();
-		}
-		
-		return 0;
-		
-/*		boolean success = false;
-		try {
-			success = ge.synthesizeAndStoreBranches(ottolId, useTaxonomy);
-		} catch (OttolIdNotFoundException oex) {
-			oex.printStackTrace();
-		} finally {
 			ge.shutdownDB();
 		}
 		
-		if (success)
-			return 0;
-		else
-			return -1; */
+		return 0;
 	}
 
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
+	public int addTaxonomyMetadataNodeToIndex(String [] args) {
+		if (args.length != 3) {
+			System.out.println("arguments should be metadatanodeid graphdbfolder");
+			return 1;
+		}
+
+		String metadataNodeIdStr = args[1];
+		String graphname = args[2];
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(new EmbeddedGraphDatabase(graphname));
+		Index<Node> metadataNodeIndex = graphDb.getNodeIndex("sourceMetaNodes");
+		
+		Node metadataNode = graphDb.getNodeById(Long.valueOf(metadataNodeIdStr));
+		
+		Transaction tx = graphDb.beginTx();
+		
+		try {
+			metadataNodeIndex.add(metadataNode, "source", "taxonomy");
+			tx.success();
+		} catch (Exception ex) {
+			tx.failure();
+			ex.printStackTrace();
+		} finally {
+			tx.finish();
+			graphDb.shutdownDb();
+		}
+		
+		return 0;
+	}
 	
 	
 	public int pgtesting(String [] args){
@@ -942,8 +1027,8 @@ public class MainRunner {
 
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
-		System.out.println("\tfulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> (constructs a newick file from a particular node)");
-		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> (constructs a newick file from a particular node, break ties preferring sources)");
+		System.out.println("\tfulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F] (constructs a newick file from a particular node)");
+		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (constructs a newick file from a particular node, break ties preferring sources)");
 		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
 		System.out.println("\tmrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
 		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> <usetaxonomy[T|F]> (constructs a graphml file of the region starting from the name)");
@@ -966,9 +1051,12 @@ public class MainRunner {
 		System.out.println("\tlabeltips <filename.tre> <filename>\n");
 
 		System.out.println("---synthesis functions---");
-		System.out.println("\tdefaultsynthstorerels <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using branch and bound optimization and store the synthesized relationships)");
-		System.out.println("\textractdefaultsynthtree <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
+		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
+		System.out.println("\textractdrafttree <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
 				
+		System.out.println("---temporary functions---");
+		System.out.println("\taddtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");
+
 		System.out.println("---server functions---");
 		System.out.println("\tgetupdatedlist\n");
 	}
@@ -1036,10 +1124,17 @@ public class MainRunner {
 					|| command.compareTo("diversity") == 0
 					|| command.compareTo("labeltips") == 0) {
 				cmdReturnCode = mr.treeUtils(args);
-			} else if (command.compareTo("defaultsynthstorerels") == 0) {
-				cmdReturnCode = mr.synthesizeDefault(args);
-			} else if (command.compareTo("extractdefaultsynthtree") == 0) {
-				cmdReturnCode = mr.extractStoredSyntheticTree(args);
+			} else if (command.compareTo("synthesizedrafttree") == 0) {
+				cmdReturnCode = mr.synthesizeDraftTree(args);
+			} else if (command.compareTo("extractdrafttree") == 0) {
+				cmdReturnCode = mr.extractDraftTree(args);
+				
+			
+			// temporary
+			} else if (command.compareTo("addtaxonomymetadatanodetoindex") == 0) {
+				cmdReturnCode = mr.addTaxonomyMetadataNodeToIndex(args);
+
+			
 			} else if (command.compareTo("getupdatedlist") == 0) {
 				cmdReturnCode = mr.pgtesting(args);
 			} else {

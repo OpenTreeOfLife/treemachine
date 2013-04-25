@@ -14,15 +14,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Stack;
 
-//import opentree.GraphBase.RelTypes;
-import opentree.synthesis.TreeMakingBandB;
-import opentree.synthesis.TreeMakingExhaustivePairs;
+import opentree.synthesis.*;
 import opentree.TreeNotFoundException;
 import opentree.FilterByPropertyRelIterator;
 
@@ -34,60 +30,30 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.index.Index;
-//import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.graphdb.traversal.Traverser;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
-import org.neo4j.kernel.Uniqueness;
-//import org.apache.log4j.Logger;
+
+
 
 public class GraphExplorer extends GraphBase {
     //static Logger _LOG = Logger.getLogger(GraphExplorer.class);
     private SpeciesEvaluator se;
     private ChildNumberEvaluator cne;
     private TaxaListEvaluator tle;
-    
-    private static final TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.SYNTHCHILDOF, Direction.INCOMING).evaluator(Evaluators.toDepth(1));
-
-    /* -------------------- begin info: collapsing children based on taxonomy ----------------------- */
-
-    /*
-     * settings and variables below are related to features controlling the heuristic placement of external taxa that would otherwise not be observed in
-     * synthetic phylogenies.
-     * 
-     * Currently there are two options: "strict" and "relaxed".
-     * 
-     * STRICT: Activating the strict option will assign external descendants that are lost during conflict tie-breaking (i.e. "lost children") as children of
-     * the node where the tie-breaking event occurred (i.e. they are "sunk" to that level in the tree). This will result in very conservative (in this case
-     * meaning deep and imprecise) assignment of "lost child" taxa.
-     * 
-     * RELAXED: External descendants of each node in the taxonomy that are not present in the synthesized tree will be sunk into the MRCA (in the synthesized
-     * tree) of all the present external descendants of that taxonomy node. This essentially assumes that in the absence of phylogenetic information placing a
-     * given taxon in a tree, we can use taxonomic information as an estimate of its phylogenetic position. May or may not be reasonable, depending on the use
-     * of the tree and the phylogenetic accuracy of the taxonomic classification. Certainly results in more precise placement of "lost child" taxa (at the
-     * potential expense of correct placement in some cases.)
-     */
-
-    // used when sinking children using the strict setting
+    private boolean sinkLostChildren;
     private HashSet<Long> knownIdsInTree;
-
-    // only one of these should be turned on at once
-    private static final boolean sinkLostChildrenStrict = false;
-    private static final boolean sinkLostChildrenRelaxed = true;
-
-    /* --------------------- end info: collapsing children based on taxonomy ---------------------- */
 
     public GraphExplorer(String graphname) {
         graphDb = new GraphDatabaseAgent(graphname);
+        setDefaultParameters();
         finishInitialization();
     }
 
     public GraphExplorer(GraphDatabaseService gdb) {
         graphDb = new GraphDatabaseAgent(gdb);
+        setDefaultParameters();
         finishInitialization();
     }
 
@@ -104,6 +70,43 @@ public class GraphExplorer extends GraphBase {
     	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns"); //tax_uid is the key, this points to the synonymn node
     }
 
+    private void setDefaultParameters() {
+    	sinkLostChildren = false;
+    }
+    
+    /* -------------------- DEPRECATED info: collapsing children based on graph decisions ----------------------- */
+
+    //// THE STRICT SETTING HAS BEEN DEPRECATED. Sinking lost children is now done using the taxonomy.
+    
+    /* STRICT: Activating the strict option will assign external descendants that are lost during conflict tie-breaking (i.e. "lost children") as children of
+     * the node where the tie-breaking event occurred (i.e. they are "sunk" to that level in the tree). This will result in very conservative (in this case
+     * meaning deep and imprecise) assignment of "lost child" taxa.
+     */
+  
+    /* --------------------- end info: collapsing children based on taxonomy ---------------------- */
+    
+    /** 
+     * Set the boolean whether or not to re-insert leaves into synthetic trees which were lost based on decisions made during synthesis.
+     * If this is true, then taxonomy will be used to inform taxon placement in synthetic trees when no non-conflicting phylogenetic
+     * information exists to do so. This results in more taxon-inclusive synthesis trees at the potential expense of correct taxon placement.
+     * 
+     * @param sinkLostChildren
+     */
+    public void setSinkLostChildren(boolean sinkLostChildren) {
+    	this.sinkLostChildren = sinkLostChildren;
+    	if (sinkLostChildren)
+    		this.knownIdsInTree = new HashSet<Long>();
+    }
+
+    /**
+     * Just check the status of the sinkLostChildren option.
+     * 
+     * @return sinkLostChildren
+     */
+    public boolean sinkLostChildrenActive() {
+    	return sinkLostChildren;
+    }
+    
     public void printLicaNames(String nodeid) {
         Node gn = graphDb.getNodeById(Long.valueOf(nodeid));
         if (gn == null) {
@@ -553,92 +556,99 @@ public class GraphExplorer extends GraphBase {
         System.out.println(tree.getRoot().getNewick(false) + ";");
     }
 
+    // ===================================== draft tree synthesis methods ======================================
+    
     /**
-     * Constructs a newick string containing a synthetic tree, breaking ties based on branch and bound, support, or other factors
-     * 
-     * @param taxname
-     */
-    public void constructNewickTieBreakerDEFAULT(String taxname, boolean useTaxonomy, boolean useBranchAndBound, boolean reportBranchLength) {
-
-    	boolean recordSyntheticRels = false;
-
-        // find the start node
-        Node firstNode = this.findGraphNodeByName(taxname);
-        Long nodeId = null;
-        if (firstNode == null) {
-            System.out.println("name not found");
-            return;
-        } else {
-        	nodeId = firstNode.getId();
-        }
-        
-        JadeTree tree = defaultSynthesis(nodeId, useTaxonomy, useBranchAndBound, recordSyntheticRels);
-
-        // write newick tree to a file
-        PrintWriter outFile;
-        try {
-            outFile = new PrintWriter(new FileWriter(taxname + ".tre"));
-            outFile.write(tree.getRoot().getNewick(reportBranchLength));
-            outFile.write(";\n");
-            outFile.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        
-    }
-
-    /**
-     * Just synthesize using the default branch and bound query and store the branches
+     * The synthesis method for creating the draft tree. Uses the refactored synthesis classes. This will store the synthesized
+     * topology as SYNTHCHILDOF relationships in the graph.
      * 
      * @param ottolId
      * @throws OttolIdNotFoundException 
      */
-    public boolean synthesizeAndStoreBranches(String ottolId, boolean useTaxonomy) throws OttolIdNotFoundException {
+    public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds) throws OttolIdNotFoundException {
+        
+        // build the list of ids, have to use generic objects
+        ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
+        for (String sourceId : preferredSourceIds) {
+        	
+        	System.out.println("preferring id: " + sourceId);
+        	
+        	sourceIdPriorityList.add((Object) sourceId);
+        }
+                
+        // define the synthesis protocol
+        RelationshipEvaluator draftSynthesisMethod = new RelationshipEvaluator();
 
-    	boolean recordSyntheticRels = true;
-    	boolean useBranchAndBound = true;
+        // set ranking criteria
+        RelationshipRanker rs = new RelationshipRanker();
+        rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDYID, sourceIdPriorityList, sourceMetaIndex));
+        rs.addCriterion(new SourcePropertyRankingCriterion(SourceProperty.YEAR, RankingOrder.DECREASING, sourceMetaIndex));
+        draftSynthesisMethod.setRanker(rs);
 
-        // find the start node
-        Node firstNode = this.findGraphTaxNodeByUID(ottolId);
-        Long nodeId = null;
-        if (firstNode == null) {
-            throw new opentree.OttolIdNotFoundException(ottolId);
-        } else {
-        	nodeId = firstNode.getId();
+        // set conflict resolution criteria
+        RelationshipConflictResolver rcr = new RelationshipConflictResolver(new AcyclicRankPriorityResolution());
+        draftSynthesisMethod.setConflictResolver(rcr);
+        
+        // set empty parameters for initial recursion
+        Node originalParent = null;
+        
+        Transaction tx = graphDb.beginTx();
+        
+        try {
+        	draftSynthesisRecur(startNode, originalParent, draftSynthesisMethod, DRAFTTREENAME);
+        	tx.success();
+
+        } catch (Exception ex) {
+        	tx.failure();
+        	ex.printStackTrace();
+
+        } finally {
+        	tx.finish();
         }
         
-        defaultSynthesis(nodeId, useTaxonomy, useBranchAndBound, recordSyntheticRels);
+        // TODO: sink lost children into the graph using SYNTHCHILDOF relationships
+        // have to determine the point in the taxonomy to start for adding names...
         
         return true;
         
     }
     
     /**
-     * Constructs a JadeTree object containing a synthetic tree, breaking ties based on branch and bound, support, or other factors
-     * 
-     * @param nodeId
+     * This is the preorder function for constructing the draft synthesis tree.
+     *  
+     * @param curNode
+     * @param parentNode
+     * @param sourcesArray
+     * @param incomingRel
+     * @return
      */
-    public JadeTree defaultSynthesis(Long nodeId, boolean useTaxonomy, boolean useBranchAndBound, boolean recordSyntheticRels) {
+    private void draftSynthesisRecur(Node curNode, Node parentNode, RelationshipEvaluator re, String synthTreeName) {
 
-    	Node rootNode = graphDb.getNodeById(nodeId);
+    	// testing
+//		System.out.println("childnode: " + curNode.getId());
+//    	if (parentNode != null) {
+//    		System.out.println("parent node: " + parentNode.getId());
+//    	}
 
-    	Transaction tx = null;
-    	if (recordSyntheticRels) {
-    		tx = graphDb.beginTx();
+    	if (curNode.hasProperty("name")) {
+    		System.out.println(curNode.getProperty("name"));    		
     	}
-
-    	// get the tree structure and store it in a JadeNode object
-        JadeNode root = defaultSynthesisRecur(rootNode, null, null, null, "", useBranchAndBound, useTaxonomy, recordSyntheticRels);
-
-        if (tx != null) {
-        	tx.success();
-        	tx.finish();
-        }
+    	
+        // store the relationship
+    	if (parentNode != null) {
+    		// testing
+//    		System.out.println("recording synthetic relationship");
+    		curNode.createRelationshipTo(parentNode, RelTypes.SYNTHCHILDOF).setProperty("name", synthTreeName);
+    	}
         
-        // return the tree wrapped in a JadeTree object
-        return new JadeTree(root);
+        Iterable<Relationship> relsToFollow = re.evaluateBestPaths(curNode);
+        
+        // continue recursion
+        for (Relationship rel : relsToFollow) {
+            draftSynthesisRecur(rel.getStartNode(), curNode, re, synthTreeName);
+        }
     }
-
+    
     /**
      * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
      * External function that uses the ottol id to find the root node in the db.
@@ -646,74 +656,398 @@ public class GraphExplorer extends GraphBase {
      * @param nodeId
      * @throws OttolIdNotFoundException 
      */
-    public JadeTree extractStoredSyntheticTree(String ottolId) throws OttolIdNotFoundException {
+    public JadeTree extractDraftTree(Node startNode, String synthTreeName) throws OttolIdNotFoundException {
 
-        // find the start node
-        Node firstNode = this.findGraphTaxNodeByUID(ottolId);
-        if (firstNode == null) {
-            throw new opentree.OttolIdNotFoundException(ottolId);
-        }
+        // empty parameters for initial recursion
+        JadeNode parentJadeNode = null;
+        Relationship incomingRel = null;
         
-        return new JadeTree(extractStoredSyntheticTreeRecur(firstNode, null));
+        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
     }
     
+    // ====================================== extracting Synthetic trees from the db ==========================================
+
     /**
-     * Recursively creates a JadeNode hierarchy containing the structure defined by the SYNTHCHILDOF relationships present below a given node,
+     * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
      * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
      * 
      * @param nodeId
      */
-    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode) {
+    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName) {
     	
         JadeNode curNode = new JadeNode();
         
+    	// testing
+//		System.out.println("child graph node: " + curGraphNode.getId());
+//    	if (parentJadeNode != null) {
+//    		System.out.println("parent jade node: " + parentJadeNode.toString());
+//    	}
+        
         if (curGraphNode.hasProperty("name")) {
-            curNode.setName((String) curGraphNode.getProperty("name"));
-            curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+            curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+//            curNode.setName(GeneralUtils.cleanName(curNode.getName()));
         }
 
         // add the current node to the tree we're building
         if (parentJadeNode != null) {
         	parentJadeNode.addChild(curNode);
-            if (relcoming.hasProperty("branch_length")) {
-                newJadeNode.setBL((Double) relcoming.getProperty("branch_length"));
+            if (incomingRel.hasProperty("branch_length")) {
+                curNode.setBL((Double) incomingRel.getProperty("branch_length"));
             }
         }
         
         // get the immediate synth children of the current node
-        LinkedList<Node> synthChildren = new LinkedList<Node>();
+        LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
         for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)) {
-            synthChildren.add(synthChildRel.getStartNode());
+        	
+        	// TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
+        	if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name"))))	{
+        		// currently just filtering on name
+        		synthChildRels.add(synthChildRel);
+        	}
         }
 
         // recursively add the children to the tree we're building
-        for (Node synthChild : synthChildren) {
-        	extractStoredSyntheticTreeRecur(synthChild, curNode);
+        for (Relationship synthChildRel : synthChildRels) {
+        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
         }
         
         return curNode;
 
     }
     
+    // =============================== Synthesis methods using source metadata decisions ONLY ===============================
+    
     /**
-     * This is the preorder function for constructing a newick tree based only on graph decisions. If the resulting decisions do not contain all of the taxa,
-     * either a branch and bound search or exhaustive pair search will attempt to find a better (more complete) scenario.
+     * Constructs a newick tree based on the sources. There are currently no other criteria considered in this particular function.
      * 
-     * TODO: add more criteria
+     * @param taxName
+     * @param sourcesArray
+     */
+    public JadeTree sourceSynthesis(Node startNode, String[] sourcesArray, boolean useTaxonomy) {
+        
+    	// initial (empty) parameters for recursion
+    	JadeNode parentJadeNode = null;
+    	Relationship incomingRel = null;
+    	
+        JadeNode root = sourceSynthesisRecur(startNode, parentJadeNode, sourcesArray, incomingRel, useTaxonomy);
+        JadeTree tree = new JadeTree(root);
+        
+        if (sinkLostChildren) {
+
+        	// TODO: find the taxonomy base node to use for sinking children?
+
+        	String taxName = null;
+
+        	addMissingChildrenToJadeTreeRelaxed(tree, taxName);
+        }
+        
+        return new JadeTree(root);
+
+    }
+
+    /**
+     * This is the preorder function for constructing newick trees given a list of sources. This ONLY considers the sources, not
+     * the properties of the graph (i.e. it does not use branch and bound or exhaustive search to improve taxon coverage in the
+     * synthetic tree.
+     * 
+     * TODO: This should be merged with the graph-based synthesis into a more robust "synthesis library"
      * 
      * @param curGraphNode
      * @param parentJadeNode
-     * @param relcoming
-     * @param nodename
-     * @param bandb
+     * @param sourcesArray
+     * @param incomingRel
      * @return
      */
+    private JadeNode sourceSynthesisRecur(Node curGraphNode, JadeNode parentJadeNode, String[] sourcesArray, Relationship incomingRel, boolean useTaxonomy) {
+
+        boolean ret = false;
+        JadeNode newNode = new JadeNode();
+
+        if (curGraphNode.hasProperty("name")) {
+            newNode.setName((String) curGraphNode.getProperty("name"));
+            newNode.setName(GeneralUtils.cleanName(newNode.getName()));
+        }
+
+        if (parentJadeNode == null) {
+            // this is the root of this tree, so set the flag to return it
+            ret = true;
+
+        } else {
+            // add this node as a child of the passed-in parent
+            parentJadeNode.addChild(newNode);
+
+            if (sinkLostChildren) {
+                knownIdsInTree.add(curGraphNode.getId());
+            }
+
+            if (incomingRel.hasProperty("branch_length")) {
+                newNode.setBL((Double) incomingRel.getProperty("branch_length"));
+            }
+        }
+
+        // variables to store information used to make decisions about best paths
+        HashMap<Long, HashSet<Long>> candNodeDescendantIdsMap = new HashMap<Long, HashSet<Long>>();
+        HashMap<Long, Integer> candNodeRankingMap = new HashMap<Long, Integer>();
+        HashMap<Long, Relationship> candNodeRelationshipMap = new HashMap<Long, Relationship>();
+        HashSet<Long> candidateNodeIds = new HashSet<Long>();
+
+        // for every candidate (incoming childof) relationship
+        for (Relationship candRel : curGraphNode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+
+            if (useTaxonomy == false) {
+                // skip taxonomy relationships if specified
+                if (candRel.getProperty("source").equals("taxonomy"))
+                    continue;
+            }
+
+            // candidate child node id
+            Long cid = candRel.getStartNode().getId();
+
+            // if we haven't seen this node yet
+            if (candidateNodeIds.contains(cid) == false) {
+                candidateNodeIds.add(cid);
+
+                // save this candidate's mrca descendants
+                HashSet<Long> descIds = new HashSet<Long>();
+                for (long descId : (long[]) graphDb.getNodeById(cid).getProperty("mrca"))
+                    descIds.add(descId);
+                candNodeDescendantIdsMap.put(cid, descIds);
+
+                // save the current candidate relationship we used to reach this node
+                candNodeRelationshipMap.put(cid, candRel);
+
+                // the first time we see a node, set its ranking to the lowest possible rank
+                candNodeRankingMap.put(cid, sourcesArray.length);
+            }
+
+            // update the ranking for this node, based on the current source. if already ranked at the top (rank 0) then don't bother
+            if (candNodeRankingMap.get(cid) != 0) {
+                String sourceName = (String) candRel.getProperty("source");
+                for (int i = 0; i < sourcesArray.length; i++) {
+
+                    // update if the rank of the sourcetree for the current candidate relationship is better than the last saved rank
+                    if (sourceName.compareTo(sourcesArray[i]) == 0) {
+                        if (candNodeRankingMap.get(cid) > i) {
+                            candNodeRankingMap.put(cid, i);
+                            candNodeRelationshipMap.put(cid, candRel);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // found no candidate relationships; this is an external node so no decisions to be made
+        if (candidateNodeIds.size() == 0) {
+            return null;
+        }
+
+        /* @Deprecated
+        HashSet<Long> putativeLostChildIds = null;
+        if (sinkLostChildrenStrict) {
+            // will be used to record children that may be lost during conflict tie-breaking
+            putativeLostChildIds = new HashSet<Long>();
+        } */
+
+        // compare all candidate nodes to choose which to remove/keep
+        HashSet<Long> nodesToExclude = new HashSet<Long>();
+        for (Long cid_i : candidateNodeIds) {
+            if (nodesToExclude.contains(cid_i))
+                continue;
+            HashSet<Long> descendantIds_i = candNodeDescendantIdsMap.get(cid_i);
+
+            for (Long cid_j : candidateNodeIds) {
+                if (cid_j == cid_i || nodesToExclude.contains(cid_j))
+                    continue;
+                HashSet<Long> descIds_j = candNodeDescendantIdsMap.get(cid_j);
+
+                // get difference of descendant sets for candidates i and j
+                HashSet<Long> descIds_iMinusj = new HashSet<Long>(descendantIds_i);
+                descIds_iMinusj.removeAll(descIds_j);
+
+                // candidates i and j are in conflict if they overlap
+                if ((descendantIds_i.size() - descIds_iMinusj.size()) > 0) {
+
+                    // use source ranking to break ties
+                    if (candNodeRankingMap.get(cid_i) < candNodeRankingMap.get(cid_j)) {
+                        nodesToExclude.add(cid_j);
+
+                        /* @Deprecated
+                        if (sinkLostChildrenStrict) {
+                            // record eventual descendants that may be lost by this choice
+                            putativeLostChildIds.addAll(descIds_j);
+                        } */
+
+                    } else {
+
+                    	// exclude node i, and don't bother seeing if it is better than remaining nodes
+                        nodesToExclude.add(cid_i);
+                        break;
+
+                        /* @Deprecated
+                        if (sinkLostChildrenStrict) {
+                            // record eventual descendants that may be lost by this choice
+                            putativeLostChildIds.addAll(descIds_i);
+                        } else {
+                            // we're excluding node i, so don't bother seeing if it is better than remaining nodes
+                            break;
+                        } */
+                    }
+                }
+            }
+        }
+
+        // remove all nodes that lost the tie-breaking
+        candidateNodeIds.removeAll(nodesToExclude);
+        if (candidateNodeIds.size() == 0) {
+            return null;
+        }
+
+        /* @Deprecated
+        if (sinkLostChildrenStrict) {
+
+            // get ids of all descendants of accepted candidates
+            HashSet<Long> impliedDescendantIds = new HashSet<Long>();
+            for (Long cid : candidateNodeIds) {
+                for (long descId : (long[]) graphDb.getNodeById(cid).getProperty("mrca"))
+                    impliedDescendantIds.add(descId);
+            }
+
+            for (Long childId : putativeLostChildIds) {
+
+                // only add lost children if they aren't already contained by approved candidate nodes or elsewhere in the tree
+                if (!impliedDescendantIds.contains(childId) && !knownIdsInTree.contains(childId)) {
+
+                    // add as a child of current node
+                    JadeNode addlChild = new JadeNode();
+                    Node graphNodeForChild = graphDb.getNodeById(childId);
+                    if (graphNodeForChild.hasProperty("name")) {
+                        addlChild.setName((String) graphNodeForChild.getProperty("name"));
+                        addlChild.setName(GeneralUtils.cleanName(addlChild.getName()));// + "___" + String.valueOf(curnode.getId()));
+                    }
+                    newNode.addChild(addlChild);
+
+                    // record id so we don't add it again
+                    knownIdsInTree.add(childId);
+                }
+            }
+        } */
+
+
+        // continue recursion
+        for (Long cid : candidateNodeIds) {
+            sourceSynthesisRecur(graphDb.getNodeById(cid), newNode, sourcesArray, candNodeRelationshipMap.get(cid), useTaxonomy);
+        }
+
+        // hit root of subtree, return it
+        if (ret == true) {
+            return newNode;
+        }
+
+        // satisfy java's desire for an explicit return
+        return null;
+    }
+    
+    // ==================================== Synthesis methods using graph decisions ONLY ===================================
+    
+    /**
+     * Constructs a JadeTree object containing a synthetic tree, breaking ties based on branch and bound or exhaustive search.
+     * Does not store the synthetic relationships in the graph.
+     * 
+     * @param nodeId
+     * @param useTaxonomy
+     * @param useBranchAndBound
+     */
+    public JadeTree graphSynthesis(Node startNode, boolean useTaxonomy, boolean useBranchAndBound) {
+
+    	// disable storing trees
+    	boolean recordSyntheticRels = false;
+    	String syntheticTreeName = null;
+    	
+    	// set empty starting parameters for recursion
+    	Node parentGraphNode = null;
+    	JadeNode parentJadeNode = null;
+    	Relationship incomingRel = null;
+    	String altName = "";	
+    	
+    	// get the tree structure and store it in a JadeNode object
+        JadeNode root = graphSynthesisRecur(startNode, parentGraphNode, parentJadeNode, incomingRel, altName, useBranchAndBound, useTaxonomy, recordSyntheticRels, syntheticTreeName);
+        
+        // return the tree wrapped in a JadeTree object
+        return new JadeTree(root);
+    }
+
+    /**
+     * DEPRECATED. Use new synthesis methods.
+     * 
+     * Constructs a JadeTree object containing a synthetic tree, breaking ties based on branch and bound or exhaustive search.
+     * Stores the synthetic tree in the graph as SYNTHCHILDOF relationships, bearing the value of `syntheticTreeName` in their "name" property.
+     * 
+     * TODO: refactor to use new synthesis methods
+     * 
+     * @param nodeId
+     * @param useTaxonomy
+     * @param useBranchAndBound
+     * @param syntheticTreeName
+     */
+    @Deprecated
+    public JadeTree graphSynthesis(Node startNode, boolean useTaxonomy, boolean useBranchAndBound, String syntheticTreeName) {
+
+    	// enable storing trees
+    	boolean recordSyntheticRels = true;
+    	
+    	// set empty starting parameters for recursion
+    	Node parentGraphNode = null;
+    	JadeNode parentJadeNode = null;
+    	Relationship incomingRel = null;
+    	String altName = "";		
+    	
+    	// need to start a transaction in order to store branches
+    	Transaction tx = null;
+    	tx = graphDb.beginTx();
+    	
+    	// get the tree
+        JadeNode root = graphSynthesisRecur(startNode, parentGraphNode, parentJadeNode, incomingRel, altName, useBranchAndBound, useTaxonomy, recordSyntheticRels, syntheticTreeName);
+
+        tx.success();
+        tx.finish();
+        
+        // return the tree wrapped in a JadeTree object
+        return new JadeTree(root);
+    }
+    
+    /**
+     * DEPRECATED. Use new synthesis methods.
+     * 
+     * This is the preorder function for constructing a newick tree based ONLY on decisions using actual graph properties (e.g. number of tips, etc.),
+     * i.e. no decisions will can be made using source metadata. If the resulting decisions do not contain all of the taxa, either a branch and bound
+     * search or exhaustive pair search will attempt to find a better (more complete) scenario.
+     * 
+     * TODO: refactor this and the other synthesis queries into something more elegant to avoid the function proliferation problems that are coming
+     * up when trying to combine features of different synthesis methods.
+     *  
+     * @param curGraphNode
+     * @param parentGraphNode
+     * @param parentJadeNode
+     * @param altName
+     * @param useTaxonomy
+     * @param useBranchAndBound
+     * @param recordSyntheticRels
+     * @param synthTreeName
+     * @return JadeNode containing the synthetic tree hierarchy
+     */
     // TODO: need to be able to ignore taxonomy
-    private JadeNode defaultSynthesisRecur(Node curGraphNode, Node parentGraphNode, JadeNode parentJadeNode, Relationship relcoming, String altName, boolean useTaxonomy,
-            boolean useBranchAndBound, boolean recordSyntheticRels) {
+    @Deprecated
+    private JadeNode graphSynthesisRecur(Node curGraphNode, Node parentGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String altName, boolean useTaxonomy,
+    		boolean useBranchAndBound, boolean recordSyntheticRels, String synthTreeName) {
 
     	if (parentGraphNode != null && recordSyntheticRels) {
-    		curGraphNode.createRelationshipTo(parentGraphNode, RelTypes.SYNTHCHILDOF);
+    		if (synthTreeName == null) {
+    			throw new java.lang.IllegalStateException("Attempt to store synthetic tree relationships in the graph without a name for the synthetic tree.");
+    		} else {
+    			curGraphNode.createRelationshipTo(parentGraphNode, RelTypes.SYNTHCHILDOF).setProperty("name", synthTreeName);
+    		}
     	}
     	
         // System.out.println("starting +"+curnode.getId());
@@ -733,8 +1067,8 @@ public class GraphExplorer extends GraphBase {
             ret = true;
         } else {
             parentJadeNode.addChild(newJadeNode);
-            if (relcoming.hasProperty("branch_length")) {
-                newJadeNode.setBL((Double) relcoming.getProperty("branch_length"));
+            if (incomingRel.hasProperty("branch_length")) {
+                newJadeNode.setBL((Double) incomingRel.getProperty("branch_length"));
             }
         }
 
@@ -867,7 +1201,7 @@ public class GraphExplorer extends GraphBase {
             String _altName = ""; // String.valueOf(testnodes_scores.get(nd));
 
             // go to next node
-            defaultSynthesisRecur(graphDb.getNodeById(nd), curGraphNode, newJadeNode, bestrelrel.get(nd), _altName, useTaxonomy, useBranchAndBound, recordSyntheticRels);
+            graphSynthesisRecur(graphDb.getNodeById(nd), curGraphNode, newJadeNode, bestrelrel.get(nd), _altName, useTaxonomy, useBranchAndBound, recordSyntheticRels, synthTreeName);
         }
 
         if (ret == true) {
@@ -877,6 +1211,19 @@ public class GraphExplorer extends GraphBase {
         return null;
     }
 
+    // ========================== Methods for re-adding missing children to synthetic trees/subgraphs =============================
+    
+    
+    
+    
+    
+    
+    // TODO: create a method to add missing children to SYNTHCHILDOF trees in the graph
+    
+    
+    
+    
+    
     /**
      * Used to add missing external nodes from a JadeNode tree that has just been built by `constructNewickTieBreakerSOURCE`.
      * Adds nodes based on taxnomy; identifies all the external descendants of each taxon that are absent from the tree, and adds them
@@ -888,7 +1235,9 @@ public class GraphExplorer extends GraphBase {
      *        the name of the inclusive taxon to add missing descendants of (will include all descendant taxa)
      * @return JadeNode tree (the root of a JadeNode tree) with missing children added
      */
-    private void addMissingChildrenRelaxed(JadeTree tree, String taxRootName) {
+    private void addMissingChildrenToJadeTreeRelaxed(JadeTree tree, String taxRootName) {
+    	
+    	// TODO: make a version of this that adds these to the graph instead of a JadeTree
 
         // will hold nodes from the taxonomy to check
         LinkedList<Node> taxNodes = new LinkedList<Node>();
@@ -918,6 +1267,7 @@ public class GraphExplorer extends GraphBase {
             // get all external descendants of this taxon, remember if they're in the tree or not
             for (long cid : (long[]) taxNode.getProperty("mrca")) {
                 String name = GeneralUtils.cleanName((String) graphDb.getNodeById(cid).getProperty("name"));
+
 
                 // `knownIdsInTree` should already have been started during original construction of `tree`
                 if (knownIdsInTree.contains(cid)) {
@@ -971,309 +1321,8 @@ public class GraphExplorer extends GraphBase {
             tree.processRoot();
         }
     }
-    
-    
-    /**
-     * Constructs a newick tree based on the sources. There are currently no other criteria considered in this particular function.
-     * 
-     * @param taxName
-     * @param sources
-     */
-    public void constructNewickTieBreakerSOURCE(String taxName, String[] sources, boolean useTaxonomy, boolean useBranchAndBound) {
 
-        // note, currently the branch and bound feature is not supported when preferring source
-        
-        Node firstNode = findGraphNodeByName(taxName);
-        if (firstNode == null) {
-            System.out.println("name not found");
-            return;
-        }
-        
-        if (sinkLostChildrenStrict || sinkLostChildrenRelaxed) {
-            knownIdsInTree = new HashSet<Long>();
-        }
-        
-        JadeNode root = preorderConstructNewickTieBreakerSOURCE(firstNode, null, sources, null, useTaxonomy);
-        JadeTree tree = new JadeTree(root);
-        PrintWriter outFile;
-
-        if (sinkLostChildrenRelaxed) {
-            addMissingChildrenRelaxed(tree, taxName);
-        }
-        
-        try {
-            outFile = new PrintWriter(new FileWriter(taxName + ".tre"));
-            outFile.write(tree.getRoot().getNewick(true));
-            outFile.write(";\n");
-            outFile.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * This function is the preorder function for constructing newick trees given a list of sources.
-     * 
-     * This ONLY considers the sources. There should be a general function that considers some sort of hierarchy of decisions
-     * 
-     * TODO: this will need to eventually incorporate more functionality for deciding based on more than the sources
-     * 
-     * @param curnode
-     * @param parent
-     * @param sources
-     * @param relcoming
-     * @return
-     */
-    private JadeNode preorderConstructNewickTieBreakerSOURCE(Node curnode, JadeNode parent, String[] sources, Relationship relcoming, boolean useTaxonomy /* , boolean useBranchAndBound, */) {
-
-        boolean ret = false;
-        JadeNode newNode = new JadeNode();
-
-        if (curnode.hasProperty("name")) {
-            newNode.setName((String) curnode.getProperty("name"));
-            newNode.setName(GeneralUtils.cleanName(newNode.getName()));
-        }
-
-        if (parent == null) {
-            // this is the root of this tree, so set the flag to return it
-            ret = true;
-
-        } else {
-            // add this node as a child of the passed-in parent
-            parent.addChild(newNode);
-
-            if (sinkLostChildrenStrict || sinkLostChildrenRelaxed) {
-                knownIdsInTree.add(curnode.getId());
-            }
-
-            if (relcoming.hasProperty("branch_length")) {
-                newNode.setBL((Double) relcoming.getProperty("branch_length"));
-            }
-        }
-
-        // variables to store information used to make decisions about best paths
-        HashMap<Long, HashSet<Long>> candNodeDescendantIdsMap = new HashMap<Long, HashSet<Long>>();
-        HashMap<Long, Integer> candNodeRankingMap = new HashMap<Long, Integer>();
-        HashMap<Long, Relationship> candNodeRelationshipMap = new HashMap<Long, Relationship>();
-        HashSet<Long> candidateNodeIds = new HashSet<Long>();
-
-        // for every candidate (incoming childof) relationship
-        for (Relationship candRel : curnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
-
-            if (useTaxonomy == false) {
-                // skip taxonomy relationships if specified
-                if (candRel.getProperty("source").equals("taxonomy"))
-                    continue;
-            }
-
-            // candidate child node id
-            Long cid = candRel.getStartNode().getId();
-
-            // if we haven't seen this node yet
-            if (candidateNodeIds.contains(cid) == false) {
-                candidateNodeIds.add(cid);
-
-                // save this candidate's mrca descendants
-                HashSet<Long> descIds = new HashSet<Long>();
-                for (long descId : (long[]) graphDb.getNodeById(cid).getProperty("mrca"))
-                    descIds.add(descId);
-                candNodeDescendantIdsMap.put(cid, descIds);
-
-                // save the current candidate relationship we used to reach this node
-                candNodeRelationshipMap.put(cid, candRel);
-
-                // the first time we see a node, set its ranking to the lowest possible rank
-                candNodeRankingMap.put(cid, sources.length);
-            }
-
-            // update the ranking for this node, based on the current source. if already ranked at the top (rank 0) then don't bother
-            if (candNodeRankingMap.get(cid) != 0) {
-                String sourceName = (String) candRel.getProperty("source");
-                for (int i = 0; i < sources.length; i++) {
-
-                    // update if the rank of the sourcetree for the current candidate relationship is better than the last saved rank
-                    if (sourceName.compareTo(sources[i]) == 0) {
-                        if (candNodeRankingMap.get(cid) > i) {
-                            candNodeRankingMap.put(cid, i);
-                            candNodeRelationshipMap.put(cid, candRel);
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-
-        // found no candidate relationships; this is an external node so no decisions to be made
-        if (candidateNodeIds.size() == 0) {
-            return null;
-        }
-
-        HashSet<Long> putativeLostChildIds = null;
-        if (sinkLostChildrenStrict) {
-            // will be used to record children that may be lost during conflict tie-breaking
-            putativeLostChildIds = new HashSet<Long>();
-        }
-
-        // compare all candidate nodes to choose which to remove/keep
-        HashSet<Long> nodesToExclude = new HashSet<Long>();
-        for (Long cid_i : candidateNodeIds) {
-            if (nodesToExclude.contains(cid_i))
-                continue;
-            HashSet<Long> descIds_i = candNodeDescendantIdsMap.get(cid_i);
-
-            for (Long cid_j : candidateNodeIds) {
-                if (cid_j == cid_i || nodesToExclude.contains(cid_j))
-                    continue;
-                HashSet<Long> descIds_j = candNodeDescendantIdsMap.get(cid_j);
-
-                // get difference of descendant sets for candidates i and j
-                HashSet<Long> descIds_iMinusj = new HashSet<Long>(descIds_i);
-                descIds_iMinusj.removeAll(descIds_j);
-
-                // candidates i and j are in conflict if they overlap
-                if ((descIds_i.size() - descIds_iMinusj.size()) > 0) {
-
-                    // use source ranking to break ties
-                    if (candNodeRankingMap.get(cid_i) < candNodeRankingMap.get(cid_j)) {
-                        nodesToExclude.add(cid_j);
-
-                        if (sinkLostChildrenStrict) {
-                            // record eventual descendants that may be lost by this choice
-                            putativeLostChildIds.addAll(descIds_j);
-                        }
-
-                    } else {
-                        nodesToExclude.add(cid_i);
-
-                        if (sinkLostChildrenStrict) {
-                            // record eventual descendants that may be lost by this choice
-                            putativeLostChildIds.addAll(descIds_i);
-                        } else {
-                            // if we're not recording lost children, move on? (@sas, why do we break here?)
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        // remove all nodes that lost the tie-breaking
-        candidateNodeIds.removeAll(nodesToExclude);
-        if (candidateNodeIds.size() == 0) {
-            return null;
-        }
-
-        if (sinkLostChildrenStrict) {
-
-            // get ids of all descendants of accepted candidates
-            HashSet<Long> impliedDescendantIds = new HashSet<Long>();
-            for (Long cid : candidateNodeIds) {
-                for (long descId : (long[]) graphDb.getNodeById(cid).getProperty("mrca"))
-                    impliedDescendantIds.add(descId);
-            }
-
-            for (Long childId : putativeLostChildIds) {
-
-                // only add lost children if they aren't already contained by approved candidate nodes or elsewhere in the tree
-                if (!impliedDescendantIds.contains(childId) && !knownIdsInTree.contains(childId)) {
-
-                    // add as a child of current node
-                    JadeNode addlChild = new JadeNode();
-                    Node graphNodeForChild = graphDb.getNodeById(childId);
-                    if (graphNodeForChild.hasProperty("name")) {
-                        addlChild.setName((String) graphNodeForChild.getProperty("name"));
-                        addlChild.setName(GeneralUtils.cleanName(addlChild.getName()));// + "___" + String.valueOf(curnode.getId()));
-                    }
-                    newNode.addChild(addlChild);
-
-                    // record id so we don't add it again
-                    knownIdsInTree.add(childId);
-                }
-            }
-        }
-
-        // ---------------------- MAY WANT TO ADD BRANCH AND BOUND OPTIMIZATION --------------------------
-
-        // continue recursion
-        for (Long cid : candidateNodeIds) {
-            preorderConstructNewickTieBreakerSOURCE(graphDb.getNodeById(cid), newNode, sources, candNodeRelationshipMap.get(cid), useTaxonomy /*, useBranchAndBound */);
-        }
-
-        // hit root of subtree, return it
-        if (ret == true) {
-            return newNode;
-        }
-
-        // @sas, what is this case for?
-        return null;
-    }
-
-    /**
-     * TODO: This doesn't not yet include the sources differences. It is just a demonstration of how to use the evaluator to construct a pruned tree TODO: Add
-     * ability to work with conflicts
-     * 
-     * @param innodes
-     * @param sources
-     */
-    public void constructNewickTaxaListTieBreaker(HashSet<Long> innodes, String[] sources) {
-        Node lifeNode = findGraphNodeByName("life");
-        if (lifeNode == null) {
-            System.out.println("name not found");
-            return;
-        }
-        tle.setTaxaList(innodes);
-        TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
-                .relationships(RelTypes.MRCACHILDOF, Direction.INCOMING);
-        HashSet<Long> visited = new HashSet<Long>();
-        Long firstparent = null;
-        HashMap<Long, JadeNode> nodejademap = new HashMap<Long, JadeNode>();
-        HashMap<Long, Integer> childcount = new HashMap<Long, Integer>();
-        System.out.println("traversing");
-        for (Node friendnode : MRCACHILDOF_TRAVERSAL.breadthFirst().evaluator(tle).traverse(lifeNode).nodes()) {
-            Long parent = null;
-            for (Relationship tn : friendnode.getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
-                if (visited.contains(tn.getEndNode().getId())) {
-                    parent = tn.getEndNode().getId();
-                    break;
-                }
-            }
-            if (parent == null && friendnode.getId() != lifeNode.getId()) {
-                System.out.println("disconnected tree");
-                return;
-            }
-            JadeNode newnode = new JadeNode();
-            if (friendnode.getId() != lifeNode.getId()) {
-                JadeNode jparent = nodejademap.get(parent);
-                jparent.addChild(newnode);
-                Integer value = childcount.get(parent);
-                value += 1;
-                if (value > 1) {
-                    if (firstparent == null)
-                        firstparent = parent;
-                }
-                childcount.put(parent, value);
-            }
-            if (friendnode.hasProperty("name")) {
-                newnode.setName((String) friendnode.getProperty("name"));
-                newnode.setName(newnode.getName().replace("(", "_").replace(")", "_").replace(" ", "_").replace(":", "_"));
-            }
-            nodejademap.put(friendnode.getId(), newnode);
-            visited.add(friendnode.getId());
-            childcount.put(friendnode.getId(), 0);
-        }
-        System.out.println("done traversing");
-        // could prune this at the first split
-        JadeTree tree = new JadeTree(nodejademap.get(firstparent));
-        PrintWriter outFile;
-        try {
-            outFile = new PrintWriter(new FileWriter("pruned.tre"));
-            outFile.write(tree.getRoot().getNewick(true));
-            outFile.write(";\n");
-            outFile.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+    // ========================================== other methods ==============================================
 
     /**
      * Get the list of sources that have been loaded in the graph
@@ -1515,4 +1564,76 @@ public class GraphExplorer extends GraphBase {
         tree.setHasBranchLengths(printlengths);
         return tree;
     }
+
+    // ================================= methods needing work ====================================
+    
+	/**
+	 * Make a newick tree for just a list of taxa. This needs some work!
+	 * 
+	 * TODO: make the newick production external
+	 * TODO: refactor and combine with the similar method in taxomachine to improve this.
+	 * 
+	 * @param innodes
+	 * @param sources
+	 */
+	@Deprecated
+	public void constructNewickTaxaListTieBreaker(HashSet<Long> innodes, String[] sources) {
+	    Node lifeNode = findGraphNodeByName("life");
+	    if (lifeNode == null) {
+	        System.out.println("name not found");
+	        return;
+	    }
+	    tle.setTaxaList(innodes);
+	    TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
+	            .relationships(RelTypes.MRCACHILDOF, Direction.INCOMING);
+	    HashSet<Long> visited = new HashSet<Long>();
+	    Long firstparent = null;
+	    HashMap<Long, JadeNode> nodejademap = new HashMap<Long, JadeNode>();
+	    HashMap<Long, Integer> childcount = new HashMap<Long, Integer>();
+	    System.out.println("traversing");
+	    for (Node friendnode : MRCACHILDOF_TRAVERSAL.breadthFirst().evaluator(tle).traverse(lifeNode).nodes()) {
+	        Long parent = null;
+	        for (Relationship tn : friendnode.getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
+	            if (visited.contains(tn.getEndNode().getId())) {
+	                parent = tn.getEndNode().getId();
+	                break;
+	            }
+	        }
+	        if (parent == null && friendnode.getId() != lifeNode.getId()) {
+	            System.out.println("disconnected tree");
+	            return;
+	        }
+	        JadeNode newnode = new JadeNode();
+	        if (friendnode.getId() != lifeNode.getId()) {
+	            JadeNode jparent = nodejademap.get(parent);
+	            jparent.addChild(newnode);
+	            Integer value = childcount.get(parent);
+	            value += 1;
+	            if (value > 1) {
+	                if (firstparent == null)
+	                    firstparent = parent;
+	            }
+	            childcount.put(parent, value);
+	        }
+	        if (friendnode.hasProperty("name")) {
+	            newnode.setName((String) friendnode.getProperty("name"));
+	            newnode.setName(newnode.getName().replace("(", "_").replace(")", "_").replace(" ", "_").replace(":", "_"));
+	        }
+	        nodejademap.put(friendnode.getId(), newnode);
+	        visited.add(friendnode.getId());
+	        childcount.put(friendnode.getId(), 0);
+	    }
+	    System.out.println("done traversing");
+	    // could prune this at the first split
+	    JadeTree tree = new JadeTree(nodejademap.get(firstparent));
+	    PrintWriter outFile;
+	    try {
+	        outFile = new PrintWriter(new FileWriter("pruned.tre"));
+	        outFile.write(tree.getRoot().getNewick(true));
+	        outFile.write(";\n");
+	        outFile.close();
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
+	}
 }
