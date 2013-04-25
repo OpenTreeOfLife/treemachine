@@ -1,5 +1,7 @@
 package opentree;
 
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.*;
 
 import java.lang.StringBuffer;
@@ -49,17 +51,8 @@ public class GraphImporter extends GraphBase{
 	private ArrayList<Node> updatedNodes;
 	private HashSet<Node> updatedSuperLICAs;
 	private Transaction	tx;
-	
-	/* TODO: Need to add metadata (if present) from jadetree coming from nexson.
-	   See vocabulary: https://docs.google.com/spreadsheet/ccc?key=0ArYBkaCSQjOwdDE0MXlKMktvRFR1dllrTXQxQTY5V0E#gid=0
-	   Fields at present:
-		ot:studyPublicationReference - string: ot:studyPublicationReference "long string"
-		ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
-		ot:curatorName - string: ot:curatorName "Jane Doe"
-		ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
-		ot:studyId - string: ot:studyId "123"
-		ot:ottolid - integer: ot:ottolid 783941
-	*/
+	//THIS IS FOR PERFORMANCE
+	private TLongArrayList root_ndids;
 	
 	public GraphImporter(String graphname) {
 		graphDb = new GraphDatabaseAgent(graphname);
@@ -184,7 +177,7 @@ public class GraphImporter extends GraphBase{
 		int count = 0;
 		HashMap<String,ArrayList<ArrayList<String>>> synonymhash = null;
 		boolean synFileExists = false;
-		if (synonymfile.length() > 0){
+		if (synonymfile.length() > 0) {
 			synFileExists = true;
 		}
 		//preprocess the synonym file
@@ -265,18 +258,22 @@ public class GraphImporter extends GraphBase{
 							tnode.setProperty("tax_sourcepid",srce_pid);
 							tnode.setProperty("uniqname",uniqname);
 							graphNodeIndex.add( tnode, "name", name );
-							if(tid.length()>0){
+							if (tid.length() > 0) {
 								graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 							}
 							if (pid.length() > 0) {
 								parents.put(tid, pid);
+							}else{//root node
+								Node mdnode = graphDb.createNode();
+								mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
+								sourceMetaIndex.add(mdnode, "source", "taxonomy");
 							}
 							dbnodes.put(tid, tnode);
 							// synonym processing
 							if (synFileExists) {
 								if (synonymhash.get(tid) != null) {
 									ArrayList<ArrayList<String>> syns = synonymhash.get(tid);
-									for (int j=0; j < syns.size(); j++) {
+									for (int j = 0; j < syns.size(); j++) {
 										String tax_uid = syns.get(j).get(0);
 										String synName = syns.get(j).get(1);
 										String synNameType = syns.get(j).get(2);
@@ -284,7 +281,7 @@ public class GraphImporter extends GraphBase{
 										Node synode = graphDb.createNode();
 										synode.setProperty("name",synName);
 										synode.setProperty("tax_uid", tax_uid);
-										if(tax_uid.length()>0){
+										if (tax_uid.length() > 0) {
 											synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 										}
 										synode.setProperty("nametype",synNameType);
@@ -326,11 +323,15 @@ public class GraphImporter extends GraphBase{
 					tnode.setProperty("tax_sourcepid",srce_pid);
 					tnode.setProperty("uniqname",uniqname);
 					graphNodeIndex.add( tnode, "name", name );
-					if(tid.length()>0){
+					if (tid.length() > 0) {
 						graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 					}
 					if (pid.length() > 0) {
 						parents.put(tid, pid);
+					}else{//root node
+						Node mdnode = graphDb.createNode();
+						mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
+						sourceMetaIndex.add(mdnode, "source", "taxonomy");
 					}
 					dbnodes.put(tid, tnode);
 					// synonym processing
@@ -345,7 +346,7 @@ public class GraphImporter extends GraphBase{
 								Node synode = graphDb.createNode();
 								synode.setProperty("name",synName);
 								synode.setProperty("tax_uid", tax_uid);
-								if(tax_uid.length()>0){
+								if (tax_uid.length()>0) {
 									synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 								}
 								synode.setProperty("nametype",synNameType);
@@ -534,12 +535,13 @@ public class GraphImporter extends GraphBase{
 
 		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
 		  would make the look ups faster. See comment in testIsMRCA */
-		HashSet<Long> ndids = new HashSet<Long>(); 
+		TLongArrayList ndids = new TLongArrayList(); 
 		// We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
 		// same as above but added for nested nodes, so more comprehensive and 
 		//		used just for searching. the others are used for storage
-		HashSet<Long> ndidssearch = new HashSet<Long>();
+		//HashSet<Long> ndidssearch = new HashSet<Long>();
+		TLongArrayList ndidssearch = new TLongArrayList();
 		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
@@ -550,7 +552,7 @@ public class GraphImporter extends GraphBase{
 			Long ottolid = (Long)nds.get(j).getObject("ot:ottolid");
 			IndexHits<Node> hits = graphTaxUIDNodeIndex.get("tax_uid", ottolid);
 			int numh = hits.size();
-			if(numh == 0){
+			if (numh == 0) {
 				throw new TaxonNotFoundException(String.valueOf(ottolid));
 			}
 			assert numh == 1;
@@ -568,10 +570,13 @@ public class GraphImporter extends GraphBase{
 			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
 		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
-		jt.getRoot().assocObject("ndids", ndids);
+		//jt.getRoot().assocObject("ndids", ndids);
 		jt.getRoot().assocObject("hashnodeids", hashnodeids);
+		ndidssearch.sort();
 		jt.getRoot().assocObject("ndidssearch", ndidssearch);
 		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
+		ndids.sort();
+		root_ndids = ndids;
 		try {
 			tx = graphDb.beginTx();
 			postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
@@ -608,12 +613,13 @@ public class GraphImporter extends GraphBase{
 		// TODO: could take this out and make it a separate procedure
 		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
 		  would make the look ups faster. See comment in testIsMRCA */
-		HashSet<Long> ndids = new HashSet<Long>(); 
+		TLongArrayList ndids = new TLongArrayList(); 
 		// We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
 		// same as above but added for nested nodes, so more comprehensive and 
 		//		used just for searching. the others are used for storage
-		HashSet<Long> ndidssearch = new HashSet<Long>();
+		//HashSet<Long> ndidssearch = new HashSet<Long>();
+		TLongArrayList ndidssearch = new TLongArrayList();
 		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
@@ -633,7 +639,7 @@ public class GraphImporter extends GraphBase{
 				Node shortn = null;
 				for (Node tnode : hits) {
 					Path tpath = pf.findSinglePath(tnode, focalnode);
-					if (tpath!= null) {
+					if (tpath != null) {
 						if (shortn == null) {
 							shortn = tnode;
 						}
@@ -667,10 +673,13 @@ public class GraphImporter extends GraphBase{
 			hashnodeids.put(nds.get(j), hitnode.getId());
 		}
 		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
-		jt.getRoot().assocObject("ndids", ndids);
+		//jt.getRoot().assocObject("ndids", ndids);
 		jt.getRoot().assocObject("hashnodeids", hashnodeids);
+		ndidssearch.sort();
 		jt.getRoot().assocObject("ndidssearch", ndidssearch);
 		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
+		ndids.sort();
+		root_ndids = ndids;
 		try {
 			tx = graphDb.beginTx();
 			postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
@@ -723,22 +732,26 @@ public class GraphImporter extends GraphBase{
 				}
 			}
 			// get all the childids even if they aren't in the tree, this is the postorder part
-			HashSet<Long> childndids = new HashSet<Long> (); 
-			
+			//HashSet<Long> childndids = new HashSet<Long> (); 
+			TLongArrayList childndids = new TLongArrayList();
 			for (int i = 0; i < inode.getChildCount(); i++) {
 				Node [] dbnodesob = (Node [])inode.getChild(i).getObject("dbnodes"); 
 				for (int k = 0; k < dbnodesob.length; k++) {
 					long [] mrcas = ((long[])dbnodesob[k].getProperty("mrca"));
-					for (int j = 0; j < mrcas.length; j++) {
-						if (childndids.contains(mrcas[j]) == false) {
-							childndids.add(mrcas[j]);
-						}
-					}
+					childndids.addAll(mrcas);
+					//for (int j = 0; j < mrcas.length; j++) {
+					//	if (childndids.contains(mrcas[j]) == false) {
+					//		childndids.add(mrcas[j]);
+					//	}
+					//}
 				}
 			}
 			//			_LOG.trace("finished names");
-			HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
-			HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
+			//HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
+			TLongArrayList rootids = new TLongArrayList((TLongArrayList) root.getObject("ndidssearch"));
+			childndids.sort();
+			//HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
+			HashSet<Node> ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, rootids);
 			
 			//			_LOG.trace("ancestor "+ancestor);
 			// _LOG.trace(ancestor.getProperty("name"));
@@ -748,14 +761,16 @@ public class GraphImporter extends GraphBase{
 				for (int i = 0; i < hit_nodes.size(); i++) {
 					ret[i] = hit_nodes.get(i).getId();
 				}
-				rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				long[] ret2 = new long[rootids.size()];
-				Iterator<Long> chl2 = rootids.iterator();
-				int i = 0;
-				while (chl2.hasNext()) {
-					ret2[i] = chl2.next().longValue();
-					i++;
-				}
+				//HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				//TLongHashSet trootids = new TLongHashSet((TLongHashSet) root.getObject("ndids"));
+				long [] ret2 = root_ndids.toArray();
+				//long[] ret2 = new long[trootids.size()];
+				//Iterator<Long> chl2 = trootids.iterator();
+				//int i = 0;
+				//while (chl2.hasNext()) {
+				//	ret2[i] = chl2.next().longValue();
+				//	i++;
+				//}
 				inode.assocObject("exclusive_mrca", ret);
 				inode.assocObject("root_exclusive_mrca", ret2);
 			} else {
@@ -763,7 +778,8 @@ public class GraphImporter extends GraphBase{
 				// make a node
 				// get the super lica, or what would be the licas if we didn't have the other taxa in the tree
 				// this is used to connect the new nodes to their licas for easier traversals
-				HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
+				//HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
+				HashSet<Node> superlica = LicaUtil.getSuperLICAt4j(hit_nodes_search, childndids);
 				// steps
 				// 1. create a node
 				// 2. store the mrcas
@@ -772,13 +788,14 @@ public class GraphImporter extends GraphBase{
 				//					inode.assocObject("dbnode",dbnode);
 				Node [] nar = {dbnode};
 				inode.assocObject("dbnodes",nar);
-				long[] ret = new long[childndids.size()];
-				Iterator<Long> chl = childndids.iterator();
-				int i = 0;
-				while (chl.hasNext()) {
-					ret[i] = chl.next().longValue();
-					i++;
-				}
+				//long[] ret = new long[childndids.size()];
+				long[] ret = childndids.toArray();
+				//Iterator<Long> chl = childndids.iterator();
+				//int i = 0;
+				//while (chl.hasNext()) {
+				//	ret[i] = chl.next().longValue();
+				//	i++;
+				//}
 				Arrays.sort(ret);
 				dbnode.setProperty("mrca", ret);
 				long[] rete = new long[hit_nodes.size()];
@@ -787,14 +804,16 @@ public class GraphImporter extends GraphBase{
 				}
 				Arrays.sort(rete);
 				inode.assocObject("exclusive_mrca",rete);
-				rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				long[] ret2 = new long[rootids.size()];
-				Iterator<Long> chl2 = rootids.iterator();
-				i = 0;
-				while (chl2.hasNext()) {
-					ret2[i] = chl2.next().longValue();
-					i++;
-				}
+				//HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
+				//TLongHashSet trootids = new TLongHashSet((TLongHashSet) root.getObject("ndids"));
+				long [] ret2 = root_ndids.toArray();
+				//long[] ret2 = new long[trootids.size()];
+				//Iterator<Long> chl2 = trootids.iterator();
+				//int i = 0;
+				//while (chl2.hasNext()) {
+				//	ret2[i] = chl2.next().longValue();
+				//	i++;
+				//}
 				Arrays.sort(ret2);
 				inode.assocObject("root_exclusive_mrca",ret2);
 				//	for (int i=0;i<inode.getChildCount();i++) {
@@ -862,8 +881,8 @@ public class GraphImporter extends GraphBase{
 				Node metadatanode = null;
 				metadatanode = graphDb.createNode();
 				
-		// first (ugly) go at this. do we want new (shorter) names (keys)?
-		// if property does not exist, do we want 1) nothing, or 2) an empty property?
+		// first (ugly) go at this. find more concise way to do this.
+		// if property does not exist, do we want 1) nothing, or 2) an empty property? answer: the former.
 				if (jt.getObject("ot:studyPublicationReference") != null) {
 					System.out.println("Adding property 'ot:studyPublicationReference' for tree " + sourcename + ": " + jt.getObject("ot:studyPublicationReference"));
 					metadatanode.setProperty("ot:studyPublicationReference", jt.getObject("ot:studyPublicationReference"));
@@ -891,6 +910,9 @@ public class GraphImporter extends GraphBase{
 				if (jt.getObject("ot:studyId") != null) {
 					System.out.println("Adding property 'ot:studyId' for tree " + sourcename + ": " + jt.getObject("ot:studyId"));
 					metadatanode.setProperty("ot:studyId", jt.getObject("ot:studyId"));
+				} if (jt.getObject("ot:studyYear") != null) {
+					System.out.println("Adding property 'ot:studyTear' for tree " + sourcename + ": " + jt.getObject("ot:studyYear"));
+					metadatanode.setProperty("ot:studyYear", jt.getObject("ot:studyYear"));
 				} else {
 					System.out.println("Property 'ot:studyId' does not exist for tree " + sourcename);
 				}
@@ -902,6 +924,19 @@ public class GraphImporter extends GraphBase{
 				if (treeID != null)
 					metadatanode.setProperty("treeID", treeID);
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
+				//add the source taxa ids
+				/*HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) jt.getRoot().getObject("ndids"));
+				long[] ret2 = new long[rootids.size()];
+				Iterator<Long> chl2 = rootids.iterator();
+				int i = 0;
+				while (chl2.hasNext()) {
+					ret2[i] = chl2.next().longValue();
+					i++;
+				}
+				Arrays.sort(ret2);*/
+				long[]ret2 = root_ndids.toArray();
+				metadatanode.setProperty("original_taxa_map",ret2);
+				//end add source taxa ids
 				// TODO: doesn't account for multiple root nodes
 				metadatanode.createRelationshipTo(currGoLNode, RelTypes.METADATAFOR);
 			}
@@ -987,15 +1022,16 @@ public class GraphImporter extends GraphBase{
 	private boolean testIsMRCA(Node dbnode,JadeNode root, JadeNode inode) {
 		boolean ret = true;
 		long [] dbnodei = (long []) dbnode.getProperty("mrca");
-		@SuppressWarnings("unchecked")
-		ArrayList<Long> rootids = new ArrayList<Long>((HashSet<Long>) root.getObject("ndids"));
+		//@SuppressWarnings("unchecked")
+		//ArrayList<Long> rootids = new ArrayList<Long>((HashSet<Long>) root.getObject("ndids"));
+		TLongArrayList rootids = new TLongArrayList(root_ndids);
 		@SuppressWarnings("unchecked")
 		ArrayList<Long> inodeids =(ArrayList<Long>) inode.getObject("ndids");
 //		System.out.println(rootids.size());
 		rootids.removeAll(inodeids);
 //		System.out.println(rootids.size());
 		for (int i = 0; i < dbnodei.length; i++) {
-			if (rootids.contains(dbnodei[i])) { //@todo this is the Order(N) lookup that could be log(N) or constant time if ndids was not an ArrayList<Long>
+			if (root_ndids.contains(dbnodei[i])) { //@todo this is the Order(N) lookup that could be log(N) or constant time if ndids was not an ArrayList<Long>
 				ret = false;
 				break;
 			}
@@ -1272,7 +1308,7 @@ public class GraphImporter extends GraphBase{
 						relidsfin[j] = finrels.get(j).getId();
 					}
 					for (j = 0; j < finrels.size(); j++) {
-						finrels.get(j).setProperty("inclusive_relids",relidsfin);
+						finrels.get(j).setProperty("inclusive_relids", relidsfin);
 					}
 
 					//connect the new ancestors to the original parents
@@ -1291,7 +1327,7 @@ public class GraphImporter extends GraphBase{
 						ArrayList<Relationship> new_rels = new ArrayList<Relationship>();
 						long [] oldrelids = (long [])toldone.getProperty("inclusive_relids");
 						ArrayList<Long> newrelids = new ArrayList<Long>();
-						for (j = 0; j < oldrelids.length; j++) {System.out.println("adding original rel: " + oldrelids[j]);newrelids.add(oldrelids[j]);}
+						for (j = 0; j < oldrelids.length; j++) {System.out.println("adding original rel: " + oldrelids[j]); newrelids.add(oldrelids[j]);}
 						/*for (Relationship toldrel: oldones) {
 							long oldid = toldrel.getId();
 							System.out.println("deleting the old bad rel: "+oldid);
@@ -1329,7 +1365,7 @@ public class GraphImporter extends GraphBase{
 						long [] finalnewrelids = new long[newrelids.size()];
 						System.out.print("newrelids: ");
 						for (j = 0; j < finalnewrelids.length; j++) {
-							System.out.print(" "+newrelids.get(j));
+							System.out.print(" " + newrelids.get(j));
 							finalnewrelids[j] = newrelids.get(j);
 						}
 						System.out.print("\n");
@@ -1352,12 +1388,12 @@ public class GraphImporter extends GraphBase{
 		try {
 //			Iterator<Relationship> itrel = tobedeleted.iterator();
 			for (Relationship itrel: tobedeleted) {
-				System.out.println("actually deleting: "+itrel);
+				System.out.println("actually deleting: " + itrel);
 //			while (itrel.hasNext()) {
 				try {
 					itrel.delete();
 //					itrel.next().delete();
-				} catch(org.neo4j.graphdb.NotFoundException f) {
+				} catch (org.neo4j.graphdb.NotFoundException f) {
 					System.out.println("seems " + f.getMessage());
 				}
 			}

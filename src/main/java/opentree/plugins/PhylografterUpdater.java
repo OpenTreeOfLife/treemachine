@@ -39,6 +39,8 @@ public class PhylografterUpdater extends ServerPlugin{
 //			}
 			if (k > 20)
 				break;
+			if (k<8)
+				continue;
 			try{
 				List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 				for (JadeTree j : jt) {

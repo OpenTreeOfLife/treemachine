@@ -6,7 +6,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import opentree.RelTypes;
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.*;
+import gnu.trove.set.hash.TLongHashSet;
+
+import opentree.GraphBase.RelTypes;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;

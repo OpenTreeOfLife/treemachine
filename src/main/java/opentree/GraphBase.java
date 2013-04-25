@@ -1,5 +1,8 @@
 package opentree;
 
+
+import java.util.HashSet;
+
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
@@ -86,4 +89,12 @@ public abstract class GraphBase {
 		return firstNode;
 	}
 
+	public HashSet<Node> idArrayToNodeSet(long [] nodeIDArr) {
+		HashSet<Node> s = new HashSet<Node>();
+		for (int i = 0; i < nodeIDArr.length; i++) {
+			Node n = graphDb.getNodeById(nodeIDArr[i]);
+			s.add(n);
+		}
+		return s;
+	}
 }

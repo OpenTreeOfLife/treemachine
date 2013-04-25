@@ -1360,8 +1360,8 @@ public class GraphExplorer extends GraphBase {
      */
     public JadeTree reconstructSourceByTreeID(String treeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeID(treeID);
-        String sourcename = findSourceNameFromTreeID(treeID);
-        return reconstructSourceTreeHelper(rootnode, sourcename, maxDepth);
+        Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
+        return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
 
     /**
@@ -1374,8 +1374,8 @@ public class GraphExplorer extends GraphBase {
      */
     public JadeTree reconstructSourceByTreeID(String treeID, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = graphDb.getNodeById(subtreeNodeID);
-        String sourcename = findSourceNameFromTreeID(treeID);
-        return reconstructSourceTreeHelper(rootnode, sourcename, maxDepth);
+        Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
+        return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
 
     public Node getRootNodeByTreeID(String treeID) throws TreeNotFoundException {
@@ -1412,6 +1412,35 @@ public class GraphExplorer extends GraphBase {
         return null;
     }
 
+    public Node findTreeMetadataNodeFromTreeSourceName (String sourcename) throws TreeNotFoundException {
+        Node rootnode = getRootNodeByTreeSourceName(sourcename);
+        Node metadataNode = null;
+        Iterable<Relationship> it = rootnode.getRelationships(RelTypes.METADATAFOR, Direction.INCOMING);
+        for (Relationship rel : it) {
+            Node m = rel.getStartNode();
+            String mtid = (String) m.getProperty("source");
+            if (mtid.equals(sourcename)) {
+                return m;
+            }
+        }
+        assert false; // if we find a rootnode, we should be able to get the metadata...
+        return null;
+    }
+
+    /**
+     * 
+     */
+    public Node getRootNodeByTreeSourceName(String sourcename) throws TreeNotFoundException {
+        IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
+        if (hits == null || hits.size() == 0) {
+            throw new TreeNotFoundException(sourcename);
+        }
+        // really only need one
+        Node rootnode = hits.next();
+        hits.close();
+        return rootnode;
+    }
+
     /**
      * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
      * 
@@ -1422,14 +1451,9 @@ public class GraphExplorer extends GraphBase {
      *      distance from the root. If maxDepth is negative, no threshold is applied
      */
     public JadeTree reconstructSource(String sourcename, int maxDepth) throws TreeNotFoundException {
-        IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
-        if (hits == null || hits.size() == 0) {
-            throw new TreeNotFoundException(sourcename);
-        }
-        // really only need one
-        Node rootnode = hits.next();
-        hits.close();
-        return reconstructSourceTreeHelper(rootnode, sourcename, maxDepth);
+        Node rootnode = getRootNodeByTreeSourceName(sourcename);
+        Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
+        return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
     /**
      * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
@@ -1442,7 +1466,8 @@ public class GraphExplorer extends GraphBase {
      */
     public JadeTree reconstructSource(String sourcename, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = graphDb.getNodeById(subtreeNodeID);
-        return reconstructSourceTreeHelper(rootnode, sourcename, maxDepth);
+        Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
+        return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
 
     /**
@@ -1450,7 +1475,7 @@ public class GraphExplorer extends GraphBase {
      *      if non-negative this can be used to prune off subtrees that exceed the threshold
      *      distance from the root. If maxDepth is negative, no threshold is applied
      */
-    private JadeTree reconstructSourceTreeHelper(Node rootnode, String sourcename, int maxDepth) {
+    private JadeTree reconstructSourceTreeHelper(Node metadataNode, Node rootnode, int maxDepth) {
         JadeNode root = new JadeNode();
         if (rootnode.hasProperty("name")) {
             root.setName((String) rootnode.getProperty("name"));
@@ -1459,9 +1484,10 @@ public class GraphExplorer extends GraphBase {
         boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
         node2JadeNode.put(rootnode, root);
-        if (true) {  // new way  -- does not (yet) ignore cycles, but does only build requested part of the tree. 
+        if (false) {  // new way  -- does not (yet) ignore cycles, but does only build requested part of the tree. 
             // does not use the sourceRelIndex...
-            FilterByPropertyRelIterator stri = FilterByPropertyRelIterator.getSourceTreeRelIterator(rootnode, maxDepth, sourcename);
+            FilterByPropertyRelIterator stri;
+            stri = FilterByPropertyRelIterator.getSourceTreeRelIterator(rootnode, maxDepth, this, metadataNode);
             while (stri.hasNext()) {
                 Relationship r = stri.next();
                 Node parNode = r.getEndNode();
@@ -1486,7 +1512,7 @@ public class GraphExplorer extends GraphBase {
             // OLD version - deals with cycles via an ignoreCycles set of logic. Need to add this to the FilterByPropertyRelIterator
                // OLD version build the entire tree (though we could easily prune it to return a subtree of the desired start node and depth)
             //TraversalDescription
-            
+            String sourcename = (String)metadataNode.getProperty("source");
             IndexHits<Relationship> hitsr = sourceRelIndex.get("source", sourcename);
             // System.out.println(hitsr.size());
             HashMap<Node, ArrayList<Relationship>> startnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
@@ -1507,10 +1533,13 @@ public class GraphExplorer extends GraphBase {
             }
             hitsr.close();
             Stack<Node> treestack = new Stack<Node>();
+            Stack<Integer> depthStack = new Stack<Integer>();
             treestack.push(rootnode);
+            depthStack.push(new Integer(0));
             HashSet<Node> ignoreCycles = new HashSet<Node>();
             while (treestack.isEmpty() == false) {
                 Node tnode = treestack.pop();
+                Integer currDepth = depthStack.pop();
                 // if(tnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
                 // System.out.println(tnode + " "+tnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
                 // }else{
@@ -1540,7 +1569,10 @@ public class GraphExplorer extends GraphBase {
                     for (int i = 0; i < endnode_rel_map.get(tnode).size(); i++) {
                         if (ignoreCycles.contains(endnode_rel_map.get(tnode).get(i).getStartNode()) == false) {
                             Node tnodechild = endnode_rel_map.get(tnode).get(i).getStartNode();
-                            treestack.push(tnodechild);
+                            if (maxDepth < 0 || currDepth < maxDepth) {
+                                treestack.push(tnodechild);
+                                depthStack.push(new Integer(1 + currDepth));
+                            }
                             JadeNode tchild = new JadeNode();
                             if (tnodechild.hasProperty("name")) {
                                 tchild.setName((String) tnodechild.getProperty("name"));

@@ -985,11 +985,12 @@ public class MainRunner {
 						String sourcename = "";
 						if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
 							sourcename = (String)j.getObject("ot:studyId");
+						}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
+							sourcename += "_"+(String)j.getObject("id");
 						}
 						gi.addSetTreeToGraphWIdsSet(sourcename);
 					}
 		        }
-		        
 			} catch(java.lang.NullPointerException e){
 				System.out.println("failed to get study "+k);
 				rc = 1;
