@@ -26,7 +26,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.Traversal;
 
 // the opentree needed by the test
-import opentree.GraphBase.RelTypes;
+import opentree.RelTypes;
 
 // the opentree package to be tested
 import opentree.AncestorUtil;
