@@ -624,16 +624,8 @@ public class GraphExplorer extends GraphBase {
      */
     private void draftSynthesisRecur(Node curNode, Node parentNode, RelationshipEvaluator re, String synthTreeName) {
 
-    	// testing
-//		System.out.println("childnode: " + curNode.getId());
-//    	if (parentNode != null) {
-//    		System.out.println("parent node: " + parentNode.getId());
-//    	}
-    	
         // store the relationship
     	if (parentNode != null) {
-    		// testing
-//    		System.out.println("recording synthetic relationship");
     		curNode.createRelationshipTo(parentNode, RelTypes.SYNTHCHILDOF).setProperty("name", synthTreeName);
     	}
         
