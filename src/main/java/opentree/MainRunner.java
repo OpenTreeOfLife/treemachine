@@ -840,32 +840,26 @@ public class MainRunner {
 		}
 		String ottolId = args[1];
 		String graphname = args[2];
-		GraphExplorer ge = new GraphExplorer(graphname);
-		
-		// build the list of preferred sources, this should probably be done externally
-		LinkedList<String> preferredSources = new LinkedList<String>();
-		preferredSources.add("15");
-		preferredSources.add("taxonomy");
-		
-        // find the start node
-        Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
-        if (firstNode == null) {
-            throw new opentree.OttolIdNotFoundException(ottolId);
-        }
-		
 		boolean success = false;
+		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
+			// build the list of preferred sources, this should probably be done externally
+			LinkedList<String> preferredSources = new LinkedList<String>();
+			preferredSources.add("15");
+			preferredSources.add("taxonomy");
+			
+			// find the start node
+			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+			if (firstNode == null) {
+				throw new opentree.OttolIdNotFoundException(ottolId);
+			}
 			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources);
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
 			ge.shutdownDB();
 		}
-		
-		if (success)
-			return 0;
-		else
-			return -1;
+		return (success ? 0 : -1);
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
