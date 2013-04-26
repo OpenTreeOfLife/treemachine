@@ -188,12 +188,12 @@ public class GraphImporter extends GraphBase{
 				BufferedReader sbr = new BufferedReader(new FileReader(synonymfile));
 				while ((str = sbr.readLine()) != null) {
 					StringTokenizer st = new StringTokenizer(str,"\t|\t");
-					String uid = st.nextToken();
+					String name = st.nextToken();
 					//this is the id that points to the right node
 					String parentuid = st.nextToken();
-					String name = st.nextToken();
-					String type = st.nextToken();
-					String source = st.nextToken();
+					String uid = parentuid;
+					String type = "OTT synonym";//st.nextToken();
+					String source = "OTT";//st.nextToken();
 					ArrayList<String> tar = new ArrayList<String>();
 					tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
 					if (synonymhash.get(parentuid) == null) {
@@ -244,8 +244,8 @@ public class GraphImporter extends GraphBase{
 							String name = st.nextToken().trim();
 							String rank = st.nextToken().trim();
 							String srce = st.nextToken().trim();
-							String srce_id = st.nextToken().trim();
-							String srce_pid = st.nextToken().trim();
+							//String srce_id = st.nextToken().trim();
+							//String srce_pid = st.nextToken().trim();
 							String uniqname = st.nextToken().trim();
 							
 							Node tnode = graphDb.createNode();
@@ -254,8 +254,8 @@ public class GraphImporter extends GraphBase{
 							tnode.setProperty("tax_parent_uid",pid);
 							tnode.setProperty("tax_rank",rank);
 							tnode.setProperty("tax_source",srce);
-							tnode.setProperty("tax_sourceid",srce_id);
-							tnode.setProperty("tax_sourcepid",srce_pid);
+							//tnode.setProperty("tax_sourceid",srce_id);
+							//tnode.setProperty("tax_sourcepid",srce_pid);
 							tnode.setProperty("uniqname",uniqname);
 							graphNodeIndex.add( tnode, "name", name );
 							if (tid.length() > 0) {
@@ -309,8 +309,8 @@ public class GraphImporter extends GraphBase{
 					String name = st.nextToken().trim();
 					String rank = st.nextToken().trim();
 					String srce = st.nextToken().trim();
-					String srce_id = st.nextToken().trim();
-					String srce_pid = st.nextToken().trim();
+					//String srce_id = st.nextToken().trim();
+					//String srce_pid = st.nextToken().trim();
 					String uniqname = st.nextToken().trim();
 
 					Node tnode = graphDb.createNode();
@@ -319,8 +319,8 @@ public class GraphImporter extends GraphBase{
 					tnode.setProperty("tax_parent_uid",pid);
 					tnode.setProperty("tax_rank",rank);
 					tnode.setProperty("tax_source",srce);
-					tnode.setProperty("tax_sourceid",srce_id);
-					tnode.setProperty("tax_sourcepid",srce_pid);
+					//tnode.setProperty("tax_sourceid",srce_id);
+					//tnode.setProperty("tax_sourcepid",srce_pid);
 					tnode.setProperty("uniqname",uniqname);
 					graphNodeIndex.add( tnode, "name", name );
 					if (tid.length() > 0) {

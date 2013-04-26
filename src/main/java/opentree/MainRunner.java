@@ -4,6 +4,8 @@ import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -838,32 +840,26 @@ public class MainRunner {
 		}
 		String ottolId = args[1];
 		String graphname = args[2];
-		GraphExplorer ge = new GraphExplorer(graphname);
-		
-		// build the list of preferred sources, this should probably be done externally
-		LinkedList<String> preferredSources = new LinkedList<String>();
-		preferredSources.add("15");
-		preferredSources.add("taxonomy");
-		
-        // find the start node
-        Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
-        if (firstNode == null) {
-            throw new opentree.OttolIdNotFoundException(ottolId);
-        }
-		
 		boolean success = false;
+		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
+			// build the list of preferred sources, this should probably be done externally
+			LinkedList<String> preferredSources = new LinkedList<String>();
+			preferredSources.add("15");
+			preferredSources.add("taxonomy");
+			
+			// find the start node
+			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+			if (firstNode == null) {
+				throw new opentree.OttolIdNotFoundException(ottolId);
+			}
 			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources);
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
 			ge.shutdownDB();
 		}
-		
-		if (success)
-			return 0;
-		else
-			return -1;
+		return (success ? 0 : -1);
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
@@ -935,6 +931,87 @@ public class MainRunner {
 			graphDb.shutdownDb();
 		}
 		
+		return 0;
+	}
+	
+	/*
+	 * Use this to load trees from nexson into the graph from a directory
+	 * not from the server
+	 */
+	public int pg_loading(String [] args){
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+		if (args.length != 3) {
+			graphDb.shutdownDb();
+			return 1;
+		}
+		String directory = args[2];
+		System.out.println("loading files from "+directory+" into "+args[1]);
+		File file = new File(directory);
+		File [] files = file.listFiles();
+		for(int i =0;i<files.length;i++){
+			System.out.println("files "+ files[i]);
+			try {
+				BufferedReader br = new BufferedReader(new FileReader(files[i]));
+				List<JadeTree> jt = NexsonReader.readNexson(br);
+				for (JadeTree j : jt) {
+					System.out.println(files[i] + ": " + j.getExternalNodeCount());
+				}
+				PhylografterConnector.fixNamesFromTrees(Long.valueOf(files[i].getName()),jt,graphDb);
+				try{
+					for(JadeTree j: jt){
+						GraphImporter gi = new GraphImporter(graphDb);
+						boolean doubname = false;
+						HashSet<Long> ottols = new HashSet<Long>();
+						for(int m=0;m<j.getExternalNodeCount();m++){
+							if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
+								doubname = true;
+								break;
+							}
+							if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid")) == true){
+								doubname = true;
+								break;
+							} else {
+								ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
+							}
+						}
+						//check for any duplicate ottol:id
+						if (doubname == true){
+							System.out.println("there are duplicate names");
+						} else {
+							System.out.println("this is being added");
+							gi.setTree(j);
+							String sourcename = "";
+							if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+								sourcename = (String)j.getObject("ot:studyId");
+							}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
+								sourcename += "_"+(String)j.getObject("id");
+							}
+							gi.addSetTreeToGraphWIdsSet(sourcename);
+						}
+					}
+				} catch(java.lang.NullPointerException e){
+					System.out.println("failed to get study "+files[i].getName());
+					continue;
+				} catch (TaxonNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TreeIngestException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				br.close();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}catch (java.lang.NullPointerException e){
+				e.printStackTrace();
+			}
+			
+		}
+		graphDb.shutdownDb();
 		return 0;
 	}
 	
@@ -1136,7 +1213,9 @@ public class MainRunner {
 				cmdReturnCode = mr.addTaxonomyMetadataNodeToIndex(args);
 
 			
-			} else if (command.compareTo("getupdatedlist") == 0) {
+			} else if (command.compareTo("pgload") == 0) {
+				cmdReturnCode = mr.pg_loading(args);
+			}else if (command.compareTo("getupdatedlist") == 0) {
 				cmdReturnCode = mr.pgtesting(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
