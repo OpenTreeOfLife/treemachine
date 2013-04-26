@@ -629,10 +629,6 @@ public class GraphExplorer extends GraphBase {
 //    	if (parentNode != null) {
 //    		System.out.println("parent node: " + parentNode.getId());
 //    	}
-
-    	if (curNode.hasProperty("name")) {
-    		System.out.println(curNode.getProperty("name"));    		
-    	}
     	
         // store the relationship
     	if (parentNode != null) {

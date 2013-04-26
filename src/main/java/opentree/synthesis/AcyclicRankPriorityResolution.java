@@ -1,11 +1,13 @@
 package opentree.synthesis;
 
+import gnu.trove.list.array.TLongArrayList;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import opentree.GraphDatabaseAgent;
+import opentree.LicaUtil;
 
 import org.neo4j.graphdb.Relationship;
 
@@ -21,7 +23,7 @@ import org.neo4j.graphdb.Relationship;
 public class AcyclicRankPriorityResolution implements ConflictResolutionMethod {
 
 	// containers used to make decisions about best paths
-	HashMap<Relationship, HashSet<Long>> candRelDescendantIdsMap;
+	HashMap<Relationship, TLongArrayList> candRelDescendantIdsMap;
 	LinkedList<Relationship> bestRels;
 	
 	public AcyclicRankPriorityResolution() {
@@ -29,16 +31,25 @@ public class AcyclicRankPriorityResolution implements ConflictResolutionMethod {
 	}
 	
 	private void initialize() {
-		candRelDescendantIdsMap = new HashMap<Relationship, HashSet<Long>>();
+		candRelDescendantIdsMap = new HashMap<Relationship, TLongArrayList>();
 		bestRels = new LinkedList<Relationship>();
 	}
 
 	private void storeDescendants(Relationship rel) {
-		HashSet<Long> descendantIds = new HashSet<Long>();
-		for (long descId : (long[]) rel.getStartNode().getProperty("mrca")) {
-			descendantIds.add(descId);
-		}
+
+		TLongArrayList descendantIds = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
 		candRelDescendantIdsMap.put(rel, descendantIds);
+
+		// just user feedback for non-terminal nodes
+		if (descendantIds.size() > 1) {
+			String name = null;
+			if (rel.getStartNode().hasProperty("name")) {
+				name = String.valueOf(rel.getStartNode().getProperty("name"));
+			} else {
+				name = rel.getStartNode().toString();
+			}
+			System.out.println(name + " has " + descendantIds.size() + " children");
+		}
 	}
 	
 	private boolean testForConflict(Relationship rel1, Relationship rel2) {
@@ -52,17 +63,11 @@ public class AcyclicRankPriorityResolution implements ConflictResolutionMethod {
 		}
 
 		// if the relationships share any descendant leaves, then they are in conflict
-		for (long descId1 : candRelDescendantIdsMap.get(rel1)) {
-			for (long descId2 : candRelDescendantIdsMap.get(rel2)) {
-//				System.out.println("descendant1 = " + descId1 + "; descendant2 = " + descId2);
-				if (descId1 == descId2) {
-					return true;
-				}
-			}
+		if (LicaUtil.containsAnyt4jUnsorted(candRelDescendantIdsMap.get(rel2), candRelDescendantIdsMap.get(rel1))) {
+			return true;
+		} else {
+			return false;
 		}
-
-		// no conflict was found
-		return false;
 	}
 	
 	@Override

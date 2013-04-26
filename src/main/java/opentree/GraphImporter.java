@@ -752,7 +752,7 @@ public class GraphImporter extends GraphBase{
 			childndids.sort();
 			//HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
 			HashSet<Node> ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, rootids);
-			
+						
 			//			_LOG.trace("ancestor "+ancestor);
 			// _LOG.trace(ancestor.getProperty("name"));
 			if (ancestors.size() > 0) {
