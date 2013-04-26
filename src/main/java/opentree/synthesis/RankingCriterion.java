@@ -8,5 +8,6 @@ import org.neo4j.graphdb.Relationship;
 public interface RankingCriterion extends Comparator<Relationship> {
 
 	abstract void sort(List<Relationship> rels);
+	abstract String getDescription();
 	
 }

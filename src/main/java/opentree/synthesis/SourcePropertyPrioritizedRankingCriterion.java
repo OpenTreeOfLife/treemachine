@@ -20,9 +20,13 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	private HashMap<String, Integer> priorityMapString;
 	private HashMap<Long, Integer> priorityMapLong;
 	private HashMap<Double, Integer> priorityMapDouble;
-	Index<Node> metadataNodeIndex;
+	private Index<Node> metadataNodeIndex;
+	private String desc;
 	
 	private final static Integer NOTRANKED = -999999999;
+
+	// for testing
+	private static final boolean VERBOSE = false;
 	
 	/**
 	 * Define a ranking order for relationships based on the order defined by the priorityList `l` for the property `p`.
@@ -53,6 +57,15 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 				this.priorityMapDouble.put((Double) o, i++);
 			}
 		}
+		
+		desc = "by source property " + property.propertyName + " in the order specified by the list:\n";
+		for (Object o : priortyListIterable) {
+			desc = desc.concat(String.valueOf(o) + "\n");
+		}
+	}
+
+	public String getDescription() {
+		return desc;
 	}
 
 	/**
@@ -109,15 +122,33 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 			throw new java.lang.UnsupportedOperationException("the source property datatype " + String.valueOf(property.type) + " is unrecognized");
 		}
 		
+		Integer retval = null;
 		if (rank1 == NOTRANKED && rank2 == NOTRANKED) {
-			return 0;
+			retval = 0;
+
 		} else if (rank2 == NOTRANKED) {
-			return 1;
+			retval = 1;
+
+			if (VERBOSE)
+				System.out.println("rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source") + ") property " + v2 + " is not in priority list; preferring rel 1 (relid " + rel1.getId() + "; source " + rel1.getProperty("source") + ") property " + v1 + ")");
+		
 		} else if (rank1 == NOTRANKED) {
-			return -1;
+			retval = -1;
+
+			if (VERBOSE)
+				System.out.println("rel 1 (relid " + rel1.getId() + "; name " + rel1.getProperty("source") + ") property " + v1 + " is not in priority list; preferring rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source") + ") property " + v2 + ")");
+
+		} else {
+			retval = rank1.compareTo(rank2);
+		
+			if (VERBOSE) {
+				System.out.println("rel 1 (relid " + rel1.getId() + "; name " + rel1.getProperty("source") + ") property " + v1 + " || rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source")  + ") property " + v2 + ")");
+				System.out.println("\t" + retval);
+			}
 		}
-			
-		return rank1.compareTo(rank2);
+		
+		// priority is indicated by proximity to the beginning of the list, so we sort in REVERSE!
+		return retval * -1;
 	}
 
 	public void sort(List<Relationship> rels) {

@@ -51,4 +51,16 @@ public class RelationshipFilter {
 		filters.add(fc);
 		return this;
 	}
+	
+	/**
+	 * Just return a description of this filter will be applied
+	 * @return
+	 */
+	public String getDescription() {
+		String description = "Relationships will be accepted only if they meet the following criteria:\n";
+		for (FilterCriterion fc : filters) {
+			description = description.concat(fc.getDescription()+"\n");
+		}
+		return description;
+	}
 }

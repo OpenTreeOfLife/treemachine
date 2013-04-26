@@ -28,4 +28,8 @@ public class RelationshipConflictResolver {
 	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> candidateRels) {
 		return method.resolveConflicts(candidateRels);
 	}
+	
+	public String getDescription() {
+		return "Conflicts resolution will " + method.getDescription();
+	}
 }

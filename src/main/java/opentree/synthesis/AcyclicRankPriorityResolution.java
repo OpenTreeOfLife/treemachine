@@ -107,4 +107,8 @@ public class AcyclicRankPriorityResolution implements ConflictResolutionMethod {
 
 		return bestRels;
 	}
+	
+	public String getDescription() {
+		return "prefer relationships with higher ranking, and guarantee a fully acyclic result";
+	}
 }

@@ -14,7 +14,7 @@ import org.neo4j.graphdb.index.Index;
 public class SourcePropertyFilterCriterion implements FilterCriterion {
 
 	private SourceProperty property;
-	private FilterComparisonMethod c;
+	private FilterComparisonType c;
 	private TestValue t;
 	private Index<Node> metadataNodeIndex;
 	
@@ -24,7 +24,7 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 	 * @param c
 	 * @param t
 	 */
-	public SourcePropertyFilterCriterion(SourceProperty p, FilterComparisonMethod c, TestValue t, Index<Node> sourceMetaNodes) {
+	public SourcePropertyFilterCriterion(SourceProperty p, FilterComparisonType c, TestValue t, Index<Node> sourceMetaNodes) {
 		this.property = p;
 		this.c = c;
 		this.t = t;
@@ -36,22 +36,34 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 		
 		SourcePropertyValue v = new SourcePropertyValue(property, m1.getProperty(property.name()));
 		
-		if (c == FilterComparisonMethod.EQUALTO) {
+		if (c == FilterComparisonType.EQUALTO) {
 			return t.compareTo(v) == 0;
 
-		} else if (c == FilterComparisonMethod.UNEQUALTO) {
+		} else if (c == FilterComparisonType.UNEQUALTO) {
 			return t.compareTo(v) != 0;
 			
-		} else if (c == FilterComparisonMethod.GREATERTHAN) {
+		} else if (c == FilterComparisonType.GREATERTHAN) {
 			// do the comparison in reverse, so return the opposite
 			return t.compareTo(v) < 0;
-			
-		} else if (c == FilterComparisonMethod.LESSTHAN) {
+
+		} else if (c == FilterComparisonType.LESSTHAN) {
 			// do the comparison in reverse, so return the opposite
 			return t.compareTo(v) > 0;
+
+		} else if (c == FilterComparisonType.GREATEROREQUAL) {
+			// do the comparison in reverse, so return the opposite
+			return t.compareTo(v) <= 0;
+			
+		} else if (c == FilterComparisonType.LESSOREQUAL) {
+			// do the comparison in reverse, so return the opposite
+			return t.compareTo(v) >= 0;
 			
 		} else {
 			throw new java.lang.UnsupportedOperationException("the comparison method " + c.toString() + " is not recognized");
 		}
+	}
+	
+	public String getDescription() {
+		return "source property " + property.propertyName + " " + c.name() + " " + t.getValue();
 	}
 }

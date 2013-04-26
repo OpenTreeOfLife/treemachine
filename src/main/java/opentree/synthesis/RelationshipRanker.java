@@ -58,11 +58,19 @@ public class RelationshipRanker {
 		for (int i = criteria.size() - 1; i >= 0; i--) {
 			// iterate through criteria in reverse order and sort the relationships in that order
 			criteria.get(i).sort(rankedRels); // TEST THIS
-		}
+		}		
 		
 		return rankedRels;
 	}
 
+	public String getDescription() {
+		String description = "Relationships will be ranked (rankings listed in order of priority):\n";
+		for (RankingCriterion rc : criteria) {
+			description = description.concat(rc.getDescription()+"\n");
+		}
+		return description;
+	}
+	
 	/**
 	 * Return the highest ranking relationship from the set of incoming rels. Ranking is performed according to the set of
 	 * SelectRankingCriterion objects that have been previously supplied to this RelationshipSelector.

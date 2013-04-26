@@ -73,6 +73,34 @@ public class RelationshipEvaluator {
 	}
 
 	/**
+	 * Return a textual description of the procedures that will be performed by this synthesis method.
+	 * @return description
+	 */
+	public String getDescription() {
+		String desc = "";
+
+		if (filter != null) {
+			desc = desc.concat(filter.getDescription() + "\n");
+		} else {
+			desc = desc.concat("No filtering will be applied\n");
+		}
+
+		if (ranker != null) {
+			desc = desc.concat(ranker.getDescription() + "\n");
+		} else {
+			desc = desc.concat("No ranking will be applied (rank will be the order returned by the graph db)\n");
+		}
+
+		if (resolver != null) {
+			desc = desc.concat(resolver.getDescription() + "\n");
+		} else {
+			desc = desc.concat("No conflict resolution will be applied (all rels passing filters will be returned)\n");
+		}
+		
+		return desc;
+	}
+	
+	/**
 	 * Filters and ranks the candidate relationships according to the relationship filter and ranker assigned to this
 	 * evaluator, and then picks the best set that do not conflict according to the assigned conflict resolver.
 	 * 
@@ -87,8 +115,6 @@ public class RelationshipEvaluator {
 		}
 
 		candidateRels = allRels;
-		
-//		System.out.println("found " + allRels.size() + " relationships");
 				
 		filter();
 		rank();

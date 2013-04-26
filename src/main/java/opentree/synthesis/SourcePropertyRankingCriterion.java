@@ -33,6 +33,10 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 		this.metadataNodeIndex = sourceMetaNodes;
 	}
 	
+	public String getDescription() {
+		return "by source property " + property.propertyName + " in " + order.name() + " order";
+	}
+	
 	@Override
 	public int compare(Relationship rel1, Relationship rel2) {
 		
@@ -51,29 +55,32 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 		if (m2.hasProperty(property.propertyName))
 			v2 = new SourcePropertyValue(property, m2.getProperty(property.propertyName));
 
-		// order relationships that have the property higher than ones that do not
+		Integer retval = null;
+		
+		// Relationships that have the specified property should be order higher than ones that do not.
+		// NOTE: Collections.sort() sorts in ascending order, but we actually want higher priority elements
+		// at the beginning of the list, so we reverse the order of the comparison here.
 		if (v1 == null && v2 == null) {
-			return 0;
+			retval = 0;
 		} else if (v1 == null) {
-			return -1;
+			retval = 1; // reverse
 		} else if (v2 == null) {
-			return 1;
+			retval = -1; // reverse
 
 		// if both rels have the property, then compare them
 		} else {
 
 			if (order == RankingOrder.INCREASING)
-				return v1.compareTo(v2);
+				retval = v1.compareTo(v2);
 			
 			else if (order == RankingOrder.DECREASING)
-				return v1.compareTo(v2) * -1; // reverse the comparison direction
-	
-				// could this also be? :
-				// v2.compareTo(v1);
-	
+				retval = v2.compareTo(v1); // reverse the comparison direction
+
 			else
 				throw new java.lang.UnsupportedOperationException("the ranking method " + order.toString() + " is not recognized");
 		}
+		
+		return retval;
 	}
 
 	@Override
