@@ -1907,6 +1907,7 @@ public class GraphExplorer extends GraphBase {
         }
         // print the newick string
         JadeTree tree = new JadeTree(root);
+        root.assocObject("nodedepth", root.getNodeMaxDepth());
         tree.setHasBranchLengths(printlengths);
         return tree;
     }
