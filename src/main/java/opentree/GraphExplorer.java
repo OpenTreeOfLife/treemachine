@@ -613,8 +613,8 @@ public class GraphExplorer extends GraphBase {
         }
 
         // somehow need to identify the taxonomy root node for starting the addition of lost children
-        // CURENTLY SET TO ROSALES FOR TESTING ONLY
-        Node taxRootNode = findGraphNodeByName("Rosales");
+        // CURENTLY SET MANUALLY FOR TESTING ONLY
+        Node taxRootNode = findGraphNodeByName("life");
 
         tx = graphDb.beginTx();
         try {
@@ -718,7 +718,7 @@ public class GraphExplorer extends GraphBase {
 //	    	System.out.println("looking for parents of " + curParent.toString());
 
 	    	Iterable<Relationship> parentRels = curParent.getRelationships(RelTypes.SYNTHCHILDOF, Direction.OUTGOING);
-        	atRoot = true; // assume we hit the root until proven otherwise
+        	atRoot = true; // assume we have hit the root until proven otherwise
         	for (Relationship m : parentRels) {
         		
         		// testing
@@ -765,10 +765,10 @@ public class GraphExplorer extends GraphBase {
 	    List<Long> pathNodeIds = getDraftTreePathToRoot(firstNode);
 	    
 	    // testing
-	    System.out.println("first path");
-	    for (long nid : pathNodeIds) {
-	    	System.out.println(nid);
-	    }
+//	    System.out.println("first path");
+//	    for (long nid : pathNodeIds) {
+//	    	System.out.println(nid);
+//	    }
 	    
         // compare paths from all other taxa to find the mrca
         int i = 0;
@@ -776,18 +776,18 @@ public class GraphExplorer extends GraphBase {
         	Node descNode = descNodesIter.next();
         	
     	    // testing
-    	    System.out.println("next path");
+//    	    System.out.println("next path");
 
             for (long pid : getDraftTreePathToRoot(descNode)) {
 
             	// testing
-            	System.out.println("looking for " + pid + " in first path");
+//            	System.out.println("looking for " + pid + " in first path");
             	
                 if (pathNodeIds.contains(pid)) {
                 	int j = pathNodeIds.indexOf(pid);
 
                 	// testing
-                	System.out.println("found parent in first path, position " + j);
+ //               	System.out.println("found parent in first path, position " + j);
 
                     if (i < j)
                         i = j;
@@ -840,7 +840,7 @@ public class GraphExplorer extends GraphBase {
             // get all external descendants of this taxon, remember if they're in the tree or not
             for (long cid : (long[]) taxNode.getProperty("mrca")) {
             	Node childNode = graphDb.getNodeById(cid);
-                String childName = GeneralUtils.cleanName((String) childNode.getProperty("name"));
+//                String childName = GeneralUtils.cleanName((String) childNode.getProperty("name"));
 
                 // `knownIdsInTree` should already have been started during synthesis
                 if (knownIdsInTree.contains(cid)) {
@@ -879,9 +879,12 @@ public class GraphExplorer extends GraphBase {
                 mrca = newMRCA;
             } */
             
+            // TODO: CURRENTLY THERE ARE SCREWY THINGS HAPPENING WITH GENERA GETTING LUMPED INTO
+            // FAMILIES. NEED TO FIX!
+            
             // add any children that are not already in tree
 //            for (Entry<String, Node> entry: taxaToAddNamesNodesMap.entrySet()) {
-          for (Node childNode : nodesToAdd) {
+            for (Node childNode : nodesToAdd) {
 
 //                String taxonName = entry.getKey();
 //                Node nodeToAdd = entry.getValue();
