@@ -687,15 +687,17 @@ public class GraphExplorer extends GraphBase {
      * @param nodeId
      * @throws OttolIdNotFoundException 
      */
-    public JadeTree extractDraftTree(Node startNode, String synthTreeName, int depth) {
+//    public JadeTree extractDraftTree(Node startNode, String synthTreeName, int depth) {
+    public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
     	
         // empty parameters for initial recursion
         JadeNode parentJadeNode = null;
         Relationship incomingRel = null;
-        int curDepth = 0;
-        int maxDepth = depth;
+//        int curDepth = 0;
+//        int maxDepth = depth;
         
-        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, curDepth, maxDepth));
+//        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, curDepth, maxDepth));
+        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
     }
 
     /**
@@ -918,7 +920,8 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param nodeId
      */
-    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName, int depth, int maxDepth) {
+//    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName, int depth, int maxDepth) {
+    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName) {
     	
         JadeNode curNode = new JadeNode();
         
@@ -953,11 +956,12 @@ public class GraphExplorer extends GraphBase {
         }
 
         // recursively add the children to the tree we're building
-        if (depth < maxDepth) {
-	        for (Relationship synthChildRel : synthChildRels) {
-	        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName, ++depth, maxDepth);
-	        }
+//        if (depth < maxDepth) {
+        for (Relationship synthChildRel : synthChildRels) {
+//        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName, ++depth, maxDepth);
+        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
         }
+//        }
         
         return curNode;
 
