@@ -95,14 +95,14 @@ public class GoLS extends ServerPlugin {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		Node startNode = ge.findGraphTaxNodeByUID(ottolID);
 		
-		return OpenTreeMachineRepresentationConverter.convert(startNode);
-/*		
+//		return OpenTreeMachineRepresentationConverter.convert(startNode);
+		
 		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME, maxDepth);
 
 		HashMap<String, String> response = new HashMap<String, String>();
 		response.put("tree", tree.getRoot().getNewick(true));
 
-		return OpenTreeMachineRepresentationConverter.convert(response); */
+		return OpenTreeMachineRepresentationConverter.convert(response);
 	}
 	
 	
