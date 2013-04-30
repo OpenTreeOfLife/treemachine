@@ -83,7 +83,7 @@ public class GoLS extends ServerPlugin {
 
 	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottolID`. Temporary, for interoperability testing with the arbor project.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation getDraftTreeForOttolUID(
+	public Representation getDraftTreeForOttolID(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The ottol id of the taxon to be used as the root for the tree.")
 			@Parameter(name = "ottolID", optional = false) String ottolID,
@@ -106,30 +106,41 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(response);
 	}
 
-	@Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree.")
+	@Description("returns the Neo4j node id for the node identified by `ottolID`. Temporary, for interoperability testing with the arbor project.")
+	@PluginTarget(GraphDatabaseService.class)
+	public Long getNodeIDForOttolID(
+			@Source GraphDatabaseService graphDb,
+			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
+			@Parameter(name = "ottolID", optional = false) String ottolID) {
+		
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		return ge.findGraphTaxNodeByUID(ottolID).getId();
+	}
+	
+	@Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree. Temporary, for interoperability testing with the arbor project.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeChildNodesForNodeID(
 			@Source GraphDatabaseService graphDb,
-			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
-			@Parameter(name = "nodeID", optional = false) Long nodeID) {
-				
-		Node startNode = graphDb.getNodeById(nodeID);
+			@Description( "The ottol id of the taxon to be used as the root for the tree.")
+			@Parameter(name = "ottolID", optional = false) String ottolID,
+			@Description( "An integer controlling the maximum depth to which the graph will be traversed when building the tree. If empty then the entire subtree will be returned.")
+			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException {
 		
-		HashSet<Long> childIds = new HashSet<Long>();
+		int maxDepth = Integer.MAX_VALUE;
+		if (maxDepthArg != null) {
+			maxDepth = maxDepthArg;
+		}
 		
-        for (Relationship synthChildRel : startNode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)) {
-        	if (GraphBase.DRAFTTREENAME.equals(String.valueOf(synthChildRel.getProperty("name"))))	{
-        		childIds.add(synthChildRel.getStartNode().getId());
-        	}
-        }
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		Node startNode = ge.findGraphTaxNodeByUID(ottolID);
 		
-		//HashMap<String, HashSet<Long>> response = new HashMap<String, HashSet<Long>>();
-		//response.put("childIds", childIds);
+		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME, maxDepth);
 
-		return OpenTreeMachineRepresentationConverter.convert(childIds);
+		HashMap<String, String> response = new HashMap<String, String>();
+		response.put("tree", tree.getRoot().getNewick(true));
+
+		return OpenTreeMachineRepresentationConverter.convert(response);
 	}
-	
-
 	
 	/* should this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh */
 	// subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
