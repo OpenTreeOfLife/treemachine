@@ -949,6 +949,9 @@ public class MainRunner {
 		File file = new File(directory);
 		File [] files = file.listFiles();
 		for(int i =0;i<files.length;i++){
+            if (i > 20){
+                break;
+            }
 			System.out.println("files "+ files[i]);
 			try {
 				BufferedReader br = new BufferedReader(new FileReader(files[i]));

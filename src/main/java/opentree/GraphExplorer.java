@@ -1613,6 +1613,37 @@ public class GraphExplorer extends GraphBase {
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
 
+    //@TODO we should store an index of synthesis "name" -> root node. Here we'll just rely on the fact that
+    //      the root of the synthesis tree will be "life"...
+    private Node getSynthesisRoot(String treeID) {
+        return findGraphNodeByName("life");
+    }
+    /**
+     * @returns a JadeTree representation of the synthesis tree with the specified treeID
+     * @param maxDepth is the max number of edges between the root and an included node
+     *      if non-negative this can be used to prune off subtrees that exceed the threshold
+     *      distance from the root. If maxDepth is negative, no threshold is applied
+     */
+    public JadeTree reconstructSyntheticTree(String treeID, int maxDepth) throws TreeNotFoundException {
+        Node rootnode = getSynthesisRoot(treeID);
+        return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
+    }
+
+    /**
+     * @returns a JadeTree representation of a subtree of the synthesis tree with the specified treeID
+     * @param subtreeNodeID the ID of the node that will be used as the root of the returned tree.
+     *      the node must be a node in the tree
+     * @param maxDepth is the max number of edges between the root and an included node
+     *      if non-negative this can be used to prune off subtrees that exceed the threshold
+     *      distance from the root. If maxDepth is negative, no threshold is applied
+     */
+    public JadeTree reconstructSyntheticTree(String treeID, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
+        Node rootnode = graphDb.getNodeById(subtreeNodeID);
+        return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
+    }
+
+    
+
     public Node getRootNodeByTreeID(String treeID) throws TreeNotFoundException {
         IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);
         if (hits == null || hits.size() == 0) {
@@ -1824,6 +1855,58 @@ public class GraphExplorer extends GraphBase {
                     }
                 }
             } 
+        }
+        // print the newick string
+        JadeTree tree = new JadeTree(root);
+        root.assocObject("nodedepth", root.getNodeMaxDepth());
+        tree.setHasBranchLengths(printlengths);
+        return tree;
+    }
+
+
+    /**
+     * @param maxDepth is the max number of edges between the root and an included node
+     *      if non-negative this can be used to prune off subtrees that exceed the threshold
+     *      distance from the root. If maxDepth is negative, no threshold is applied
+     */
+    private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
+        JadeNode root = new JadeNode();
+        if (rootnode.hasProperty("name")) {
+            root.setName((String) rootnode.getProperty("name"));
+        }
+        root.assocObject("nodeid", rootnode.getId());
+        boolean printlengths = false;
+        HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
+        node2JadeNode.put(rootnode, root);
+
+
+        TraversalDescription synthEdgeTraversal = Traversal.description().relationships(RelTypes.SYNTHCHILDOF, Direction.INCOMING);
+        //@TEMP should create an evaluator to check the name of the SYNTHCHILDOF rel and not follow paths with the wrong name...
+        synthEdgeTraversal = synthEdgeTraversal.depthFirst();
+        if (maxDepth >= 0) {
+            synthEdgeTraversal = synthEdgeTraversal.evaluator(Evaluators.toDepth(maxDepth));
+        }
+        for (Path path : synthEdgeTraversal.traverse(rootnode)) {
+            Relationship furshestRel = path.lastRelationship();
+            if (furshestRel != null && furshestRel.hasProperty("name")) {
+                String rn = (String) furshestRel.getProperty("name");
+                if (rn.equals(treeID)) {
+                    Node parNode = furshestRel.getEndNode();
+                    Node childNode = furshestRel.getStartNode();
+                    JadeNode jChild = new JadeNode();
+                    final long cid = childNode.getId();
+                    if (childNode.hasProperty("name")) {
+                        jChild.setName((String) childNode.getProperty("name"));
+                    }
+                    jChild.assocObject("nodeid", cid);
+                    if (furshestRel.hasProperty("branch_length")) {
+                        printlengths = true;
+                        jChild.setBL((Double) furshestRel.getProperty("branch_length"));
+                    }
+                    node2JadeNode.get(parNode).addChild(jChild);
+                    node2JadeNode.put(childNode, jChild);
+                }
+            }
         }
         // print the newick string
         JadeTree tree = new JadeTree(root);

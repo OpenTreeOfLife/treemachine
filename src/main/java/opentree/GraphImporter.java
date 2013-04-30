@@ -258,9 +258,7 @@ public class GraphImporter extends GraphBase{
 							//tnode.setProperty("tax_sourcepid",srce_pid);
 							tnode.setProperty("uniqname",uniqname);
 							graphNodeIndex.add( tnode, "name", name );
-							if (tid.length() > 0) {
-								graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-							}
+							graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 							if (pid.length() > 0) {
 								parents.put(tid, pid);
 							}else{//root node
@@ -323,9 +321,7 @@ public class GraphImporter extends GraphBase{
 					//tnode.setProperty("tax_sourcepid",srce_pid);
 					tnode.setProperty("uniqname",uniqname);
 					graphNodeIndex.add( tnode, "name", name );
-					if (tid.length() > 0) {
-						graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-					}
+					graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
 					if (pid.length() > 0) {
 						parents.put(tid, pid);
 					}else{//root node
