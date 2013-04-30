@@ -687,13 +687,15 @@ public class GraphExplorer extends GraphBase {
      * @param nodeId
      * @throws OttolIdNotFoundException 
      */
-    public JadeTree extractDraftTree(Node startNode, String synthTreeName) throws OttolIdNotFoundException {
-
+    public JadeTree extractDraftTree(Node startNode, String synthTreeName, int depth) {
+    	
         // empty parameters for initial recursion
         JadeNode parentJadeNode = null;
         Relationship incomingRel = null;
+        int curDepth = 0;
+        int maxDepth = depth;
         
-        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
+        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, curDepth, maxDepth));
     }
 
     /**
@@ -916,7 +918,7 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param nodeId
      */
-    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName) {
+    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName, int depth, int maxDepth) {
     	
         JadeNode curNode = new JadeNode();
         
@@ -951,8 +953,10 @@ public class GraphExplorer extends GraphBase {
         }
 
         // recursively add the children to the tree we're building
-        for (Relationship synthChildRel : synthChildRels) {
-        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
+        if (depth < maxDepth) {
+	        for (Relationship synthChildRel : synthChildRels) {
+	        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName, ++depth, maxDepth);
+	        }
         }
         
         return curNode;

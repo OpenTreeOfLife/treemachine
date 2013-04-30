@@ -880,11 +880,7 @@ public class MainRunner {
         }
 		
 		JadeTree synthTree = null;
-		try {
-			synthTree = ge.extractDraftTree(firstNode, ge.DRAFTTREENAME);
-		} catch (OttolIdNotFoundException oex) {
-			oex.printStackTrace();
-		}
+		synthTree = ge.extractDraftTree(firstNode, GraphBase.DRAFTTREENAME, Integer.MAX_VALUE);
 
 		if (synthTree == null) {
 			return -1;

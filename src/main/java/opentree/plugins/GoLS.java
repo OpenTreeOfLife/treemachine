@@ -13,6 +13,7 @@ import java.util.List;
 
 import jade.tree.JadeTree;
 
+import opentree.GraphBase;
 import opentree.GraphExplorer;
 import opentree.GraphExporter;
 import opentree.OttolIdNotFoundException;
@@ -76,6 +77,34 @@ public class GoLS extends ServerPlugin {
 			return "Failure. Nothing stored for ottolid=" + rootOttolID;
 		}
 	}
+
+	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottolID`. Temporary, for interoperability testing with the arbor project.")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getDraftTree(
+			@Source GraphDatabaseService graphDb,
+			@Description( "The ottol id of the taxon to be used as the root for the tree.")
+			@Parameter(name = "ottolID", optional = false) String ottolID,
+			@Description( "An integer controlling the maximum depth to which the graph will be traversed when building the tree. If empty then the entire subtree will be returned.")
+			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException {
+		
+		int maxDepth = Integer.MAX_VALUE;
+		if (maxDepthArg != null) {
+			maxDepth = maxDepthArg;
+		}
+		
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		Node startNode = ge.findGraphTaxNodeByUID(ottolID);
+		
+		return OpenTreeMachineRepresentationConverter.convert(startNode);
+/*		
+		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME, maxDepth);
+
+		HashMap<String, String> response = new HashMap<String, String>();
+		response.put("tree", tree.getRoot().getNewick(true));
+
+		return OpenTreeMachineRepresentationConverter.convert(response); */
+	}
+	
 	
 	/* should this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh */
 	// subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
