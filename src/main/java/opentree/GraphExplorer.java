@@ -947,7 +947,7 @@ public class GraphExplorer extends GraphBase {
         // get the immediate synth children of the current node
         LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
         for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)) {
-        	
+        	        	
         	// TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
         	if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name"))))	{
         		// currently just filtering on name
