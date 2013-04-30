@@ -97,8 +97,8 @@ public class GoLS extends ServerPlugin {
 		
 //		return OpenTreeMachineRepresentationConverter.convert(startNode);
 		
-//		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME, maxDepth);
-		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
+		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME, maxDepth);
+//		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
 
 		HashMap<String, String> response = new HashMap<String, String>();
 		response.put("tree", tree.getRoot().getNewick(true));
