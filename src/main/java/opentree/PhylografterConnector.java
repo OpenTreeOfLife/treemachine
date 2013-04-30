@@ -315,7 +315,7 @@ public class PhylografterConnector {
 	        		jnp = jnp.getParent();
 	        		for(JadeNode jnn: jnp.getTips()){
 	        			if (matchednodes.contains(jnn)){
-	        				IndexHits<Node> ihn = graphTaxUIDNodeindex.get("tax_uid", (Long)jnn.getObject("ot:ottolid"));
+	        				IndexHits<Node> ihn = graphTaxUIDNodeindex.get("tax_uid", String.valueOf((Long)jnn.getObject("ot:ottolid")));
 	        				nodeSet.add(ihn.getSingle());
 	        				ihn.close();
 	        			}
@@ -327,11 +327,15 @@ public class PhylografterConnector {
 	        	//if there is still no set of nodes, should take context, but breaking for now
 	        	Node parentnode = null;
 	        	if(nodeSet.size() == 0){
-	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", cnid).getSingle();
+	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", String.valueOf(cnid)).getSingle();
 	        	}else{
 	        		parentnode = LicaUtil.getTaxonomicLICA(nodeSet);
 	        	}
+	        	if(parentnode == null){
+	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", String.valueOf(cnid)).getSingle();
+	        	}
 	        	System.out.println("parentnode:"+parentnode);
+	        	
 	        	System.out.println("will add node");
 	        	//generate ottol id
 	        	Long ottol_id = null; 
