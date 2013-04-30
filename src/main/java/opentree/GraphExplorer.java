@@ -957,10 +957,10 @@ public class GraphExplorer extends GraphBase {
 
         // recursively add the children to the tree we're building
         if (depth < maxDepth) {
-        for (Relationship synthChildRel : synthChildRels) {
-        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName, ++depth, maxDepth);
-//        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
-        }
+        	for (Relationship synthChildRel : synthChildRels) {
+	        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName, ++depth, maxDepth);
+	//        	extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
+	        }
         }
         
         return curNode;

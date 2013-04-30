@@ -17,8 +17,11 @@ import opentree.GraphBase;
 import opentree.GraphExplorer;
 import opentree.GraphExporter;
 import opentree.OttolIdNotFoundException;
+import opentree.RelTypes;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -103,27 +106,25 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(response);
 	}
 
-	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottolID`. Temporary, for interoperability testing with the arbor project.")
+	@Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation getDraftTreeForNodeID(
+	public Representation getDraftTreeChildNodesForNodeID(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
-			@Parameter(name = "ottolID", optional = false) Long nodeID,
-			@Description( "An integer controlling the maximum depth to which the graph will be traversed when building the tree. If empty then the entire subtree will be returned.")
-			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException {
-		
-		int maxDepth = Integer.MAX_VALUE;
-		if (maxDepthArg != null) {
-			maxDepth = maxDepthArg;
-		}
-		
-		GraphExplorer ge = new GraphExplorer(graphDb);
+			@Parameter(name = "nodeID", optional = false) Long nodeID) {
+				
 		Node startNode = graphDb.getNodeById(nodeID);
 		
-		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME, maxDepth);
-
-		HashMap<String, String> response = new HashMap<String, String>();
-		response.put("tree", tree.getRoot().getNewick(true));
+		HashSet<Long> childIds = new HashSet<Long>();
+		
+        for (Relationship synthChildRel : startNode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)) {
+        	if (GraphBase.DRAFTTREENAME.equals(String.valueOf(synthChildRel.getProperty("name"))))	{
+        		childIds.add(synthChildRel.getStartNode().getId());
+        	}
+        }
+		
+		HashMap<String, HashSet<Long>> response = new HashMap<String, HashSet<Long>>();
+		response.put("childIds", childIds);
 
 		return OpenTreeMachineRepresentationConverter.convert(response);
 	}
