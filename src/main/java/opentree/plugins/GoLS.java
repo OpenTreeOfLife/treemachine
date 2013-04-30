@@ -123,10 +123,10 @@ public class GoLS extends ServerPlugin {
         	}
         }
 		
-		HashMap<String, HashSet<Long>> response = new HashMap<String, HashSet<Long>>();
-		response.put("childIds", childIds);
+		//HashMap<String, HashSet<Long>> response = new HashMap<String, HashSet<Long>>();
+		//response.put("childIds", childIds);
 
-		return OpenTreeMachineRepresentationConverter.convert(response);
+		return OpenTreeMachineRepresentationConverter.convert(childIds);
 	}
 	
 
