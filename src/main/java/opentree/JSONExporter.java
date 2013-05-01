@@ -34,16 +34,23 @@ public class JSONExporter {
 		buffer.append("\"");
 	}
 
+	// write s as a quoted name appropriate for a JS property name and adds a colon and space for assignment to that property
+	///@TEMP: placeholder for real JSON property name escaping. Are there restrictions here???
+	public static void escapePropertyColon(StringBuffer buffer, String s) {
+		buffer.append("\"");
+		buffer.append(s);
+		buffer.append("\": ");
+	}
+
+	// if the Node has a property with name properyName, then this name will be appended to the JSON string buffer as a property
+	//	name. The colon will be added so that the rvalue can simply be written
 	// returns true if a property: was written.
 	public static boolean writePropertyNameColonIfFound(StringBuffer buffer, Node nd, String propertyName, boolean prependComma) {
 		if (nd.hasProperty(propertyName)) {
 			if (prependComma) {
-				buffer.append(", \"");
-			} else {
-				buffer.append("\"");
+				buffer.append(", ");
 			}
-			buffer.append(propertyName);
-			buffer.append("\": ");
+			escapePropertyColon(buffer, propertyName);
 			return true;
 		}
 		return false;
@@ -78,20 +85,22 @@ public class JSONExporter {
 			}
 			String source = n2mEl.getKey();
 			Node metadataNode = n2mEl.getValue();
-			buffer.append("{\"");
-			buffer.append(source);
-			buffer.append("\": ");
+			if (source == null || source.length() == 0) {
+				escapePropertyColon(buffer, "unnamedSource");
+			} else {
+				escapePropertyColon(buffer, source);
+			}
 			if (metadataNode == null) {
 				buffer.append("{}");
 			} else {
-				boolean prevProperties = false;
+				boolean wrotePrev = false;
 				buffer.append("{\"study\": {");
-					prevProperties = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublicationReference", prevProperties);
-					prevProperties = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublication", prevProperties);
-					prevProperties = writeStringPropertyIfFound(buffer, metadataNode, "ot:curatorName", prevProperties);
-					prevProperties = writeStringPropertyIfFound(buffer, metadataNode, "ot:dataDeposit", prevProperties);
-					prevProperties = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyId", prevProperties);
-					prevProperties = writeIntegerPropertyIfFound(buffer, metadataNode, "ot:studyYear", prevProperties);
+					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublicationReference", wrotePrev) || wrotePrev;
+					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublication", wrotePrev) || wrotePrev;
+					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:curatorName", wrotePrev) || wrotePrev;
+					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:dataDeposit", wrotePrev) || wrotePrev;
+					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyId", wrotePrev) || wrotePrev;
+					wrotePrev = writeIntegerPropertyIfFound(buffer, metadataNode, "ot:studyYear", wrotePrev) || wrotePrev;
 				buffer.append("}}");
 			}
 		}
