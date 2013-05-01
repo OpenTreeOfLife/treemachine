@@ -331,8 +331,8 @@ public class PhylografterConnector {
 	        	}else{
 	        		parentnode = LicaUtil.getTaxonomicLICA(nodeSet);
 	        	}
-	        	if(parentnode == null){
-	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", String.valueOf(cnid)).getSingle();
+	        	if(parentnode == null){//TODO: this just defaults to life if there is no other information
+	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", String.valueOf(805080)).getSingle();
 	        	}
 	        	System.out.println(cnid);
 	        	System.out.println("parentnode:"+parentnode);

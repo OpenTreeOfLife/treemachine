@@ -963,6 +963,7 @@ public class MainRunner {
 						boolean doubname = false;
 						HashSet<Long> ottols = new HashSet<Long>();
 						for(int m=0;m<j.getExternalNodeCount();m++){
+							System.out.println(j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
 							if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
 								doubname = true;
 								break;
