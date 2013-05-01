@@ -907,10 +907,10 @@ public class GraphImporter extends GraphBase{
 					System.out.println("Adding property 'ot:studyId' for tree " + sourcename + ": " + jt.getObject("ot:studyId"));
 					metadatanode.setProperty("ot:studyId", jt.getObject("ot:studyId"));
 				} if (jt.getObject("ot:studyYear") != null) {
-					System.out.println("Adding property 'ot:studyTear' for tree " + sourcename + ": " + jt.getObject("ot:studyYear"));
+					System.out.println("Adding property 'ot:studyYear' for tree " + sourcename + ": " + jt.getObject("ot:studyYear"));
 					metadatanode.setProperty("ot:studyYear", jt.getObject("ot:studyYear"));
 				} else {
-					System.out.println("Property 'ot:studyId' does not exist for tree " + sourcename);
+					System.out.println("Property 'ot:studyYear' does not exist for tree " + sourcename);
 				}
 				
 		// should studyID replace sourcename?
