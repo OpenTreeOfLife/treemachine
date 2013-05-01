@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
@@ -945,7 +946,7 @@ public class MainRunner {
 		File file = new File(directory);
 		File [] files = file.listFiles();
 		for(int i =0;i<files.length;i++){
-            if (i > 20){
+            if (i > 2){
                 break;
             }
 			System.out.println("files "+ files[i]);
@@ -984,8 +985,15 @@ public class MainRunner {
 								sourcename = (String)j.getObject("ot:studyId");
 							}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
 								sourcename += "_"+(String)j.getObject("id");
+							}							
+							//test to see if the tree is already in there
+							Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
+							IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
+							if (hits.size() > 0){
+								System.out.println("source "+sourcename+" already added");
+							}else{
+								gi.addSetTreeToGraphWIdsSet(sourcename);
 							}
-							gi.addSetTreeToGraphWIdsSet(sourcename);
 						}
 					}
 				} catch(java.lang.NullPointerException e){
@@ -1064,7 +1072,14 @@ public class MainRunner {
 						}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
 							sourcename += "_"+(String)j.getObject("id");
 						}
-						gi.addSetTreeToGraphWIdsSet(sourcename);
+						//test to see if the tree is already in there
+						Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
+						IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
+						if (hits.size() > 0){
+							System.out.println("source "+sourcename+" already added");
+						}else{
+							gi.addSetTreeToGraphWIdsSet(sourcename);
+						}
 					}
 		        }
 			} catch(java.lang.NullPointerException e){

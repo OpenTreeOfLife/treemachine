@@ -334,6 +334,7 @@ public class PhylografterConnector {
 	        	if(parentnode == null){
 	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", String.valueOf(cnid)).getSingle();
 	        	}
+	        	System.out.println(cnid);
 	        	System.out.println("parentnode:"+parentnode);
 	        	
 	        	System.out.println("will add node");
