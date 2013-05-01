@@ -917,8 +917,9 @@ public class GraphImporter extends GraphBase{
 				metadatanode.setProperty("source", sourcename);
 				//metadatanode.setProperty("author", "no one"); // seems deprecated now
 				metadatanode.setProperty("newick", treestring); // this could be giant. do we want to do this?
-				if (treeID != null)
+				if (treeID != null) {
 					metadatanode.setProperty("treeID", treeID);
+				}
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
 				//add the source taxa ids
 				/*HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) jt.getRoot().getObject("ndids"));
