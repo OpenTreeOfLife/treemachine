@@ -230,7 +230,7 @@ public class PhylografterConnector {
 	        String contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
 	        JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
 	        String cn = (String)contextResponse.get("context_name");
-	        Long cnid = (Long)contextResponse.get("content_rootnode_ottol_id");
+	        Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
 	        System.out.println(contextResponse);
 	        //getting the names for each of the speices
 	        sb = new StringBuffer();

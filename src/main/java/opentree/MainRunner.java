@@ -946,7 +946,7 @@ public class MainRunner {
 		File file = new File(directory);
 		File [] files = file.listFiles();
 		for(int i =0;i<files.length;i++){
-            if (i > 2){
+            if (i > 10){
                 break;
             }
 			System.out.println("files "+ files[i]);
