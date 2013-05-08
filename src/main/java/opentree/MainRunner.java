@@ -979,13 +979,30 @@ public class MainRunner {
 		File [] files = file.listFiles();
 		for(int i =0;i<files.length;i++){
 			System.out.println("files "+ files[i]);
-			try {
-				BufferedReader br = new BufferedReader(new FileReader(files[i]));
-				List<JadeTree> jt = NexsonReader.readNexson(br);
-				for (JadeTree j : jt) {
-					System.out.println(files[i] + ": " + j.getExternalNodeCount());
+			BufferedReader br= null;
+			List<JadeTree> jt = null;
+				try{
+					br = new BufferedReader(new FileReader(files[i]));
+					jt = NexsonReader.readNexson(br);
+					for (JadeTree j : jt) {
+						System.out.println(files[i] + ": " + j.getExternalNodeCount());
+					}
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}catch (java.lang.NullPointerException e){
+					e.printStackTrace();
 				}
-				PhylografterConnector.fixNamesFromTrees(Long.valueOf(files[i].getName()),jt,graphDb);
+				try{
+					PhylografterConnector.fixNamesFromTrees(Long.valueOf(files[i].getName()),jt,graphDb);
+				}catch(IOException ioe){
+					ioe.printStackTrace();
+					System.out.println("failed to get the names from server fixNamesFromTrees");
+					continue;
+				}
 				try{
 					for(JadeTree j: jt){
 						GraphImporter gi = new GraphImporter(graphDb);
@@ -1036,16 +1053,12 @@ public class MainRunner {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				br.close();
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}catch (java.lang.NullPointerException e){
-				e.printStackTrace();
-			}
+				try {
+					br.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			
 		}
 		graphDb.shutdownDb();
@@ -1073,7 +1086,12 @@ public class MainRunner {
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
-				PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+				try {
+					PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 		        for(JadeTree j: jt){
 		        	GraphImporter gi = new GraphImporter(graphDb);
 		        	boolean doubname = false;
@@ -1249,6 +1267,8 @@ public class MainRunner {
 				cmdReturnCode = mr.treeUtils(args);
 			} else if (command.compareTo("synthesizedrafttree") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTree(args);
+			}else if (command.compareTo("synthesizedrafttreelist") == 0) {
+				cmdReturnCode = mr.synthesizeDraftTreeWithList(args);
 			} else if (command.compareTo("extractdrafttree") == 0) {
 				cmdReturnCode = mr.extractDraftTree(args);
 				

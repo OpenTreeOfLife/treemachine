@@ -578,8 +578,9 @@ public class GraphExplorer extends GraphBase {
         RelationshipEvaluator draftSynthesisMethod = new RelationshipEvaluator();
 
         // set filtering criteria
-        RelationshipFilter rf = new RelationshipFilter();
-        rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
+        // leaving this out for now, but could be added
+        //RelationshipFilter rf = new RelationshipFilter();
+        //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();

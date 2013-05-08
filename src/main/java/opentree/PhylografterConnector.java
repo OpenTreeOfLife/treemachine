@@ -185,7 +185,7 @@ public class PhylografterConnector {
 	 * @param trees
 	 *            that have been processed from fetchTreesFromStudy
 	 */
-	public static void fixNamesFromTrees(Long studyid,List<JadeTree> trees, GraphDatabaseAgent graphDb) {
+	public static void fixNamesFromTrees(Long studyid,List<JadeTree> trees, GraphDatabaseAgent graphDb) throws IOException{
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
 		String urlbasecontext = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/getContextForNames";
