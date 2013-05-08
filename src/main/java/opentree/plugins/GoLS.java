@@ -204,7 +204,10 @@ public class GoLS extends ServerPlugin {
 				//	retst = gExporter.constructJSONAltRels(rootNode, sourcename, rels, maxdepth);
 				
 				// not sure why argus wants a list...
-				retst = "[" + tree.getRoot().getJSON(false) + "]";
+				StringBuffer retB = new StringBuffer("[");
+				retB.append(tree.getRoot().getJSON(false));
+				retB.append("]");
+				retst = retB.toString();
 			}
 		} finally {
 			ge.shutdownDB();

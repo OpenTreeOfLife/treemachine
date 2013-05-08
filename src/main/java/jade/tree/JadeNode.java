@@ -213,6 +213,11 @@ public class JadeNode {
 		} else {
 			ret.append(", \"nleaves\": 0");
 		}
+		Object dnl = this.getObject("descendantNameList");
+		if (dnl != null) {
+			ret.append(", \"descendantNameList\": ");
+			JSONExporter.writeStringArrayAsJSON(ret, (String []) dnl);
+		}
 		// report tree IDs supporting each clade as supportedBy list of strings
 		Object sup = this.getObject("supporting_sources");
 		if (sup != null) {

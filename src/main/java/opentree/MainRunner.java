@@ -231,6 +231,75 @@ public class MainRunner {
 		return 0;
 	}
 	
+		/**
+	 * 
+	 * @param args
+	 * @return 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
+	 * @throws TaxonNotFoundException
+	 */
+	public int graphArgusJSON(String [] args)
+			throws TreeNotFoundException {
+		GraphExplorer ge = null;
+		if (args[0].compareTo("argusjson") == 0) {
+			if (args.length != 6) {
+				System.err.println("Found " + args.length + " arguments. The arguments should be: synth/source name nodeID maxDepth graphdbfolder");
+				return 1;
+			}
+			String treeType = args[1];
+			boolean useSyntheticTree = false;
+			if (treeType.equalsIgnoreCase("synth") || treeType.equalsIgnoreCase("synth")) {
+				useSyntheticTree = true;
+			}
+			if (!useSyntheticTree) {
+				System.err.println("For now, only the synth tree exploration is supported (expecting the first arg to be \"synth\")");
+				return 1;
+			}
+			String treeID = args[2];
+			String nodeID = args[3];
+			long subtreeID = 0;
+			if (nodeID.length() == 0) {
+				nodeID = null;
+			} else {
+				try {
+					subtreeID = Long.parseLong(nodeID, 10);
+				} catch (NumberFormatException x) {
+					System.err.println("Expecting numeric nodeID got " + nodeID);
+					return 1;
+				}
+			}
+
+			String maxDepthStr = args[4];
+			int maxDepth = 5;
+			if (maxDepthStr.length() > 0) {
+				try {
+					maxDepth = Integer.parseInt(maxDepthStr, 10);
+				} catch (NumberFormatException x) {
+					System.err.println("Expecting number for maxDepth got " + maxDepthStr);
+					return 1;
+				}
+			}
+			String graphname = args[5];
+			ge = new GraphExplorer(graphname);
+			try {
+				JadeTree tree;
+				if (nodeID == null) {
+					tree = ge.reconstructSyntheticTree(treeID, maxDepth);
+				} else {
+					tree = ge.reconstructSyntheticTree(treeID, subtreeID, maxDepth);
+				}
+				StringBuffer retB = new StringBuffer("[");
+				retB.append(tree.getRoot().getJSON(false));
+				retB.append("]");
+				System.out.println(retB.toString());
+			} finally {
+				ge.shutdownDB();
+			}
+			return 0;
+		} else {
+			System.err.println("ERROR: not a known command");
+			return 2;
+		}
+	}
 	/**
 	 * 
 	 * @param args
@@ -1231,6 +1300,8 @@ public class MainRunner {
 			} else if (command.compareTo("addnewick") == 0
 					|| command.compareTo("addnexson") == 0) {
 				cmdReturnCode = mr.graphImporterParser(args);
+			} else if (command.compareTo("argusjson") == 0) {
+				cmdReturnCode = mr.graphArgusJSON(args);
 			} else if (command.compareTo("jsgol") == 0
 					|| command.compareTo("fulltree") == 0
 					|| command.compareTo("fulltree_sources") == 0) {
