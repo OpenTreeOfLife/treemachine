@@ -578,8 +578,9 @@ public class GraphExplorer extends GraphBase {
         RelationshipEvaluator draftSynthesisMethod = new RelationshipEvaluator();
 
         // set filtering criteria
-        RelationshipFilter rf = new RelationshipFilter();
-        rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
+        // leaving this out for now, but could be added
+        //RelationshipFilter rf = new RelationshipFilter();
+        //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
@@ -1886,6 +1887,7 @@ public class GraphExplorer extends GraphBase {
         if (maxDepth >= 0) {
             synthEdgeTraversal = synthEdgeTraversal.evaluator(Evaluators.toDepth(maxDepth));
         }
+        HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
         for (Path path : synthEdgeTraversal.traverse(rootnode)) {
             Relationship furshestRel = path.lastRelationship();
             if (furshestRel != null && furshestRel.hasProperty("name")) {
@@ -1903,6 +1905,16 @@ public class GraphExplorer extends GraphBase {
                         printlengths = true;
                         jChild.setBL((Double) furshestRel.getProperty("branch_length"));
                     }
+                    if (furshestRel.hasProperty("supporting_sources")) {
+                        String [] supportingSources = (String []) furshestRel.getProperty("supporting_sources");
+                        jChild.assocObject("supporting_sources", supportingSources);
+                        for (String s : supportingSources) {
+                            if (!mentionedSources.containsKey(s)) {
+                                Node m1 = sourceMetaIndex.get("source", s).getSingle();
+                                mentionedSources.put(s, m1);
+                            }
+                        }
+                    }
                     node2JadeNode.get(parNode).addChild(jChild);
                     node2JadeNode.put(childNode, jChild);
                 }
@@ -1911,6 +1923,9 @@ public class GraphExplorer extends GraphBase {
         // print the newick string
         JadeTree tree = new JadeTree(root);
         root.assocObject("nodedepth", root.getNodeMaxDepth());
+        if (!mentionedSources.isEmpty()) {
+            root.assocObject("sourceMetaList", mentionedSources);
+        }
         tree.setHasBranchLengths(printlengths);
         return tree;
     }

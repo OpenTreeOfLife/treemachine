@@ -2,6 +2,7 @@ package opentree.plugins;
 
 import jade.tree.JadeTree;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -46,7 +47,12 @@ public class PhylografterUpdater extends ServerPlugin{
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
-				PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+				try {
+					PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 		        for(JadeTree j: jt){
 		        	GraphImporter gi = new GraphImporter(graphDb);
 		        	boolean doubname = false;

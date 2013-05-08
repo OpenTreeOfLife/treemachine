@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
@@ -833,6 +834,38 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
+		public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException {
+			if (args.length != 4) {
+				System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder");
+				return 1;
+			}
+			String ottolId = args[1];
+			String slist = args[2];
+			String graphname = args[3];
+			boolean success = false;
+			GraphExplorer ge = new GraphExplorer(graphname);
+			try {
+				// build the list of preferred sources, this should probably be done externally
+				LinkedList<String> preferredSources = new LinkedList<String>();
+				String [] tsl = slist.split(",");
+				for(int i=0;i<tsl.length;i++){preferredSources.add(tsl[i]);}
+				preferredSources.add("taxonomy");
+				
+				// find the start node
+				Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+				if (firstNode == null) {
+					throw new opentree.OttolIdNotFoundException(ottolId);
+				}
+				success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources);
+			} catch (OttolIdNotFoundException oex) {
+				oex.printStackTrace();
+			} finally {
+				ge.shutdownDB();
+			}
+			return (success ? 0 : -1);
+		}
+	
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException {
 		if (args.length != 3) {
 			System.out.println("arguments should be rootOTToLid graphdbfolder");
@@ -945,23 +978,38 @@ public class MainRunner {
 		File file = new File(directory);
 		File [] files = file.listFiles();
 		for(int i =0;i<files.length;i++){
-            if (i > 20){
-                break;
-            }
 			System.out.println("files "+ files[i]);
-			try {
-				BufferedReader br = new BufferedReader(new FileReader(files[i]));
-				List<JadeTree> jt = NexsonReader.readNexson(br);
-				for (JadeTree j : jt) {
-					System.out.println(files[i] + ": " + j.getExternalNodeCount());
+			BufferedReader br= null;
+			List<JadeTree> jt = null;
+				try{
+					br = new BufferedReader(new FileReader(files[i]));
+					jt = NexsonReader.readNexson(br);
+					for (JadeTree j : jt) {
+						System.out.println(files[i] + ": " + j.getExternalNodeCount());
+					}
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}catch (java.lang.NullPointerException e){
+					e.printStackTrace();
 				}
-				PhylografterConnector.fixNamesFromTrees(Long.valueOf(files[i].getName()),jt,graphDb);
+				try{
+					PhylografterConnector.fixNamesFromTrees(Long.valueOf(files[i].getName()),jt,graphDb);
+				}catch(IOException ioe){
+					ioe.printStackTrace();
+					System.out.println("failed to get the names from server fixNamesFromTrees");
+					continue;
+				}
 				try{
 					for(JadeTree j: jt){
 						GraphImporter gi = new GraphImporter(graphDb);
 						boolean doubname = false;
 						HashSet<Long> ottols = new HashSet<Long>();
 						for(int m=0;m<j.getExternalNodeCount();m++){
+							System.out.println(j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
 							if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
 								doubname = true;
 								break;
@@ -984,8 +1032,15 @@ public class MainRunner {
 								sourcename = (String)j.getObject("ot:studyId");
 							}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
 								sourcename += "_"+(String)j.getObject("id");
+							}							
+							//test to see if the tree is already in there
+							Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
+							IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
+							if (hits.size() > 0){
+								System.out.println("source "+sourcename+" already added");
+							}else{
+								gi.addSetTreeToGraphWIdsSet(sourcename);
 							}
-							gi.addSetTreeToGraphWIdsSet(sourcename);
 						}
 					}
 				} catch(java.lang.NullPointerException e){
@@ -998,16 +1053,12 @@ public class MainRunner {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				br.close();
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}catch (java.lang.NullPointerException e){
-				e.printStackTrace();
-			}
+				try {
+					br.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			
 		}
 		graphDb.shutdownDb();
@@ -1035,7 +1086,12 @@ public class MainRunner {
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
-				PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+				try {
+					PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 		        for(JadeTree j: jt){
 		        	GraphImporter gi = new GraphImporter(graphDb);
 		        	boolean doubname = false;
@@ -1064,7 +1120,14 @@ public class MainRunner {
 						}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
 							sourcename += "_"+(String)j.getObject("id");
 						}
-						gi.addSetTreeToGraphWIdsSet(sourcename);
+						//test to see if the tree is already in there
+						Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
+						IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
+						if (hits.size() > 0){
+							System.out.println("source "+sourcename+" already added");
+						}else{
+							gi.addSetTreeToGraphWIdsSet(sourcename);
+						}
 					}
 		        }
 			} catch(java.lang.NullPointerException e){
@@ -1129,6 +1192,7 @@ public class MainRunner {
 
 		System.out.println("---synthesis functions---");
 		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
+		System.out.println("\tsynthesizedrafttreelist <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\textractdrafttree <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
 				
 		System.out.println("---temporary functions---");
@@ -1203,6 +1267,8 @@ public class MainRunner {
 				cmdReturnCode = mr.treeUtils(args);
 			} else if (command.compareTo("synthesizedrafttree") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTree(args);
+			}else if (command.compareTo("synthesizedrafttreelist") == 0) {
+				cmdReturnCode = mr.synthesizeDraftTreeWithList(args);
 			} else if (command.compareTo("extractdrafttree") == 0) {
 				cmdReturnCode = mr.extractDraftTree(args);
 				

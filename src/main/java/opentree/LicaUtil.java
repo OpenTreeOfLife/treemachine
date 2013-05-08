@@ -370,7 +370,11 @@ public class LicaUtil {
 		boolean going = true;
 		while (going) {
 			// get parent
-			innode = innode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+			try{
+				innode = innode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+			}catch(Exception e){
+				break;
+			}
 			long[] dbnodei = (long[]) innode.getProperty("mrca");
 			HashSet<Long> Ldbnodei = new HashSet<Long>();
 			for (long temp : dbnodei) {

@@ -907,18 +907,19 @@ public class GraphImporter extends GraphBase{
 					System.out.println("Adding property 'ot:studyId' for tree " + sourcename + ": " + jt.getObject("ot:studyId"));
 					metadatanode.setProperty("ot:studyId", jt.getObject("ot:studyId"));
 				} if (jt.getObject("ot:studyYear") != null) {
-					System.out.println("Adding property 'ot:studyTear' for tree " + sourcename + ": " + jt.getObject("ot:studyYear"));
+					System.out.println("Adding property 'ot:studyYear' for tree " + sourcename + ": " + jt.getObject("ot:studyYear"));
 					metadatanode.setProperty("ot:studyYear", jt.getObject("ot:studyYear"));
 				} else {
-					System.out.println("Property 'ot:studyId' does not exist for tree " + sourcename);
+					System.out.println("Property 'ot:studyYear' does not exist for tree " + sourcename);
 				}
 				
 		// should studyID replace sourcename?
 				metadatanode.setProperty("source", sourcename);
 				//metadatanode.setProperty("author", "no one"); // seems deprecated now
 				metadatanode.setProperty("newick", treestring); // this could be giant. do we want to do this?
-				if (treeID != null)
+				if (treeID != null) {
 					metadatanode.setProperty("treeID", treeID);
+				}
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
 				//add the source taxa ids
 				/*HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) jt.getRoot().getObject("ndids"));

@@ -185,7 +185,7 @@ public class PhylografterConnector {
 	 * @param trees
 	 *            that have been processed from fetchTreesFromStudy
 	 */
-	public static void fixNamesFromTrees(Long studyid,List<JadeTree> trees, GraphDatabaseAgent graphDb) {
+	public static void fixNamesFromTrees(Long studyid,List<JadeTree> trees, GraphDatabaseAgent graphDb) throws IOException{
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
 		String urlbasecontext = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/getContextForNames";
@@ -230,7 +230,7 @@ public class PhylografterConnector {
 	        String contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
 	        JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
 	        String cn = (String)contextResponse.get("context_name");
-	        Long cnid = (Long)contextResponse.get("content_rootnode_ottol_id");
+	        Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
 	        System.out.println(contextResponse);
 	        //getting the names for each of the speices
 	        sb = new StringBuffer();
@@ -331,9 +331,10 @@ public class PhylografterConnector {
 	        	}else{
 	        		parentnode = LicaUtil.getTaxonomicLICA(nodeSet);
 	        	}
-	        	if(parentnode == null){
-	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", String.valueOf(cnid)).getSingle();
+	        	if(parentnode == null){//TODO: this just defaults to life if there is no other information
+	        		parentnode = graphTaxUIDNodeindex.get("tax_uid", String.valueOf(805080)).getSingle();
 	        	}
+	        	System.out.println(cnid);
 	        	System.out.println("parentnode:"+parentnode);
 	        	
 	        	System.out.println("will add node");

@@ -1,6 +1,7 @@
 package jade.tree;
 
 import java.util.*;
+import opentree.JSONExporter;
 
 public class JadeNode {
     
@@ -212,10 +213,23 @@ public class JadeNode {
 		} else {
 			ret.append(", \"nleaves\": 0");
 		}
+		// report tree IDs supporting each clade as supportedBy list of strings
+		Object sup = this.getObject("supporting_sources");
+		if (sup != null) {
+			ret.append(", \"supportedBy\": ");
+			JSONExporter.writeStringArrayAsJSON(ret, (String []) sup);
+		}
+		// report metadata for the sources mentioned in supporting_sources. the sourceMetaList property
+		//	should be set for the root
+		Object n2m = this.getObject("sourceMetaList");
+		if (n2m != null) {
+			ret.append(", ");
+			JSONExporter.writeSourceToMetaMapForArgus(ret, n2m);
+		}
 		ret.append("}");
 		return ret.toString();
 	}
-	
+
 	/**
 	 * @return Returns all of the tips in the subtree rooted at `this`
 	 */
