@@ -222,34 +222,45 @@ public class GoLS extends ServerPlugin {
 		}
 	}
 	
-	
-	
-	// ============================== arbor interoperability services ==================================
-	
-	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottolID`. Temporary, for interoperability testing with the arbor project.")
+	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottolID`.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeForOttolID(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The ottol id of the taxon to be used as the root for the tree.")
 			@Parameter(name = "ottolID", optional = false) String ottolID,
-			@Description( "An integer controlling the maximum depth to which the graph will be traversed when building the tree. If empty then the entire subtree will be returned.")
-			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException {
-		
-		int maxDepth = Integer.MAX_VALUE;
-		if (maxDepthArg != null) {
-			maxDepth = maxDepthArg;
-		}
+			@Description( "DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
+			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) {
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		Node startNode = ge.findGraphTaxNodeByUID(ottolID);
 		
-		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME, maxDepth);
+		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
 
 		HashMap<String, String> response = new HashMap<String, String>();
 		response.put("tree", tree.getRoot().getNewick(true));
 
 		return OpenTreeMachineRepresentationConverter.convert(response);
 	}
+
+	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `nodeID`.")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getDraftTreeForNodeID(
+			@Source GraphDatabaseService graphDb,
+			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
+			@Parameter(name = "nodeID", optional = false) Long nodeID) {
+		
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		Node startNode = graphDb.getNodeById(nodeID);
+		
+		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
+
+		HashMap<String, String> response = new HashMap<String, String>();
+		response.put("tree", tree.getRoot().getNewick(true));
+
+		return OpenTreeMachineRepresentationConverter.convert(response);
+	}
+
+	// ============================== arbor interoperability services ==================================
 
 	@Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree. Temporary, for interoperability testing with the arbor project.")
 	@PluginTarget(GraphDatabaseService.class)

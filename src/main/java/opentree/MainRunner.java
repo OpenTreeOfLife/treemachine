@@ -880,7 +880,7 @@ public class MainRunner {
         }
 		
 		JadeTree synthTree = null;
-		synthTree = ge.extractDraftTree(firstNode, GraphBase.DRAFTTREENAME, Integer.MAX_VALUE);
+		synthTree = ge.extractDraftTree(firstNode, GraphBase.DRAFTTREENAME);
 
 		if (synthTree == null) {
 			return -1;
