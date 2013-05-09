@@ -1938,6 +1938,28 @@ public class GraphExplorer extends GraphBase {
         }
         return toReturn;
     }
+    private static void decorateJadeNodeWithCoreProperties(JadeNode jNd, Node nd) {
+        if (nd.hasProperty("name")) {
+            jNd.setName((String) nd.getProperty("name"));
+        }
+        final long nid = nd.getId();
+        jNd.assocObject("nodeid", nid);
+        if (nd.hasProperty("uniqname")) {
+            jNd.assocObject("uniqname", (String) nd.getProperty("uniqname"));
+        }
+        if (nd.hasProperty("tax_source")) {
+            jNd.assocObject("taxSource", (String) nd.getProperty("tax_source"));
+        }
+        if (nd.hasProperty("tax_sourceid")) {
+            jNd.assocObject("taxSourceId", (String) nd.getProperty("tax_sourceid"));
+        }
+        if (nd.hasProperty("tax_rank")) {
+            jNd.assocObject("taxRank", (String) nd.getProperty("tax_rank"));
+        }
+        if (nd.hasProperty("tax_uid")) {
+            jNd.assocObject("ottolId", (String) nd.getProperty("tax_uid"));
+        }
+    }
     /**
      * @param maxDepth is the max number of edges between the root and an included node
      *      if non-negative this can be used to prune off subtrees that exceed the threshold
@@ -1945,10 +1967,7 @@ public class GraphExplorer extends GraphBase {
      */
     private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
         JadeNode root = new JadeNode();
-        if (rootnode.hasProperty("name")) {
-            root.setName((String) rootnode.getProperty("name"));
-        }
-        root.assocObject("nodeid", rootnode.getId());
+        decorateJadeNodeWithCoreProperties(root, rootnode);
         root.assocObject("pathToRoot", getPathToRoot(rootnode, RelTypes.SYNTHCHILDOF, treeID));
         boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
@@ -1972,14 +1991,12 @@ public class GraphExplorer extends GraphBase {
                     Node childNode = furshestRel.getStartNode();
                     internalNodes.add(parNode);
                     JadeNode jChild = new JadeNode();
-                    final long cid = childNode.getId();
                     if (childNode.hasProperty("name")) {
-                        jChild.setName((String) childNode.getProperty("name"));
                         namedChildNodes.add(childNode);
                     } else {
                         unnamedChildNodes.add(childNode);
                     }
-                    jChild.assocObject("nodeid", cid);
+                    decorateJadeNodeWithCoreProperties(jChild, childNode);
                     if (furshestRel.hasProperty("branch_length")) {
                         printlengths = true;
                         jChild.setBL((Double) furshestRel.getProperty("branch_length"));

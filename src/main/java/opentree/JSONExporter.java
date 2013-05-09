@@ -74,6 +74,18 @@ public class JSONExporter {
 		return false;
 	}
 	// returns true if a property/value pair was written.
+	public static boolean writeStringPropertyIfNotNull(StringBuffer buffer, Object pv, String propertyName, boolean prependComma) {
+		if (pv != null) {
+			if (prependComma) {
+				buffer.append(", ");
+			}
+			escapePropertyColon(buffer, propertyName);
+			escapeString(buffer, (String)pv);
+			return true;
+		}
+		return false;
+	}
+	// returns true if a property/value pair was written.
 	public static boolean writeIntegerPropertyIfFound(StringBuffer buffer, Node nd, String propertyName, boolean prependComma) {
 		if (writePropertyNameColonIfFound(buffer, nd, propertyName, prependComma)){
 			buffer.append((Integer)nd.getProperty(propertyName));
