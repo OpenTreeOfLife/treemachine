@@ -1864,8 +1864,20 @@ public class GraphExplorer extends GraphBase {
         return tree;
     }
 
+    public static boolean hasIncomingRel(Node subtreeRoot, RelTypes relType, String treeID) {
+        for (Relationship rel : subtreeRoot.getRelationships(Direction.INCOMING, relType)) {
+            boolean matches = false;
+            if (treeID == null || treeID.length() == 0) {
+                return true;
+            } else if (rel.hasProperty("name") && treeID.equals((String)rel.getProperty("name"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     ///@TODO @TEMP inefficient recursive impl as a placeholder...
-    public ArrayList<String> getNamesOfRepresentativeDescendants(Node subtreeRoot, RelTypes relType, String treeID) {
+    public static ArrayList<String> getNamesOfRepresentativeDescendants(Node subtreeRoot, RelTypes relType, String treeID) {
         ArrayList<String> toReturn = new ArrayList<String>();
         Node firstChild = null;
         Node lastChild = null;
@@ -1927,6 +1939,7 @@ public class GraphExplorer extends GraphBase {
         }
         HashSet<Node> internalNodes = new HashSet<Node>();
         ArrayList<Node> unnamedChildNodes = new ArrayList<Node>();
+        ArrayList<Node> namedChildNodes = new ArrayList<Node>();
         HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
         for (Path path : synthEdgeTraversal.traverse(rootnode)) {
             Relationship furshestRel = path.lastRelationship();
@@ -1940,6 +1953,7 @@ public class GraphExplorer extends GraphBase {
                     final long cid = childNode.getId();
                     if (childNode.hasProperty("name")) {
                         jChild.setName((String) childNode.getProperty("name"));
+                        namedChildNodes.add(childNode);
                     } else {
                         unnamedChildNodes.add(childNode);
                     }
@@ -1967,9 +1981,20 @@ public class GraphExplorer extends GraphBase {
             if (!internalNodes.contains(ucn)) {
                 ArrayList<String> subNameList = getNamesOfRepresentativeDescendants(ucn, RelTypes.SYNTHCHILDOF, treeID);
                 String [] dnA = subNameList.toArray(new String[subNameList.size()]);
-                node2JadeNode.get(ucn).assocObject("descendantNameList", dnA);
+                JadeNode cjn = node2JadeNode.get(ucn);
+                cjn.assocObject("descendantNameList", dnA);
+                Boolean hc = new Boolean(hasIncomingRel(ucn, RelTypes.SYNTHCHILDOF, treeID));
+                cjn.assocObject("hasChildren", hc);
             }
         }
+        for (Node ncn : namedChildNodes) {
+            if (!internalNodes.contains(ncn)) {
+                JadeNode cjn = node2JadeNode.get(ncn);
+                Boolean hc = new Boolean(hasIncomingRel(ncn, RelTypes.SYNTHCHILDOF, treeID));
+                cjn.assocObject("hasChildren", hc);
+            }
+        }
+
         // print the newick string
         JadeTree tree = new JadeTree(root);
         root.assocObject("nodedepth", root.getNodeMaxDepth());

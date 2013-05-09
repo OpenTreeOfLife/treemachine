@@ -9,7 +9,6 @@ import org.neo4j.graphdb.Node;
  *		it easier to refactor exporting of JSON (e.g. into GraphExplorer rather than via a JadeTree)
  *	2. reduce inter-package dependencies to one file (JadeNode has to know about this 
  *		file but not neo4j Nodes, Relationships...),
-
  */
 public class JSONExporter {
 	public static void writeStringArrayAsJSON(StringBuffer buffer, String [] sArr) {
@@ -40,6 +39,16 @@ public class JSONExporter {
 		buffer.append("\"");
 		buffer.append(s);
 		buffer.append("\": ");
+	}
+
+	// write s as a quoted name appropriate for a JS property name and adds a colon and space for assignment to that property
+	///@TEMP: placeholder for real JSON property name escaping. Are there restrictions here???
+	public static void writeBooleanAsJSON(StringBuffer buffer, Boolean b) {
+		if (b) {
+			buffer.append("true");
+		} else {
+			buffer.append("false");
+		}
 	}
 
 	// if the Node has a property with name properyName, then this name will be appended to the JSON string buffer as a property
