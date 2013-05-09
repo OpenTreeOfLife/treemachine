@@ -82,6 +82,31 @@ public class JSONExporter {
 		return false;
 	}
 
+	/// Writes an object representing a brief summary of a Node. Currently the fields written are:
+	//	"nodeid" =  node.getId()
+	//	"name" = node.getProperty("name")
+	public static void writeNodeSummaryAsJSON(StringBuffer buffer, Node nd) {
+		buffer.append("{ \"nodeid\": \"" + nd.getId() + "\"");
+		writeStringPropertyIfFound(buffer, nd, "name", true);
+		buffer.append("}");
+	}
+
+	/// Calls writeNodeSummaryAsJSON for each node in the List<Node> object `ndListObj`
+	public static void writeListOfNodesAsJSONSummary(StringBuffer buffer, Object ndListObj) {
+		List<Node> ndList = (List<Node>) ndListObj;
+		buffer.append("[");
+		boolean first = true;
+		for (Node nd : ndList) {
+			if (first) {
+				first = false;
+			} else {
+				buffer.append(",");
+			}
+			writeNodeSummaryAsJSON(buffer, nd);
+		}
+		buffer.append("]");
+	}
+
 	public static void writeSourceToMetaMapForArgus(StringBuffer buffer, Object n2m){
 		buffer.append("\"sourceToMetaMap\": {");
 		HashMap<String, Node> name2metanode = (HashMap<String, Node>) n2m;
@@ -104,12 +129,12 @@ public class JSONExporter {
 			} else {
 				boolean wrotePrev = false;
 				buffer.append("{\"study\": {");
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublicationReference", wrotePrev) || wrotePrev;
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublication", wrotePrev) || wrotePrev;
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:curatorName", wrotePrev) || wrotePrev;
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:dataDeposit", wrotePrev) || wrotePrev;
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyId", wrotePrev) || wrotePrev;
-					wrotePrev = writeIntegerPropertyIfFound(buffer, metadataNode, "ot:studyYear", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublicationReference", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublication", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:curatorName", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:dataDeposit", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyId", wrotePrev) || wrotePrev;
+				wrotePrev = writeIntegerPropertyIfFound(buffer, metadataNode, "ot:studyYear", wrotePrev) || wrotePrev;
 				buffer.append("}}");
 			}
 		}

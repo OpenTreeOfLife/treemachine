@@ -213,6 +213,13 @@ public class JadeNode {
 		} else {
 			ret.append(", \"nleaves\": 0");
 		}
+		Object ptr = this.getObject("pathToRoot");
+		if (ptr != null) {
+			ret.append(", ");
+			JSONExporter.escapePropertyColon(ret, "pathToRoot");
+			JSONExporter.writeListOfNodesAsJSONSummary(ret, ptr);
+		}
+		
 		Object hc = this.getObject("hasChildren");
 		if (hc != null) {
 			ret.append(", ");

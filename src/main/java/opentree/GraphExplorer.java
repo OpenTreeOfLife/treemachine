@@ -697,6 +697,27 @@ public class GraphExplorer extends GraphBase {
         return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
     }
 
+    private List<Node> getPathToRoot(Node startNode, RelTypes relType, String nameToFilterBy) {
+        ArrayList<Node> path = new ArrayList<Node>();
+        Node curNode = startNode;
+        while (true) {
+            Node nextNode = null;
+            Iterable<Relationship> parentRels = curNode.getRelationships(relType, Direction.OUTGOING);
+            for (Relationship m : parentRels) {
+                if (String.valueOf(m.getProperty("name")).equals(nameToFilterBy)) {
+                    nextNode = m.getEndNode();
+                    break;
+                }
+            }
+            if (nextNode != null) {
+                path.add(nextNode);
+                curNode = nextNode;
+            } else {
+                return path;
+            }
+        }
+    }
+
     /**
      * Return a List<Node> containing the nodes on the path to the root along the draft tree branches. Will be screwy
      * if there are multiple draft tree branches bearing the current draft tree name.
@@ -1928,6 +1949,7 @@ public class GraphExplorer extends GraphBase {
             root.setName((String) rootnode.getProperty("name"));
         }
         root.assocObject("nodeid", rootnode.getId());
+        root.assocObject("pathToRoot", getPathToRoot(rootnode, RelTypes.SYNTHCHILDOF, treeID));
         boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
         node2JadeNode.put(rootnode, root);
@@ -1976,6 +1998,9 @@ public class GraphExplorer extends GraphBase {
                     node2JadeNode.put(childNode, jChild);
                 }
             }
+        }
+        if (internalNodes.isEmpty()) {
+            root.assocObject("hasChildren", false);
         }
         for (Node ucn : unnamedChildNodes) {
             if (!internalNodes.contains(ucn)) {
