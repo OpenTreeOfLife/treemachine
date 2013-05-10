@@ -76,9 +76,9 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		
 		Object v1 = null;
 		Object v2 = null;
-		
-		Node m1 = metadataNodeIndex.get("source", rel1.getProperty("source")).getSingle();
-		Node m2 = metadataNodeIndex.get("source", rel2.getProperty("source")).getSingle();
+		//TODO: can have multiple metanodes with multiple lica mappings
+		Node m1 = metadataNodeIndex.get("source", rel1.getProperty("source")).next();//.getSingle();
+		Node m2 = metadataNodeIndex.get("source", rel2.getProperty("source")).next();//.getSingle();
 
 		if (m1.hasProperty(property.propertyName))
 			v1 = m1.getProperty(property.propertyName);
