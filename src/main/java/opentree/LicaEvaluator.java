@@ -14,16 +14,9 @@ import org.neo4j.graphdb.traversal.Evaluator;
  *  an indegree greater or equal the threshold set in `setChildThreshold`
  */
 public class LicaEvaluator implements Evaluator{
-	int child_threshold = 100;
-	Node startNode = null;
 	TLongArrayList fullIdSet = null;
 	public LicaEvaluator(){}
-	public void setChildThreshold(int n){
-		child_threshold = n;
-	}
-	public void setStartNode(Node n){
-		startNode = n;
-	}
+
 	public void setfullIDset(TLongArrayList fids){
 		fullIdSet = fids;
 	}

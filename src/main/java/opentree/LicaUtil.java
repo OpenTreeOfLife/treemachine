@@ -108,6 +108,8 @@ public class LicaUtil {
 	}
 
 	public static HashSet<Node> getAllLICAt4j(List<Node> nodeSet, TLongArrayList inIdSet, TLongArrayList fullIdSet) {
+		System.out.println("starting LICA search");
+		System.out.println("b: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
 		HashSet<Node> retaln = new HashSet<Node>();
 		Node firstNode = nodeSet.get(0);// should be the node with the fewest outgoing relationships
 		int fewestnumrel = 10000000;
@@ -133,34 +135,38 @@ public class LicaUtil {
 		System.out.println("elapsed 1: "+elapsedTimeSec);
 		//remove everything but that which is in the outgroup
 		fullIdSet.removeAll(inIdSet);
+		System.out.println("a: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
+
 		LicaEvaluator le = new LicaEvaluator();
+		LicaContainsAllEvaluator ca = new LicaContainsAllEvaluator();
+		ca.setinIDset(inIdSet);
 		le.setfullIDset(fullIdSet);
 		Node innode = firstNode;
 		start = System.currentTimeMillis();
 		HashSet<Node> visited = new HashSet<Node>();
-		for (Node tnode : Traversal.description().depthFirst().evaluator(le).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-		//for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {	
-			boolean going = true;
+		for (Node tnode : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+		//for (Path pa : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {	
+			//boolean going = true;
+			System.out.println(fullIdSet.size()+" "+inIdSet.size());
 			//for (Node tnode : pa.nodes()) {
-				if (visited.contains(tnode))
-					continue;
-				else
-					visited.add(tnode);
+				//if (visited.contains(tnode))
+				//	continue;
+				//else
+				//	visited.add(tnode);
 		//		System.out.println(tnode.getId()+" "+tnode.getProperty("name"));
-				TLongArrayList Ldbnodei = new TLongArrayList((long[]) tnode.getProperty("mrca"));
-				System.out.println(Ldbnodei.size()+" "+fullIdSet.size()+" "+inIdSet.size());
+				//TLongArrayList Ldbnodei = new TLongArrayList((long[]) tnode.getProperty("mrca"));
 				//Ldbnodei.sort();
 				// should look to apache commons primitives for a better solution to this
 				//if (containsAnyt4jSorted(Ldbnodei, fullIdSet) == false) {
-					boolean containsall = Ldbnodei.containsAll(inIdSet);
-					if (containsall) {
+				//	boolean containsall = Ldbnodei.containsAll(inIdSet);
+				//	if (containsall) {
 						retaln.add(tnode);
-						going = false;
-					}
+				//		going = false;
+				//	}
 				//} else {
 				//	going = false;
 				//}
-				System.out.println(Ldbnodei.size()+" "+fullIdSet.size()+" "+inIdSet.size()+" "+going);
+			//	System.out.println(Ldbnodei.size()+" "+fullIdSet.size()+" "+inIdSet.size()+" "+going);
 				//if (going == false) {
 				//	break;
 				//}
@@ -330,25 +336,27 @@ public class LicaUtil {
 			}
 		}
 		Node innode = firstNode;
+		LicaContainsAllEvaluator ca = new LicaContainsAllEvaluator();
+		ca.setinIDset(inIdSet);
 		HashSet<Node> visited = new HashSet<Node>();
 		//for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {
-		for (Node tnode : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-			boolean going = true;
+		for (Node tnode : Traversal.description().depthFirst().evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+			//boolean going = true;
 			//for (Node tnode : pa.nodes()) {
-				if (visited.contains(tnode))
-					continue;
-				else
-					visited.add(tnode);
-				TLongSet Ldbnodei = new TLongHashSet((long[]) tnode.getProperty("mrca"));
-				boolean containsall = Ldbnodei.containsAll(inIdSet);
-				if (containsall && inIdSet.size() == Ldbnodei.size()) {
+			//	if (visited.contains(tnode))
+			//		continue;
+			//	else
+			//		visited.add(tnode);
+			//	TLongSet Ldbnodei = new TLongHashSet((long[]) tnode.getProperty("mrca"));
+			//	boolean containsall = Ldbnodei.containsAll(inIdSet);
+			//	if (containsall && inIdSet.size() == Ldbnodei.size()) {
 					// NOT SURE IF WE SHOULD EMPTY THE LIST IF IT IS EXACT OR RETAIN ALL THE LICAS
 					retaln.add(tnode);
-					going = false;
-				} else if (containsall) {
-					retaln.add(tnode);
-					going = false;
-				}
+			//		going = false;
+			//	} else if (containsall) {
+			//		retaln.add(tnode);
+			//		going = false;
+			//	}
 				//if (going == false) {
 				//	break;
 				//}
