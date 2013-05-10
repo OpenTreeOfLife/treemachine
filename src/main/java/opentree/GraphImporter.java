@@ -526,7 +526,6 @@ public class GraphImporter extends GraphBase{
 	public void addSetTreeToGraphWIdsSet(String sourcename) throws TaxonNotFoundException,TreeIngestException {
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
-		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 
 		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>

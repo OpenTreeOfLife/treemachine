@@ -111,7 +111,7 @@ public class LicaUtil {
 		HashSet<Node> retaln = new HashSet<Node>();
 		Node firstNode = nodeSet.get(0);// should be the node with the fewest outgoing relationships
 		int fewestnumrel = 10000000;
-		// long start = System.currentTimeMillis();
+		long start = System.currentTimeMillis();
 		for (int i = 0; i < nodeSet.size(); i++) {
 			int num = 0;
 			// only way to get number of relationships.
@@ -128,45 +128,47 @@ public class LicaUtil {
 				firstNode = nodeSet.get(i);
 			}
 		}
-		// long elapsedTimeMillis = System.currentTimeMillis()-start;
-		// float elapsedTimeSec = elapsedTimeMillis/1000F;
-		// System.out.println("elapsed 1: "+elapsedTimeSec);
-		// remove everything but that which is in the outgroup
+		long elapsedTimeMillis = System.currentTimeMillis()-start;
+		float elapsedTimeSec = elapsedTimeMillis/1000F;
+		System.out.println("elapsed 1: "+elapsedTimeSec);
+		//remove everything but that which is in the outgroup
 		fullIdSet.removeAll(inIdSet);
-
+		LicaEvaluator le = new LicaEvaluator();
+		le.setfullIDset(fullIdSet);
 		Node innode = firstNode;
-		// start = System.currentTimeMillis();
-		for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {
+		start = System.currentTimeMillis();
+		HashSet<Node> visited = new HashSet<Node>();
+		for (Node tnode : Traversal.description().depthFirst().evaluator(le).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+		//for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {	
 			boolean going = true;
-			for (Node tnode : pa.nodes()) {
-				// as long as these are sorted we can do a faster comparison
-				// long [] dbnodei = (long []) tnode.getProperty("mrca");
-				// HashSet<Long> Ldbnodei = new HashSet<Long>();
-				// for(long temp:dbnodei) {Ldbnodei.add(temp);}
+			//for (Node tnode : pa.nodes()) {
+				if (visited.contains(tnode))
+					continue;
+				else
+					visited.add(tnode);
+		//		System.out.println(tnode.getId()+" "+tnode.getProperty("name"));
 				TLongArrayList Ldbnodei = new TLongArrayList((long[]) tnode.getProperty("mrca"));
-				Ldbnodei.sort();
+				System.out.println(Ldbnodei.size()+" "+fullIdSet.size()+" "+inIdSet.size());
+				//Ldbnodei.sort();
 				// should look to apache commons primitives for a better solution to this
-				// int beforesize = Ldbnodei.size();
-				// Ldbnodei.removeAll(fullIdSet);
-				if (containsAnyt4jSorted(Ldbnodei, fullIdSet) == false) {
-					// if (Ldbnodei.size() == beforesize) {
-					// this gets all, but we want to only include the exact if one exists
+				//if (containsAnyt4jSorted(Ldbnodei, fullIdSet) == false) {
 					boolean containsall = Ldbnodei.containsAll(inIdSet);
 					if (containsall) {
 						retaln.add(tnode);
 						going = false;
 					}
-				} else {
-					going = false;
-				}
-				if (going == false) {
-					break;
-				}
-			}
+				//} else {
+				//	going = false;
+				//}
+				System.out.println(Ldbnodei.size()+" "+fullIdSet.size()+" "+inIdSet.size()+" "+going);
+				//if (going == false) {
+				//	break;
+				//}
+			//}
 		}
-		// elapsedTimeMillis = System.currentTimeMillis()-start;
-		// elapsedTimeSec = elapsedTimeMillis/1000F;
-		// System.out.println("elapsed inloop: "+elapsedTimeSec);
+		elapsedTimeMillis = System.currentTimeMillis()-start;
+		elapsedTimeSec = elapsedTimeMillis/1000F;
+		System.out.println("elapsed inloop: "+elapsedTimeSec);
 		return retaln;
 	}
 
@@ -328,26 +330,29 @@ public class LicaUtil {
 			}
 		}
 		Node innode = firstNode;
-		for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {
+		HashSet<Node> visited = new HashSet<Node>();
+		//for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {
+		for (Node tnode : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
 			boolean going = true;
-			for (Node tnode : pa.nodes()) {
+			//for (Node tnode : pa.nodes()) {
+				if (visited.contains(tnode))
+					continue;
+				else
+					visited.add(tnode);
 				TLongSet Ldbnodei = new TLongHashSet((long[]) tnode.getProperty("mrca"));
-				// should look to apache commons primitives for a better solution to this
-				// this gets all, but we want to only include the exact if one exists
 				boolean containsall = Ldbnodei.containsAll(inIdSet);
 				if (containsall && inIdSet.size() == Ldbnodei.size()) {
 					// NOT SURE IF WE SHOULD EMPTY THE LIST IF IT IS EXACT OR RETAIN ALL THE LICAS
-					// retaln.clear();
 					retaln.add(tnode);
 					going = false;
 				} else if (containsall) {
 					retaln.add(tnode);
 					going = false;
 				}
-				if (going == false) {
-					break;
-				}
-			}
+				//if (going == false) {
+				//	break;
+				//}
+			//}
 		}
 		return retaln;
 	}
