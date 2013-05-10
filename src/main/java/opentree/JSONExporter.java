@@ -9,7 +9,6 @@ import org.neo4j.graphdb.Node;
  *		it easier to refactor exporting of JSON (e.g. into GraphExplorer rather than via a JadeTree)
  *	2. reduce inter-package dependencies to one file (JadeNode has to know about this 
  *		file but not neo4j Nodes, Relationships...),
-
  */
 public class JSONExporter {
 	public static void writeStringArrayAsJSON(StringBuffer buffer, String [] sArr) {
@@ -42,6 +41,16 @@ public class JSONExporter {
 		buffer.append("\": ");
 	}
 
+	// write s as a quoted name appropriate for a JS property name and adds a colon and space for assignment to that property
+	///@TEMP: placeholder for real JSON property name escaping. Are there restrictions here???
+	public static void writeBooleanAsJSON(StringBuffer buffer, Boolean b) {
+		if (b) {
+			buffer.append("true");
+		} else {
+			buffer.append("false");
+		}
+	}
+
 	// if the Node has a property with name properyName, then this name will be appended to the JSON string buffer as a property
 	//	name. The colon will be added so that the rvalue can simply be written
 	// returns true if a property: was written.
@@ -65,12 +74,49 @@ public class JSONExporter {
 		return false;
 	}
 	// returns true if a property/value pair was written.
+	public static boolean writeStringPropertyIfNotNull(StringBuffer buffer, Object pv, String propertyName, boolean prependComma) {
+		if (pv != null) {
+			if (prependComma) {
+				buffer.append(", ");
+			}
+			escapePropertyColon(buffer, propertyName);
+			escapeString(buffer, (String)pv);
+			return true;
+		}
+		return false;
+	}
+	// returns true if a property/value pair was written.
 	public static boolean writeIntegerPropertyIfFound(StringBuffer buffer, Node nd, String propertyName, boolean prependComma) {
 		if (writePropertyNameColonIfFound(buffer, nd, propertyName, prependComma)){
 			buffer.append((Integer)nd.getProperty(propertyName));
 			return true;
 		}
 		return false;
+	}
+
+	/// Writes an object representing a brief summary of a Node. Currently the fields written are:
+	//	"nodeid" =  node.getId()
+	//	"name" = node.getProperty("name")
+	public static void writeNodeSummaryAsJSON(StringBuffer buffer, Node nd) {
+		buffer.append("{ \"nodeid\": \"" + nd.getId() + "\"");
+		writeStringPropertyIfFound(buffer, nd, "name", true);
+		buffer.append("}");
+	}
+
+	/// Calls writeNodeSummaryAsJSON for each node in the List<Node> object `ndListObj`
+	public static void writeListOfNodesAsJSONSummary(StringBuffer buffer, Object ndListObj) {
+		List<Node> ndList = (List<Node>) ndListObj;
+		buffer.append("[");
+		boolean first = true;
+		for (Node nd : ndList) {
+			if (first) {
+				first = false;
+			} else {
+				buffer.append(",");
+			}
+			writeNodeSummaryAsJSON(buffer, nd);
+		}
+		buffer.append("]");
 	}
 
 	public static void writeSourceToMetaMapForArgus(StringBuffer buffer, Object n2m){
@@ -95,12 +141,12 @@ public class JSONExporter {
 			} else {
 				boolean wrotePrev = false;
 				buffer.append("{\"study\": {");
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublicationReference", wrotePrev) || wrotePrev;
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublication", wrotePrev) || wrotePrev;
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:curatorName", wrotePrev) || wrotePrev;
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:dataDeposit", wrotePrev) || wrotePrev;
-					wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyId", wrotePrev) || wrotePrev;
-					wrotePrev = writeIntegerPropertyIfFound(buffer, metadataNode, "ot:studyYear", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublicationReference", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyPublication", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:curatorName", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:dataDeposit", wrotePrev) || wrotePrev;
+				wrotePrev = writeStringPropertyIfFound(buffer, metadataNode, "ot:studyId", wrotePrev) || wrotePrev;
+				wrotePrev = writeIntegerPropertyIfFound(buffer, metadataNode, "ot:studyYear", wrotePrev) || wrotePrev;
 				buffer.append("}}");
 			}
 		}

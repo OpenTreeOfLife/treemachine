@@ -697,6 +697,27 @@ public class GraphExplorer extends GraphBase {
         return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
     }
 
+    private List<Node> getPathToRoot(Node startNode, RelTypes relType, String nameToFilterBy) {
+        ArrayList<Node> path = new ArrayList<Node>();
+        Node curNode = startNode;
+        while (true) {
+            Node nextNode = null;
+            Iterable<Relationship> parentRels = curNode.getRelationships(relType, Direction.OUTGOING);
+            for (Relationship m : parentRels) {
+                if (String.valueOf(m.getProperty("name")).equals(nameToFilterBy)) {
+                    nextNode = m.getEndNode();
+                    break;
+                }
+            }
+            if (nextNode != null) {
+                path.add(nextNode);
+                curNode = nextNode;
+            } else {
+                return path;
+            }
+        }
+    }
+
     /**
      * Return a List<Node> containing the nodes on the path to the root along the draft tree branches. Will be screwy
      * if there are multiple draft tree branches bearing the current draft tree name.
@@ -1864,8 +1885,20 @@ public class GraphExplorer extends GraphBase {
         return tree;
     }
 
+    public static boolean hasIncomingRel(Node subtreeRoot, RelTypes relType, String treeID) {
+        for (Relationship rel : subtreeRoot.getRelationships(Direction.INCOMING, relType)) {
+            boolean matches = false;
+            if (treeID == null || treeID.length() == 0) {
+                return true;
+            } else if (rel.hasProperty("name") && treeID.equals((String)rel.getProperty("name"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     ///@TODO @TEMP inefficient recursive impl as a placeholder...
-    public ArrayList<String> getNamesOfRepresentativeDescendants(Node subtreeRoot, RelTypes relType, String treeID) {
+    public static ArrayList<String> getNamesOfRepresentativeDescendants(Node subtreeRoot, RelTypes relType, String treeID) {
         ArrayList<String> toReturn = new ArrayList<String>();
         Node firstChild = null;
         Node lastChild = null;
@@ -1905,6 +1938,28 @@ public class GraphExplorer extends GraphBase {
         }
         return toReturn;
     }
+    private static void decorateJadeNodeWithCoreProperties(JadeNode jNd, Node nd) {
+        if (nd.hasProperty("name")) {
+            jNd.setName((String) nd.getProperty("name"));
+        }
+        final long nid = nd.getId();
+        jNd.assocObject("nodeid", nid);
+        if (nd.hasProperty("uniqname")) {
+            jNd.assocObject("uniqname", (String) nd.getProperty("uniqname"));
+        }
+        if (nd.hasProperty("tax_source")) {
+            jNd.assocObject("taxSource", (String) nd.getProperty("tax_source"));
+        }
+        if (nd.hasProperty("tax_sourceid")) {
+            jNd.assocObject("taxSourceId", (String) nd.getProperty("tax_sourceid"));
+        }
+        if (nd.hasProperty("tax_rank")) {
+            jNd.assocObject("taxRank", (String) nd.getProperty("tax_rank"));
+        }
+        if (nd.hasProperty("tax_uid")) {
+            jNd.assocObject("ottolId", (String) nd.getProperty("tax_uid"));
+        }
+    }
     /**
      * @param maxDepth is the max number of edges between the root and an included node
      *      if non-negative this can be used to prune off subtrees that exceed the threshold
@@ -1912,10 +1967,8 @@ public class GraphExplorer extends GraphBase {
      */
     private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
         JadeNode root = new JadeNode();
-        if (rootnode.hasProperty("name")) {
-            root.setName((String) rootnode.getProperty("name"));
-        }
-        root.assocObject("nodeid", rootnode.getId());
+        decorateJadeNodeWithCoreProperties(root, rootnode);
+        root.assocObject("pathToRoot", getPathToRoot(rootnode, RelTypes.SYNTHCHILDOF, treeID));
         boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
         node2JadeNode.put(rootnode, root);
@@ -1927,6 +1980,7 @@ public class GraphExplorer extends GraphBase {
         }
         HashSet<Node> internalNodes = new HashSet<Node>();
         ArrayList<Node> unnamedChildNodes = new ArrayList<Node>();
+        ArrayList<Node> namedChildNodes = new ArrayList<Node>();
         HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
         for (Path path : synthEdgeTraversal.traverse(rootnode)) {
             Relationship furshestRel = path.lastRelationship();
@@ -1937,13 +1991,12 @@ public class GraphExplorer extends GraphBase {
                     Node childNode = furshestRel.getStartNode();
                     internalNodes.add(parNode);
                     JadeNode jChild = new JadeNode();
-                    final long cid = childNode.getId();
                     if (childNode.hasProperty("name")) {
-                        jChild.setName((String) childNode.getProperty("name"));
+                        namedChildNodes.add(childNode);
                     } else {
                         unnamedChildNodes.add(childNode);
                     }
-                    jChild.assocObject("nodeid", cid);
+                    decorateJadeNodeWithCoreProperties(jChild, childNode);
                     if (furshestRel.hasProperty("branch_length")) {
                         printlengths = true;
                         jChild.setBL((Double) furshestRel.getProperty("branch_length"));
@@ -1963,13 +2016,27 @@ public class GraphExplorer extends GraphBase {
                 }
             }
         }
+        if (internalNodes.isEmpty()) {
+            root.assocObject("hasChildren", false);
+        }
         for (Node ucn : unnamedChildNodes) {
             if (!internalNodes.contains(ucn)) {
                 ArrayList<String> subNameList = getNamesOfRepresentativeDescendants(ucn, RelTypes.SYNTHCHILDOF, treeID);
                 String [] dnA = subNameList.toArray(new String[subNameList.size()]);
-                node2JadeNode.get(ucn).assocObject("descendantNameList", dnA);
+                JadeNode cjn = node2JadeNode.get(ucn);
+                cjn.assocObject("descendantNameList", dnA);
+                Boolean hc = new Boolean(hasIncomingRel(ucn, RelTypes.SYNTHCHILDOF, treeID));
+                cjn.assocObject("hasChildren", hc);
             }
         }
+        for (Node ncn : namedChildNodes) {
+            if (!internalNodes.contains(ncn)) {
+                JadeNode cjn = node2JadeNode.get(ncn);
+                Boolean hc = new Boolean(hasIncomingRel(ncn, RelTypes.SYNTHCHILDOF, treeID));
+                cjn.assocObject("hasChildren", hc);
+            }
+        }
+
         // print the newick string
         JadeTree tree = new JadeTree(root);
         root.assocObject("nodedepth", root.getNodeMaxDepth());

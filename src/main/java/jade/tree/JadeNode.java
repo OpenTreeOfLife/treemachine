@@ -213,6 +213,24 @@ public class JadeNode {
 		} else {
 			ret.append(", \"nleaves\": 0");
 		}
+		String [] optionalPropN = {"uniqName", "taxSource", "taxSourceId", "taxRank", "ottolId"};
+		for (String opn : optionalPropN) {
+			JSONExporter.writeStringPropertyIfNotNull(ret, this.getObject(opn), opn, true);
+		}
+		Object ptr = this.getObject("pathToRoot");
+		if (ptr != null) {
+			ret.append(", ");
+			JSONExporter.escapePropertyColon(ret, "pathToRoot");
+			JSONExporter.writeListOfNodesAsJSONSummary(ret, ptr);
+		}
+		
+		Object hc = this.getObject("hasChildren");
+		if (hc != null) {
+			ret.append(", ");
+			JSONExporter.escapePropertyColon(ret, "hasChildren");
+			JSONExporter.writeBooleanAsJSON(ret, (Boolean) hc);
+		}
+		
 		Object dnl = this.getObject("descendantNameList");
 		if (dnl != null) {
 			ret.append(", \"descendantNameList\": ");
