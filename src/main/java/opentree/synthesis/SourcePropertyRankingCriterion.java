@@ -39,9 +39,9 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 	
 	@Override
 	public int compare(Relationship rel1, Relationship rel2) {
-		
-		Node m1 = metadataNodeIndex.get("source", rel1.getProperty("source")).getSingle();
-		Node m2 = metadataNodeIndex.get("source", rel2.getProperty("source")).getSingle();
+		//TODO: there are multiple metanodes when there are multiple licas found
+		Node m1 = metadataNodeIndex.get("source", rel1.getProperty("source")).next();//.getSingle();
+		Node m2 = metadataNodeIndex.get("source", rel2.getProperty("source")).next();//.getSingle();
 		
 //		System.out.println("metadata node 1 " + m1.toString());
 //		System.out.println("metadata node 2 " + m2.toString());

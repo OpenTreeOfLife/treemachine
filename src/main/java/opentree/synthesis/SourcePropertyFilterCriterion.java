@@ -31,8 +31,10 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 	}
 	
 	public boolean test(Relationship r) {
-		
-		Node m1 = metadataNodeIndex.get("source", r.getProperty("source")).getSingle();
+		//TODO: there can be multiple given multiple LICA mappings 
+//		Node m1 = metadataNodeIndex.get("source", r.getProperty("source")).getSingle();
+		Node m1 = metadataNodeIndex.get("source", r.getProperty("source")).next();
+
 		
 		SourcePropertyValue v = new SourcePropertyValue(property, m1.getProperty(property.name()));
 		
