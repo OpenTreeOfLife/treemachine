@@ -10,18 +10,18 @@ import org.neo4j.graphdb.Relationship;
  */
 public class RelationshipConflictResolver {
 
-	private ConflictResolver method;
+	private ResolutionMethod method;
 	
-	public RelationshipConflictResolver(ConflictResolver method) {
+	public RelationshipConflictResolver(ResolutionMethod method) {
 		this.method = method;
 	}
 	
-	public RelationshipConflictResolver setResolutionMethod (ConflictResolver method) {
+	public RelationshipConflictResolver setResolutionMethod (ResolutionMethod method) {
 		this.method = method;
 		return this;
 	}
 	
-	public ConflictResolver getResolutionMethod () {
+	public ResolutionMethod getResolutionMethod () {
 		return method;
 	}
 	

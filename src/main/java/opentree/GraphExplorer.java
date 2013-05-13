@@ -589,7 +589,7 @@ public class GraphExplorer extends GraphBase {
         draftSynthesisMethod.setRanker(rs);
 
         // set conflict resolution criteria
-        RelationshipConflictResolver rcr = new RelationshipConflictResolver(new AcyclicRankPriorityResolver());
+        RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethod());
         draftSynthesisMethod.setConflictResolver(rcr);
         
         // user feedback
