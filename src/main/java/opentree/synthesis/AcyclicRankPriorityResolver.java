@@ -20,13 +20,13 @@ import org.neo4j.graphdb.Relationship;
  * 
  * @author stephen smith and cody hinchliff
  */
-public class AcyclicRankPriorityResolution implements ConflictResolutionMethod {
+public class AcyclicRankPriorityResolver implements ConflictResolver {
 
 	// containers used to make decisions about best paths
 	HashMap<Relationship, TLongArrayList> candRelDescendantIdsMap;
 	LinkedList<Relationship> bestRels;
 	
-	public AcyclicRankPriorityResolution() {
+	public AcyclicRankPriorityResolver() {
 		initialize();
 	}
 	
