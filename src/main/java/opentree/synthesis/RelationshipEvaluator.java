@@ -64,6 +64,10 @@ public class RelationshipEvaluator {
 		}
 	}
 	
+	/**
+	 * TODO: this needs to include the branch and bound
+	 * TODO: can there be multiple resolvers? If there is no source preference, can there be branch and bound?
+	 */
 	private void resolveConflicts() {
 		if (resolver != null) {
 			bestRels = resolver.resolveConflicts(candidateRels);
@@ -109,6 +113,8 @@ public class RelationshipEvaluator {
 	 */
 	public Iterable<Relationship> evaluateBestPaths(Node node) {
 		
+		//TODO: why aren't these filtered at this stage
+		//TODO: we should rank at this stage as well
 		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
 		for (Relationship rel : node.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
 			allRels.add(rel);
@@ -117,6 +123,8 @@ public class RelationshipEvaluator {
 		candidateRels = allRels;
 				
 		filter();
+		//TODO: this is likely to be very slow unless we only rank the relationships that we care about
+		//		in other words, we shouldn't rank all of them, just the ones we care about
 		rank();
 		resolveConflicts();
 		
