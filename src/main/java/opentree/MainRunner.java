@@ -1020,6 +1020,7 @@ public class MainRunner {
 		
 		try {
 			metadataNodeIndex.add(metadataNode, "source", "taxonomy");
+			metadataNode.setProperty("source", "taxonomy");
 			tx.success();
 		} catch (Exception ex) {
 			tx.failure();
@@ -1376,7 +1377,7 @@ public class MainRunner {
 
 		System.out.println("---synthesis functions---");
 		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
-		System.out.println("\tsynthesizedrafttreelist <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
+		System.out.println("\tsynthesizedrafttreelist <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\textractdrafttree <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
 				
 		System.out.println("---temporary functions---");
