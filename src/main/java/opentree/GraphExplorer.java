@@ -992,7 +992,7 @@ public class GraphExplorer extends GraphBase {
      * @param sourcesArray
      */
     @Deprecated
-    public JadeTree sourceSynthesis(Node startNode, String[] sourcesArray, boolean useTaxonomy) {
+    public JadeTree sourceSynthesis(Node startNode, LinkedList<String> sourcesArray, boolean useTaxonomy) {
         
     	// initial (empty) parameters for recursion
     	JadeNode parentJadeNode = null;
@@ -1028,7 +1028,7 @@ public class GraphExplorer extends GraphBase {
      * @return
      */
     @Deprecated
-    private JadeNode sourceSynthesisRecur(Node curGraphNode, JadeNode parentJadeNode, String[] sourcesArray, Relationship incomingRel, boolean useTaxonomy) {
+    private JadeNode sourceSynthesisRecur(Node curGraphNode, JadeNode parentJadeNode, LinkedList<String> sourcesArray, Relationship incomingRel, boolean useTaxonomy) {
 
         boolean ret = false;
         JadeNode newNode = new JadeNode();
@@ -1087,16 +1087,16 @@ public class GraphExplorer extends GraphBase {
                 candNodeRelationshipMap.put(cid, candRel);
 
                 // the first time we see a node, set its ranking to the lowest possible rank
-                candNodeRankingMap.put(cid, sourcesArray.length);
+                candNodeRankingMap.put(cid, sourcesArray.size());
             }
 
             // update the ranking for this node, based on the current source. if already ranked at the top (rank 0) then don't bother
             if (candNodeRankingMap.get(cid) != 0) {
                 String sourceName = (String) candRel.getProperty("source");
-                for (int i = 0; i < sourcesArray.length; i++) {
+                for (int i = 0; i < sourcesArray.size(); i++) {
 
                     // update if the rank of the sourcetree for the current candidate relationship is better than the last saved rank
-                    if (sourceName.compareTo(sourcesArray[i]) == 0) {
+                    if (sourceName.compareTo(sourcesArray.get(i)) == 0) {
                         if (candNodeRankingMap.get(cid) > i) {
                             candNodeRankingMap.put(cid, i);
                             candNodeRelationshipMap.put(cid, candRel);
@@ -1220,35 +1220,6 @@ public class GraphExplorer extends GraphBase {
     
     // ==================================== Synthesis methods using graph decisions ONLY ===================================
     
-    /**
-     * Constructs a JadeTree object containing a synthetic tree, breaking ties based on branch and bound or exhaustive search.
-     * Does not store the synthetic relationships in the graph.
-     * 
-     * Deprecated. Should be included within the new synthesis methods.
-     * 
-     * @param nodeId
-     * @param useTaxonomy
-     * @param useBranchAndBound
-     */
-    @Deprecated
-    public JadeTree graphSynthesis(Node startNode, boolean useTaxonomy, boolean useBranchAndBound) {
-
-    	// disable storing trees
-    	boolean recordSyntheticRels = false;
-    	String syntheticTreeName = null;
-    	
-    	// set empty starting parameters for recursion
-    	Node parentGraphNode = null;
-    	JadeNode parentJadeNode = null;
-    	Relationship incomingRel = null;
-    	String altName = "";	
-    	
-    	// get the tree structure and store it in a JadeNode object
-        JadeNode root = graphSynthesisRecur(startNode, parentGraphNode, parentJadeNode, incomingRel, altName, useBranchAndBound, useTaxonomy, recordSyntheticRels, syntheticTreeName);
-        
-        // return the tree wrapped in a JadeTree object
-        return new JadeTree(root);
-    }
 
     /**
      * Constructs a JadeTree object containing a synthetic tree, breaking ties based on branch and bound or exhaustive search.
@@ -1442,7 +1413,7 @@ public class GraphExplorer extends GraphBase {
                 for (Integer i : testindices) {
                     temptestnodes.add(testnodesal.get(i));
                 }
-            } else {
+            }/* else {
                 System.out.println("Exhaustive Pairs");
                 TreeMakingExhaustivePairs tmep = new TreeMakingExhaustivePairs();
                 ArrayList<Long> testnodesal = new ArrayList<Long>(originaltest);
@@ -1450,7 +1421,7 @@ public class GraphExplorer extends GraphBase {
                 for (Integer i : testindices) {
                     temptestnodes.add(testnodesal.get(i));
                 }
-            }
+            }*/
             for (Long nd : temptestnodes) {
                 ntotal += storedmrcas.get(nd).size();
             }

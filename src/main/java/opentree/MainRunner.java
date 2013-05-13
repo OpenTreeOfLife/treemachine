@@ -375,7 +375,7 @@ public class MainRunner {
 	        } else {
 	        	nodeId = firstNode.getId();
 	        }
-	        JadeTree synthTree = gi.graphSynthesis(firstNode, useTaxonomy, useBranchAndBound);
+	        JadeTree synthTree = gi.graphSynthesis(firstNode, useTaxonomy, useBranchAndBound,"synthtree");
 	        gi.shutdownDB();
 
 	        // write newick tree to a file
@@ -436,7 +436,10 @@ public class MainRunner {
 	            return -1;
 	        }
 		
-	        JadeTree synthTree = gi.sourceSynthesis(firstNode, sources, useTaxonomy);
+	        LinkedList<String> preferredSources = new LinkedList<String>();
+			String [] tsl = sourcenames.split(",");
+			for(int i=0;i<tsl.length;i++){preferredSources.add(tsl[i]);}
+	        JadeTree synthTree = gi.sourceSynthesis(firstNode, preferredSources, useTaxonomy);
 			gi.shutdownDB();
 
 	        PrintWriter outFile;
@@ -903,36 +906,38 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-		public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException {
-			if (args.length != 4) {
-				System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder");
-				return 1;
-			}
-			String ottolId = args[1];
-			String slist = args[2];
-			String graphname = args[3];
-			boolean success = false;
-			GraphExplorer ge = new GraphExplorer(graphname);
-			try {
-				// build the list of preferred sources, this should probably be done externally
-				LinkedList<String> preferredSources = new LinkedList<String>();
-				String [] tsl = slist.split(",");
-				for(int i=0;i<tsl.length;i++){preferredSources.add(tsl[i]);}
-				preferredSources.add("taxonomy");
-				
-				// find the start node
-				Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
-				if (firstNode == null) {
-					throw new opentree.OttolIdNotFoundException(ottolId);
-				}
-				success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources);
-			} catch (OttolIdNotFoundException oex) {
-				oex.printStackTrace();
-			} finally {
-				ge.shutdownDB();
-			}
-			return (success ? 0 : -1);
+	public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException {
+		if (args.length != 4) {
+			System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder");
+			return 1;
 		}
+		String ottolId = args[1];
+		String slist = args[2];
+		String graphname = args[3];
+		boolean success = false;
+		GraphExplorer ge = new GraphExplorer(graphname);
+		try {
+			// build the list of preferred sources, this should probably be done externally
+			LinkedList<String> preferredSources = new LinkedList<String>();
+			String [] tsl = slist.split(",");
+			for(int i=0;i<tsl.length;i++){preferredSources.add(tsl[i]);}
+			preferredSources.add("taxonomy");
+
+			// find the start node
+			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+			if (firstNode == null) {
+				throw new opentree.OttolIdNotFoundException(ottolId);
+			}
+
+			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources);
+		} catch (OttolIdNotFoundException oex) {
+			oex.printStackTrace();
+		} finally {
+			ge.shutdownDB();
+		}
+
+		return (success ? 0 : -1);
+	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException {
