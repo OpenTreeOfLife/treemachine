@@ -66,7 +66,8 @@ public class RelationshipEvaluator {
 	
 	/**
 	 * TODO: this needs to include the branch and bound
-	 * TODO: can there be multiple resolvers? If there is no source preference, can there be branch and bound?
+	 * TODO: can there be multiple resolvers? If there is no source preference
+	 * 			can there be branch and bound? can there be size preference
 	 */
 	private void resolveConflicts() {
 		if (resolver != null) {
