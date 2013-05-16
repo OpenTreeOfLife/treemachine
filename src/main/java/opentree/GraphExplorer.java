@@ -584,7 +584,18 @@ public class GraphExplorer extends GraphBase {
         //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         RelationshipFilter rf = new RelationshipFilter();
         HashSet<String> filteredsources = new HashSet<String>();
-        filteredsources.add("26");
+        //filteredsources.add("26");
+        IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
+        while (hits.hasNext()) {
+            Node n = hits.next();
+            if(n.hasProperty("ot:studyId")){
+            	if(sourceIdPriorityList.contains(n.getProperty("ot:studyId"))==false)
+            		filteredsources.add((String)n.getProperty("ot:studyId"));
+            }else{
+            	if(sourceIdPriorityList.contains(n.getProperty("source"))==false)
+            		filteredsources.add((String) n.getProperty("source"));
+            }
+        }
         rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDYID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
         draftSynthesisMethod.setFilter(rf);
         

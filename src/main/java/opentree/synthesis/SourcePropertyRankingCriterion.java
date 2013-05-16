@@ -6,6 +6,7 @@ import java.util.List;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 
 /**
  * This class ranks relationships based on properties defined in the SourceProperty enum.
@@ -40,8 +41,15 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 	@Override
 	public int compare(Relationship rel1, Relationship rel2) {
 		//TODO: there are multiple metanodes when there are multiple licas found
-		Node m1 = metadataNodeIndex.get("source", rel1.getProperty("source")).next();//.getSingle();
-		Node m2 = metadataNodeIndex.get("source", rel2.getProperty("source")).next();//.getSingle();
+		if(rel1.hasProperty("source") == false || rel2.hasProperty("source") == false)
+			return 0;
+		IndexHits<Node> h1 = metadataNodeIndex.get("source", rel1.getProperty("source"));//.next();//.getSingle();
+		IndexHits<Node> h2 = metadataNodeIndex.get("source", rel2.getProperty("source"));//.next();//.getSingle();
+		if(h1.size() == 0 || h2.size() == 0){
+			return 0;
+		}
+		Node m1 = h1.next();
+		Node m2 = h2.next();
 		
 //		System.out.println("metadata node 1 " + m1.toString());
 //		System.out.println("metadata node 2 " + m2.toString());

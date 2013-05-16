@@ -5,6 +5,7 @@ import java.util.HashSet;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 
 /**
  * This class makes filtering decisions based on relationship properties as defined in the SourceProperty class, using
@@ -36,8 +37,15 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 	public boolean test(Relationship r) {
 		//TODO: there can be multiple given multiple LICA mappings 
 //		Node m1 = metadataNodeIndex.get("source", r.getProperty("source")).getSingle();
-		Node m1 = metadataNodeIndex.get("source", r.getProperty("source")).next();
-
+		if(r.hasProperty("source") == false){
+			return false;
+		}
+		IndexHits<Node> ih = metadataNodeIndex.get("source", r.getProperty("source"));
+		if(ih.size() == 0){
+			return false;
+		}
+		Node m1 = ih.next();
+		
 		if (m1.hasProperty(property.propertyName) == false){
 			return false;
 		}

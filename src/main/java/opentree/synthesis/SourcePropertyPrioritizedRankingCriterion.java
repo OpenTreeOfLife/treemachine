@@ -7,6 +7,7 @@ import java.util.List;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 
 /**
  * This class ranks relationships by property based on the priority defined in the priortyListIter.
@@ -76,10 +77,18 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		
 		Object v1 = null;
 		Object v2 = null;
+		if(rel1.hasProperty("source") == false || rel2.hasProperty("source") == false)
+			return 0;
 		//TODO: can have multiple metanodes with multiple lica mappings
-		Node m1 = metadataNodeIndex.get("source", rel1.getProperty("source")).next();//.getSingle();
-		Node m2 = metadataNodeIndex.get("source", rel2.getProperty("source")).next();//.getSingle();
-
+		IndexHits<Node> h1 = metadataNodeIndex.get("source", rel1.getProperty("source"));//.next();//.getSingle();
+		IndexHits<Node> h2 = metadataNodeIndex.get("source", rel2.getProperty("source"));//.next();//.getSingle();
+		if(h1.size() == 0 || h2.size() == 0){
+			return 0;
+		}
+		Node m1 = h1.next();
+		Node m2 = h2.next();
+		
+		
 		if (m1.hasProperty(property.propertyName))
 			v1 = m1.getProperty(property.propertyName);
 
