@@ -1,5 +1,9 @@
 package opentree.synthesis;
 
+import java.util.HashSet;
+
+import gnu.trove.set.hash.TLongHashSet;
+
 /**
  * This class is used to contain arbitrary values for comparison against SourcePropertyValue objects. It is used
  * by classes implementing the FilterCriterion interface.
@@ -12,6 +16,7 @@ public class TestValue implements Comparable<SourcePropertyValue> {
 	String s;
 	Long l;
 	Double d;
+	HashSet<String> h;
 	Class<?> type;
 	
 	// string constructor
@@ -43,6 +48,11 @@ public class TestValue implements Comparable<SourcePropertyValue> {
 		this.d = d;
 		this.type = Double.class;
 	}
+	
+	public TestValue(HashSet<String> h){
+		this.h = h;
+		this.type = HashSet.class;
+	}
 
 	public Object getValue() {
 		if (type == Long.class)
@@ -53,8 +63,9 @@ public class TestValue implements Comparable<SourcePropertyValue> {
 
 		else if (type == Double.class)
 			return (Object) this.d;
-		
-		else
+		else if (type == HashSet.class){
+			return (Object) this.h;
+		}else
 			return null;
 	}
 
@@ -81,7 +92,16 @@ public class TestValue implements Comparable<SourcePropertyValue> {
 			} else {
 				return l.compareTo((Long) comparable.value());
 			}
-
+		}else if(this.type == HashSet.class){
+			if (comparable.type() != String.class) {
+				throw new java.lang.UnsupportedOperationException(illegalComparisonMessage(comparable.type()));
+			} else {
+				boolean tv = h.contains((String) comparable.value());
+				if (tv  == true)
+					return 1;
+				else
+					return 0;
+			}
 		} else {
 			throw new java.lang.UnsupportedOperationException(illegalComparisonMessage(comparable.type()));
 		}

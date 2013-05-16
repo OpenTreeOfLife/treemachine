@@ -568,8 +568,7 @@ public class GraphExplorer extends GraphBase {
      * @param ottolId
      * @throws OttolIdNotFoundException 
      */
-    public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds) throws OttolIdNotFoundException {
-        
+    public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds) throws OttolIdNotFoundException {        
         // build the list of ids, have to use generic objects
         ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
@@ -583,6 +582,11 @@ public class GraphExplorer extends GraphBase {
         // leaving this out for now, but could be added
         //RelationshipFilter rf = new RelationshipFilter();
         //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
+        RelationshipFilter rf = new RelationshipFilter();
+        HashSet<String> filteredsources = new HashSet<String>();
+        filteredsources.add("26");
+        rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDYID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
+        draftSynthesisMethod.setFilter(rf);
         
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
@@ -621,7 +625,7 @@ public class GraphExplorer extends GraphBase {
 
         tx = graphDb.beginTx();
         try {
-            addMissingChildrenToDraftTreeTEMP(startNode);
+            //addMissingChildrenToDraftTreeTEMP(startNode);
         	tx.success();
 
         } catch (Exception ex) {

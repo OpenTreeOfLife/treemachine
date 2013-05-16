@@ -30,13 +30,19 @@ public class RelationshipFilter {
 		LinkedList<Relationship> acceptedRels = new LinkedList<Relationship>();
 
 		// only evaluate the immediate child relationships
-		for (Relationship r : incomingRels) { 
+		for (Relationship r : incomingRels) {
+			boolean passfilter = true;
 			for (FilterCriterion fc : filters) {
-				if (fc.test(r) == false) {
+				//make sure that the logic for each of these is correct
+				//this says, if you filter as true, then it excludes
+				//TODO: this is where include vs exclude goes
+				if (fc.test(r) == true) {
+					passfilter = false;
 					break;
 				}
 			}
-			acceptedRels.add(r);
+			if (passfilter == true)
+				acceptedRels.add(r);
 		}
 
 		return acceptedRels;

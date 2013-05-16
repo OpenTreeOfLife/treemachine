@@ -1,5 +1,7 @@
 package opentree.synthesis;
 
+import java.util.HashSet;
+
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.Index;
@@ -8,7 +10,7 @@ import org.neo4j.graphdb.index.Index;
  * This class makes filtering decisions based on relationship properties as defined in the SourceProperty class, using
  * comparison methods defined in the ComparisonMethod class.
  * 
- * @author cody hinchliff
+ * @author cody hinchliff and esteban 
  *
  */
 public class SourcePropertyFilterCriterion implements FilterCriterion {
@@ -28,6 +30,7 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 		this.property = p;
 		this.c = c;
 		this.t = t;
+		metadataNodeIndex = sourceMetaNodes;
 	}
 	
 	public boolean test(Relationship r) {
@@ -35,8 +38,10 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 //		Node m1 = metadataNodeIndex.get("source", r.getProperty("source")).getSingle();
 		Node m1 = metadataNodeIndex.get("source", r.getProperty("source")).next();
 
-		
-		SourcePropertyValue v = new SourcePropertyValue(property, m1.getProperty(property.name()));
+		if (m1.hasProperty(property.propertyName) == false){
+			return false;
+		}
+		SourcePropertyValue v = new SourcePropertyValue(property, m1.getProperty(property.propertyName));
 		
 		if (c == FilterComparisonType.EQUALTO) {
 			return t.compareTo(v) == 0;
@@ -60,6 +65,8 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 			// do the comparison in reverse, so return the opposite
 			return t.compareTo(v) >= 0;
 			
+		}else if (c == FilterComparisonType.CONTAINS) {
+			return t.compareTo(v) == 1; // does the comparison in reverse, so return the opposite
 		} else {
 			throw new java.lang.UnsupportedOperationException("the comparison method " + c.toString() + " is not recognized");
 		}
