@@ -708,7 +708,7 @@ public class MainRunner {
 			if (listIDs) {
 				result = ge.getTreeIDList();
 			} else {
-				result = ge.getSourceList();
+				result = ge.getDetailedSourceList();
 			}
 			System.out.println(StringUtils.join(result, "\n"));
 		} finally {

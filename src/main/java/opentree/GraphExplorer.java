@@ -1,6 +1,8 @@
 package opentree;
 
 
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.TreeReader;
@@ -619,7 +621,7 @@ public class GraphExplorer extends GraphBase {
 
         tx = graphDb.beginTx();
         try {
-            addMissingChildrenToDraftTree(startNode, taxRootNode);
+            addMissingChildrenToDraftTreeTEMP(startNode);
         	tx.success();
 
         } catch (Exception ex) {
@@ -825,11 +827,11 @@ public class GraphExplorer extends GraphBase {
     
     /**
      * Used to add missing external nodes to the draft tree stored in the graph.
-     * 
+     * THIS SHOULD BE DELETED ONCE THE TEMP ONE HAS BEEN VALIDATED
      * @param startNode
      * @param taxRootNode
-     * @return JadeNode tree (the root of a JadeNode tree) with missing children added
      */
+    @Deprecated
     private void addMissingChildrenToDraftTree(Node startNode, Node taxRootNode) {
     	
     	// will hold nodes from the taxonomy to check
@@ -888,19 +890,6 @@ public class GraphExplorer extends GraphBase {
                 continue;
             }
             
-            /* NOT SURE WHAT TO DO ABOUT THIS
-//            if (namesInTree.size() == 1) {
-            if (nodesInTree.size() == 1) {
-                // make a new parent if the mrca is a tip
-                // TODO: what to do about the branch length of the single exemplar tip for this mrca?
-                JadeNode newMRCA = new JadeNode();
-                JadeNode parentOfNewMRCA = mrca.getParent();
-                parentOfNewMRCA.addChild(newMRCA);
-                parentOfNewMRCA.removeChild(mrca);
-                newMRCA.addChild(mrca);
-                mrca = newMRCA;
-            } */
-            
             // TODO: CURRENTLY THERE ARE SCREWY THINGS HAPPENING WITH GENERA GETTING LUMPED INTO
             // FAMILIES. NEED TO FIX!
             
@@ -929,6 +918,102 @@ public class GraphExplorer extends GraphBase {
 //            tree.processRoot();
         }
     }
+    
+    /**
+     * Used to add missing external nodes to the draft tree stored in the graph.
+     * 
+     * The idea here is to start from the tips that are in the synthetic tree. We are 
+     * sure that they all connect to the taxonomy. We can then walk back from each 
+     * of the tips and add the taxonomy that doesn't conflict with the next parent 
+     * in the synthesis. This requires changing the relationships from the synthetic tree
+     * to reconnect with the taxonomy. This will only add non conflicting taxonomy
+     * 
+     * @param startNode
+     */
+    private void addMissingChildrenToDraftTreeTEMP(Node startNode) {
+    	
+        TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.SYNTHCHILDOF, Direction.INCOMING);
+        
+        String[] supportingSources = new String[1];
+        supportingSources[0] = "taxonomy";
+        
+        TLongHashSet visited = new TLongHashSet();//stores  the nodes that have been visited
+        TLongArrayList synthtips = new TLongArrayList();
+        
+        //put all the tips in the array
+        for (Node tnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
+            if (tnode.hasRelationship(Direction.INCOMING, RelTypes.SYNTHCHILDOF) == true) {
+                // only consider taxa that are tips
+                continue;
+            }
+            synthtips.add(tnode.getId());
+        }
+        System.out.println(synthtips.size());
+        int count = 0;
+        for (int i=0;i<synthtips.size();i++){
+        	if (count % 10000 == 0)
+        		System.out.println(count);
+        	count += 1;
+            Node cnode = graphDb.getNodeById(synthtips.getQuick(i));
+            if (cnode.hasRelationship(RelTypes.TAXCHILDOF) == false){
+            	System.out.println("no tax for "+cnode);
+            }
+            TLongArrayList m = new TLongArrayList ((long[]) cnode.getProperty("mrca"));
+            TLongArrayList smc = new TLongArrayList(synthtips);
+            smc.removeAll(m);
+            //get parent
+            while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.SYNTHCHILDOF)){
+            	if (visited.contains(cnode.getId())){
+            		break;
+            	}
+            	visited.add(cnode.getId());
+            	//this assumes that m will be the list of mrcas at the node
+            	Node tcnode = LicaUtil.getTaxonomicLICA(m,graphDb);
+            	TLongArrayList tcmrcas = new TLongArrayList((long[]) tcnode.getProperty("mrca"));
+            	Node pnode = cnode.getRelationships(Direction.OUTGOING, RelTypes.SYNTHCHILDOF).iterator().next().getEndNode();
+            	TLongArrayList pmrcas = new TLongArrayList((long[]) pnode.getProperty("mrca"));
+            	TLongArrayList psmc = new TLongArrayList(smc);
+            	psmc.removeAll(pmrcas);
+            	Node tnode = LicaUtil.getTaxonomicLICA(pmrcas,graphDb);
+//            	System.out.println(tnode.getProperty("name")+" "+pmrcas+" "+m);
+            	TLongArrayList tmrcas = new TLongArrayList((long[]) tnode.getProperty("mrca"));
+
+            	//original relationship that will be deleted
+            	Relationship rel = cnode.getSingleRelationship(RelTypes.SYNTHCHILDOF, Direction.OUTGOING);
+            	//if the taxonomic nodes are good lica and the parent and child taxonomic mrcas aren't the same
+            	if (tcnode.getId() != tnode.getId()){
+            		System.out.println("made it here");
+            		if (LicaUtil.containsAnyt4jUnsorted(tcmrcas, smc) == false){
+            			System.out.println("1 "+tcmrcas+" "+smc);
+            			if (LicaUtil.containsAnyt4jUnsorted(tmrcas, psmc)==false){  
+            				System.out.println("for "+tcnode.getProperty("name"));
+            				Node csnode = cnode;
+            				tcnode = tcnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+            				while(tcnode.getId() != tnode.getId()){
+            					csnode.createRelationshipTo(tcnode, RelTypes.SYNTHCHILDOF);
+            					csnode = tcnode;
+            					tcnode = tcnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+            					System.out.println("adding -"+tcnode.getProperty("name"));
+            				}
+            				//TODO: need to make a new node in the future
+            				if (cnode != csnode){
+            					csnode.createRelationshipTo(pnode, RelTypes.SYNTHCHILDOF);
+            					rel.delete();
+            				}
+            			}
+            		}
+            	}else{
+ //           		System.out.println("won't add "+tnode.getProperty("name"));
+            	}
+            	//we may add some synthchildofs but don't want to traverse them
+            	cnode = pnode;
+            	m = pmrcas;//this may need to change with the addition of the taxonomic things
+            	smc = psmc;
+            	break;
+            }
+        }
+    }
+    
     
     // ====================================== extracting Synthetic trees from the db ==========================================
 
@@ -1579,6 +1664,23 @@ public class GraphExplorer extends GraphBase {
         }
         return sourceArrayList;
     }
+    
+    public ArrayList<String> getDetailedSourceList() {
+        IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
+        ArrayList<String> sourceList = new ArrayList<String>();
+        while (hits.hasNext()) {
+            Node n = hits.next();
+            if(n.hasProperty("ot:studyPublicationReference") && n.hasProperty("ot:studyId")){
+            	if (sourceList.contains((String)n.getProperty("ot:studyId")+"\t"+(String)n.getProperty("ot:studyPublicationReference")) == false)
+            		sourceList.add((String)n.getProperty("ot:studyId")+"\t"+(String)n.getProperty("ot:studyPublicationReference"));
+            }else{
+            	if (sourceList.contains((String)n.getProperty("source")) == false)
+            		sourceList.add((String) n.getProperty("source"));
+            }
+        }
+        return sourceList;
+    }
+    
 
     /**
      * @returns the source tree with the specified treeID

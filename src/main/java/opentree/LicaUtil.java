@@ -145,32 +145,8 @@ public class LicaUtil {
 		start = System.currentTimeMillis();
 		HashSet<Node> visited = new HashSet<Node>();
 		for (Node tnode : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-		//for (Path pa : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {	
-			//boolean going = true;
 			System.out.println(fullIdSet.size()+" "+inIdSet.size());
-			//for (Node tnode : pa.nodes()) {
-				//if (visited.contains(tnode))
-				//	continue;
-				//else
-				//	visited.add(tnode);
-		//		System.out.println(tnode.getId()+" "+tnode.getProperty("name"));
-				//TLongArrayList Ldbnodei = new TLongArrayList((long[]) tnode.getProperty("mrca"));
-				//Ldbnodei.sort();
-				// should look to apache commons primitives for a better solution to this
-				//if (containsAnyt4jSorted(Ldbnodei, fullIdSet) == false) {
-				//	boolean containsall = Ldbnodei.containsAll(inIdSet);
-				//	if (containsall) {
-						retaln.add(tnode);
-				//		going = false;
-				//	}
-				//} else {
-				//	going = false;
-				//}
-			//	System.out.println(Ldbnodei.size()+" "+fullIdSet.size()+" "+inIdSet.size()+" "+going);
-				//if (going == false) {
-				//	break;
-				//}
-			//}
+			retaln.add(tnode);
 		}
 		elapsedTimeMillis = System.currentTimeMillis()-start;
 		elapsedTimeSec = elapsedTimeMillis/1000F;
@@ -339,28 +315,8 @@ public class LicaUtil {
 		LicaContainsAllEvaluator ca = new LicaContainsAllEvaluator();
 		ca.setinIDset(inIdSet);
 		HashSet<Node> visited = new HashSet<Node>();
-		//for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {
 		for (Node tnode : Traversal.description().depthFirst().evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-			//boolean going = true;
-			//for (Node tnode : pa.nodes()) {
-			//	if (visited.contains(tnode))
-			//		continue;
-			//	else
-			//		visited.add(tnode);
-			//	TLongSet Ldbnodei = new TLongHashSet((long[]) tnode.getProperty("mrca"));
-			//	boolean containsall = Ldbnodei.containsAll(inIdSet);
-			//	if (containsall && inIdSet.size() == Ldbnodei.size()) {
-					// NOT SURE IF WE SHOULD EMPTY THE LIST IF IT IS EXACT OR RETAIN ALL THE LICAS
 					retaln.add(tnode);
-			//		going = false;
-			//	} else if (containsall) {
-			//		retaln.add(tnode);
-			//		going = false;
-			//	}
-				//if (going == false) {
-				//	break;
-				//}
-			//}
 		}
 		return retaln;
 	}
@@ -376,7 +332,7 @@ public class LicaUtil {
 		Node retaln = null;
 		Node firstNode = nodeSet.get(0);// taxonomy should have only one parent so no matter which one
 		Node innode = firstNode;
-		ArrayList<Long> nodeSetLongs = new ArrayList<Long>();
+		TLongArrayList nodeSetLongs = new TLongArrayList();
 		for (Node nd : nodeSet) {
 			nodeSetLongs.add(nd.getId());
 		}
@@ -388,17 +344,42 @@ public class LicaUtil {
 			}catch(Exception e){
 				break;
 			}
-			long[] dbnodei = (long[]) innode.getProperty("mrca");
-			HashSet<Long> Ldbnodei = new HashSet<Long>();
-			for (long temp : dbnodei) {
-				Ldbnodei.add(temp);
-			}
-			// should look to apache commons primitives for a better solution to this
-			// this gets all, but we want to only include the exact if one exists
-			boolean containsall = Ldbnodei.containsAll(nodeSetLongs);
+			TLongArrayList dbnodei = (TLongArrayList) innode.getProperty("mrca");
+			boolean containsall = dbnodei.containsAll(nodeSetLongs);
 			if (containsall == true) {
 				retaln = innode;
 				going = false;
+			}
+			if (going == false) {
+				break;
+			}
+		}
+		return retaln;
+	}
+	/**
+	 * This will return the MRCA using the taxonomic relationships. This only
+	 * requires the nodes that we are looking for.
+	 * 
+	 * @param nodeSet
+	 * @return
+	 */
+	public static Node getTaxonomicLICA(TLongArrayList nodeSet, GraphDatabaseAgent graphDb) {
+		Node retaln = null;
+		Node firstNode = graphDb.getNodeById(nodeSet.get(0));// taxonomy should have only one parent so no matter which one
+		Node innode = firstNode;
+		boolean going = true;
+		while (going) {
+			// get parent
+			try{
+				innode = innode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+			}catch(Exception e){
+				break;
+			}
+			TLongArrayList dbnodei = new TLongArrayList ((long[]) innode.getProperty("mrca"));
+			if(dbnodei.containsAll(nodeSet) == true){
+				retaln = innode;
+				going = false;
+				break;
 			}
 			if (going == false) {
 				break;
