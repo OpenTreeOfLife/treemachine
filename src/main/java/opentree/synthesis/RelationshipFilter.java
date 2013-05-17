@@ -48,6 +48,20 @@ public class RelationshipFilter {
 		return acceptedRels;
 	}
 
+	public boolean filterRelationship(Relationship r){
+		boolean passfilter = true;
+		for (FilterCriterion fc : filters) {
+			//make sure that the logic for each of these is correct
+			//this says, if you filter as true, then it excludes
+			//TODO: this is where include vs exclude goes
+			if (fc.test(r) == true) {
+				passfilter = false;
+				break;
+			}
+		}
+		return passfilter;
+	}
+	
 	/**
 	 * Add the indicated criterion to the list of filters that will be applied. Filters are applied in the order added,
 	 * so it is better (faster) to add more exclusive filters first, to reduce the number of comparisons.

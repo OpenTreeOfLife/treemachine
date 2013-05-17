@@ -40,12 +40,13 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 		if(r.hasProperty("source") == false){
 			return false;
 		}
+		//System.out.println(r+" "+r.getProperty("source"));
 		IndexHits<Node> ih = metadataNodeIndex.get("source", r.getProperty("source"));
 		if(ih.size() == 0){
 			return false;
 		}
 		Node m1 = ih.next();
-		
+		ih.close();
 		if (m1.hasProperty(property.propertyName) == false){
 			return false;
 		}

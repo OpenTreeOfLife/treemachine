@@ -6,7 +6,12 @@ import opentree.RelTypes;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.PathExpander;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.traversal.BranchState;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
 
 /**
  * Filters and selects relationships based on the provided RelationshipFilter and RelationshipSelector objects.
@@ -14,7 +19,7 @@ import org.neo4j.graphdb.Relationship;
  * @author cody hinchliff
  *
  */
-public class RelationshipEvaluator {
+public class STreeRelExpander implements PathExpander {
 
 	private RelationshipFilter filter;
 	private RelationshipRanker ranker;
@@ -22,18 +27,18 @@ public class RelationshipEvaluator {
 	private Iterable<Relationship> candidateRels;
 	private Iterable<Relationship> bestRels;
 	
-	public RelationshipEvaluator() {
+	public STreeRelExpander() {
 		this.filter = null;
 		this.ranker = null;
 		this.resolver = null;
 	}
 	
-	public RelationshipEvaluator setFilter(RelationshipFilter filter) {
+	public STreeRelExpander setFilter(RelationshipFilter filter) {
 		this.filter = filter;
 		return this;
 	}
 
-	public RelationshipEvaluator setRanker(RelationshipRanker ranker) {
+	public STreeRelExpander setRanker(RelationshipRanker ranker) {
 		this.ranker = ranker;
 		return this;
 	}
@@ -47,7 +52,7 @@ public class RelationshipEvaluator {
 	 * @param resolver
 	 * @return RelationshipEvaluator
 	 */
-	public RelationshipEvaluator setConflictResolver(RelationshipConflictResolver resolver) {
+	public STreeRelExpander setConflictResolver(RelationshipConflictResolver resolver) {
 		this.resolver = resolver;
 		return this;
 	}
@@ -118,17 +123,54 @@ public class RelationshipEvaluator {
 		//TODO: we should rank at this stage as well
 		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
 		for (Relationship rel : node.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
-			allRels.add(rel);
+			if (filter != null){
+				boolean t = filter.filterRelationship(rel);
+				if (t == true)
+					allRels.add(rel);
+			}else
+				allRels.add(rel);
 		}
 
 		candidateRels = allRels;
 				
-		filter();
+		//filter();
 		//TODO: this is likely to be very slow unless we only rank the relationships that we care about
 		//		in other words, we shouldn't rank all of them, just the ones we care about
 		rank();
 		resolveConflicts();
 		
 		return bestRels;
+	}
+	
+
+	@Override
+	public Iterable<Relationship> expand(Path arg0, BranchState arg1) {
+		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
+		for (Relationship rel : arg0.endNode().getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+			if (filter != null){
+				boolean t = filter.filterRelationship(rel);
+				if (t == true)
+					allRels.add(rel);
+			}else
+				allRels.add(rel);
+		}
+
+		candidateRels = allRels;
+				
+		//filter();
+		//TODO: this is likely to be very slow unless we only rank the relationships that we care about
+		//		in other words, we shouldn't rank all of them, just the ones we care about
+		rank();
+		resolveConflicts();
+		
+		return bestRels;
+	}
+
+	@Override
+	public PathExpander reverse() {
+		System.out.println("hit reverse");
+		System.exit(0);
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

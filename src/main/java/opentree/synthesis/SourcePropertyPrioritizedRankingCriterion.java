@@ -88,7 +88,8 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		Node m1 = h1.next();
 		Node m2 = h2.next();
 		
-		
+		h1.close();
+		h2.close();
 		if (m1.hasProperty(property.propertyName))
 			v1 = m1.getProperty(property.propertyName);
 

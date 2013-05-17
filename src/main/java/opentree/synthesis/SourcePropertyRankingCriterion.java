@@ -50,7 +50,9 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 		}
 		Node m1 = h1.next();
 		Node m2 = h2.next();
-		
+		h1.close();
+		h2.close();
+
 //		System.out.println("metadata node 1 " + m1.toString());
 //		System.out.println("metadata node 2 " + m2.toString());
 
