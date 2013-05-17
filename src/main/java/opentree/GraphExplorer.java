@@ -576,7 +576,7 @@ public class GraphExplorer extends GraphBase {
         }
                 
         // define the synthesis protocol
-        SourceResolvingExpander draftSynthesisMethod = new SourceResolvingExpander();
+        ResolvingExpander draftSynthesisMethod = new ResolvingExpander();
 
         // set filtering criteria
         //RelationshipFilter rf = new RelationshipFilter();

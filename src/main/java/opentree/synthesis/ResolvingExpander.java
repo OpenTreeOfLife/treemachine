@@ -19,7 +19,7 @@ import org.neo4j.graphdb.traversal.Evaluator;
  * @author cody hinchliff
  *
  */
-public class SourceResolvingExpander implements PathExpander {
+public class ResolvingExpander implements PathExpander {
 
 	private RelationshipFilter filter;
 	private RelationshipRanker ranker;
@@ -27,18 +27,18 @@ public class SourceResolvingExpander implements PathExpander {
 	private Iterable<Relationship> candidateRels;
 	private Iterable<Relationship> bestRels;
 	
-	public SourceResolvingExpander() {
+	public ResolvingExpander() {
 		this.filter = null;
 		this.ranker = null;
 		this.resolver = null;
 	}
 	
-	public SourceResolvingExpander setFilter(RelationshipFilter filter) {
+	public ResolvingExpander setFilter(RelationshipFilter filter) {
 		this.filter = filter;
 		return this;
 	}
 
-	public SourceResolvingExpander setRanker(RelationshipRanker ranker) {
+	public ResolvingExpander setRanker(RelationshipRanker ranker) {
 		this.ranker = ranker;
 		return this;
 	}
@@ -52,7 +52,7 @@ public class SourceResolvingExpander implements PathExpander {
 	 * @param resolver
 	 * @return RelationshipEvaluator
 	 */
-	public SourceResolvingExpander setConflictResolver(RelationshipConflictResolver resolver) {
+	public ResolvingExpander setConflictResolver(RelationshipConflictResolver resolver) {
 		this.resolver = resolver;
 		return this;
 	}
