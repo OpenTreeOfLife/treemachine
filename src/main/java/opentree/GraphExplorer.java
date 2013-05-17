@@ -620,10 +620,10 @@ public class GraphExplorer extends GraphBase {
         Transaction tx = graphDb.beginTx();
         String synthTreeName = DRAFTTREENAME;
         try {
-        	for(Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()){
+        	for(Relationship rel: Traversal.description().depthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()){
                 // store the relationship
-        		Node parentNode = rel.getStartNode();
-        		Node curNode = rel.getEndNode();
+        		Node parentNode = rel.getEndNode();
+        		Node curNode = rel.getStartNode();
         		
             	if (parentNode != null) {
             		Relationship newRel = curNode.createRelationshipTo(parentNode, RelTypes.SYNTHCHILDOF);
@@ -650,7 +650,6 @@ public class GraphExplorer extends GraphBase {
             	// remember the ids of taxa we add, this is when sinking lost children
                 knownIdsInTree.add(curNode.getId());
         	}
-//        	draftSynthesisRecur(startNode, originalParent, draftSynthesisMethod, DRAFTTREENAME);
         	tx.success();
 
         } catch (Exception ex) {
@@ -680,53 +679,6 @@ public class GraphExplorer extends GraphBase {
         
         return true;
         
-    }
-    
-    /**
-     * This is the preorder function for constructing the draft synthesis tree.
-     *  
-     * @param curNode
-     * @param parentNode
-     * @param sourcesArray
-     * @param incomingRel
-     * @return
-     */
-    private void draftSynthesisRecur(Node curNode, Node parentNode, STreeRelExpander re, String synthTreeName) {
-
-        // store the relationship
-    	if (parentNode != null) {
-    		Relationship newRel = curNode.createRelationshipTo(parentNode, RelTypes.SYNTHCHILDOF);
-    		newRel.setProperty("name", synthTreeName);
-
-    		// get all the sources supporting this relationship
-    		HashSet<String> sources = new HashSet<String>();
-    		for (Relationship rel : curNode.getRelationships(RelTypes.STREECHILDOF)) {
-    			if (rel.hasProperty("source")) {
-    				sources.add(String.valueOf(rel.getProperty("source")));
-    			}
-    		}
-    		
-    		// store the sources in a string array
-    		String[] sourcesArray = new String[sources.size()];
-    		Iterator<String> sourcesIter = sources.iterator();
-    		for (int i = 0; i < sources.size(); i++) {
-    			sourcesArray[i] = sourcesIter.next();
-    		}
-    		
-    		// set the string array as a property of the relationship
-    		newRel.setProperty("supporting_sources", sourcesArray);
-    	}
-        
-    	// remember the ids of taxa we add, this is when sinking lost children
-        knownIdsInTree.add(curNode.getId());
-    	
-    	// find next rels to follow for synthesis
-        Iterable<Relationship> relsToFollow = re.evaluateBestPaths(curNode);
-        
-        // continue recursion
-        for (Relationship rel : relsToFollow) {
-            draftSynthesisRecur(rel.getStartNode(), curNode, re, synthTreeName);
-        }
     }
     
     /**
