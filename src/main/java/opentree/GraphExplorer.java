@@ -576,15 +576,15 @@ public class GraphExplorer extends GraphBase {
         }
                 
         // define the synthesis protocol
-        STreeRelExpander draftSynthesisMethod = new STreeRelExpander();
+        SourceResolvingExpander draftSynthesisMethod = new SourceResolvingExpander();
 
         // set filtering criteria
-        // leaving this out for now, but could be added
         //RelationshipFilter rf = new RelationshipFilter();
         //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         RelationshipFilter rf = new RelationshipFilter();
         HashSet<String> filteredsources = new HashSet<String>();
         //filteredsources.add("26");
+        //ignore any source that isn't in our preferred list
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         while (hits.hasNext()) {
             Node n = hits.next();
@@ -1644,7 +1644,8 @@ public class GraphExplorer extends GraphBase {
         ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
         while (hits.hasNext()) {
             Node n = hits.next();
-            sourceArrayList.add((String) n.getProperty("treeID"));
+            if (n.hasProperty("treeID"))
+            	sourceArrayList.add((String) n.getProperty("treeID"));
         }
         return sourceArrayList;
     }
