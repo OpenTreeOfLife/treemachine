@@ -188,8 +188,8 @@ public class PhylografterConnector {
 	public static void fixNamesFromTrees(Long studyid,List<JadeTree> trees, GraphDatabaseAgent graphDb) throws IOException{
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
-		String urlbasecontext = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/getContextForNames";
-		String urlbasefetch = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/doTNRSForNames";
+		String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
+		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/doTNRSForNames";
 		System.out.println("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
 			//get the names that don't have ids
@@ -404,8 +404,8 @@ public class PhylografterConnector {
 	public static boolean fixNamesFromTreesPrune(Long studyid,List<JadeTree> trees, GraphDatabaseAgent graphDb) throws IOException{
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
-		String urlbasecontext = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/getContextForNames";
-		String urlbasefetch = "http://opentree-dev.bio.ku.edu:7476/db/data/ext/TNRS/graphdb/doTNRSForNames";
+		String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
+		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/doTNRSForNames";
 		System.out.println("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
 			//get the names that don't have ids
