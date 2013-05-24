@@ -1,5 +1,6 @@
 package opentree;
 
+import jade.tree.JadeNode;
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
@@ -30,6 +31,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import opentree.TaxonNotFoundException;
 import opentree.TreeNotFoundException;
 import opentree.StoredEntityNotFoundException;
+import opentree.testing.TreeUtils;
 
 public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
@@ -1038,6 +1040,73 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
+	public int makePrunedBipartsTestFiles(String [] args) {
+		if (args.length != 4) {
+			System.out.println("arguments should be randomseed ntips graphdbfolder");
+			return 1;
+		}
+
+		int seed = Integer.valueOf(args[1]);
+		int nTaxa = Integer.valueOf(args[2]);
+		String exportPath = args[3];
+
+		ArrayList<String> names = new ArrayList<String>();
+		
+		System.out.println("enumerating tips");		
+		for (int i = 0; i < nTaxa; i++) {
+			System.out.println(i);
+			names.add(String.valueOf(i));
+		}
+
+		System.out.println("randomizing a fully resolved tree with " + nTaxa + " tips");
+		JadeNode randomTree = TreeUtils.makeRandomTree(names, seed);
+
+        PrintWriter outFile;
+
+        String completeTreePath = (exportPath + "/" + "random.tre").replaceAll("/+", "/");
+        System.out.println("Writing the random tree to " + completeTreePath);
+        try {
+            outFile = new PrintWriter(new FileWriter(completeTreePath));
+            boolean reportBranchLength = false;
+            outFile.write(randomTree.getNewick(reportBranchLength));
+            outFile.write(";\n");
+            outFile.close();
+        
+        } catch (IOException e) {
+            e.printStackTrace();
+            return 1;
+        }
+
+        System.out.println("Finding all bipartitions ");
+		Iterable<JadeNode> randomTreeBipartTrees = TreeUtils.extractBipartitions(randomTree);
+
+        String bipartTreesPath = (exportPath + "/" + "random.biparts.pruned.tre").replaceAll("/+", "/");
+        System.out.println("Writing bipartition trees to " + bipartTreesPath);
+        try {
+            outFile = new PrintWriter(new FileWriter(bipartTreesPath));
+            boolean reportBranchLength = false;
+            
+            for (JadeNode bipart : randomTreeBipartTrees) {
+            	
+            	// here is where the pruning happens
+            	
+//            	System.out.println(bipart.getNewick(reportBranchLength).concat(";\n"));
+            	
+            	outFile.write(bipart.getNewick(reportBranchLength).concat(";\n"));
+            }
+
+            outFile.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return 1;
+        }
+		
+		return 0;
+	}
+	
 	/*
 	 * Use this to load trees from nexson into the graph from a directory
 	 * not from the server
@@ -1388,6 +1457,9 @@ public class MainRunner {
 		System.out.println("---temporary functions---");
 		System.out.println("\taddtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");
 
+		System.out.println("---testing---");
+		System.out.println("\tmakeprunedbipartstestfiles <randomseed> <ntaxa> <path> (export newick files containing (1) a randomized tree and (2) topologies for each of its bipartitions, pruned to a minimal subset of taxa)\n");
+		
 		System.out.println("---server functions---");
 		System.out.println("\tgetupdatedlist\n");
 	}
@@ -1469,6 +1541,9 @@ public class MainRunner {
 			} else if (command.compareTo("addtaxonomymetadatanodetoindex") == 0) {
 				cmdReturnCode = mr.addTaxonomyMetadataNodeToIndex(args);
 
+			// testing functions
+			} else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
+				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
 			
 			} else if (command.compareTo("pgload") == 0) {
 				cmdReturnCode = mr.pg_loading(args);
