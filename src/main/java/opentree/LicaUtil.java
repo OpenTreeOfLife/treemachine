@@ -108,8 +108,8 @@ public class LicaUtil {
 	}
 
 	public static HashSet<Node> getAllLICAt4j(List<Node> nodeSet, TLongArrayList inIdSet, TLongArrayList fullIdSet) {
-		System.out.println("starting LICA search");
-		System.out.println("b: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
+		//System.out.println("starting LICA search");
+		//System.out.println("b: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
 		HashSet<Node> retaln = new HashSet<Node>();
 		Node firstNode = nodeSet.get(0);// should be the node with the fewest outgoing relationships
 		int fewestnumrel = 10000000;
@@ -132,10 +132,10 @@ public class LicaUtil {
 		}
 		long elapsedTimeMillis = System.currentTimeMillis()-start;
 		float elapsedTimeSec = elapsedTimeMillis/1000F;
-		System.out.println("elapsed 1: "+elapsedTimeSec);
+		//System.out.println("elapsed 1: "+elapsedTimeSec);
 		//remove everything but that which is in the outgroup
 		fullIdSet.removeAll(inIdSet);
-		System.out.println("a: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
+		//System.out.println("a: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
 
 		LicaEvaluator le = new LicaEvaluator();
 		LicaContainsAllEvaluator ca = new LicaContainsAllEvaluator();
@@ -145,12 +145,12 @@ public class LicaUtil {
 		start = System.currentTimeMillis();
 		HashSet<Node> visited = new HashSet<Node>();
 		for (Node tnode : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-			System.out.println(fullIdSet.size()+" "+inIdSet.size());
+			//System.out.println(fullIdSet.size()+" "+inIdSet.size());
 			retaln.add(tnode);
 		}
 		elapsedTimeMillis = System.currentTimeMillis()-start;
 		elapsedTimeSec = elapsedTimeMillis/1000F;
-		System.out.println("elapsed inloop: "+elapsedTimeSec);
+		//System.out.println("elapsed inloop: "+elapsedTimeSec);
 		return retaln;
 	}
 
