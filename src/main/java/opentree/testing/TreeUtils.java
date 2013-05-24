@@ -47,11 +47,13 @@ public final class TreeUtils {
 		return root;
 	}
 	
-	public static Iterable<JadeNode> extractBipartitions(JadeNode inTree) {
+	public static Iterable<JadeNode> extractBipartitions(JadeNode inTreeRoot) {
 
 		LinkedList<JadeNode> bipartTrees = new LinkedList<JadeNode>();
 		
-		for (JadeNode curNode : inTree.getDescendants(NodeOrder.POSTORDER)) {
+		HashSet<HashSet<JadeNode>> rootChildNodeSets = new HashSet<HashSet<JadeNode>>();
+		
+		for (JadeNode curNode : inTreeRoot.getDescendants(NodeOrder.POSTORDER)) {
 			if (curNode.isInternal() && !curNode.isTheRoot()) {
 
 //				System.out.println(curNode.toString());
@@ -64,18 +66,26 @@ public final class TreeUtils {
 				for (JadeNode inTip : curNode.getTips()) {
 
 //					System.out.println("Adding " + inTip.getName() + " to ingroup set");
-
+					ingroup.addChild(inTip);
 					inTips.add(inTip);
 				}
-		
+					
 				// sort the tree's tips into ingroup/outgroup
-				for (JadeNode tip : inTree.getTips()) {
-					if (inTips.contains(tip)) {
-//						System.out.println("Adding " + tip.getName() + " to INGROUP node");
-						ingroup.addChild(tip);
-					} else {
-//						System.out.println("Adding " + tip.getName() + " to OUTGROUP node");
+				HashSet<JadeNode> outTips = new HashSet<JadeNode>();
+				for (JadeNode tip : inTreeRoot.getTips()) {
+					if (!inTips.contains(tip)) {
+//						System.out.println("Adding " + tip.getName() + " to outgroup set");
 						outgroup.addChild(tip);
+						outTips.add(tip);
+					}
+				}
+
+				if (curNode.getParent().equals(inTreeRoot)) {
+					if (rootChildNodeSets.contains(inTips)) {
+						continue;
+					} else {
+						rootChildNodeSets.add(inTips);
+						rootChildNodeSets.add(outTips);
 					}
 				}
 				
