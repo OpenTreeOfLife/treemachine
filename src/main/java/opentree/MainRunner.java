@@ -902,6 +902,60 @@ public class MainRunner {
 		return 2;
 	}
 	
+	/*
+	 * these are treeutils that need the database
+	 */
+	public int treeUtilsDB(String [] args){
+		if (args.length != 3){
+			System.out.println("arguments should be treefile graphdbfolder");
+			return 1;
+		}
+		//read trees
+		String filename = args[1];
+		String ts = "";
+		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+		TreeReader tr = new TreeReader();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while ((ts = br.readLine())!=null) {
+				if (ts.length() > 1)
+					jt.add(tr.readTree(ts));
+			}
+			br.close();
+		} catch (IOException ioe) {}
+		System.out.println("trees read");
+		//
+		boolean success = false;
+		String graphdbn = args[2];
+		
+		String arg = args[0];
+		if (arg.equals("labeltax")){
+			GraphExplorer ge = new GraphExplorer(graphdbn);	
+			for (int i=0;i<jt.size();i++){
+				ge.labelInternalNodesTax(jt.get(i));
+				System.out.println(jt.get(i).getRoot().getNewick(false));
+			}
+			ge.shutdownDB();
+		}else if(arg.equals("checktax")){
+			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+			try{
+				boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
+				if (good == false){
+					System.out.println("failed to get the names from server fixNamesFromTrees");
+					graphDb.shutdownDb();
+					return 0;
+				}
+			}catch(IOException ioe){
+				ioe.printStackTrace();
+				System.out.println("failed to get the names from server fixNamesFromTrees");
+				graphDb.shutdownDb();
+				return 0;
+			}
+			graphDb.shutdownDb();
+		}
+		return (success ? 0 : -1);
+	}
+	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException {
 		if (args.length != 4) {
@@ -1136,7 +1190,7 @@ public class MainRunner {
 					e.printStackTrace();
 				}
 				try{
-					PhylografterConnector.fixNamesFromTrees(Long.valueOf(files[i].getName()),jt,graphDb);
+					PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
 				}catch(IOException ioe){
 					ioe.printStackTrace();
 					System.out.println("failed to get the names from server fixNamesFromTrees");
@@ -1241,7 +1295,7 @@ public class MainRunner {
 			return 0;
 		}
 		try{
-			boolean good = PhylografterConnector.fixNamesFromTreesPrune(Long.valueOf(file.getName()),jt,graphDb);
+			boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
 			if (good == false){
 				System.out.println("failed to get the names from server fixNamesFromTrees");
 				graphDb.shutdownDb();
@@ -1341,7 +1395,7 @@ public class MainRunner {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
 				try {
-					PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+					PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -1439,11 +1493,13 @@ public class MainRunner {
 		System.out.println("\tgetlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)\n");
 
 		System.out.println("---tree functions---");
-		System.out.println("(This is temporary and for doing some functions on trees output by the fulltree)");
+		System.out.println("(This is temporary and for doing some functions on trees (output or potential input))");
 		System.out.println("\tcounttips <filename> (count the number of nodes and leaves in a newick)");
 		System.out.println("\tdiversity <filename> (for each node it will print the immediate descendents and their diversity)");
 		System.out.println("\tlabeltips <filename.tre> <filename>\n");
-
+		System.out.println("\tlabeltax <filename.tre> <graphdbfolder>\n");
+		System.out.println("\tchecktax <filename.tre> <graphdbfolder>\n");
+		
 		System.out.println("---synthesis functions---");
 		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
 		System.out.println("\tsynthesizedrafttreelist <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
@@ -1524,6 +1580,9 @@ public class MainRunner {
 					|| command.compareTo("diversity") == 0
 					|| command.compareTo("labeltips") == 0) {
 				cmdReturnCode = mr.treeUtils(args);
+			} else if (command.compareTo("labeltax") == 0
+					|| command.compareTo("checktax") == 0) {
+				cmdReturnCode = mr.treeUtilsDB(args);
 			} else if (command.compareTo("synthesizedrafttree") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTree(args);
 			}else if (command.compareTo("synthesizedrafttreelist") == 0) {

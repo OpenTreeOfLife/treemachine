@@ -48,7 +48,7 @@ public class PhylografterUpdater extends ServerPlugin{
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
 				try {
-					PhylografterConnector.fixNamesFromTrees(k,jt,graphDb);
+					PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

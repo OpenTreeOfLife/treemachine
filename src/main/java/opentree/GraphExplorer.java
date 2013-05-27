@@ -2121,6 +2121,54 @@ public class GraphExplorer extends GraphBase {
         return tree;
     }
 
+    
+    // ================================= methods for trees ====================================
+    public void labelInternalNodesTax(JadeTree tree){
+    	//first get the unequivocal ones
+		ArrayList<JadeNode> nds = tree.getRoot().getTips();
+		for (int j = 0; j < nds.size(); j++) {
+			// find all the tip taxa and with doubles pick the taxon closest to the focal group
+			Node hitnode = null;
+			String processedname = nds.get(j).getName(); //.replace("_", " ");
+			// TODO processing syntactic rules like '_' -> ' ' should be done on input parsing. 
+			IndexHits<Node> hits = graphNodeIndex.get("name", processedname);
+			int numh = hits.size();
+			if (numh == 1) {
+				hitnode = hits.getSingle();
+			//	System.out.println(hitnode);
+				nds.get(j).assocObject("ot:ottolid", Long.valueOf((String)hitnode.getProperty("tax_uid")));
+			}
+			hits.close();
+		}
+    	
+    	//then get the ones that need fixing
+    	ArrayList<JadeTree> al = new ArrayList<JadeTree> ();
+    	al.add(tree);
+    	try {
+			PhylografterConnector.fixNamesFromTrees(al,graphDb,false);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+    	for(int i=0;i<al.get(0).getInternalNodeCount();i++){
+    		ArrayList<JadeNode> tnds = tree.getInternalNode(i).getTips();
+    		TLongArrayList nodeSet = new TLongArrayList();
+    		for(int j=0;j<tnds.size();j++){ 
+    			Long tid = ((Long)tnds.get(j).getObject("ot:ottolid"));
+    			Node tnd = graphTaxUIDNodeIndex.get("tax_uid", tid).getSingle();
+    			nodeSet.add(tnd.getId());
+    		}
+    		//System.out.println(nodeSet);
+    		if(nodeSet.size() > 1){
+    			Node tnd = LicaUtil.getTaxonomicLICA(nodeSet,graphDb);
+    		//	System.out.println(tnd);
+    			tree.getInternalNode(i).setName((String)tnd.getProperty("name"));
+    		}
+    	}
+    }
+    
+    
     // ================================= methods needing work ====================================
     
 	/**

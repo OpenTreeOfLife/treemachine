@@ -309,9 +309,9 @@ public class LicaUtil {
 			}catch(Exception e){
 				break;
 			}
-			TLongArrayList dbnodei = (TLongArrayList) innode.getProperty("mrca");
-			boolean containsall = dbnodei.containsAll(nodeSetLongs);
-			if (containsall == true) {
+			TLongArrayList dbnodei = new TLongArrayList ((long[]) innode.getProperty("mrca"));
+			dbnodei.addAll((long[]) innode.getProperty("nested_mrca"));
+			if (dbnodei.containsAll(nodeSetLongs) == true) {
 				retaln = innode;
 				going = false;
 			}
@@ -341,6 +341,7 @@ public class LicaUtil {
 				break;
 			}
 			TLongArrayList dbnodei = new TLongArrayList ((long[]) innode.getProperty("mrca"));
+			dbnodei.addAll((long[]) innode.getProperty("nested_mrca"));
 			if(dbnodei.containsAll(nodeSet) == true){
 				retaln = innode;
 				going = false;
