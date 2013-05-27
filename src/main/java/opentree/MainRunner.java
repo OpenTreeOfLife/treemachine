@@ -49,7 +49,7 @@ public class MainRunner {
 			System.err.println("ERROR: not a known command");
 			return 1;
 		}
-		GraphImporter tl = new GraphImporter(graphname);
+		GraphInitializer tl = new GraphInitializer(graphname);
 		System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
 		try {
 			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename);
@@ -209,7 +209,6 @@ public class MainRunner {
 				}
 				if (jt.size() == 1) {
 					gi.addSetTreeToGraph(focalgroup, sourcename);
-					gi.updateAfterTreeIngest(false); // TODO: this still needs work
 				} else {
 					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
 					gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
@@ -472,42 +471,40 @@ public class MainRunner {
 		String filename = args[1];
 		String graphname = args[2];
 		int treeCounter = 0;
-		GraphImporter gi = new GraphImporter(graphname);
+		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
+		// read the tree from a file
+		String ts = "";
+		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+
 		try {
-			// Run through all the trees and get the union of the taxa for a raw taxonomy graph
-			// read the tree from a file
-			String ts = "";
-			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-			
-			try {
-				BufferedReader br = new BufferedReader(new FileReader(filename));
-				if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
-					System.out.println("Reading newick file...");
-					TreeReader tr = new TreeReader();
-					while ((ts = br.readLine()) != null) {
-						if (ts.length() > 1) {
-							jt.add(tr.readTree(ts));
-							treeCounter++;
-						}
-					}
-				} else { // nexson
-					System.out.println("Reading nexson file...");
-					for (JadeTree tree : NexsonReader.readNexson(filename)) {
-						jt.add(tree);
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
+				System.out.println("Reading newick file...");
+				TreeReader tr = new TreeReader();
+				while ((ts = br.readLine()) != null) {
+					if (ts.length() > 1) {
+						jt.add(tr.readTree(ts));
 						treeCounter++;
 					}
 				}
-				br.close();
-			} catch (IOException ioe) {}
-			System.out.println(treeCounter + " trees read.");
-			
-			HashSet<String> names = new HashSet<String>();
-			for (int i = 0; i < jt.size(); i++) {
-				for (int j = 0; j < jt.get(i).getExternalNodeCount(); j++) {
-					names.add(jt.get(i).getExternalNode(j).getName());
-					}
+			} else { // nexson
+				System.out.println("Reading nexson file...");
+				for (JadeTree tree : NexsonReader.readNexson(filename)) {
+					jt.add(tree);
+					treeCounter++;
 				}
-			/*
+			}
+			br.close();
+		} catch (IOException ioe) {}
+		System.out.println(treeCounter + " trees read.");
+
+		HashSet<String> names = new HashSet<String>();
+		for (int i = 0; i < jt.size(); i++) {
+			for (int j = 0; j < jt.get(i).getExternalNodeCount(); j++) {
+				names.add(jt.get(i).getExternalNode(j).getName());
+			}
+		}
+		/*
 			 The number of expected properties in "tax.temp" has changed:
 			  String tid = st.nextToken().trim();
 			  String pid = st.nextToken().trim();
@@ -518,60 +515,58 @@ public class MainRunner {
 			  String srce_pid = st.nextToken().trim();
 			  String uniqname = st.nextToken().trim();
 			 "tax.temp" is updated below. Note use of " " vs. original "\t" for easier reading
-			 */	
-			PrintWriter outFile;
-			try {
-				outFile = new PrintWriter(new FileWriter("tax.temp"));
-				ArrayList<String> namesal = new ArrayList<String>();
-				namesal.addAll(names);
-				for (int i = 0; i < namesal.size(); i++) {
-					//outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
-					outFile.write((i+2)+"|1|"+namesal.get(i)+"| | | | | | |\n");
-					//             tid  pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
-				}
-				//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
-				outFile.write("1|0|life| | | | | | |\n");
-				outFile.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+		 */	
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter("tax.temp"));
+			ArrayList<String> namesal = new ArrayList<String>();
+			namesal.addAll(names);
+			for (int i = 0; i < namesal.size(); i++) {
+				//outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
+				outFile.write((i+2)+"|1|"+namesal.get(i)+"| | | | | | |\n");
+				//             tid  pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
 			}
-			
-			// make a temp file to be loaded into the tax loader, a hack for now
-			gi.addInitialTaxonomyTableIntoGraph("tax.temp", "");
-			// Use the taxonomy as the first tree in the composite tree
-			
-			System.out.println("started graph importer");
-			// Go through the trees again and add and update as necessary
-			for (int i = 0; i < jt.size(); i++) {
-				String sourcename = "treeinfile";
-				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-					sourcename = (String)jt.get(i).getObject("ot:studyId");
-				}
-				sourcename += "_" + String.valueOf(i);
-				
-				System.out.println("adding tree '" + sourcename + "' to the graph");
-				gi.setTree(jt.get(i));
-				gi.addSetTreeToGraph("life", sourcename);
-				gi.deleteTreeBySource(sourcename);
-				//gi.updateAfterTreeIngest(false);
-			}
-			// adding them again after all the nodes are there
-			for (int i = 0; i < jt.size(); i++) {
-				String sourcename = "treeinfile";
-				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-					sourcename = (String)jt.get(i).getObject("ot:studyId");
-				}
-				sourcename += "_" + String.valueOf(i);
-				
-				System.out.println("adding tree '" + sourcename + "' to the graph");
-				gi.setTree(jt.get(i));
-				gi.addSetTreeToGraph("life", sourcename);
-				// gi.updateAfterTreeIngest(false);
-			}
-			//	gi.updateAfterTreeIngest(true);
-		} finally {
-			gi.shutdownDB();
+			//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
+			outFile.write("1|0|life| | | | | | |\n");
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
+
+		GraphInitializer gin = new GraphInitializer(graphname);
+		// make a temp file to be loaded into the tax loader, a hack for now
+		gin.addInitialTaxonomyTableIntoGraph("tax.temp", "");
+		// Use the taxonomy as the first tree in the composite tree
+		gin.shutdownDB();
+
+		GraphImporter gi = new GraphImporter(graphname);
+		System.out.println("started graph importer");
+		// Go through the trees again and add and update as necessary
+		for (int i = 0; i < jt.size(); i++) {
+			String sourcename = "treeinfile";
+			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+				sourcename = (String)jt.get(i).getObject("ot:studyId");
+			}
+			sourcename += "_" + String.valueOf(i);
+
+			System.out.println("adding tree '" + sourcename + "' to the graph");
+			gi.setTree(jt.get(i));
+			gi.addSetTreeToGraph("life", sourcename);
+			gi.deleteTreeBySource(sourcename);
+		}			
+		// adding them again after all the nodes are there
+		for (int i = 0; i < jt.size(); i++) {
+			String sourcename = "treeinfile";
+			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+				sourcename = (String)jt.get(i).getObject("ot:studyId");
+			}
+			sourcename += "_" + String.valueOf(i);
+
+			System.out.println("adding tree '" + sourcename + "' to the graph");
+			gi.setTree(jt.get(i));
+			gi.addSetTreeToGraph("life", sourcename);
+		}
+		gi.shutdownDB();
 		return 0;
 	}
 	

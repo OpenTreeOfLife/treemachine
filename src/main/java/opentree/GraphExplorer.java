@@ -384,6 +384,7 @@ public class GraphExplorer extends GraphBase {
         }
     }
 
+    //TODO: update to t4j
     public void postorderMapTree(JadeNode inode, JadeNode root, Node focalnode, HashSet<JadeNode> skiptips) {
         for (int i = 0; i < inode.getChildCount(); i++) {
             postorderMapTree(inode.getChild(i), root, focalnode, skiptips);
@@ -424,7 +425,7 @@ public class GraphExplorer extends GraphBase {
             }
             // _LOG.trace("finished names");
             HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
-            HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
+            HashSet<Node> ancestors = null;//LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
             if (ancestors.size() > 0) {
                 int count = 0;
                 for (Node tnode : ancestors) {
@@ -585,7 +586,7 @@ public class GraphExplorer extends GraphBase {
         HashSet<String> filteredsources = new HashSet<String>();
         //filteredsources.add("26");
         //ignore any source that isn't in our preferred list
-        IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
+        /*IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         while (hits.hasNext()) {
             Node n = hits.next();
             if(n.hasProperty("ot:studyId")){
@@ -596,9 +597,10 @@ public class GraphExplorer extends GraphBase {
             		filteredsources.add((String) n.getProperty("source"));
             }
         }
+        System.out.println("filtered: "+filteredsources);
         rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDYID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
         draftSynthesisMethod.setFilter(rf);
-        
+        */
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
         rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDYID, sourceIdPriorityList, sourceMetaIndex));

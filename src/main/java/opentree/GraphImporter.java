@@ -19,6 +19,7 @@ import opentree.TaxonNotFoundException;
 import opentree.TreeIngestException;
 //import opentree.RelTypes;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -53,6 +54,7 @@ public class GraphImporter extends GraphBase{
 	private Transaction	tx;
 	//THIS IS FOR PERFORMANCE
 	private TLongArrayList root_ndids;
+	boolean assumecomplete = false;//this will trigger getalllica if true (getbipart otherwise)
 	
 	public GraphImporter(String graphname) {
 		graphDb = new GraphDatabaseAgent(graphname);
@@ -126,393 +128,6 @@ public class GraphImporter extends GraphBase{
 		System.out.println("tree set");
 	}
 	
-	/**
-	 * Helper function that returns adjacent the node connected by the first
-	 *		relationship with the source property equal to `src` 
-	 * @param nd the focal node (serves as the source for all potential relationships
-	 * @param relType the type of Relationship to check
-	 * @param dir the direction of the relationship's connection to `nd`
-	 * @param src the string that must match the `source` property
-	 * @return adjacent node from the first relationship satisfying the criteria or null
-	 * @todo could be moved to a more generic class (this has nothing to do with GraphImporter).
-	 */
-	static public Node getAdjNodeFromFirstRelationshipBySource(Node nd, RelationshipType relType, Direction dir,  String src) {
-		for (Relationship rel: nd.getRelationships(relType, dir)) {
-			if (((String)rel.getProperty("source")).equals(src)) {
-				if (dir == Direction.OUTGOING) {
-					return rel.getEndNode();
-				} else {
-					return rel.getStartNode();
-				}
-			}
-		}
-		return null;
-	}
-	
-	/**
-	 * Reads a taxonomy file with rows formatted as:
-	 *	taxon_id,parent_id,Name with spaces allowed\n
-	 * 
-	 * The source name is going to be OTTOL
-	 * 
-	 * Creates the nodes and TAXCHILDOF relationship for a taxonomy tree
-	 * Node objects will get a "name", "mrca", and "nested_mrca" properties
-	 * 
-	 * They will also get tax_uid, tax_parent_uid, tax_rank, tax_source, tax_sourceid, tax_sourcepid, uniqname
-	 * 
-	 * 
-	 * TAXCHILDOF relationships will get "source" of "ottol", "childid", and "parentid" properties
-	 * with the addition of the new information in the ottol dumps the nodes will also get properties
-	 * 
-	 * STREECHILDOF relationships will get "source" properties as "taxonomy"
-	 * Nodes are indexed in graphNamedNodes with their name as the value for a "name" key
-	 * 
-	 * This will load the taxonomy, adding 
-	 * 
-	 * @param filename file path to the taxonomy file
-	 * @param synonymfile file that has the synonyms as dumped by ottol dump
-	 */
-	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile) {
-		String str = "";
-		int count = 0;
-		HashMap<String,ArrayList<ArrayList<String>>> synonymhash = null;
-		boolean synFileExists = false;
-		if (synonymfile.length() > 0) {
-			synFileExists = true;
-		}
-		//preprocess the synonym file
-		//key is the id from the taxonomy, the array has the synonym and the type of synonym
-		if (synFileExists) {
-			synonymhash = new HashMap<String,ArrayList<ArrayList<String>>>();
-			try {
-				BufferedReader sbr = new BufferedReader(new FileReader(synonymfile));
-				while ((str = sbr.readLine()) != null) {
-					StringTokenizer st = new StringTokenizer(str,"\t|\t");
-					String name = st.nextToken();
-					//this is the id that points to the right node
-					String parentuid = st.nextToken();
-					String uid = parentuid;
-					String type = "OTT synonym";//st.nextToken();
-					String source = "OTT";//st.nextToken();
-					ArrayList<String> tar = new ArrayList<String>();
-					tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
-					if (synonymhash.get(parentuid) == null) {
-						ArrayList<ArrayList<String> > ttar = new ArrayList<ArrayList<String> >();
-						synonymhash.put(parentuid, ttar);
-					}
-					synonymhash.get(parentuid).add(tar);
-				}
-				sbr.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.exit(0);
-			}
-			System.out.println("synonyms: " + synonymhash.size());
-		}
-		//finished processing synonym file
-
-
-		HashMap<String, Node> dbnodes = new HashMap<String, Node>();
-		HashMap<String, String> parents = new HashMap<String, String>();
-		Transaction tx;
-		ArrayList<String> templines = new ArrayList<String>();
-		try {
-			//create the root node
-			//tx = graphDb.beginTx();
-			/*try {
-				Node node = graphDb.createNode();
-				node.setProperty("name", "root");
-				graphNodeIndex.add( node, "name", "root" );
-				dbnodes.put("0", node);
-				tx.success();
-			}finally{
-				tx.finish();
-			}*/
-			BufferedReader br = new BufferedReader(new FileReader(filename));
-			while ((str = br.readLine())!=null) {
-				count += 1;
-				templines.add(str);
-				if (count % transaction_iter == 0) {
-					System.out.print(count);
-					System.out.print("\n");
-					tx = graphDb.beginTx();
-					try {
-						for (int i = 0; i < templines.size(); i++) {
-							StringTokenizer st = new StringTokenizer(templines.get(i),"|");
-							String tid = st.nextToken().trim();
-							String pid = st.nextToken().trim();
-							String name = st.nextToken().trim();
-							String rank = st.nextToken().trim();
-							String srce = st.nextToken().trim();
-							//String srce_id = st.nextToken().trim();
-							//String srce_pid = st.nextToken().trim();
-							String uniqname = st.nextToken().trim();
-							
-							Node tnode = graphDb.createNode();
-							tnode.setProperty("name", name);
-							tnode.setProperty("tax_uid",tid);
-							tnode.setProperty("tax_parent_uid",pid);
-							tnode.setProperty("tax_rank",rank);
-							tnode.setProperty("tax_source",srce);
-							//tnode.setProperty("tax_sourceid",srce_id);
-							//tnode.setProperty("tax_sourcepid",srce_pid);
-							tnode.setProperty("uniqname",uniqname);
-							graphNodeIndex.add( tnode, "name", name );
-							graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-							if (pid.length() > 0) {
-								parents.put(tid, pid);
-							}else{//root node
-								Node mdnode = graphDb.createNode();
-								mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
-								sourceMetaIndex.add(mdnode, "source", "taxonomy");
-							}
-							dbnodes.put(tid, tnode);
-							// synonym processing
-							if (synFileExists) {
-								if (synonymhash.get(tid) != null) {
-									ArrayList<ArrayList<String>> syns = synonymhash.get(tid);
-									for (int j = 0; j < syns.size(); j++) {
-										String tax_uid = syns.get(j).get(0);
-										String synName = syns.get(j).get(1);
-										String synNameType = syns.get(j).get(2);
-										String sourcename = syns.get(j).get(3);
-										Node synode = graphDb.createNode();
-										synode.setProperty("name",synName);
-										synode.setProperty("tax_uid", tax_uid);
-										if (tax_uid.length() > 0) {
-											synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-										}
-										synode.setProperty("nametype",synNameType);
-										synode.setProperty("source",sourcename);
-										synode.createRelationshipTo(tnode, RelTypes.SYNONYMOF);
-										synNodeIndex.add(tnode, "name", synName);
-									}
-								}
-							}
-						}
-						tx.success();
-					} finally {
-						tx.finish();
-					}
-					templines.clear();
-				}
-			}
-			br.close();
-			tx = graphDb.beginTx();
-			try {
-				for (int i = 0; i < templines.size(); i++) {
-					StringTokenizer st = new StringTokenizer(templines.get(i),"|");
-					String tid = st.nextToken().trim();
-					String pid = st.nextToken().trim();
-					String name = st.nextToken().trim();
-					String rank = st.nextToken().trim();
-					String srce = st.nextToken().trim();
-					//String srce_id = st.nextToken().trim();
-					//String srce_pid = st.nextToken().trim();
-					String uniqname = st.nextToken().trim();
-
-					Node tnode = graphDb.createNode();
-					tnode.setProperty("name", name);
-					tnode.setProperty("tax_uid",tid);
-					tnode.setProperty("tax_parent_uid",pid);
-					tnode.setProperty("tax_rank",rank);
-					tnode.setProperty("tax_source",srce);
-					//tnode.setProperty("tax_sourceid",srce_id);
-					//tnode.setProperty("tax_sourcepid",srce_pid);
-					tnode.setProperty("uniqname",uniqname);
-					graphNodeIndex.add( tnode, "name", name );
-					graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-					if (pid.length() > 0) {
-						parents.put(tid, pid);
-					}else{//root node
-						Node mdnode = graphDb.createNode();
-						mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
-						sourceMetaIndex.add(mdnode, "source", "taxonomy");
-					}
-					dbnodes.put(tid, tnode);
-					// synonym processing
-					if (synFileExists) {
-						if (synonymhash.get(tid) != null) {
-							ArrayList<ArrayList<String>> syns = synonymhash.get(tid);
-							for (int j=0; j < syns.size(); j++) {
-								String tax_uid = syns.get(j).get(0);
-								String synName = syns.get(j).get(1);
-								String synNameType = syns.get(j).get(2);
-								String sourcename = syns.get(j).get(3);
-								Node synode = graphDb.createNode();
-								synode.setProperty("name",synName);
-								synode.setProperty("tax_uid", tax_uid);
-								if (tax_uid.length()>0) {
-									synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-								}
-								synode.setProperty("nametype",synNameType);
-								synode.setProperty("source",sourcename);
-								synode.createRelationshipTo(tnode, RelTypes.SYNONYMOF);
-								synNodeIndex.add(tnode, "name", synName);
-							}
-						}
-					}
-				}
-				tx.success();
-			} finally {
-				tx.finish();
-			}
-			templines.clear();
-			//add the relationships
-			ArrayList<String> temppar = new ArrayList<String>();
-			count = 0;
-			for (String key: dbnodes.keySet()) {
-				count += 1;
-				temppar.add(key);
-				if (count % transaction_iter == 0) {
-					System.out.println(count);
-					tx = graphDb.beginTx();
-					try {
-						for (int i = 0; i < temppar.size(); i++) {
-							try {
-								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
-								rel.setProperty("childid",temppar.get(i));
-								rel.setProperty("parentid",parents.get(temppar.get(i)));
-								rel.setProperty("source","ottol");
-							} catch(java.lang.IllegalArgumentException io) {
-//								System.out.println(temppar.get(i));
-								continue;
-							}
-						}
-						tx.success();
-					} finally {
-						tx.finish();
-					}
-					temppar.clear();
-				}
-			}
-			tx = graphDb.beginTx();
-			try {
-				for (int i = 0; i < temppar.size(); i++) {
-					try {
-						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
-						rel.setProperty("childid",temppar.get(i));
-						rel.setProperty("parentid",parents.get(temppar.get(i)));
-						rel.setProperty("source","ottol");
-					} catch(java.lang.IllegalArgumentException io) {
-//						System.out.println(temppar.get(i));
-						continue;
-					}
-				}
-				tx.success();
-			} finally {
-				tx.finish();
-			}
-		} catch(IOException ioe) {}
-		initMrcaAndStreeRelsTax();
-	}
-	
-	/**
-	 * assumes the structure of the graphdb where the taxonomy is stored alongside the graph of life
-	 * and therefore the graph is initialized, in this case, with the taxonomy relationships
-	 * 
-	 * for a more general implementation, could just go through and work on the preferred nodes
-	 * 
-	 * STREE
-	 */
-	private void initMrcaAndStreeRelsTax() {
-		tx = graphDb.beginTx();
-		//start from the node called root
-		Node startnode = (graphNodeIndex.get("name", "life")).next();
-		try {
-			//root should be the taxonomy startnode
-//			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
-			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-					.relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
-			for (Node friendnode: CHILDOF_TRAVERSAL.traverse(startnode).nodes()) {
-				Node taxparent = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.OUTGOING, "ottol");
-				if (taxparent != null) {
-					Node firstchild = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.INCOMING, "ottol");
-					if (firstchild == null) {//leaf
-						long [] tmrcas = {friendnode.getId()};
-						friendnode.setProperty("mrca", tmrcas);
-						long [] ntmrcas = {};
-						friendnode.setProperty("nested_mrca", ntmrcas);
-					}
-					if (startnode != friendnode) {//not the root
-						friendnode.createRelationshipTo(taxparent, RelTypes.MRCACHILDOF);
-						Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelTypes.STREECHILDOF);
-						trel2.setProperty("source", "taxonomy");
-						sourceRelIndex.add(trel2, "source", "taxonomy");
-					}
-					cur_tran_iter += 1;
-					if (cur_tran_iter % transaction_iter == 0) {
-						tx.success();
-						tx.finish();
-						tx = graphDb.beginTx();
-						System.out.println("cur transaction: "+cur_tran_iter);
-					}
-				} else {
-					System.out.println(friendnode+"\t"+friendnode.getProperty("name"));
-				}
-			}
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-		//start the mrcas
-		System.out.println("calculating mrcas");
-		try {
-			tx = graphDb.beginTx();
-			postorderAddMRCAsTax(startnode);
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-	}
-	
-	/**
-	 * for initial taxonomy to tree processing.  adds a mrca->long[]  property
-	 *	to the node and its children (where the elements of the array are the ids
-	 *	of graph of life nodes). The property is is the union of the mrca properties
-	 *	for the subtree. So the leaves of the tree must already have their mrca property
-	 *	filled in!
-	 *
-	 * @param dbnode should be a node in the graph-of-life (has incoming MRCACHILDOF relationship)
-	 */
-	private void postorderAddMRCAsTax(Node dbnode) {
-		//traversal incoming and record all the names
-		for (Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)) {
-			Node tnode = rel.getStartNode();
-			postorderAddMRCAsTax(tnode);
-		}
-		//could make this a hashset if dups become a problem
-		ArrayList<Long> mrcas = new ArrayList<Long> ();
-		ArrayList<Long> nested_mrcas = new ArrayList<Long>();
-		if (dbnode.hasProperty("mrca") == false) {
-			for (Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)) {
-				Node tnode = rel.getStartNode();
-				long[] tmrcas = (long[])tnode.getProperty("mrca");
-				for (int j = 0; j < tmrcas.length; j++) {
-					mrcas.add(tmrcas[j]);
-				}
-				long[] nestedtmrcas = (long[])tnode.getProperty("nested_mrca");
-				for (int j = 0; j < nestedtmrcas.length; j++) {
-					nested_mrcas.add(nestedtmrcas[j]);
-				}
-			}
-			long[] ret = new long[mrcas.size()];
-			for (int i = 0; i < ret.length; i++) {
-				ret[i] = mrcas.get(i).longValue();
-			}
-			Arrays.sort(ret);
-			dbnode.setProperty("mrca", ret);
-			
-			nested_mrcas.add(dbnode.getId());
-			long[] ret2 = new long[nested_mrcas.size()];
-			for (int i = 0; i < ret2.length; i++) {
-				ret2[i] = nested_mrcas.get(i).longValue();
-			}
-			Arrays.sort(ret2);
-			dbnode.setProperty("nested_mrca", ret2);
-		}
-	}
-
 	/**
 	 * Ingest the current JadeTree (in the jt data member) to the GoL.
 	 *
@@ -715,6 +330,7 @@ public class GraphImporter extends GraphBase{
 		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode, ArrayList<Long>>)root.getObject("hashnodeidssearch"));
 
 		if (inode.getChildCount() > 0) {
+			//System.out.println(inode.getNewick(false));
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
@@ -727,26 +343,36 @@ public class GraphImporter extends GraphBase{
 				}
 			}
 			// get all the childids even if they aren't in the tree, this is the postorder part
-			//HashSet<Long> childndids = new HashSet<Long> (); 
 			TLongArrayList childndids = new TLongArrayList();
 			for (int i = 0; i < inode.getChildCount(); i++) {
 				Node [] dbnodesob = (Node [])inode.getChild(i).getObject("dbnodes"); 
 				for (int k = 0; k < dbnodesob.length; k++) {
-					long [] mrcas = ((long[])dbnodesob[k].getProperty("mrca"));
-					childndids.addAll(mrcas);
-					//for (int j = 0; j < mrcas.length; j++) {
-					//	if (childndids.contains(mrcas[j]) == false) {
-					//		childndids.add(mrcas[j]);
-					//	}
-					//}
+					childndids.addAll((long[])dbnodesob[k].getProperty("mrca"));
 				}
 			}
+			childndids.sort();			
 			//			_LOG.trace("finished names");
-			//HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndidssearch"));
 			TLongArrayList rootids = new TLongArrayList((TLongArrayList) root.getObject("ndidssearch"));
+			TLongArrayList outndids = new TLongArrayList();
+			//add all the children of the mapped nodes to the outgroup as well
+			for (int i = 0; i < root_ndids.size(); i++) {
+				if(childndids.contains(root_ndids.getQuick(i))==false)
+					outndids.addAll((long[])graphDb.getNodeById(root_ndids.get(i)).getProperty("mrca"));
+			}
 			childndids.sort();
-			//HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes_search, childndids, rootids);
-			HashSet<Node> ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, rootids);
+			outndids.removeAll(childndids);
+			outndids.sort();
+			
+			HashSet<Node> ancestors = null;
+			/*
+			 * we can use a simpler calculation if we can assume that the 'trees that come in 
+			 * are complete in their taxa
+			 */
+			if(assumecomplete == true){
+				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
+			}else{
+				ancestors = LicaUtil.getNewBipart4j(hit_nodes_search, childndids, outndids,graphDb);
+			}
 						
 			//			_LOG.trace("ancestor "+ancestor);
 			// _LOG.trace(ancestor.getProperty("name"));
@@ -756,18 +382,9 @@ public class GraphImporter extends GraphBase{
 				for (int i = 0; i < hit_nodes.size(); i++) {
 					ret[i] = hit_nodes.get(i).getId();
 				}
-				//HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				//TLongHashSet trootids = new TLongHashSet((TLongHashSet) root.getObject("ndids"));
-				long [] ret2 = root_ndids.toArray();
-				//long[] ret2 = new long[trootids.size()];
-				//Iterator<Long> chl2 = trootids.iterator();
-				//int i = 0;
-				//while (chl2.hasNext()) {
-				//	ret2[i] = chl2.next().longValue();
-				//	i++;
-				//}
+				Arrays.sort(ret);
 				inode.assocObject("exclusive_mrca", ret);
-				inode.assocObject("root_exclusive_mrca", ret2);
+				inode.assocObject("root_exclusive_mrca", root_ndids.toArray());
 			} else {
 				//				_LOG.trace("need to make a new node");
 				// make a node
@@ -775,45 +392,29 @@ public class GraphImporter extends GraphBase{
 				// this is used to connect the new nodes to their licas for easier traversals
 				//HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
 				HashSet<Node> superlica = LicaUtil.getSuperLICAt4j(hit_nodes_search, childndids);
+				//System.out.println("\t\tsuperlica: "+superlica);
 				// steps
 				// 1. create a node
 				// 2. store the mrcas
 				// 3. assoc with the node
 				Node dbnode = graphDb.createNode();
-				//					inode.assocObject("dbnode",dbnode);
+				//System.out.println("\t\tnewnode: "+dbnode);
 				Node [] nar = {dbnode};
 				inode.assocObject("dbnodes",nar);
-				//long[] ret = new long[childndids.size()];
-				long[] ret = childndids.toArray();
-				//Iterator<Long> chl = childndids.iterator();
-				//int i = 0;
-				//while (chl.hasNext()) {
-				//	ret[i] = chl.next().longValue();
-				//	i++;
-				//}
-				Arrays.sort(ret);
-				dbnode.setProperty("mrca", ret);
+				dbnode.setProperty("mrca", childndids.toArray());
+				//System.out.println("\t\tmrca: "+childndids);
+				//set outmrcas
+				dbnode.setProperty("outmrca",outndids.toArray());
+				//System.out.println("\t\toutmrca: "+outndids);
+				//set exclusive relationships
 				long[] rete = new long[hit_nodes.size()];
 				for (int j = 0; j < hit_nodes.size(); j++) {
 					rete[j] = hit_nodes.get(j).getId();
 				}
 				Arrays.sort(rete);
 				inode.assocObject("exclusive_mrca",rete);
-				//HashSet<Long> trootids = new HashSet<Long>((HashSet<Long>) root.getObject("ndids"));
-				//TLongHashSet trootids = new TLongHashSet((TLongHashSet) root.getObject("ndids"));
-				long [] ret2 = root_ndids.toArray();
-				//long[] ret2 = new long[trootids.size()];
-				//Iterator<Long> chl2 = trootids.iterator();
-				//int i = 0;
-				//while (chl2.hasNext()) {
-				//	ret2[i] = chl2.next().longValue();
-				//	i++;
-				//}
-				Arrays.sort(ret2);
-				inode.assocObject("root_exclusive_mrca",ret2);
-				//	for (int i=0;i<inode.getChildCount();i++) {
-				//		Relationship rel = ((Node)inode.getChild(i).getObject("dbnode")).createRelationshipTo(((Node)(inode.getObject("dbnode"))), RelTypes.MRCACHILDOF);
-				//	}
+				root_ndids.sort();
+				inode.assocObject("root_exclusive_mrca",root_ndids.toArray());
 				Iterator<Node> itrsl = superlica.iterator();
 				while (itrsl.hasNext()) {
 					Node itrnext = itrsl.next();
@@ -836,8 +437,6 @@ public class GraphImporter extends GraphBase{
 	 * This should be called from within postOrderaddProcessedTreeToGraph
 	 * to create relationships between nodes that have already been identified
 	 * 
-	 * Nothing postorder happens in this method, it is just to emphasize that
-	 * it is called from within another method that is postorder
 	 * 
 	 * @param inode current focal node from postorderaddprocessedtreetograph 
 	 * @param source source name for the tree
@@ -881,36 +480,26 @@ public class GraphImporter extends GraphBase{
 				if (jt.getObject("ot:studyPublicationReference") != null) {
 					System.out.println("Adding property 'ot:studyPublicationReference' for tree " + sourcename + ": " + jt.getObject("ot:studyPublicationReference"));
 					metadatanode.setProperty("ot:studyPublicationReference", jt.getObject("ot:studyPublicationReference"));
-				} else {
-					System.out.println("Property 'ot:studyPublicationReference' does not exist for tree " + sourcename);
 				}
 				if (jt.getObject("ot:studyPublication") != null) {
 					System.out.println("Adding property 'ot:studyPublication' for tree " + sourcename + ": " + jt.getObject("ot:studyPublication"));
 					metadatanode.setProperty("ot:studyPublication", jt.getObject("ot:studyPublication"));
-				} else {
-					System.out.println("Property 'ot:studyPublication' does not exist for tree " + sourcename);
 				}
 				if (jt.getObject("ot:curatorName") != null) {
 					System.out.println("Adding property 'ot:curatorName' for tree " + sourcename + ": " + jt.getObject("ot:curatorName"));
 					metadatanode.setProperty("ot:curatorName", jt.getObject("ot:curatorName"));
-				} else {
-					System.out.println("Property 'ot:curatorName' does not exist for tree " + sourcename);
-				}
+				} 
 				if (jt.getObject("ot:dataDeposit") != null) {
 					System.out.println("Adding property 'ot:dataDeposit' for tree " + sourcename + ": " + jt.getObject("ot:dataDeposit"));
 					metadatanode.setProperty("ot:dataDeposit", jt.getObject("ot:dataDeposit"));
-				} else {
-					System.out.println("Property 'ot:dataDeposit' does not exist for tree " + sourcename);
-				}
+				} 
 				if (jt.getObject("ot:studyId") != null) {
 					System.out.println("Adding property 'ot:studyId' for tree " + sourcename + ": " + jt.getObject("ot:studyId"));
 					metadatanode.setProperty("ot:studyId", jt.getObject("ot:studyId"));
 				} if (jt.getObject("ot:studyYear") != null) {
 					System.out.println("Adding property 'ot:studyYear' for tree " + sourcename + ": " + jt.getObject("ot:studyYear"));
 					metadatanode.setProperty("ot:studyYear", jt.getObject("ot:studyYear"));
-				} else {
-					System.out.println("Property 'ot:studyYear' does not exist for tree " + sourcename);
-				}
+				} 
 				
 		// should studyID replace sourcename?
 				metadatanode.setProperty("source", sourcename);
@@ -921,15 +510,6 @@ public class GraphImporter extends GraphBase{
 				}
 				sourceMetaIndex.add(metadatanode, "source", sourcename);
 				//add the source taxa ids
-				/*HashSet<Long> rootids = new HashSet<Long>((HashSet<Long>) jt.getRoot().getObject("ndids"));
-				long[] ret2 = new long[rootids.size()];
-				Iterator<Long> chl2 = rootids.iterator();
-				int i = 0;
-				while (chl2.hasNext()) {
-					ret2[i] = chl2.next().longValue();
-					i++;
-				}
-				Arrays.sort(ret2);*/
 				long[]ret2 = root_ndids.toArray();
 				metadatanode.setProperty("original_taxa_map",ret2);
 				//end add source taxa ids
@@ -998,42 +578,6 @@ public class GraphImporter extends GraphBase{
 			inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
 		}
 
-	}
-	
-	/**
-	 * Takes a node in the GoL (dbnode) that is a parent of all of the nodes 
-	 *	in the subtree rooted at `inode` This will return true if `dbnode` is
-	 *  not an ancestor of any of the other leaves in the tree (which is rooted
-	 *	at `root`).
-	 * The idea here is to determine if `dbnode` would be a MRCA of the leaves
-	 *		in `inode` if the GoL were pruned down to only contain the leaf set
-	 *		of `root`
-	 *
-	 * @return true if the GoL Node `dbnode` qualifies as the MRCA node for
-	 *		the leaves that descend from `inode`
-	 * @param dbnode must be a common ancestor of all of the leaves that descend
-	 *		from `inode`
-	 */
-	@SuppressWarnings("unused")
-	private boolean testIsMRCA(Node dbnode,JadeNode root, JadeNode inode) {
-		boolean ret = true;
-		long [] dbnodei = (long []) dbnode.getProperty("mrca");
-		//@SuppressWarnings("unchecked")
-		//ArrayList<Long> rootids = new ArrayList<Long>((HashSet<Long>) root.getObject("ndids"));
-		TLongArrayList rootids = new TLongArrayList(root_ndids);
-		@SuppressWarnings("unchecked")
-		ArrayList<Long> inodeids =(ArrayList<Long>) inode.getObject("ndids");
-//		System.out.println(rootids.size());
-		rootids.removeAll(inodeids);
-//		System.out.println(rootids.size());
-		for (int i = 0; i < dbnodei.length; i++) {
-			if (root_ndids.contains(dbnodei[i])) { //@todo this is the Order(N) lookup that could be log(N) or constant time if ndids was not an ArrayList<Long>
-				ret = false;
-				break;
-			}
-		}
-//		System.out.println("testisMRCA "+ret);
-		return ret;
 	}
 	
 	public void deleteAllTrees() {
@@ -1112,299 +656,7 @@ public class GraphImporter extends GraphBase{
 			tx.finish();
 		}
 	}
-	
-	/**
-	 * Looks at the class member updatedNodes to determine if there are any relationships
-	 * that need to be updated. 
-	 * 
-	 * Right now goes like this 
-	 * 1) look at the updated super licas to see if there are relationships incoming that are inclusive (not exact)
-	 * 2) check the mrcas with the ones from the updated nodes to see if any of the updated ones are better or equally good
-	 * 3) if so, delete (if better) the old ones and add with connections to the new node(s)
-	 * 
-	 * This needs to be more comprehensive so that it checks the other relationships for inclusive ones
-	 */
-/*
- * This might be better done if we indexed the new updated node
- */
-	public void updateAfterTreeIngest(boolean comprehensive) {
-		ArrayList<Relationship> krels = new ArrayList<Relationship>();
-		//seems like this doesn't find all the nodes
-		if (comprehensive == false) {
-			for (Node tnext: updatedSuperLICAs) {
-//				System.out.println(tnext);
-				for (Relationship rel: tnext.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
-//					System.out.print(rel+"\n");
-					if (((String)rel.getProperty("source")).compareTo("taxonomy") == 0) {
-						continue;
-					}
-					boolean add = true;
-					long [] incl = (long [])rel.getProperty("inclusive_relids");
-//					for (int i = 0; i < incl.length; i++) {
-//						System.out.print(incl[i]+" ");
-//					}
-//					System.out.print("\n");
 
-					for (int i = 0; i < incl.length; i++) {
-//						System.out.print(incl[i] + " ");
-						if (krels.contains(graphDb.getRelationshipById(incl[i]))) {
-							add = false;
-							break;
-						}
-					}
-//					System.out.print("\n");
-					if (add == true) {
-						krels.add(rel);
-					}
-				}
-			}
-//			System.out.println("krels: "+krels);
-			//here is the comprehensive searcher
-		} else if (comprehensive == true ) {
-			TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
-					.relationships( RelTypes.MRCACHILDOF,Direction.INCOMING );
-			Node startnode = (graphNodeIndex.get("name", "life")).next();
-			for (Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(startnode).nodes()) {
-				for (Relationship rel: friendnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
-//					System.out.print(rel+"\n");
-					if (((String)rel.getProperty("source")).compareTo("taxonomy") == 0) {
-						continue;
-					}
-					boolean add = true;
-					long [] incl = (long [])rel.getProperty("inclusive_relids");
-//					for (int i = 0; i < incl.length; i++) {
-//						System.out.print(incl[i] + " ");
-//					}
-//					System.out.print("\n");
-
-					for (int i = 0; i < incl.length; i++) {
-//						System.out.print(incl[i] + " ");
-						if (krels.contains(graphDb.getRelationshipById(incl[i]))) {
-							add = false;
-							break;
-						}
-					}
-//					System.out.print("\n");
-
-					if (add == true) {
-						krels.add(rel);
-					}
-				}
-			}
-		}
-		//these are relationships that will be deleted at the end but can't 
-		//yet because of null pointers here. They arise often because they are
-		//parents of some of these other nodes that get fixed
-		HashSet<Relationship> tobedeleted = new HashSet<Relationship>();
-		//going through the potential problem nodes and updating
-		for (int i = 0; i < krels.size(); i++) {
-			if (tobedeleted.contains(krels.get(i))) {
-				continue;
-			}
-			ArrayList<Node> hit_nodes = new ArrayList<Node>();
-			//HashSet<Long> childndids = new HashSet<Long>();
-			HashSet<Long> rootidsearch = new HashSet<Long>();
-			//same as above but added for nested nodes, so more comprehensive and 
-			//		used just for searching. the others are used for storage
-			HashSet<Long> ndidssearch = new HashSet<Long>();
-			long [] exmrcas = (long [])krels.get(i).getProperty("exclusive_mrca");
-			long [] rtexmrcas = (long [])krels.get(i).getProperty("root_exclusive_mrca");
-			for (int j = 0; j < exmrcas.length; j++) {
-				Node tnode = graphDb.getNodeById(exmrcas[j]);
-				hit_nodes.add(tnode);
-				//added for nested nodes
-				long [] mrcas = (long[])tnode.getProperty("mrca");
-				for (int k = 0; k < mrcas.length; k++) {
-					ndidssearch.add(mrcas[k]);
-				}
-				//childndids.add(exmrcas[j]);
-			}
-			for (int j = 0; j < rtexmrcas.length; j++) {
-				//added for nested nodes
-				Node tnode = graphDb.getNodeById(rtexmrcas[j]);
-				long [] mrcas = (long[])tnode.getProperty("mrca");
-				for (int k = 0; k < mrcas.length; k++) {
-					rootidsearch.add(mrcas[k]);
-				}
-				//rootidsearch.add(rtexmrcas[j]);
-			}
-			HashSet<Node> ancestors = LicaUtil.getAllLICA(hit_nodes, ndidssearch, rootidsearch);
-			long [] licas = (long[])krels.get(i).getProperty("licas");
-			long [] relids = (long [])krels.get(i).getProperty("inclusive_relids");
-			String source = (String)krels.get(i).getProperty("source");
-			HashSet<Node> startNodes = new HashSet<Node>();
-//			System.out.print("relids (" + krels.get(i) + "):");
-			for (int j = 0; j < relids.length; j++) {
-//				System.out.print(" " + relids[j]);
-				startNodes.add(graphDb.getRelationshipById(relids[j]).getStartNode());
-			}
-//			System.out.print("\n");
-//			System.out.println(startNodes);
-			//these are the nodes that are parents of the current ancestors
-			//if the children change, these need to be updated as well
-			HashSet<Node> parentnodes = new HashSet<Node>();
-			HashMap<Node,HashSet<Relationship>> parent_rel_map = new HashMap<Node, HashSet<Relationship>>();
-			//TODO: update the rootnode index if this changes
-			//this should hold, and for now, just remake the relationships
-			if (licas.length != ancestors.size()) {
-				//because the original lica length is different than the ancestors length
-				//we need to connect the nodes
-				for (int j = 0; j < relids.length; j++) {
-					System.out.println("deleting rel: " + relids[j]);
-					Transaction	tx = graphDb.beginTx();
-					try {
-						Relationship trel = graphDb.getRelationshipById(relids[j]);
-						sourceRelIndex.remove(trel, "source", source);
-						System.out.println(trel.getStartNode() + " " + trel.getEndNode());
-						//if there aren't relationships then we need to change the root node
-						for (Relationship ptrel: trel.getEndNode().getRelationships(Direction.OUTGOING)) {
-							if (ptrel.hasProperty("source")) {
-								if (((String)ptrel.getProperty("source")).compareTo(source) == 0) {
-									System.out.println(ptrel + " "+ptrel.getStartNode() + "-" + ptrel.getEndNode());
-									parentnodes.add(ptrel.getEndNode());
-									if (parent_rel_map.containsKey(ptrel.getEndNode()) == false) {
-										parent_rel_map.put(ptrel.getEndNode(), new HashSet<Relationship>());
-									}
-									parent_rel_map.get(ptrel.getEndNode()).add(ptrel);
-									tobedeleted.add(ptrel);
-								}
-							}
-						}
-						tobedeleted.add(trel);
-						//trel.delete();
-						tx.success();
-					} finally {
-						tx.finish();
-					}
-				}
-				Transaction	tx = graphDb.beginTx();
-				try {
-					//now for each of the new licas
-					long [] anlicas = new long[ancestors.size()];
-					int j = 0;
-					for (Node tancn: ancestors) {
-						anlicas[j] = tancn.getId();
-						j++;
-					}
-					ArrayList<Relationship> finrels = new ArrayList<Relationship> ();
-					for (Node ancitn: ancestors) {
-						for (Node snitn: startNodes) {
-							Relationship rel = snitn.createRelationshipTo(ancitn, RelTypes.STREECHILDOF);
-							sourceRelIndex.add(rel, "source", source);
-							System.out.println("adding rel: "+rel.getId());
-							rel.setProperty("source", source);
-							rel.setProperty("licas", anlicas);
-							rel.setProperty("exclusive_mrca", exmrcas);
-							rel.setProperty("root_exclusive_mrca", rtexmrcas);
-							finrels.add(rel);
-						}
-					}
-					long [] relidsfin = new long[finrels.size()];
-					for (j = 0; j < finrels.size(); j++) {
-						relidsfin[j] = finrels.get(j).getId();
-					}
-					for (j = 0; j < finrels.size(); j++) {
-						finrels.get(j).setProperty("inclusive_relids", relidsfin);
-					}
-
-					//connect the new ancestors to the original parents
-//					Iterator<Node> pnodes = parentnodes.iterator();
-//					ancit = ancestors.iterator();
-					for (Node pnode: parentnodes) {
-//					while (pnodes.hasNext()) {
-//						Node pnode = pnodes.next();
-						HashSet<Relationship> oldones = parent_rel_map.get(pnode);
-						//this is going to need to be in some sort of array
-						System.out.println("oldones: "+oldones);
-						Relationship toldone = oldones.iterator().next();
-						long [] tlicas = (long [])toldone.getProperty("licas");
-						long [] texmrcas = (long [])toldone.getProperty("exclusive_mrca");
-						long [] trtexmrcas = (long [])toldone.getProperty("root_exclusive_mrca");
-						ArrayList<Relationship> new_rels = new ArrayList<Relationship>();
-						long [] oldrelids = (long [])toldone.getProperty("inclusive_relids");
-						ArrayList<Long> newrelids = new ArrayList<Long>();
-						for (j = 0; j < oldrelids.length; j++) {System.out.println("adding original rel: " + oldrelids[j]); newrelids.add(oldrelids[j]);}
-						/*for (Relationship toldrel: oldones) {
-							long oldid = toldrel.getId();
-							System.out.println("deleting the old bad rel: "+oldid);
-							newrelids.remove(oldid);
-						}*/
-						//change to just eliminating all the to be deleted ones
-						for (Relationship toldrel: tobedeleted) {
-							long oldid = toldrel.getId();
-							System.out.println("deleting the old bad rel: "+oldid);
-							newrelids.remove(oldid);	
-						}
-						for (Node anc: ancestors) {
-//						while (ancit.hasNext()) {
-//							Node anc = ancit.next();
-							//first make sure that there is a MRCACHILDOF for these nodes
-							boolean present = false;
-							for (Relationship rels: pnode.getRelationships(Direction.INCOMING, RelTypes.MRCACHILDOF)) {
-								if (rels.getStartNode() == anc) {
-									present = true;
-									break;
-								}
-							}
-							if (present == false) {
-								anc.createRelationshipTo(pnode, RelTypes.MRCACHILDOF);
-							}
-							Relationship newrel = anc.createRelationshipTo(pnode, RelTypes.STREECHILDOF);
-							sourceRelIndex.add(newrel, "source", source);
-							newrel.setProperty("source", source);
-							newrel.setProperty("licas", tlicas);
-							newrel.setProperty("exclusive_mrca",texmrcas);
-							newrel.setProperty("root_exclusive_mrca",trtexmrcas);
-							new_rels.add(newrel);
-							newrelids.add(newrel.getId());
-						}
-						long [] finalnewrelids = new long[newrelids.size()];
-						System.out.print("newrelids: ");
-						for (j = 0; j < finalnewrelids.length; j++) {
-							System.out.print(" " + newrelids.get(j));
-							finalnewrelids[j] = newrelids.get(j);
-						}
-						System.out.print("\n");
-						//this is where the new rel id is not getting fixed
-						for (Relationship rels: pnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
-							if (((String)rels.getProperty("source")).compareTo(source) == 0) {
-								System.out.println("setting new inclusive relids: " + rels);
-								rels.setProperty("inclusive_relids", finalnewrelids);
-							}
-						}
-					}
-					tx.success();
-				} finally {
-					tx.finish();
-				}
-			}
-		}
-		//cleaning up parent relationships that have to be deleted
-		Transaction	tx = graphDb.beginTx();
-		try {
-//			Iterator<Relationship> itrel = tobedeleted.iterator();
-			for (Relationship itrel: tobedeleted) {
-				System.out.println("actually deleting: " + itrel);
-//			while (itrel.hasNext()) {
-				try {
-					itrel.delete();
-//					itrel.next().delete();
-				} catch (org.neo4j.graphdb.NotFoundException f) {
-					System.out.println("seems " + f.getMessage());
-				}
-			}
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-	}
-	
-	/*
-	 * can't seem to find the full error in the updateAfterTreeIngest procedure so 
-	 * just trying a full remap of any trees that need it instead of the localized remap
-	 */
-	private void updateAfterTreeIngestRemapTree() {
-	}
 	
 	/**
 	 * @param args

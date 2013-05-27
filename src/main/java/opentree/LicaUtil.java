@@ -6,12 +6,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import gnu.trove.iterator.TLongIterator;
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.*;
 import gnu.trove.set.hash.TLongHashSet;
 
 import opentree.RelTypes;
 
+import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -31,84 +33,19 @@ import org.neo4j.kernel.Traversal;
  */
 
 public class LicaUtil {
+
 	/**
-	 * This should find all the least inclusive common ancestors (LICA). The idea
-	 * is to walk all the paths from one tip to and query at each mrca list as to
-	 * whether it has at least the tip values necessary and none of the ones not
-	 * necessary.
-	 * 
+	 * This will assume that the taxon sampling is complete for the trees being added. It is significantly 
+	 * faster than the bipart calculator below.
 	 * @param nodeSet
-	 *            list of all the nodes for which we are looking for the LICA
 	 * @param inIdSet
-	 *            list of the ingroup ids
-	 * @param fullIdSet
-	 *            list of all the node ids for the tree of interest
-	 * @return an ArrayList<Node> of all the nodes that are feasible LICA
+	 * @param outIdSet
+	 * @return
 	 */
-	public static HashSet<Node> getAllLICA(List<Node> nodeSet, HashSet<Long> inIdSet, HashSet<Long> fullIdSet) {
-		HashSet<Node> retaln = new HashSet<Node>();
-		Node firstNode = nodeSet.get(0);// should be the node with the fewest outgoing relationships
-		int fewestnumrel = 10000000;
-		// long start = System.currentTimeMillis();
-		for (int i = 0; i < nodeSet.size(); i++) {
-			int num = 0;
-			// only way to get number of relationships.
-			for (Relationship rel : nodeSet.get(i).getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
-				num++;
-			}
-			// exit on first node (if any) with only one relationship; same result, potentially fewer iterations
-			if (num == 1) {
-				firstNode = nodeSet.get(i);
-				break;
-			}
-			if (num < fewestnumrel) {
-				fewestnumrel = num;
-				firstNode = nodeSet.get(i);
-			}
-		}
-		// long elapsedTimeMillis = System.currentTimeMillis()-start;
-		// float elapsedTimeSec = elapsedTimeMillis/1000F;
-		// System.out.println("elapsed 1: "+elapsedTimeSec);
-		// remove everything but that which is in the outgroup
-		fullIdSet.removeAll(inIdSet);
-
-		Node innode = firstNode;
-		// start = System.currentTimeMillis();
-		for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {
-			boolean going = true;
-			for (Node tnode : pa.nodes()) {
-				// as long as these are sorted we can do a faster comparison
-				long[] dbnodei = (long[]) tnode.getProperty("mrca");
-				HashSet<Long> Ldbnodei = new HashSet<Long>();
-				for (long temp : dbnodei) {
-					Ldbnodei.add(temp);
-				}
-				// should look to apache commons primitives for a better solution to this
-				int beforesize = Ldbnodei.size();
-				Ldbnodei.removeAll(fullIdSet);
-				if (Ldbnodei.size() == beforesize) {
-					// this gets all, but we want to only include the exact if one exists
-					boolean containsall = Ldbnodei.containsAll(inIdSet);
-					if (containsall) {
-						retaln.add(tnode);
-						going = false;
-					}
-				} else {
-					going = false;
-				}
-				if (going == false) {
-					break;
-				}
-			}
-		}
-		// elapsedTimeMillis = System.currentTimeMillis()-start;
-		// elapsedTimeSec = elapsedTimeMillis/1000F;
-		// System.out.println("elapsed inloop: "+elapsedTimeSec);
-		return retaln;
-	}
-
-	public static HashSet<Node> getAllLICAt4j(List<Node> nodeSet, TLongArrayList inIdSet, TLongArrayList fullIdSet) {
-		//System.out.println("starting LICA search");
+	public static HashSet<Node> getAllLICAt4j(List<Node> nodeSet, TLongArrayList inIdSet, TLongArrayList outIdSet) {
+		System.out.println("starting LICA search");
+		System.out.println(nodeSet);
+		System.out.println(inIdSet+" "+outIdSet);
 		//System.out.println("b: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
 		HashSet<Node> retaln = new HashSet<Node>();
 		Node firstNode = nodeSet.get(0);// should be the node with the fewest outgoing relationships
@@ -133,19 +70,17 @@ public class LicaUtil {
 		long elapsedTimeMillis = System.currentTimeMillis()-start;
 		float elapsedTimeSec = elapsedTimeMillis/1000F;
 		//System.out.println("elapsed 1: "+elapsedTimeSec);
-		//remove everything but that which is in the outgroup
-		fullIdSet.removeAll(inIdSet);
-		//System.out.println("a: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
-
+		//NOTE:outIdSet  is outmrca
+		
 		LicaEvaluator le = new LicaEvaluator();
 		LicaContainsAllEvaluator ca = new LicaContainsAllEvaluator();
 		ca.setinIDset(inIdSet);
-		le.setfullIDset(fullIdSet);
+		le.setfullIDset(outIdSet);
 		Node innode = firstNode;
 		start = System.currentTimeMillis();
 		HashSet<Node> visited = new HashSet<Node>();
 		for (Node tnode : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-			//System.out.println(fullIdSet.size()+" "+inIdSet.size());
+			System.out.println("adding "+tnode);
 			retaln.add(tnode);
 		}
 		elapsedTimeMillis = System.currentTimeMillis()-start;
@@ -154,6 +89,36 @@ public class LicaUtil {
 		return retaln;
 	}
 
+	/**
+	 * This will calculate the licas based on bipart assumption and that each of the trees being added
+	 * is not complete in terms of taxa
+	 * @param nodeSet
+	 * @param inIdSet
+	 * @param outIdSet
+	 * @param graphdb
+	 * @return
+	 */
+	public static HashSet<Node> getNewBipart4j(List<Node> nodeSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb){
+		//System.out.println("nodeset "+nodeSet);
+		HashSet<Node> retaln = new HashSet<Node>();
+		TLongArrayList testnodes = new TLongArrayList();
+		LicaBipartEvaluator le = new LicaBipartEvaluator();
+		le.setgraphdb(graphdb);
+		le.setInset(inIdSet);
+		le.setOutset(outIdSet);
+		for(Node innode: nodeSet){
+			//System.out.println("\tstarting "+innode);
+//			System.out.println("testnodes "+testnodes);
+			le.setVisitedset(testnodes);
+			for (Node tnode : Traversal.description().breadthFirst().evaluator(le).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+			//	System.out.println("\tadding "+tnode);
+				retaln.add(tnode);
+			}
+			testnodes = le.getVisitedset();
+		}
+		return retaln;
+	}
+	
 	/**
 	 * This will check for a contains any of ar1 contains any ar2. Does not assume that
 	 * arrays are sorted, so should be slightly slower than method for sorted arrays,
