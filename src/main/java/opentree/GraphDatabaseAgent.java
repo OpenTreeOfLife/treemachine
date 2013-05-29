@@ -147,15 +147,15 @@ public class GraphDatabaseAgent {
     }
     
     protected /*static */ void registerShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
+        //Runtime.getRuntime().addShutdownHook(new Thread() {
 
-            @Override
-            public void run() {
+        //    @Override
+        //    public void run() {
                 if (embedded)
                     embeddedGraphDb.shutdown();
                 else
                     graphDbService.shutdown();
-            }
-        });
+         //   }
+        //});
     }
 }

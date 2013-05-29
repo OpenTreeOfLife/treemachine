@@ -334,14 +334,17 @@ public class GraphImporter extends GraphBase{
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
+			TLongArrayList hit_nodes_small_search = new TLongArrayList ();
 			// store the hits for each of the nodes in the tips
 			for (int j = 0; j < nds.size(); j++) {
 				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
 				ArrayList<Long> tlist = roothashsearch.get(nds.get(j));
+				hit_nodes_small_search.addAll(tlist);
 				for (int k = 0; k < tlist.size(); k++) {
 					hit_nodes_search.add(graphDb.getNodeById(tlist.get(k)));
 				}
 			}
+			hit_nodes_small_search.sort();
 			// get all the childids even if they aren't in the tree, this is the postorder part
 			TLongArrayList childndids = new TLongArrayList();
 			for (int i = 0; i < inode.getChildCount(); i++) {
@@ -362,7 +365,7 @@ public class GraphImporter extends GraphBase{
 			childndids.sort();
 			outndids.removeAll(childndids);
 			outndids.sort();
-			
+
 			HashSet<Node> ancestors = null;
 			/*
 			 * we can use a simpler calculation if we can assume that the 'trees that come in 
@@ -371,7 +374,7 @@ public class GraphImporter extends GraphBase{
 			if(assumecomplete == true){
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
 			}else{
-				ancestors = LicaUtil.getNewBipart4j(hit_nodes_search, childndids, outndids,graphDb);
+				ancestors = LicaUtil.getNewBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
 			}
 						
 			//			_LOG.trace("ancestor "+ancestor);

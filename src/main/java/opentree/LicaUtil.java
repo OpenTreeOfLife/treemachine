@@ -43,9 +43,9 @@ public class LicaUtil {
 	 * @return
 	 */
 	public static HashSet<Node> getAllLICAt4j(List<Node> nodeSet, TLongArrayList inIdSet, TLongArrayList outIdSet) {
-		System.out.println("starting LICA search");
-		System.out.println(nodeSet);
-		System.out.println(inIdSet+" "+outIdSet);
+//		System.out.println("starting LICA search");
+//		System.out.println(nodeSet);
+//		System.out.println(inIdSet+" "+outIdSet);
 		//System.out.println("b: "+nodeSet.size()+" - "+inIdSet.size() +" - "+fullIdSet.size());
 		HashSet<Node> retaln = new HashSet<Node>();
 		Node firstNode = nodeSet.get(0);// should be the node with the fewest outgoing relationships
@@ -80,7 +80,7 @@ public class LicaUtil {
 		start = System.currentTimeMillis();
 		HashSet<Node> visited = new HashSet<Node>();
 		for (Node tnode : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-			System.out.println("adding "+tnode);
+//			System.out.println("adding "+tnode);
 			retaln.add(tnode);
 		}
 		elapsedTimeMillis = System.currentTimeMillis()-start;
@@ -92,30 +92,49 @@ public class LicaUtil {
 	/**
 	 * This will calculate the licas based on bipart assumption and that each of the trees being added
 	 * is not complete in terms of taxa
-	 * @param nodeSet
-	 * @param inIdSet
-	 * @param outIdSet
+	 * @param nodeSetsm these are the actual named nodes (not expanded by mrca)
+	 * @param nodeSet these are the tip node mrcas nodes
+	 * @param nodeSetinIdSet just the mrca for the nodeSet, this should be equal or smaller than inIdSet
+	 * @param inIdSet this will be the mrca for the dbnodes that subtend the tree node (preorder so the children). this can be larger
+	 * 			than the nodeSetinIdSet
+	 * @param outIdSet this is the outIdSet for the tree
 	 * @param graphdb
 	 * @return
 	 */
-	public static HashSet<Node> getNewBipart4j(List<Node> nodeSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb){
-		//System.out.println("nodeset "+nodeSet);
+	public static HashSet<Node> getNewBipart4j(List<Node> nodeSetsm, List<Node> nodeSet, TLongArrayList nodeSetinIdSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb){
+//		System.out.println("starting bipart lica search");
+//		System.out.println("smnodeset:"+nodeSetsm.size()+" nodeset:"+nodeSet.size());
 		HashSet<Node> retaln = new HashSet<Node>();
 		TLongArrayList testnodes = new TLongArrayList();
 		LicaBipartEvaluator le = new LicaBipartEvaluator();
 		le.setgraphdb(graphdb);
+		if(nodeSetinIdSet.size()!= inIdSet.size()){
+//			System.out.println("set small set");
+			le.setSmInSet(nodeSetinIdSet);
+		}
 		le.setInset(inIdSet);
 		le.setOutset(outIdSet);
-		for(Node innode: nodeSet){
-			//System.out.println("\tstarting "+innode);
-//			System.out.println("testnodes "+testnodes);
+		long start = System.currentTimeMillis();
+		long start2 = System.currentTimeMillis();
+		for(Node innode: nodeSetsm){			
+//			System.out.println("\tstarting "+innode);
+//			System.out.println("nodeSetinIdSet "+nodeSetinIdSet.size());
+//			System.out.println("inIdSet "+inIdSet.size());
+//			System.out.println("outIdSet "+outIdSet.size());
 			le.setVisitedset(testnodes);
 			for (Node tnode : Traversal.description().breadthFirst().evaluator(le).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-			//	System.out.println("\tadding "+tnode);
+//				System.out.println("\tadding "+tnode);
 				retaln.add(tnode);
 			}
+			//long elapsedTimeMillis2 = System.currentTimeMillis()-start2;
+			//float elapsedTimeSec = elapsedTimeMillis2/1000F;
+			//System.out.println("\telapsed inloop1: "+elapsedTimeSec);
+			start2 = System.currentTimeMillis();			
 			testnodes = le.getVisitedset();
 		}
+		//long elapsedTimeMillis = System.currentTimeMillis()-start;
+		//float elapsedTimeSec = elapsedTimeMillis/1000F;
+		//System.out.println("elapsed inloop2: "+elapsedTimeSec);
 		return retaln;
 	}
 	
