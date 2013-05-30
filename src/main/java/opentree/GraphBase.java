@@ -45,7 +45,7 @@ public abstract class GraphBase {
 													//to get the tax that this points to you need to travel synonymof
 	protected static Index<Node> graphTaxNewNodes;
 
-	public static final String DRAFTTREENAME = "otol.draft.0";
+	public static final String DRAFTTREENAME = "otol.draft.1";
 	
 	public void shutdownDB(){
 		graphDb.shutdownDb();

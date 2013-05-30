@@ -49,7 +49,7 @@ public class SourcePropertyValue implements Comparable<SourcePropertyValue> {
 		if (property.type == String.class) {
 			return (Object) s;
 
-		} else if (property.type == Long.class) {
+		} else if (property.type == Long.class || property.type == Integer.class) {
 			return (Object) l;
 
 		} else if (property.type == Double.class) {
@@ -83,7 +83,7 @@ public class SourcePropertyValue implements Comparable<SourcePropertyValue> {
 				return d.compareTo((Double) comparable.value());
 			}
 		
-		} else if (this.property.type == Long.class) {
+		} else if (this.property.type == Long.class || this.property.type == Integer.class) {
 			if (comparable.type() == String.class) {
 				throw new java.lang.UnsupportedOperationException(illegalComparisonMessage(comparable.type()));
 			} else {
