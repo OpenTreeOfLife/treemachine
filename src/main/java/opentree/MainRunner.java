@@ -1479,7 +1479,7 @@ public class MainRunner {
 		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (constructs a newick file from a particular node, break ties preferring sources)");
 		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
 		System.out.println("\tmrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
-		System.out.println("\tgraphml <name> <outfile> <graphdbfolder> <usetaxonomy[T|F]> (constructs a graphml file of the region starting from the name)");
+		System.out.println("\tgraphml <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder> (constructs a graphml file of the region starting from the name)");
 		System.out.println("\tcsvdump <name> <outfile> <graphdbfolder> (dumps the graph in format node,parent,nodename,parentname,source,brlen\n");
 
 		System.out.println("---graph exploration---");
