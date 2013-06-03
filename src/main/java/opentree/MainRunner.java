@@ -538,7 +538,7 @@ public class MainRunner {
 		gin.addInitialTaxonomyTableIntoGraph("tax.temp", "");
 		// Use the taxonomy as the first tree in the composite tree
 		gin.shutdownDB();
-
+		
 		GraphImporter gi = new GraphImporter(graphname);
 		System.out.println("started graph importer");
 		// Go through the trees again and add and update as necessary
