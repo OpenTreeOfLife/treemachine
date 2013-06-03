@@ -125,10 +125,120 @@ public class GraphExplorer extends GraphBase {
             }
         }
     }
+    
+    Iterable<Node> getNodesForNames(Iterable<String> inNames) {
+    	
+		ArrayList<Node> tipNodes = new ArrayList<Node>();
+		for (String tipName : inNames) {
+			tipNodes.add(graphNodeIndex.get("name", tipName).getSingle());
+		}
+		
+		return tipNodes;
 
+    }
+
+    JadeNode makeSubtreeForTipNodes(Iterable<Node> tips) {
+    	
+    	HashMap<JadeNode, ArrayList<Node>> treeNodeMRCAMap = new HashMap<JadeNode, ArrayList<Node>>();
+    	
+    	// need to populate this hashmap
+
+    	// initialize containers
+    	HashMap<JadeNode, Node> graphNodeJadeNodeMap = new HashMap<JadeNode, Node>();
+    	ArrayList<JadeNode> stack = new ArrayList<JadeNode>();
+
+    	// set start conditions (add root to stack)
+    	JadeNode root = new JadeNode();
+    	stack.add(root);
+    	treeNodeMRCAMap.put(root, (ArrayList<Node>) tips);
+    	
+    	while (stack.size() > 0) {
+
+    		JadeNode treeNode = stack.remove(0);
+
+        	// get descendant leaves of this node
+    		ArrayList<Node> descendants = treeNodeMRCAMap.get(treeNode);
+
+    		// record the draft tree graph mrca node for this tree node
+    		Node graphNode = LicaUtil.getDraftTreeLICA(descendants);
+        	graphNodeJadeNodeMap.put(treeNode, graphNode);
+    		
+    		// make a container to hold info about nodes to be added as children of the cur node
+    		HashMap<Node, ArrayList<Node>> childNodesMRCAMap = new HashMap<Node, ArrayList<Node>>();
+
+    		// for each leaf descendant of the current node
+    		for (int j = 0; j < descendants.size(); j++) {
+
+    			// get the deepest remaining ancestor of this leaf
+    			Node curDeepestAncestor = null;
+    			ArrayList<Node> pathToMRCA = treeNodeMRCAMap.get(descendants.get(j));
+    			if (pathToMRCA.size() > 0) {
+    				// remove this ancestor so we don't see it again
+    				curDeepestAncestor = pathToMRCA.remove(0);
+    			} else {
+    				// if there are no more ancestors for this leaf, then its deepest remaining ancestor is the current node
+    				curDeepestAncestor = graphNodeJadeNodeMap.get(treeNode);
+    			}
+
+    			// make a new entry in the nodes to be added if we haven't seen this ancestor yet
+    			if (! childNodesMRCAMap.containsKey(curDeepestAncestor)) {
+    				childNodesMRCAMap.put(curDeepestAncestor, new ArrayList<Node>());
+    			}
+
+    			// queue this leaf to be added under the appropriate ancestor
+    			childNodesMRCAMap.get(curDeepestAncestor).add(descendants.get(j));
+
+    		}
+    		
+    		// for each child node in the set to be added
+    		for (Entry<Node, ArrayList<Node>> n : childNodesMRCAMap.entrySet()) {
+
+    			ArrayList<Node> childDescendants = n.getValue();
+    			
+    			// if there is just one grandchild, just add the grandchild to the cur tree node
+    			if (childDescendants.size() == 1) {
+    				JadeNode tip = new JadeNode();
+    				tip.setName((String) childDescendants.get(0).getProperty("name"));
+    				treeNode.addChild(tip);
+    				continue;
+    			}
+
+    			// for more than one grandchild, get the graph node so we can add it
+    			Node childNode = n.getKey();
+
+    			// make a new child tree node with its grandchildren and add it to the cur tree node
+    			JadeNode child = new JadeNode();
+    			child.setName((String) childNode.getProperty("name"));
+				for (Node gcNode : childDescendants) {
+					JadeNode gc = new JadeNode();
+					gc.setName((String) gcNode.getProperty("name"));
+					child.addChild(gc);
+				}
+				treeNode.addChild(child);
+
+				if (childDescendants.size() > 2) {
+					
+					// if all the descendants have the same deepest ancestor, move on
+	    			Node startDeepestAncestor = treeNodeMRCAMap.get(childDescendants.get(0)).get(0);
+	    			for (Node curChildDescendant : childDescendants) {
+	    				if (! startDeepestAncestor.equals(treeNodeMRCAMap.get(curChildDescendant))) {
+	    					stack.add(child);
+	    					treeNodeMRCAMap.put(child, childDescendants);
+	    				}
+	    			}
+				}
+    		}
+    	}
+    	
+    	// remove knuckles (keep deepest ancestor?
+    	
+    	return null;
+	}
+    
+    
     /**
      * Given a taxonomic name, construct a json object of the subgraph of MRCACHILDOF relationships that are rooted at the specified node. Names that appear in
-     * the JSON are taken from the corresonding nodes in the taxonomy graph (using the ISCALLED relationships).
+     * the JSON are taken from the corresponding nodes in the taxonomy graph (using the ISCALLED relationships).
      * 
      * @param name
      *            the name of the root node (should be the name in the graphNodeIndex)

@@ -1,6 +1,5 @@
 package opentree;
 
-
 import java.util.HashSet;
 
 import org.neo4j.graphdb.Direction;
@@ -9,6 +8,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+
 
 /**
  * 
@@ -45,7 +45,8 @@ public abstract class GraphBase {
 													//to get the tax that this points to you need to travel synonymof
 	protected static Index<Node> graphTaxNewNodes;
 
-	public static final String DRAFTTREENAME = "otol.draft.1";
+	// this is clunky, might be a better way to do this
+	public static final String DRAFTTREENAME = (String) Constants.DRAFTTREENAME.value;
 	
 	public void shutdownDB(){
 		graphDb.shutdownDb();

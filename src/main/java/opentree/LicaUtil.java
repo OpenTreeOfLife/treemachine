@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import java.util.Iterator;
+
 import gnu.trove.iterator.TLongIterator;
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.*;
@@ -326,6 +328,7 @@ public class LicaUtil {
 			try{
 				innode = innode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 			}catch(Exception e){
+				e.printStackTrace();
 				break;
 			}
 			TLongArrayList dbnodei = new TLongArrayList ((long[]) innode.getProperty("mrca"));
@@ -340,6 +343,56 @@ public class LicaUtil {
 		}
 		return retaln;
 	}
+	
+	/**
+	 * This will return the MRCA using the current draft tree relationships. This only
+	 * requires the nodes that we are looking for.
+	 * 
+	 * @param inNodes
+	 * @return
+	 */
+	public static Node getDraftTreeLICA(Iterable<Node> inNodes) {
+		
+		// get start node
+		Iterator<Node> nodeSet = inNodes.iterator();
+		Node firstNode = nodeSet.next();
+		
+		// extract other node ids
+		TLongArrayList nodeSetLongs = new TLongArrayList();
+		while (nodeSet.hasNext()) {
+			nodeSetLongs.add(nodeSet.next().getId());
+		}
+
+		Node innode = firstNode;
+		Node retaln = null;
+		boolean going = true;
+		while (going) {
+			// get parent
+			try {
+				for (Relationship rel : innode.getRelationships(RelTypes.SYNTHCHILDOF, Direction.OUTGOING)) {
+					if (String.valueOf(rel.getProperty("name")).compareTo((String) Constants.DRAFTTREENAME.value) == 0) {
+						innode = rel.getEndNode();
+					}
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+				break;
+			}
+
+			TLongArrayList dbnodei = new TLongArrayList ((long[]) innode.getProperty("mrca"));
+			dbnodei.addAll((long[]) innode.getProperty("nested_mrca"));
+			if (dbnodei.containsAll(nodeSetLongs) == true) {
+				retaln = innode;
+				going = false;
+
+			} if (going == false) {
+				break;
+			}
+		}
+
+		return retaln;
+	}
+	
 	/**
 	 * This will return the MRCA using the taxonomic relationships. This only
 	 * requires the nodes that we are looking for.
