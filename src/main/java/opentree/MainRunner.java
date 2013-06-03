@@ -1059,6 +1059,28 @@ public class MainRunner {
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
+	public int extractDraftSubTreeForOttIDs(String [] args) throws OttolIdNotFoundException {
+		if (args.length != 4) {
+			System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
+			return 1;
+		}
+
+		String[] OTTids = args[1].trim().split(",");
+		String outFileName = args[2];
+		String graphname = args[3];
+		GraphExplorer ge = new GraphExplorer(graphname);
+
+		ArrayList<Node> tipNodes = new ArrayList<Node>();
+		for (String OTTid : OTTids) {
+			tipNodes.add(ge.findGraphTaxNodeByUID(OTTid));
+		}
+		
+		System.out.println(ge.extractDraftSubtreeForTipNodes(tipNodes).toString());
+
+		return 0;
+    }
+	
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int addTaxonomyMetadataNodeToIndex(String [] args) {
 		if (args.length != 3) {
 			System.out.println("arguments should be metadatanodeid graphdbfolder");
@@ -1504,6 +1526,7 @@ public class MainRunner {
 		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
 		System.out.println("\tsynthesizedrafttreelist <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\textractdrafttree <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
+		
 				
 		System.out.println("---temporary functions---");
 		System.out.println("\taddtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");

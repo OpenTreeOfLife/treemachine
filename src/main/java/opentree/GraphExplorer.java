@@ -125,19 +125,8 @@ public class GraphExplorer extends GraphBase {
             }
         }
     }
-    
-    Iterable<Node> getNodesForNames(Iterable<String> inNames) {
-    	
-		ArrayList<Node> tipNodes = new ArrayList<Node>();
-		for (String tipName : inNames) {
-			tipNodes.add(graphNodeIndex.get("name", tipName).getSingle());
-		}
-		
-		return tipNodes;
 
-    }
-
-    JadeNode makeSubtreeForTipNodes(Iterable<Node> tips) {
+    JadeNode extractDraftSubtreeForTipNodes(Iterable<Node> tips) {
     	
     	HashMap<JadeNode, ArrayList<Node>> treeNodeMRCAMap = new HashMap<JadeNode, ArrayList<Node>>();
     	
@@ -218,12 +207,18 @@ public class GraphExplorer extends GraphBase {
 
 				if (childDescendants.size() > 2) {
 					
-					// if all the descendants have the same deepest ancestor, move on
-	    			Node startDeepestAncestor = treeNodeMRCAMap.get(childDescendants.get(0)).get(0);
+					// if all the descendants have the same *shallowest* ancestor, then this is a polytomy, move on
+	    			ArrayList<Node> startNodeAncestors = treeNodeMRCAMap.get(childDescendants.get(0));
+	    			Node startShallowestAncestor = startNodeAncestors.get(startNodeAncestors.size() - 1);
+
 	    			for (Node curChildDescendant : childDescendants) {
-	    				if (! startDeepestAncestor.equals(treeNodeMRCAMap.get(curChildDescendant))) {
+	    				ArrayList<Node> curAncestors = treeNodeMRCAMap.get(curChildDescendant);
+	    				Node curShallowestAncestor = curAncestors.get(curAncestors.size() - 1);
+	    				if (! startShallowestAncestor.equals(curShallowestAncestor)) {
+	    					// if this isn't a polytomy, then add this child to the stack
 	    					stack.add(child);
 	    					treeNodeMRCAMap.put(child, childDescendants);
+	    					break;
 	    				}
 	    			}
 				}
@@ -232,7 +227,7 @@ public class GraphExplorer extends GraphBase {
     	
     	// remove knuckles (keep deepest ancestor?
     	
-    	return null;
+    	return root;
 	}
     
     
