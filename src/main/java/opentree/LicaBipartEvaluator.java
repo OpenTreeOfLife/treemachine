@@ -29,13 +29,13 @@ public class LicaBipartEvaluator implements Evaluator{
 	public void setInset(TLongArrayList fids){
 		inIdSet = fids;
 	}
-	public void setVisitedset(TLongArrayList fids){
+	public void setVisitedSet(TLongArrayList fids){
 		visited = fids;
 	}
 	public void setgraphdb(GraphDatabaseAgent gb){
 		graphdb = gb;
 	}
-	public TLongArrayList getVisitedset(){
+	public TLongArrayList getVisitedSet(){
 		return visited;
 	}
 	
@@ -48,11 +48,11 @@ public class LicaBipartEvaluator implements Evaluator{
 		visited.add(tn.getId());
 		
 		TLongArrayList tm = new TLongArrayList((long[])tn.getProperty("mrca"));
-		if (smInIdSet != null)
-/			System.out.println("nodeSetinIdSet "+smInIdSet.size());
-		System.out.println("inIdSet "+inIdSet.size());
-		System.out.println("outIdSet "+outIdSet.size());
-		System.out.println("mrca: "+tm.size());
+//		if (smInIdSet != null)
+//			System.out.println("nodeSetinIdSet "+smInIdSet.size());
+//		System.out.println("inIdSet "+inIdSet.size());
+//		System.out.println("outIdSet "+outIdSet.size());
+//		System.out.println("mrca: "+tm.size());
 
 		//NOTE: in order to cut down on size, taxnodes outmrca are assumed to be "the rest"
 		//		they are denoted with not having an outmrca

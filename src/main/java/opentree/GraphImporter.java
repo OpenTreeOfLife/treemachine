@@ -330,7 +330,7 @@ public class GraphImporter extends GraphBase{
 		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode, ArrayList<Long>>)root.getObject("hashnodeidssearch"));
 
 		if (inode.getChildCount() > 0) {
-			//System.out.println(inode.getNewick(false));
+			System.out.println(inode.getNewick(false));
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
@@ -394,7 +394,7 @@ public class GraphImporter extends GraphBase{
 				// get the super lica, or what would be the licas if we didn't have the other taxa in the tree
 				// this is used to connect the new nodes to their licas for easier traversals
 				//HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
-				HashSet<Node> superlica = LicaUtil.getSuperLICAt4j(hit_nodes_search, childndids);
+				HashSet<Node> superlica = LicaUtil.getSuperLICAt4j(hit_nodes,hit_nodes_search, hit_nodes_small_search, childndids);
 				//System.out.println("\t\tsuperlica: "+superlica);
 				// steps
 				// 1. create a node
