@@ -436,7 +436,6 @@ public class JadeTree {
 
 	/**
 	 * prunes `node` from the tree, if `node` is external
-	 * @todo doesn't yet take care if node.parent == root or is a polytomy
 	 */
 	public void pruneExternalNode(JadeNode node) {
 		if (node.isInternal()) {
@@ -452,25 +451,36 @@ public class JadeTree {
 		 */
 		double bl = 0;
 		JadeNode parent = node.getParent();
-		JadeNode other = null;
-		for (int i = 0; i < parent.getChildCount(); i++) {
-			if (parent.getChild(i) != node) {
-				other = parent.getChild(i);
-			}
-		}
-		bl = other.getBL() + parent.getBL();
-		JadeNode mparent = parent.getParent();
-		if (mparent != null) {
-			mparent.addChild(other);
-			other.setBL(bl);
-			for (int i = 0; i < mparent.getChildCount(); i++) {
-				if (mparent.getChild(i) == parent) {
-					mparent.removeChild(parent);
-					break;
+		if(parent.getChildCount()==2){
+			JadeNode other = null;
+			for (int i = 0; i < parent.getChildCount(); i++) {
+				if (parent.getChild(i) != node) {
+					other = parent.getChild(i);
 				}
 			}
+			bl = other.getBL() + parent.getBL();
+			if(parent != this.root){
+				JadeNode mparent = parent.getParent();
+				if (mparent != null) {
+					mparent.addChild(other);
+					other.setBL(bl);
+					for (int i = 0; i < mparent.getChildCount(); i++) {
+						if (mparent.getChild(i) == parent) {
+							mparent.removeChild(parent);
+							break;
+						}
+					}
+				}
+				this.processRoot();
+			}else{//parent == root
+				other.setParent(null);
+				this.setRoot(other);
+				this.processRoot();
+			}
+		}else{
+			parent.removeChild(node);
+			this.processRoot();
 		}
-		this.processRoot();
 	}
 	
 	/*

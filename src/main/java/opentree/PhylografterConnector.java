@@ -308,17 +308,18 @@ public class PhylografterConnector {
 	         */
 	        
 	        if (namenodemap.size() > 0)
-	        	return false;
-	        /* TODO, add pruning
-	        for(String name: namenodemap.keySet()){
-	        	System.out.println("need to prune"+name);
-	        	JadeNode jnode = namenodemap.get(name);
-	        	//get the nodes from the parent
-	        	JadeNode jnp = jnode;
-        	
-	        	
-	        }
-	        */
+	        	if(prune){
+	    	        for(String name: namenodemap.keySet()){
+	    	        	System.out.println("need to prune"+name);
+	    	        	JadeNode jnode = namenodemap.get(name);
+	    	        	//get the nodes from the parent
+	    	        	JadeNode jnp = jnode;
+	    	        	
+	    	        }
+	    	        
+	        	}else{
+	        		return false;
+	        	}
 		}
 		return true;
 	}
