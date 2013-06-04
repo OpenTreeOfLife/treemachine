@@ -103,7 +103,7 @@ public class LicaUtil {
 	 * @param graphdb
 	 * @return
 	 */
-	public static HashSet<Node> getNewBipart4j(List<Node> nodeSetsm, List<Node> nodeSet, TLongArrayList nodeSetinIdSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb){
+	public static HashSet<Node> getBipart4j(List<Node> nodeSetsm, List<Node> nodeSet, TLongArrayList nodeSetinIdSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb){
 //		System.out.println("starting bipart lica search");
 //		System.out.println("smnodeset:"+nodeSetsm.size()+" nodeset:"+nodeSet.size());
 		HashSet<Node> retaln = new HashSet<Node>();

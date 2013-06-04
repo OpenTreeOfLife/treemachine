@@ -1317,7 +1317,7 @@ public class MainRunner {
 			return 0;
 		}
 		try{
-			boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
+			boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,true);
 			if (good == false){
 				System.out.println("failed to get the names from server fixNamesFromTrees");
 				graphDb.shutdownDb();

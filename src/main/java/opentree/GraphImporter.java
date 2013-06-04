@@ -374,7 +374,7 @@ public class GraphImporter extends GraphBase{
 			if(assumecomplete == true){
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
 			}else{
-				ancestors = LicaUtil.getNewBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
+				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
 			}
 						
 			//			_LOG.trace("ancestor "+ancestor);
