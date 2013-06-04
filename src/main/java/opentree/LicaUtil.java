@@ -299,11 +299,11 @@ public class LicaUtil {
 			}
 		}
 		Node innode = firstNode;*/
-		LicaContainsAllEvaluator ca = new LicaContainsAllEvaluator();
-		if(nodeSetinIdSet.size()!= inIdSet.size()){
+		LicaContainsAllEvaluatorBS ca = new LicaContainsAllEvaluatorBS();
+//		if(nodeSetinIdSet.size()!= inIdSet.size()){
 //			System.out.println("set small set");
-			ca.setSmInSet(nodeSetinIdSet);
-		}
+//			ca.setSmInSet(nodeSetinIdSet);
+//		}
 		ca.setinIDset(inIdSet);
 		TLongArrayList testnodes = new TLongArrayList();
 		for(Node innode: nodeSetsm){
