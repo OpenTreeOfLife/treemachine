@@ -1047,7 +1047,7 @@ public class MainRunner {
 		PrintWriter outFile = null;
 		try {
 			outFile = new PrintWriter(new FileWriter(outFileName));
-			outFile.write(synthTree.getRoot().getNewick(true));
+			outFile.write(synthTree.getRoot().getNewick(false));
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
