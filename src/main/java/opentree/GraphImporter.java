@@ -330,7 +330,7 @@ public class GraphImporter extends GraphBase{
 		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode, ArrayList<Long>>)root.getObject("hashnodeidssearch"));
 
 		if (inode.getChildCount() > 0) {
-			System.out.println(inode.getNewick(false));
+//			System.out.println(inode.getNewick(false));
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();

@@ -32,7 +32,7 @@ public class LicaEvaluatorBS implements Evaluator{
 			tBS.set((int)Ldbnodei.getQuick(i));
 		}
 		System.out.println("testing "+arg0+" "+arg0.endNode());
-		tBS.and(fullIdBS);
+		tBS.and(fullIdBS);//contains any if .isEmpty == False
 		if (tBS.isEmpty() == true) {
 			return Evaluation.INCLUDE_AND_CONTINUE;
 		}else{

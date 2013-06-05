@@ -104,115 +104,31 @@ public class LicaUtil {
 	 * @return
 	 */
 	public static HashSet<Node> getBipart4j(List<Node> nodeSetsm, List<Node> nodeSet, TLongArrayList nodeSetinIdSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb){
-		System.out.println("starting bipart lica search");
-		System.out.println("smnodeset:"+nodeSetsm.size()+" nodeset:"+nodeSet.size());
+//		System.out.println("starting bipart lica search");
+//		System.out.println("smnodeset:"+nodeSetsm.size()+" nodeset:"+nodeSet.size());
 		HashSet<Node> retaln = new HashSet<Node>();
 		TLongArrayList testnodes = new TLongArrayList();
-		LicaBipartEvaluator le = new LicaBipartEvaluator();
+		LicaBipartEvaluatorBS le = new LicaBipartEvaluatorBS();
 		le.setgraphdb(graphdb);
-		if(nodeSetinIdSet.size()!= inIdSet.size()){
+//		if(nodeSetinIdSet.size()!= inIdSet.size()){
 //			System.out.println("set small set");
-			le.setSmInSet(nodeSetinIdSet);
-		}
+//			le.setSmInSet(nodeSetinIdSet);
+//		}
 		le.setInset(inIdSet);
 		le.setOutset(outIdSet);
-		long start = System.currentTimeMillis();
-		long start2 = System.currentTimeMillis();
 		for(Node innode: nodeSetsm){			
-			System.out.println("\tstarting "+innode);
-			System.out.println("nodeSetinIdSet "+nodeSetinIdSet.size());
-			System.out.println("inIdSet "+inIdSet.size());
-			System.out.println("outIdSet "+outIdSet.size());
+//			System.out.println("\tstarting "+innode);
+//			System.out.println("nodeSetinIdSet "+nodeSetinIdSet.size());
+//			System.out.println("inIdSet "+inIdSet.size());
+//			System.out.println("outIdSet "+outIdSet.size());
 			le.setVisitedSet(testnodes);
 			for (Node tnode : Traversal.description().breadthFirst().evaluator(le).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-				System.out.println("\tadding "+tnode);
+//				System.out.println("\tadding "+tnode);
 				retaln.add(tnode);
 			}
-			//long elapsedTimeMillis2 = System.currentTimeMillis()-start2;
-			//float elapsedTimeSec = elapsedTimeMillis2/1000F;
-			//System.out.println("\telapsed inloop1: "+elapsedTimeSec);
-			start2 = System.currentTimeMillis();			
 			testnodes = le.getVisitedSet();
 		}
-		//long elapsedTimeMillis = System.currentTimeMillis()-start;
-		//float elapsedTimeSec = elapsedTimeMillis/1000F;
-		//System.out.println("elapsed inloop2: "+elapsedTimeSec);
 		return retaln;
-	}
-	
-	/**
-	 * This will check for a contains any of ar1 contains any ar2. Does not assume that
-	 * arrays are sorted, so should be slightly slower than method for sorted arrays,
-	 * but will always provide the correct answer.
-	 * 
-	 * @param ar1
-	 * @param ar2
-	 * @return true if ar1 contains any elements of ar2
-	 */
-	public static boolean containsAnyt4jUnsorted(TLongArrayList ar1, TLongArrayList ar2) {
-		if (ar1.size() < ar2.size()) {
-			return containsAnyt4jUnsortedOrdered(ar1, ar2);
-		} else {
-			return containsAnyt4jUnsortedOrdered(ar2, ar1);
-		}
-	}
-
-	/**
-	 * Internal method that is faster when the relative sizes of the inputs are known.
-	 * 
-	 * @param shorter
-	 * @param longer
-	 * @return boolean
-	 */
-	private static boolean containsAnyt4jUnsortedOrdered(TLongArrayList shorter, TLongArrayList longer) {
-		boolean retv = false;
-		for (int i = 0; i < shorter.size(); i++) {
-			if (longer.contains(shorter.getQuick(i))) {
-				retv = true;
-				break;
-			}
-		}
-		return retv;
-	}
-
-	/**
-	 * This will check for a contains any of ar1 contains any ar2. Assumes arrays are
-	 * sorted, which allows a speed improvement, but will provide wrong answers if they
-	 * are not.
-	 * 
-	 * @param ar1
-	 * @param ar2
-	 * @return true if ar1 contains any elements of ar2
-	 */
-	public static boolean containsAnyt4jSorted(TLongArrayList ar1, TLongArrayList ar2) {
-		if (ar1.size() < ar2.size()) {
-			return containsAnyt4jSortedOrdered(ar1, ar2);
-		} else {
-			return containsAnyt4jSortedOrdered(ar2, ar1);
-		}
-	}
-
-	/**
-	 * Internal method that is faster when the relative sizes of the inputs are known.
-	 * 
-	 * @param shorter
-	 * @param longer
-	 * @return
-	 */
-	private static boolean containsAnyt4jSortedOrdered(TLongArrayList shorter, TLongArrayList longer) {
-		boolean retv = false;
-		shorterLoop: for (int i = 0; i < shorter.size(); i++) {
-			longerLoop: for (int j = 0; j < longer.size(); j++) {
-				if (longer.getQuick(j) > shorter.getQuick(i)) {
-					break longerLoop;
-				}
-				if (longer.getQuick(j) == shorter.getQuick(i)) {
-					retv = true;
-					break shorterLoop;
-				}
-			}
-		}
-		return retv;
 	}
 
 	/**
@@ -301,14 +217,13 @@ public class LicaUtil {
 		Node innode = firstNode;*/
 		LicaContainsAllEvaluatorBS ca = new LicaContainsAllEvaluatorBS();
 //		if(nodeSetinIdSet.size()!= inIdSet.size()){
-//			System.out.println("set small set");
 //			ca.setSmInSet(nodeSetinIdSet);
 //		}
 		ca.setinIDset(inIdSet);
 		TLongArrayList testnodes = new TLongArrayList();
 		for(Node innode: nodeSetsm){
 			ca.setVisitedSet(testnodes);
-			System.out.println("superlica inidset: "+inIdSet.size());
+//			System.out.println("superlica inidset: "+inIdSet.size());
 			for (Node tnode : Traversal.description().depthFirst().evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
 				retaln.add(tnode);
 			}
@@ -434,5 +349,80 @@ public class LicaUtil {
 			}
 		}
 		return retaln;
+	}
+	
+	/**
+	 * This will check for a contains any of ar1 contains any ar2. Does not assume that
+	 * arrays are sorted, so should be slightly slower than method for sorted arrays,
+	 * but will always provide the correct answer.
+	 * 
+	 * @param ar1
+	 * @param ar2
+	 * @return true if ar1 contains any elements of ar2
+	 */
+	public static boolean containsAnyt4jUnsorted(TLongArrayList ar1, TLongArrayList ar2) {
+		if (ar1.size() < ar2.size()) {
+			return containsAnyt4jUnsortedOrdered(ar1, ar2);
+		} else {
+			return containsAnyt4jUnsortedOrdered(ar2, ar1);
+		}
+	}
+
+	/**
+	 * Internal method that is faster when the relative sizes of the inputs are known.
+	 * 
+	 * @param shorter
+	 * @param longer
+	 * @return boolean
+	 */
+	private static boolean containsAnyt4jUnsortedOrdered(TLongArrayList shorter, TLongArrayList longer) {
+		boolean retv = false;
+		for (int i = 0; i < shorter.size(); i++) {
+			if (longer.contains(shorter.getQuick(i))) {
+				retv = true;
+				break;
+			}
+		}
+		return retv;
+	}
+
+	/**
+	 * This will check for a contains any of ar1 contains any ar2. Assumes arrays are
+	 * sorted, which allows a speed improvement, but will provide wrong answers if they
+	 * are not.
+	 * 
+	 * @param ar1
+	 * @param ar2
+	 * @return true if ar1 contains any elements of ar2
+	 */
+	public static boolean containsAnyt4jSorted(TLongArrayList ar1, TLongArrayList ar2) {
+		if (ar1.size() < ar2.size()) {
+			return containsAnyt4jSortedOrdered(ar1, ar2);
+		} else {
+			return containsAnyt4jSortedOrdered(ar2, ar1);
+		}
+	}
+
+	/**
+	 * Internal method that is faster when the relative sizes of the inputs are known.
+	 * 
+	 * @param shorter
+	 * @param longer
+	 * @return
+	 */
+	private static boolean containsAnyt4jSortedOrdered(TLongArrayList shorter, TLongArrayList longer) {
+		boolean retv = false;
+		shorterLoop: for (int i = 0; i < shorter.size(); i++) {
+			longerLoop: for (int j = 0; j < longer.size(); j++) {
+				if (longer.getQuick(j) > shorter.getQuick(i)) {
+					break longerLoop;
+				}
+				if (longer.getQuick(j) == shorter.getQuick(i)) {
+					retv = true;
+					break shorterLoop;
+				}
+			}
+		}
+		return retv;
 	}
 }
