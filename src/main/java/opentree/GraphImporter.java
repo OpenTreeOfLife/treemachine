@@ -138,9 +138,10 @@ public class GraphImporter extends GraphBase{
 	 * @param sourcename the name to be registered as the "source" property for
 	 *		every edge in this tree.
 	 */
-	public void addSetTreeToGraphWIdsSet(String sourcename) throws TaxonNotFoundException,TreeIngestException {
+	public void addSetTreeToGraphWIdsSet(String sourcename,boolean taxacompletelyoverlap) throws TaxonNotFoundException,TreeIngestException {
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
+		assumecomplete = taxacompletelyoverlap;
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 
 		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
@@ -213,10 +214,11 @@ public class GraphImporter extends GraphBase{
 	 *		this we could just randomly choose one of the edges that is connected
 	 *		to the root node that is in the index
 	 */
-	public void addSetTreeToGraph(String focalgroup, String sourcename) throws TaxonNotFoundException, TreeIngestException {
+	public void addSetTreeToGraph(String focalgroup, String sourcename,boolean taxacompletelyoverlap) throws TaxonNotFoundException, TreeIngestException {
 		Node focalnode = findTaxNodeByName(focalgroup);
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
+		assumecomplete = taxacompletelyoverlap;
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 
@@ -609,7 +611,7 @@ public class GraphImporter extends GraphBase{
 			System.out.println("tree read");
 			setTree(jt,trees);
 			try {
-				addSetTreeToGraph("life",source);
+				addSetTreeToGraph("life",source,false);
 			} catch (TaxonNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

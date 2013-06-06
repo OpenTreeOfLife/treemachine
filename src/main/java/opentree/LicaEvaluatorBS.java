@@ -20,20 +20,18 @@ public class LicaEvaluatorBS implements Evaluator{
 	public LicaEvaluatorBS(){}
 
 	public void setfullIDset(TLongArrayList fids){
-		fullIdBS = new BitSet(3000000);//could set this to the smallest number
+		fullIdBS = new BitSet((int)fids.max());//could set this to the smallest number
 		for(int i=0;i<fids.size();i++){
 			fullIdBS.set((int)fids.getQuick(i));
 		}
 	}
 	public Evaluation evaluate(Path arg0) {
 		TLongArrayList Ldbnodei = new TLongArrayList((long[]) arg0.endNode().getProperty("mrca"));
-		BitSet tBS = new BitSet(3000000);
+		BitSet tBS = new BitSet((int) Ldbnodei.max());
 		for(int i=0;i<Ldbnodei.size();i++){
 			tBS.set((int)Ldbnodei.getQuick(i));
 		}
-		System.out.println("testing "+arg0+" "+arg0.endNode());
-		tBS.and(fullIdBS);//contains any if .isEmpty == False
-		if (tBS.isEmpty() == true) {
+		if (tBS.intersects(fullIdBS)) {//contains any
 			return Evaluation.INCLUDE_AND_CONTINUE;
 		}else{
 			return Evaluation.EXCLUDE_AND_PRUNE;

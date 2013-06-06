@@ -20,7 +20,7 @@ public class LicaContainsAllEvaluatorBS implements Evaluator{
 	TLongArrayList visited = null;
 	public LicaContainsAllEvaluatorBS(){}
 	public void setinIDset(TLongArrayList fids){
-		inIdBS = new BitSet(3000000);//could set this to the smallest number
+		inIdBS = new BitSet((int) fids.max());//could set this to the smallest number
 		for(int i=0;i<fids.size();i++){
 			inIdBS.set((int)fids.getQuick(i));
 		}
@@ -38,7 +38,7 @@ public class LicaContainsAllEvaluatorBS implements Evaluator{
 		}
 		visited.add(tn.getId());
 		TLongArrayList Ldbnodei = new TLongArrayList((long[]) tn.getProperty("mrca"));
-		BitSet tBS = new BitSet(3000000);
+		BitSet tBS = new BitSet((int) Ldbnodei.max());
 		for(int i=0;i<Ldbnodei.size();i++){
 			tBS.set((int)Ldbnodei.getQuick(i));
 		}
