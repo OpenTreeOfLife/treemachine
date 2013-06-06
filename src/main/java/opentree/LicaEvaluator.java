@@ -22,7 +22,7 @@ public class LicaEvaluator implements Evaluator{
 	}
 	public Evaluation evaluate(Path arg0) {
 		TLongArrayList Ldbnodei = new TLongArrayList((long[]) arg0.endNode().getProperty("mrca"));
-		System.out.println("testing "+arg0+" "+arg0.endNode());
+//		System.out.println("testing "+arg0+" "+arg0.endNode());
 		Ldbnodei.sort();
 		if (containsAnyt4jSorted(Ldbnodei, fullIdSet) == false) {
 			return Evaluation.INCLUDE_AND_CONTINUE;

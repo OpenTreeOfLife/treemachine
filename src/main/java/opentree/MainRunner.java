@@ -208,9 +208,9 @@ public class MainRunner {
 					sourcename = (String)jt.get(i).getObject("ot:studyId");
 				}
 				if (jt.size() == 1) {
-					gi.addSetTreeToGraph(focalgroup, sourcename);
+					gi.addSetTreeToGraph(focalgroup, sourcename,false);
 				} else {
-					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i));
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i), false);
 					gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
 				}
 				// gi.updateAfterTreeIngest(false);
@@ -223,7 +223,7 @@ public class MainRunner {
 					}
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
-					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i)); //@QUERY treeID has been added, so I'm not sure we want to munge the sourcename
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i),false); //@QUERY treeID has been added, so I'm not sure we want to munge the sourcename
 				}
 			}
 		} finally {
@@ -464,12 +464,17 @@ public class MainRunner {
 	/// @returns 0 for success, 1 for poorly formed command
 	public int justTreeAnalysis(String [] args)
 				throws DataFormatException, TaxonNotFoundException, TreeIngestException{
-		if (args.length > 3) {
-			System.out.println("arguments should be: filename graphdbfolder");
+		if (args.length != 4) {
+			System.out.println("arguments should be: filename (taxacompletelyoverlap)T|F graphdbfolder");
 			return 1;
 		}
 		String filename = args[1];
-		String graphname = args[2];
+		String soverlap = args[2];
+		boolean overlap = true;
+		if (soverlap.toLowerCase().equals("f")){
+			overlap = false;
+		}
+		String graphname = args[3];
 		int treeCounter = 0;
 		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
 		// read the tree from a file
@@ -551,7 +556,7 @@ public class MainRunner {
 
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph("life", sourcename);
+			gi.addSetTreeToGraph("life", sourcename,overlap);
 			gi.deleteTreeBySource(sourcename);
 		}			
 		// adding them again after all the nodes are there
@@ -564,7 +569,7 @@ public class MainRunner {
 
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph("life", sourcename);
+			gi.addSetTreeToGraph("life", sourcename,overlap);
 		}
 		gi.shutdownDB();
 		return 0;
@@ -1047,7 +1052,7 @@ public class MainRunner {
 		PrintWriter outFile = null;
 		try {
 			outFile = new PrintWriter(new FileWriter(outFileName));
-			outFile.write(synthTree.getRoot().getNewick(true));
+			outFile.write(synthTree.getRoot().getNewick(false));
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -1271,7 +1276,7 @@ public class MainRunner {
 							if (hits.size() > 0){
 								System.out.println("source "+sourcename+" already added");
 							}else{
-								gi.addSetTreeToGraphWIdsSet(sourcename);
+								gi.addSetTreeToGraphWIdsSet(sourcename,false);
 							}
 						}
 					}
@@ -1334,7 +1339,7 @@ public class MainRunner {
 			return 0;
 		}
 		try{
-			boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
+			boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,true);
 			if (good == false){
 				System.out.println("failed to get the names from server fixNamesFromTrees");
 				graphDb.shutdownDb();
@@ -1382,7 +1387,7 @@ public class MainRunner {
 					if (hits.size() > 0){
 						System.out.println("source "+sourcename+" already added");
 					}else{
-						gi.addSetTreeToGraphWIdsSet(sourcename);
+						gi.addSetTreeToGraphWIdsSet(sourcename,false);
 					}
 				}
 			}
@@ -1473,7 +1478,7 @@ public class MainRunner {
 						if (hits.size() > 0){
 							System.out.println("source "+sourcename+" already added");
 						}else{
-							gi.addSetTreeToGraphWIdsSet(sourcename);
+							gi.addSetTreeToGraphWIdsSet(sourcename,false);
 						}
 					}
 		        }
@@ -1523,7 +1528,7 @@ public class MainRunner {
 
 		System.out.println("---graph exploration---");
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
-		System.out.println("\tjusttrees <filename> <graphdbfolder> (loads the trees into a graph)");
+		System.out.println("\tjusttrees <filename> <taxacompletelyoverlap[T|F]> <graphdbfolder> (loads the trees into a graph)");
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tsourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");

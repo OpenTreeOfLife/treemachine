@@ -29,13 +29,13 @@ public class LicaBipartEvaluator implements Evaluator{
 	public void setInset(TLongArrayList fids){
 		inIdSet = fids;
 	}
-	public void setVisitedset(TLongArrayList fids){
+	public void setVisitedSet(TLongArrayList fids){
 		visited = fids;
 	}
 	public void setgraphdb(GraphDatabaseAgent gb){
 		graphdb = gb;
 	}
-	public TLongArrayList getVisitedset(){
+	public TLongArrayList getVisitedSet(){
 		return visited;
 	}
 	

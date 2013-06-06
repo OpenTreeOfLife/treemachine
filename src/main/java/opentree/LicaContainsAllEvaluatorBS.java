@@ -1,5 +1,7 @@
 package opentree;
 
+import java.util.BitSet;
+
 import gnu.trove.list.array.TLongArrayList;
 
 import org.neo4j.graphdb.Direction;
@@ -13,16 +15,15 @@ import org.neo4j.graphdb.traversal.Evaluator;
  * Neo4j Traversal Evaluator which prunes paths when it finds a node with 
  *  an indegree greater or equal the threshold set in `setChildThreshold`
  */
-public class LicaContainsAllEvaluator implements Evaluator{
-	TLongArrayList inIdSet = null;
-	TLongArrayList smInIdSet = null;
+public class LicaContainsAllEvaluatorBS implements Evaluator{
+	BitSet inIdBS = null;
 	TLongArrayList visited = null;
-	public LicaContainsAllEvaluator(){}
+	public LicaContainsAllEvaluatorBS(){}
 	public void setinIDset(TLongArrayList fids){
-		inIdSet = fids;
-	}
-	public void setSmInSet(TLongArrayList fids){
-		smInIdSet = fids;
+		inIdBS = new BitSet((int) fids.max());//could set this to the smallest number
+		for(int i=0;i<fids.size();i++){
+			inIdBS.set((int)fids.getQuick(i));
+		}
 	}
 	public void setVisitedSet(TLongArrayList fids){
 		visited = fids;
@@ -37,16 +38,12 @@ public class LicaContainsAllEvaluator implements Evaluator{
 		}
 		visited.add(tn.getId());
 		TLongArrayList Ldbnodei = new TLongArrayList((long[]) tn.getProperty("mrca"));
-		//Ldbnodei.sort();
-		//try the small one first if it exists
-		if(smInIdSet!= null){
-			if(((smInIdSet.size()*2)-1)<inIdSet.size()){//only do this if we have smaller than half the size of the array
-				if(Ldbnodei.containsAll(smInIdSet)==false){//some overlap in inbipart
-					return Evaluation.EXCLUDE_AND_CONTINUE;
-				}
-			}
+		BitSet tBS = new BitSet((int) Ldbnodei.max());
+		for(int i=0;i<Ldbnodei.size();i++){
+			tBS.set((int)Ldbnodei.getQuick(i));
 		}
-		if (Ldbnodei.containsAll(inIdSet)) {
+		tBS.and(inIdBS);
+		if (tBS.cardinality()==inIdBS.cardinality()) {//contains all
 			return Evaluation.INCLUDE_AND_PRUNE;
 		}else{
 			return Evaluation.EXCLUDE_AND_CONTINUE;

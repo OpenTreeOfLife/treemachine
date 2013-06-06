@@ -307,18 +307,20 @@ public class PhylografterConnector {
 	         * 3. we add this to the index of new names to add
 	         */
 	        
-	        if (namenodemap.size() > 0)
-	        	return false;
-	        /* TODO, add pruning
-	        for(String name: namenodemap.keySet()){
-	        	System.out.println("need to prune"+name);
-	        	JadeNode jnode = namenodemap.get(name);
-	        	//get the nodes from the parent
-	        	JadeNode jnp = jnode;
-        	
-	        	
+	        if (namenodemap.size() > 0){
+	        	if(prune){
+	    	        System.out.println(trees.get(i).getRoot().getNewick(false));
+	    	        for(String name: namenodemap.keySet()){
+	    	        	System.out.println("pruning"+name);
+	    	        	JadeNode jnode = namenodemap.get(name);
+	    	        	trees.get(i).pruneExternalNode(jnode);
+	    	        }
+	    	        System.out.println("postpruning");
+	    	        System.out.println(trees.get(i).getRoot().getNewick(false));
+	        	}else{
+	        		return false;
+	        	}
 	        }
-	        */
 		}
 		return true;
 	}
