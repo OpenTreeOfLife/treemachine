@@ -3,7 +3,9 @@ package opentree;
 //import java.util.Arrays;
 //import java.util.Collections;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import java.util.Iterator;
@@ -352,15 +354,57 @@ public class LicaUtil {
 	 * @return
 	 */
 	public static Node getDraftTreeLICA(Iterable<Node> inNodes) {
+		return getSynthTreeLICA(inNodes, (String) Constants.DRAFTTREENAME.value);
+	}
+
+	protected static void checkNodeId(Node n) {
+		// eventually need bitset that accepts long ids
+		if ((long) Integer.MAX_VALUE < n.getId()) {
+			throw new java.lang.ArrayIndexOutOfBoundsException("the node id " + n.getId() + " exceeds the maximum integer value");
+		}	
+	}
+	
+	/**
+	 * This will return the MRCA using the specified synthesis tree relationships. This only
+	 * requires the nodes that we are looking for.
+	 * 
+	 * @param inNodes
+	 * @return
+	 */
+	public static Node getSynthTreeLICA(Iterable<Node> inNodes, String treeName) {
+		
+		// TODO: going to need a check somewhere in here to make sure all the nodes are in the draft tree
 		
 		// get start node
-		Iterator<Node> nodeSet = inNodes.iterator();
-		Node firstNode = nodeSet.next();
+		Iterator<Node> nodeIter = inNodes.iterator();
+
+		if (! nodeIter.hasNext()) {
+			throw new java.lang.NullPointerException("attempt to get MRCA of zero taxa");
+		}
+		Node firstNode = nodeIter.next();
+
+		// just one node, so it is the mrca
+		if (! nodeIter.hasNext()) {
+			return firstNode;
+		}
+
+//		System.out.println(firstNode.toString());
 		
 		// extract other node ids
-		TLongArrayList nodeSetLongs = new TLongArrayList();
-		while (nodeSet.hasNext()) {
-			nodeSetLongs.add(nodeSet.next().getId());
+//		TLongArrayList nodeSetLongs = new TLongArrayList();
+//		LinkedList<Long> ids = new LinkedList<Long>();
+		BitSet refIdBits = new BitSet();
+		int nNodes = 0;
+		while (nodeIter.hasNext()) {
+			Node curNode = nodeIter.next();
+			if (curNode != null) {
+//				System.out.println(curNode.toString());
+//				nodeSetLongs.add(curNode.getId());
+				checkNodeId(curNode);
+				
+				refIdBits.set((int) curNode.getId());
+				nNodes++;
+			}
 		}
 
 		Node innode = firstNode;
@@ -369,9 +413,20 @@ public class LicaUtil {
 		while (going) {
 			// get parent
 			try {
+				boolean found = false;
 				for (Relationship rel : innode.getRelationships(RelTypes.SYNTHCHILDOF, Direction.OUTGOING)) {
-					if (String.valueOf(rel.getProperty("name")).compareTo((String) Constants.DRAFTTREENAME.value) == 0) {
+					if (String.valueOf(rel.getProperty("name")).compareTo(treeName) == 0) {
+						found = true;
 						innode = rel.getEndNode();
+						break;
+					}
+				}
+				
+				if (! found) {
+					if (innode.getId() != 1) { // test if this is the life node... but is this always going to be true for the life node?
+						throw new java.lang.IllegalArgumentException("The node " + innode.getId() + " is not in the tree " + treeName);
+					} else {
+						return innode;
 					}
 				}
 			} catch(Exception e) {
@@ -379,9 +434,30 @@ public class LicaUtil {
 				break;
 			}
 
-			TLongArrayList dbnodei = new TLongArrayList ((long[]) innode.getProperty("mrca"));
-			dbnodei.addAll((long[]) innode.getProperty("nested_mrca"));
-			if (dbnodei.containsAll(nodeSetLongs) == true) {
+			TLongArrayList curIds = new TLongArrayList ((long[]) innode.getProperty("mrca"));
+			BitSet curIdBits = new BitSet((int) curIds.max());
+			for (int i = 0; i < curIds.size(); i++) {
+//				Node curNode = nodeIter.next();
+//				if (curNode != null) {
+	//				System.out.println(curNode.toString());
+	//				nodeSetLongs.add(curNode.getId());
+					
+//					checkNodeId(curNode);
+					
+					if ((long) Integer.MAX_VALUE < curIds.get(i)) {
+						throw new java.lang.ArrayIndexOutOfBoundsException("the node id " + curIds.get(i) + " exceeds the maximum integer value");
+					}
+					refIdBits.set((int) curIds.get(i));
+			}
+			
+			// this might not be necessary...
+//			if (innode.hasProperty("nested_mrca")) {
+//				dbnodei.addAll((long[]) innode.getProperty("nested_mrca"));
+//			}
+			
+//			if (dbnodei.containsAll(nodeSetLongs) == true) {
+			curIdBits.and(refIdBits);
+			if (curIdBits.cardinality() == nNodes) {
 				retaln = innode;
 				going = false;
 

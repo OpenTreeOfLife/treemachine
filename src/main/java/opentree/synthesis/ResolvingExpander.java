@@ -168,9 +168,6 @@ public class ResolvingExpander implements PathExpander {
 
 	@Override
 	public PathExpander reverse() {
-		System.out.println("hit reverse");
-		System.exit(0);
-		// TODO Auto-generated method stub
-		return null;
+		throw new java.lang.UnsupportedOperationException("reverse method not supported for synthesis expander");
 	}
 }

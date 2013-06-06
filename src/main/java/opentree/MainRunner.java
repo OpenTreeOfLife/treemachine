@@ -1065,18 +1065,35 @@ public class MainRunner {
 			return 1;
 		}
 
-		String[] OTTids = args[1].trim().split(",");
+		System.out.println(args[1]);
+		String[] OTTids = args[1].trim().split("\\,");
 		String outFileName = args[2];
 		String graphname = args[3];
 		GraphExplorer ge = new GraphExplorer(graphname);
 
 		ArrayList<Node> tipNodes = new ArrayList<Node>();
 		for (String OTTid : OTTids) {
-			tipNodes.add(ge.findGraphTaxNodeByUID(OTTid));
+			System.out.println(OTTid);
+			Node tip = ge.findGraphTaxNodeByUID(OTTid);
+			if (tip != null) {
+				System.out.println("id = " + tip.getId());
+				tipNodes.add(tip);
+			}
 		}
 		
-		System.out.println(ge.extractDraftSubtreeForTipNodes(tipNodes).toString());
+		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes);
 
+		PrintWriter outFile = null;
+		try {
+			outFile = new PrintWriter(new FileWriter(outFileName));
+			outFile.write(synthTreeRootNode.getNewick(true));
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			outFile.close();
+			ge.shutdownDB();
+		}
+		
 		return 0;
     }
 	
@@ -1526,7 +1543,7 @@ public class MainRunner {
 		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
 		System.out.println("\tsynthesizedrafttreelist <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\textractdrafttree <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
-		
+		System.out.println("\textractdraftsubtreefornodes <tipOTTid1>,<tipOTTid2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
 				
 		System.out.println("---temporary functions---");
 		System.out.println("\taddtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");
@@ -1612,7 +1629,8 @@ public class MainRunner {
 				cmdReturnCode = mr.synthesizeDraftTreeWithList(args);
 			} else if (command.compareTo("extractdrafttree") == 0) {
 				cmdReturnCode = mr.extractDraftTree(args);
-				
+			} else if (command.compareTo("extractdraftsubtreefornodes") == 0) {
+				cmdReturnCode = mr.extractDraftSubTreeForOttIDs(args);
 			
 			// temporary
 			} else if (command.compareTo("addtaxonomymetadatanodetoindex") == 0) {

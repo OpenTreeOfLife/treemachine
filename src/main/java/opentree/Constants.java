@@ -2,7 +2,7 @@ package opentree;
 
 public enum Constants {
 
-	DRAFTTREENAME (String.class, "otol.draft.1");
+	DRAFTTREENAME (String.class, "otol.draft.22");
 	
     public final Class<?> type;
     public final Object value;
