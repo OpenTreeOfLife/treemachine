@@ -1357,12 +1357,14 @@ public class MainRunner {
 				boolean doubname = false;
 				HashSet<Long> ottols = new HashSet<Long>();
 				for(int m=0;m<j.getExternalNodeCount();m++){
-					System.out.println(j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
+					//System.out.println(j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
 					if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
+						System.out.println("null: " + j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
 						doubname = true;
 						break;
 					}
 					if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid")) == true){
+						System.out.println("dupl: " + j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
 						doubname = true;
 						break;
 					} else {
@@ -1371,7 +1373,7 @@ public class MainRunner {
 				}
 				//check for any duplicate ottol:id
 				if (doubname == true){
-					System.out.println("there are duplicate names");
+					System.out.println("there are null or duplicate names");
 				} else {
 					System.out.println("this is being added");
 					gi.setTree(j);

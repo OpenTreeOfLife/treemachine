@@ -1,5 +1,7 @@
 package opentree;
 
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
@@ -15,6 +17,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -210,116 +213,162 @@ public class PhylografterConnector {
 			}
 			if (searchnds.size() == 0){
 				System.out.println("all nodes have ottolids");
-				break;
-			}
-			
-			StringBuffer sb = new StringBuffer();
+			}else{
 
-			// build the parameter string for the context query
-			sb.append("{\"queryString\":\"");
-			sb.append(trees.get(i).getExternalNode(0).getName());
-			for (int j = 1; j < trees.get(i).getExternalNodeCount(); j++) {
-				sb.append("," + trees.get(i).getExternalNode(j).getName());
-			}
-			sb.append("\"}");
-			String contextQueryParameters = sb.toString();
-			// System.out.println(urlParameters);
+				StringBuffer sb = new StringBuffer();
 
-	        // set up the connection to the TNRS context query
-	        ClientConfig cc = new DefaultClientConfig();
-	        Client c = Client.create(cc);
-	        WebResource contextQuery = c.resource(urlbasecontext);
+				// build the parameter string for the context query
+				sb.append("{\"queryString\":\"");
+				sb.append(trees.get(i).getExternalNode(0).getName());
+				for (int j = 1; j < trees.get(i).getExternalNodeCount(); j++) {
+					sb.append("," + trees.get(i).getExternalNode(j).getName());
+				}
+				sb.append("\"}");
+				String contextQueryParameters = sb.toString();
+				// System.out.println(urlParameters);
 
-	        // query for the context
-	        String contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
-	        JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
-	        String cn = (String)contextResponse.get("context_name");
-	       // Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
-	      //  System.out.println(contextResponse);
-	        //getting the names for each of the speices
-	        sb = new StringBuffer();
+				// set up the connection to the TNRS context query
+				ClientConfig cc = new DefaultClientConfig();
+				Client c = Client.create(cc);
+				WebResource contextQuery = c.resource(urlbasecontext);
 
-			// build the parameter string for the context query
-			sb.append("{\"queryString\":\"");
-			sb.append(searchnds.get(0).getName());
-			for (int j = 1; j < searchnds.size(); j++) {
-				if(searchnds.get(j).getObject("ot:ottolid")==null){
-					sb.append("," + searchnds.get(j).getName());
+				// query for the context
+				String contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
+				JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
+				String cn = (String)contextResponse.get("context_name");
+				// Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
+				//  System.out.println(contextResponse);
+				//getting the names for each of the speices
+				sb = new StringBuffer();
+
+				// build the parameter string for the context query
+				sb.append("{\"queryString\":\"");
+				sb.append(searchnds.get(0).getName());
+				for (int j = 1; j < searchnds.size(); j++) {
+					if(searchnds.get(j).getObject("ot:ottolid")==null){
+						sb.append("," + searchnds.get(j).getName());
+					}
+				}
+				sb.append("\",\"contextName\":\""+cn+"\"}");
+				contextQueryParameters = sb.toString();
+
+				// set up the connection to the TNRS context query
+				cc = new DefaultClientConfig();
+				c = Client.create(cc);
+				contextQuery = c.resource(urlbasefetch);
+
+				// query for the context
+				contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
+				contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
+				// System.out.println(contextResponse);
+				JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
+				//	        System.out.println("total unmatched: "+unmcount);
+				JSONArray res = (JSONArray) contextResponse.get("results");
+				//if the match is with score 1, then we keep
+				for (Object id: res){
+					JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
+					for(Object tid: tres){
+						Double score = (Double)((JSONObject)tid).get("score");
+						boolean permat = (Boolean)((JSONObject)tid).get("isPerfectMatch");
+						String ottolid = (String)((JSONObject)tid).get("matchedOttolID");
+						String searchString = (String)((JSONObject)tid).get("searchString");
+						//	        		System.out.println(score+" "+permat+" "+ottolid);
+						if (score >= 1){
+							namenodemap.get(searchString).assocObject("ot:ottolid", Long.valueOf(ottolid));
+							matchednodes.add(namenodemap.get(searchString));
+							namenodemap.remove(searchString);
+							break;
+						}
+					}
+				}
+				Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
+
+				//check to make sure that they aren't already in the new index
+				ArrayList<String> removenames = new ArrayList<String>();
+				for(String name: namenodemap.keySet()){
+					IndexHits <Node> hits = graphNodeIndex.get("name", name);
+					if (hits.size() == 1){
+						Long lid = (Long) hits.getSingle().getProperty("tax_uid");
+						namenodemap.get(name).assocObject("ot:ottolid", Long.valueOf(lid));
+						removenames.add(name);
+					}else{
+						System.out.println(hits.size());
+					}
+					hits.close();
+				}
+				//remove the ones that are added
+				for(String name: removenames){
+					namenodemap.remove(name);
+				}
+				//prune the ones that didn't map
+				/*
+				 * The process is to use the id for the context that is obtained above
+				 * 0. we assign a new temporary ottolid -- need to know how to autoincrement
+				 * 1. for each name we add a taxon name in the taxonomy in treemachine
+				 * 2. we add this to the taxonomy index
+				 * 3. we add this to the index of new names to add
+				 */
+
+				if (namenodemap.size() > 0){
+					if(prune){
+						System.out.println(trees.get(i).getRoot().getNewick(false));
+						for(String name: namenodemap.keySet()){
+							System.out.println("pruning"+name);
+							JadeNode jnode = namenodemap.get(name);
+							trees.get(i).pruneExternalNode(jnode);
+						}
+						System.out.println("postpruning");
+						System.out.println(trees.get(i).getRoot().getNewick(false));
+					}else{
+						return false;
+					}
 				}
 			}
-			sb.append("\",\"contextName\":\""+cn+"\"}");
-			contextQueryParameters = sb.toString();
-
-	        // set up the connection to the TNRS context query
-	        cc = new DefaultClientConfig();
-	        c = Client.create(cc);
-	        contextQuery = c.resource(urlbasefetch);
-
-	        // query for the context
-	        contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
-	        contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
-	       // System.out.println(contextResponse);
-	        JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
-//	        System.out.println("total unmatched: "+unmcount);
-	        JSONArray res = (JSONArray) contextResponse.get("results");
-	        //if the match is with score 1, then we keep
-	        for (Object id: res){
-	        	JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
-	        	for(Object tid: tres){
-	        		Double score = (Double)((JSONObject)tid).get("score");
-	        		boolean permat = (Boolean)((JSONObject)tid).get("isPerfectMatch");
-	        		String ottolid = (String)((JSONObject)tid).get("matchedOttolID");
-	        		String searchString = (String)((JSONObject)tid).get("searchString");
-//	        		System.out.println(score+" "+permat+" "+ottolid);
-	        		if (score >= 1){
-	        			namenodemap.get(searchString).assocObject("ot:ottolid", Long.valueOf(ottolid));
-	        			matchednodes.add(namenodemap.get(searchString));
-	        			namenodemap.remove(searchString);
-	        			break;
+	        //now checking for duplicate names or names to point to parents
+	        if(prune){
+	        	//for each tip in the tree, see if there are duplicates
+	        	TLongHashSet tipottols = new TLongHashSet();
+	        	HashSet<JadeNode> pru = new HashSet<JadeNode> ();
+	        	for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
+	        		Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
+	        		if(tipottols.contains(tid)){
+	        			//prune
+	        			System.out.println("duplicate names");
+	        			pru.add(trees.get(i).getExternalNode(j));
+	        		}else{
+	        			tipottols.add(tid);
 	        		}
 	        	}
-	        }
-	        Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
-
-	        //check to make sure that they aren't already in the new index
-	        ArrayList<String> removenames = new ArrayList<String>();
-	        for(String name: namenodemap.keySet()){
-	        	IndexHits <Node> hits = graphNodeIndex.get("name", name);
-	        	if (hits.size() == 1){
-	        		Long lid = (Long) hits.getSingle().getProperty("tax_uid");
-	        		namenodemap.get(name).assocObject("ot:ottolid", Long.valueOf(lid));
-	        		removenames.add(name);
-	        	}else{
-	        		System.out.println(hits.size());
+	        	//for each tip see if there are tips that map to parents of other tips
+	        	//do this by seeing if there is any overlap between the mrcas from different 
+	        	for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
+	        		if(pru.contains(trees.get(i).getExternalNode(j)))
+        				continue;
+	        		Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
+	        		IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+	        		Node firstNode = hits.getSingle();
+	        		hits.close();
+	        		TLongArrayList t1 = new TLongArrayList((long [])firstNode.getProperty("mrca"));
+	        		for(int k=0;k<trees.get(i).getExternalNodeCount();k++){
+	        			if(pru.contains(trees.get(i).getExternalNode(k)) 
+	        				|| k==j)
+	        				continue;
+	        			Long tid2 = (Long)trees.get(i).getExternalNode(k).getObject("ot:ottolid");
+		        		IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid2));
+		        		Node secondNode = hits2.getSingle();
+		        		hits2.close();
+		        		TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
+		        		if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
+		        			System.out.println("overlapping tips: "+trees.get(i).getExternalNode(k).getName());
+		        			pru.add(trees.get(i).getExternalNode(k));
+		        		}
+	        		}
 	        	}
-	        	hits.close();
-	        }
-	        //remove the ones that are added
-	        for(String name: removenames){
-	        	namenodemap.remove(name);
-	        }
-	        //prune the ones that didn't map
-	        /*
-	         * The process is to use the id for the context that is obtained above
-	         * 0. we assign a new temporary ottolid -- need to know how to autoincrement
-	         * 1. for each name we add a taxon name in the taxonomy in treemachine
-	         * 2. we add this to the taxonomy index
-	         * 3. we add this to the index of new names to add
-	         */
-	        
-	        if (namenodemap.size() > 0){
-	        	if(prune){
-	    	        System.out.println(trees.get(i).getRoot().getNewick(false));
-	    	        for(String name: namenodemap.keySet()){
-	    	        	System.out.println("pruning"+name);
-	    	        	JadeNode jnode = namenodemap.get(name);
-	    	        	trees.get(i).pruneExternalNode(jnode);
-	    	        }
-	    	        System.out.println("postpruning");
-	    	        System.out.println(trees.get(i).getRoot().getNewick(false));
-	        	}else{
-	        		return false;
+	        	for(JadeNode tn: pru){
+	        		System.out.println("pruning: "+tn.getName());
+	        		trees.get(i).pruneExternalNode(tn);
 	        	}
+	        	trees.get(i).processRoot();
 	        }
 		}
 		return true;
