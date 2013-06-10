@@ -179,6 +179,7 @@ public class GraphInitializer extends GraphBase{
 								Node mdnode = graphDb.createNode();
 								mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
 								sourceMetaIndex.add(mdnode, "source", "taxonomy");
+								System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());
 							}
 							dbnodes.put(tid, tnode);
 							// synonym processing
@@ -242,6 +243,7 @@ public class GraphInitializer extends GraphBase{
 						Node mdnode = graphDb.createNode();
 						mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
 						sourceMetaIndex.add(mdnode, "source", "taxonomy");
+						System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());
 					}
 					dbnodes.put(tid, tnode);
 					// synonym processing
