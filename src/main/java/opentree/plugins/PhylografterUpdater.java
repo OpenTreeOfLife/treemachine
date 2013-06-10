@@ -79,7 +79,7 @@ public class PhylografterUpdater extends ServerPlugin{
 						if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
 							sourcename = (String)j.getObject("ot:studyId");
 						}
-						gi.addSetTreeToGraphWIdsSet(sourcename,false);
+						gi.addSetTreeToGraphWIdsSet(sourcename,false,false);
 					}
 		        }
 			} catch(java.lang.NullPointerException e){

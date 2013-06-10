@@ -48,7 +48,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 			} else {
 				name = rel.getStartNode().toString();
 			}
-			System.out.println(name + " has " + descendantIds.size() + " children");
+			System.out.println(name + " has " + descendantIds.size() + " mrcas");
 		}
 	}
 	
@@ -78,20 +78,20 @@ public class RankResolutionMethod implements ResolutionMethod {
 		
 	    // for every candidate relationship
 	    while (relsIter.hasNext()) {
-
+	    	
 	    	Relationship candidate = relsIter.next();
-//	    	System.out.println("testing rel " + candidate.getId() + " for conflicts");
+	    	//System.out.println("\ttesting rel " + candidate.getId() + " for conflicts");
 
 	    	boolean saveRel = true;
 
 	    	// test for conflict between candidate against all saved
 	    	for (Relationship saved : bestRels) {
-//		    	System.out.println("\tagainst rel " + saved.getId());
+		    	//System.out.println("\t\tagainst rel " + saved.getId());
 
 	    		if (testForConflict(candidate, saved) == true) {
 			    	
 	    			// testing
-//	    			System.out.println("\tconflict found! offending rel=" + saved.getId());
+	    			//System.out.println("\t\tconflict found! offending rel=" + saved.getId());
 	    			
 			    	saveRel = false;
 	    			break;
@@ -100,8 +100,10 @@ public class RankResolutionMethod implements ResolutionMethod {
 	    	
 	    	// if no conflict was found, add this rel to the saved set
 	    	if (saveRel) {
-//		    	System.out.println("\trel " + candidate.getId() + " passed, it will be added");
+		    	System.out.println("\t\t++rel " + candidate.getId() + " passed, it will be added");
 	    		bestRels.add(candidate);
+	    	}else{
+	    		System.out.println("\t\t--rel " + candidate.getId() + " failed, it will be added");
 	    	}
 	    }
 

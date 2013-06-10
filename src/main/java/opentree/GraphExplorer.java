@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Stack;
 
 import opentree.synthesis.DraftTreePathExpander;
+import opentree.synthesis.FilterComparisonType;
 import opentree.synthesis.RankResolutionMethod;
 import opentree.synthesis.RankingOrder;
 import opentree.synthesis.RelationshipConflictResolver;
@@ -29,8 +30,10 @@ import opentree.synthesis.RelationshipFilter;
 import opentree.synthesis.RelationshipRanker;
 import opentree.synthesis.ResolvingExpander;
 import opentree.synthesis.SourceProperty;
+import opentree.synthesis.SourcePropertyFilterCriterion;
 import opentree.synthesis.SourcePropertyPrioritizedRankingCriterion;
 import opentree.synthesis.SourcePropertyRankingCriterion;
+import opentree.synthesis.TestValue;
 import opentree.synthesis.TreeMakingBandB;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -746,11 +749,14 @@ public class GraphExplorer extends GraphBase {
      * The synthesis method for creating the draft tree. Uses the refactored synthesis classes. This will store the synthesized
      * topology as SYNTHCHILDOF relationships in the graph.
      * 
-     * @param ottolId
+     * @param startNode this is the beginning node for analysis
+     * @param preferredSourceIds this includes the list of preferred sources
+     * @param test this will just run through the motions but won't store the synthesis 
      * @throws OttolIdNotFoundException 
      */
-    public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds) throws OttolIdNotFoundException {        
-        // build the list of ids, have to use generic objects
+    public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds, boolean test) throws OttolIdNotFoundException {        
+    	
+    	// build the list of ids, have to use generic objects
         ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
         	sourceIdPriorityList.add((Object) sourceId);
@@ -766,7 +772,7 @@ public class GraphExplorer extends GraphBase {
         HashSet<String> filteredsources = new HashSet<String>();
         //filteredsources.add("26");
         //ignore any source that isn't in our preferred list
-        /*IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
+        IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         while (hits.hasNext()) {
             Node n = hits.next();
             if(n.hasProperty("ot:studyId")){
@@ -780,7 +786,7 @@ public class GraphExplorer extends GraphBase {
         System.out.println("filtered: "+filteredsources);
         rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDYID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
         draftSynthesisMethod.setFilter(rf);
-        */
+        
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
         rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDYID, sourceIdPriorityList, sourceMetaIndex));
@@ -807,7 +813,7 @@ public class GraphExplorer extends GraphBase {
         		Node parentNode = rel.getEndNode();
         		Node curNode = rel.getStartNode();
         		
-            	if (parentNode != null) {
+            	if (parentNode != null && test == false) {
             		Relationship newRel = curNode.createRelationshipTo(parentNode, RelTypes.SYNTHCHILDOF);
             		newRel.setProperty("name", synthTreeName);
 
@@ -1841,7 +1847,11 @@ public class GraphExplorer extends GraphBase {
         ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
         while (hits.hasNext()) {
             Node n = hits.next();
-            sourceArrayList.add((String) n.getProperty("source"));
+            try{
+            	sourceArrayList.add((String) n.getProperty("source"));
+            }catch(Exception e){
+            	System.out.println("source property not found for "+n);
+            }
         }
         return sourceArrayList;
     }

@@ -137,8 +137,9 @@ public class GraphImporter extends GraphBase{
 	 *
 	 * @param sourcename the name to be registered as the "source" property for
 	 *		every edge in this tree.
+	 * @param test don't add to the database
 	 */
-	public void addSetTreeToGraphWIdsSet(String sourcename,boolean taxacompletelyoverlap) throws TaxonNotFoundException,TreeIngestException {
+	public void addSetTreeToGraphWIdsSet(String sourcename,boolean taxacompletelyoverlap, boolean test) throws TaxonNotFoundException,TreeIngestException {
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
 		assumecomplete = taxacompletelyoverlap;
@@ -190,7 +191,10 @@ public class GraphImporter extends GraphBase{
 		root_ndids = ndids;
 		try {
 			tx = graphDb.beginTx();
-			postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+			if(test == false)
+				postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+			else
+				postOrderAddProcessedTreeToGraphNoAdd(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
 			tx.success();
 		} finally {
 			tx.finish();
@@ -215,6 +219,7 @@ public class GraphImporter extends GraphBase{
 	 *		to the root node that is in the index
 	 */
 	public void addSetTreeToGraph(String focalgroup, String sourcename,boolean taxacompletelyoverlap) throws TaxonNotFoundException, TreeIngestException {
+		boolean test = false;
 		Node focalnode = findTaxNodeByName(focalgroup);
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
@@ -294,7 +299,10 @@ public class GraphImporter extends GraphBase{
 		root_ndids = ndids;
 		try {
 			tx = graphDb.beginTx();
-			postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+			if(test == false)
+				postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+			else
+				postOrderAddProcessedTreeToGraphNoAdd(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
 			tx.success();
 		} finally {
 			tx.finish();
@@ -312,6 +320,7 @@ public class GraphImporter extends GraphBase{
 	 *
 	 * @param sourcename the name to be registered as the "source" property for
 	 *		every edge in this tree.
+	 * @param test don't add the tree to the database, just run through as though you would add it
 	 * @todo note that if a TreeIngestException the database will not have been reverted
 	 *		back to its original state. At minimum at least some relationships
 	 *		will have been created. It is also possible that some nodes will have
@@ -348,13 +357,14 @@ public class GraphImporter extends GraphBase{
 			}
 			hit_nodes_small_search.sort();
 			// get all the childids even if they aren't in the tree, this is the postorder part
-			TLongArrayList childndids = new TLongArrayList();
+			TLongHashSet childndidsh = new TLongHashSet();
 			for (int i = 0; i < inode.getChildCount(); i++) {
 				Node [] dbnodesob = (Node [])inode.getChild(i).getObject("dbnodes"); 
 				for (int k = 0; k < dbnodesob.length; k++) {
-					childndids.addAll((long[])dbnodesob[k].getProperty("mrca"));
+					childndidsh.addAll((long[])dbnodesob[k].getProperty("mrca"));
 				}
 			}
+			TLongArrayList childndids = new TLongArrayList(childndidsh);
 			childndids.sort();			
 			//			_LOG.trace("finished names");
 			TLongArrayList rootids = new TLongArrayList((TLongArrayList) root.getObject("ndidssearch"));
@@ -437,6 +447,85 @@ public class GraphImporter extends GraphBase{
 			inode.assocObject("dbnodes", nar);
 		}
 	}
+
+	
+	/**
+	 * Finish ingest a tree into the GoL. This is called after the names in the tree
+	 *	have been mapped to IDs for the nodes in the Taxonomy graph. The mappings are stored
+	 *	as an object associated with the root node, as are the list of node ID's. 
+	 *
+	 * This will update the class member updatedNodes so they can be used for updating 
+	 * existing relationships.
+	 *
+	 * @param sourcename the name to be registered as the "source" property for
+	 *		every edge in this tree.
+	 * @param test don't add the tree to the database, just run through as though you would add it
+	 * @todo note that if a TreeIngestException the database will not have been reverted
+	 *		back to its original state. At minimum at least some relationships
+	 *		will have been created. It is also possible that some nodes will have
+	 *		been created. We should probably add code to assure that we won't get
+	 *		a TreeIngestException, or rollback the db modifications.
+	 *		
+	 */
+	@SuppressWarnings("unchecked")
+	private void postOrderAddProcessedTreeToGraphNoAdd(JadeNode inode, JadeNode root, String sourcename, String treeID) throws TreeIngestException {
+		// postorder traversal via recursion
+		for (int i = 0; i < inode.getChildCount(); i++) {
+			postOrderAddProcessedTreeToGraphNoAdd(inode.getChild(i), root, sourcename, treeID);
+		}
+		//		_LOG.trace("children: "+inode.getChildCount());
+		// roothash are the actual ids with the nested names -- used for storing
+		// roothashsearch are the ids with nested exploded -- used for searching
+		HashMap<JadeNode, Long> roothash = ((HashMap<JadeNode, Long>)root.getObject("hashnodeids"));
+		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode, ArrayList<Long>>)root.getObject("hashnodeidssearch"));
+
+		if (inode.getChildCount() > 0) {
+			System.out.println(inode.getNewick(false));
+			ArrayList<JadeNode> nds = inode.getTips();
+			ArrayList<Node> hit_nodes = new ArrayList<Node>();
+			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
+			TLongArrayList hit_nodes_small_search = new TLongArrayList ();
+			// store the hits for each of the nodes in the tips
+			for (int j = 0; j < nds.size(); j++) {
+				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
+				ArrayList<Long> tlist = roothashsearch.get(nds.get(j));
+				hit_nodes_small_search.addAll(tlist);
+				for (int k = 0; k < tlist.size(); k++) {
+					hit_nodes_search.add(graphDb.getNodeById(tlist.get(k)));
+				}
+			}
+			hit_nodes_small_search.sort();
+			// because we don't associate nodes from the database to this, we have to search based on just the short names			
+			TLongArrayList childndids = new TLongArrayList(hit_nodes_small_search);
+			TLongArrayList outndids = new TLongArrayList();
+			//add all the children of the mapped nodes to the outgroup as well
+			for (int i = 0; i < root_ndids.size(); i++) {
+				if(childndids.contains(root_ndids.getQuick(i))==false)
+					outndids.addAll((long[])graphDb.getNodeById(root_ndids.get(i)).getProperty("mrca"));
+			}
+			childndids.sort();
+			outndids.removeAll(childndids);
+			outndids.sort();
+
+			HashSet<Node> ancestors = null;
+			/*
+			 * we can use a simpler calculation if we can assume that the 'trees that come in 
+			 * are complete in their taxa
+			 */
+			if(assumecomplete == true){
+				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
+			}else{
+				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
+			}
+			for(Node tnd: ancestors){
+				System.out.println("\tmatched nodes: "+tnd);
+				if(tnd.hasProperty("name")){
+					System.out.println("\t\t"+tnd.getProperty("name"));
+				}
+			}
+		}
+	}
+	
 	
 	/**
 	 * This should be called from within postOrderaddProcessedTreeToGraph

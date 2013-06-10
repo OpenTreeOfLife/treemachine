@@ -199,6 +199,7 @@ public class PhylografterConnector {
 		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/doTNRSForNames";
 		System.out.println("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
+			System.out.println("name fixing on tree "+i);
 			//get the names that don't have ids
 			//if the number is 0 then break
 			ArrayList<JadeNode> searchnds = new ArrayList<JadeNode>();
@@ -206,17 +207,15 @@ public class PhylografterConnector {
 			ArrayList<JadeNode> matchednodes = new ArrayList<JadeNode>();
 			for (int j = 0; j < trees.get(i).getExternalNodeCount(); j++) {
 				if(trees.get(i).getExternalNode(j).getObject("ot:ottolid")==null){
-					System.out.println("looking for:"+trees.get(i).getExternalNode(j).getName());
+					System.out.println("\tlooking for:"+trees.get(i).getExternalNode(j).getName());
 					searchnds.add(trees.get(i).getExternalNode(j));
 					namenodemap.put(trees.get(i).getExternalNode(j).getName(), trees.get(i).getExternalNode(j));
 				}
 			}
 			if (searchnds.size() == 0){
-				System.out.println("all nodes have ottolids");
+				System.out.println("\tall nodes have ottolids");
 			}else{
-
 				StringBuffer sb = new StringBuffer();
-
 				// build the parameter string for the context query
 				sb.append("{\"queryString\":\"");
 				sb.append(trees.get(i).getExternalNode(0).getName());
@@ -311,14 +310,11 @@ public class PhylografterConnector {
 
 				if (namenodemap.size() > 0){
 					if(prune){
-						System.out.println(trees.get(i).getRoot().getNewick(false));
 						for(String name: namenodemap.keySet()){
-							System.out.println("pruning"+name);
+							System.out.println("\tpruning unmapped name: "+name);
 							JadeNode jnode = namenodemap.get(name);
 							trees.get(i).pruneExternalNode(jnode);
 						}
-						System.out.println("postpruning");
-						System.out.println(trees.get(i).getRoot().getNewick(false));
 					}else{
 						return false;
 					}
@@ -333,7 +329,7 @@ public class PhylografterConnector {
 	        		Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
 	        		if(tipottols.contains(tid)){
 	        			//prune
-	        			System.out.println("duplicate names");
+	        			System.out.println("\tduplicate names: "+trees.get(i).getExternalNode(j).getName());
 	        			pru.add(trees.get(i).getExternalNode(j));
 	        		}else{
 	        			tipottols.add(tid);
@@ -359,16 +355,20 @@ public class PhylografterConnector {
 		        		hits2.close();
 		        		TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
 		        		if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
-		        			System.out.println("overlapping tips: "+trees.get(i).getExternalNode(k).getName());
+		        			System.out.println("\toverlapping tips: "+trees.get(i).getExternalNode(k).getName());
 		        			pru.add(trees.get(i).getExternalNode(k));
 		        		}
 	        		}
 	        	}
 	        	for(JadeNode tn: pru){
-	        		System.out.println("pruning: "+tn.getName());
+	        		System.out.println("\tpruning dups and overlapping: "+tn.getName());
 	        		trees.get(i).pruneExternalNode(tn);
 	        	}
 	        	trees.get(i).processRoot();
+	        	if(prune == true){
+					System.out.println("\tpostpruning newick");
+					System.out.println("\t"+trees.get(i).getRoot().getNewick(false));
+	        	}
 	        }
 		}
 		return true;

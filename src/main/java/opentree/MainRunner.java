@@ -1,5 +1,6 @@
 package opentree;
 
+import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
@@ -22,6 +23,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 //import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
@@ -963,9 +965,13 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException {
-		if (args.length != 4) {
-			System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder");
+		boolean test = false; 
+		if (args.length != 4 && args.length != 5) {
+			System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder (test)");
 			return 1;
+		}if(args.length == 5){
+			System.out.println("test is set, so the synthesis will not be stored");
+			test = true;
 		}
 		String ottolId = args[1];
 		String slist = args[2];
@@ -977,7 +983,7 @@ public class MainRunner {
 			LinkedList<String> preferredSources = new LinkedList<String>();
 			String [] tsl = slist.split(",");
 			for(int i=0;i<tsl.length;i++){preferredSources.add(tsl[i]);}
-			preferredSources.add("taxonomy");
+			//preferredSources.add("taxonomy");, need to add taxonomy 
 
 			// find the start node
 			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
@@ -985,7 +991,7 @@ public class MainRunner {
 				throw new opentree.OttolIdNotFoundException(ottolId);
 			}
 
-			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources);
+			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
@@ -997,6 +1003,7 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException {
+		boolean test = false;
 		if (args.length != 3) {
 			System.out.println("arguments should be rootOTToLid graphdbfolder");
 			return 1;
@@ -1016,7 +1023,7 @@ public class MainRunner {
 			if (firstNode == null) {
 				throw new opentree.OttolIdNotFoundException(ottolId);
 			}
-			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources);
+			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
@@ -1276,7 +1283,7 @@ public class MainRunner {
 							if (hits.size() > 0){
 								System.out.println("source "+sourcename+" already added");
 							}else{
-								gi.addSetTreeToGraphWIdsSet(sourcename,false);
+								gi.addSetTreeToGraphWIdsSet(sourcename,false,false);
 							}
 						}
 					}
@@ -1307,10 +1314,16 @@ public class MainRunner {
 	 * not from the server
 	 */
 	public int pg_loading_ind_studies(String [] args){
+		boolean test = false;
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
-		if (args.length != 3) {
+		if (args.length != 3 && args.length != 4) {
 			graphDb.shutdownDb();
+			System.out.println("the argument has to be graphdb filen (test)");
+			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
+		}if(args.length == 4){
+			System.out.println("not entering into the database, just testing");
+			test = true;
 		}
 		String filen = args[2];
 		File file = new File(filen);
@@ -1320,8 +1333,11 @@ public class MainRunner {
 		try{
 			br = new BufferedReader(new FileReader(file));
 			jt = NexsonReader.readNexson(br);
+			System.out.println("number of tips for trees in file "+file);
+			int count = 0;
 			for (JadeTree j : jt) {
-				System.out.println(file + ": " + j.getExternalNodeCount());
+				System.out.println("\ttree "+count+": " + j.getExternalNodeCount());
+				count += 1;
 			}
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -1375,7 +1391,6 @@ public class MainRunner {
 				if (doubname == true){
 					System.out.println("there are null or duplicate names");
 				} else {
-					System.out.println("this is being added");
 					gi.setTree(j);
 					String sourcename = "";
 					if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
@@ -1389,7 +1404,11 @@ public class MainRunner {
 					if (hits.size() > 0){
 						System.out.println("source "+sourcename+" already added");
 					}else{
-						gi.addSetTreeToGraphWIdsSet(sourcename,false);
+						if(test == false){
+							gi.addSetTreeToGraphWIdsSet(sourcename,false,false);
+						}else{
+							gi.addSetTreeToGraphWIdsSet(sourcename,false,true);
+						}
 					}
 				}
 			}
@@ -1480,7 +1499,7 @@ public class MainRunner {
 						if (hits.size() > 0){
 							System.out.println("source "+sourcename+" already added");
 						}else{
-							gi.addSetTreeToGraphWIdsSet(sourcename,false);
+							gi.addSetTreeToGraphWIdsSet(sourcename,false,false);
 						}
 					}
 		        }
@@ -1503,6 +1522,39 @@ public class MainRunner {
 		
 		graphDb.shutdownDb();
 		return rc;
+	}
+	
+	public int nodeInfo(String [] args){
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
+		if (args.length != 3) {
+			graphDb.shutdownDb();
+			return 1;
+		}
+		String node = args[1];
+		System.out.println("Getting information about node "+ node);
+		Long nodel = Long.valueOf(node);
+		Node tn=graphDb.getNodeById(nodel);
+		System.out.println("properties\n================\n");
+		for(String ts:tn.getPropertyKeys()){
+			if(ts.equals("mrca") || ts.equals("outmrca") || ts.equals("nested_mrca")){
+				System.out.print(ts+"\t");
+				long [] m = (long[])tn.getProperty(ts);
+				if(m.length < 100000){
+				for (int i=0;i<m.length;i++){
+					System.out.print(m[i]+" ");
+				}System.out.print("\n");
+				}
+				System.out.println(m.length);
+				TLongHashSet ths = new TLongHashSet(m);
+				System.out.println(ths.size());
+			}else if(ts.equals("name")){
+				System.out.println(ts+"\t"+(String)tn.getProperty(ts));
+			}else{
+				System.out.println(ts+"\t"+(String)tn.getProperty(ts));
+			}
+		}
+		graphDb.shutdownDb();
+		return 0;
 	}
 	
 	public static void printHelp() {
@@ -1642,7 +1694,8 @@ public class MainRunner {
 			// temporary
 			} else if (command.compareTo("addtaxonomymetadatanodetoindex") == 0) {
 				cmdReturnCode = mr.addTaxonomyMetadataNodeToIndex(args);
-
+			}else if(command.equals("nodeinfo")){
+				cmdReturnCode = mr.nodeInfo(args);
 			// testing functions
 			} else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
 				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);

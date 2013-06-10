@@ -74,7 +74,7 @@ public class GoLS extends ServerPlugin {
             throw new opentree.OttolIdNotFoundException(rootOttolID);
         }
 		
-		if (ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources)) {
+		if (ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,false)) {
 			return "Success. Synthesized relationships stored for ottolid=" + rootOttolID;
 		} else {
 			return "Failure. Nothing stored for ottolid=" + rootOttolID;
