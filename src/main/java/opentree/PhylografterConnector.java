@@ -291,7 +291,7 @@ public class PhylografterConnector {
 						namenodemap.get(name).assocObject("ot:ottolid", Long.valueOf(lid));
 						removenames.add(name);
 					}else{
-						System.out.println(hits.size());
+						//System.out.println(hits.size());
 					}
 					hits.close();
 				}
@@ -369,6 +369,19 @@ public class PhylografterConnector {
 					System.out.println("\tpostpruning newick");
 					System.out.println("\t"+trees.get(i).getRoot().getNewick(false));
 	        	}
+	        }
+	        //final mapping of the taxonomy
+	        for(int k=0;k<trees.get(i).getExternalNodeCount();k++){
+	        	Long tid = (Long)trees.get(i).getExternalNode(k).getObject("ot:ottolid");
+        		IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+        		Node firstNode = hits.getSingle();
+        		hits.close();
+        		Node cnode = firstNode;
+        		System.out.print(cnode.getProperty("name"));
+        		while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.TAXCHILDOF)){
+        			cnode = cnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+        			System.out.print("->"+cnode.getProperty("name"));
+        		}System.out.print("\n");
 	        }
 		}
 		return true;
