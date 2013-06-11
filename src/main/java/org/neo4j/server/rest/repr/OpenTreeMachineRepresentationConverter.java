@@ -17,10 +17,11 @@ public class OpenTreeMachineRepresentationConverter {
 
     /**
      * Return a serialization of the passed in data, which is created by first converting `data` to a Representation object (which can then be serialized).
-     * An attempts is made to determine the best approach to serializing `data` by examining the type of `data` and then calling a specialized converter method
+     * An attempt is made to determine the best approach to serializing `data` by examining the type of `data` and then calling a specialized converter method
      * intended to deal with that type of data. This works for primitives, simple container types that implement Iterable, and objects with explicit conversion
      * methods defined, but will fail on complex datatypes (e.g. classes with instance variables) that do not have explicitly defined conversion methods. New
-     * conversion methods can be defined easily; see conversion methods for TNRSResults and ContextResult for examples.
+     * conversion methods can be defined easily; see conversion methods for TNRSResults and ContextResult in 
+     * opentree.taxomachine.OpentreeRepresentationConverter.java for examples.
      * 
      * @note taken from OpentreeRepresentationConverter.java in the same package in taxomachine.
      *

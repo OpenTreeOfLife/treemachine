@@ -51,6 +51,21 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(sourceArrayList);
 	}
 
+	@Description("Returns identifying information for the current draft tree")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getDraftTreeID(
+			@Source GraphDatabaseService graphDb) {
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		HashMap<String,String> draftTreeInfo = new HashMap<String,String>();
+		try {
+			draftTreeInfo.put("draftTreeName",GraphExplorer.DRAFTTREENAME);
+			draftTreeInfo.put("lifeNodeID", String.valueOf(ge.findGraphNodeByName("life").getId()));
+		} finally {
+			ge.shutdownDB();
+		}
+		return OpenTreeMachineRepresentationConverter.convert(draftTreeInfo);
+	}
+	
 	@Description("Initiate the default synthesis process (and store the synthesized branches) for the subgraph starting from a given root node")
 	@PluginTarget(GraphDatabaseService.class)
 	public String synthesizeSubtree(
