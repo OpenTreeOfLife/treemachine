@@ -38,7 +38,7 @@ public class NexsonReader {
 		if (argv.length == 1) {
 			filename = argv[0];
 		}
-		for (JadeTree tree : readNexson(filename)) {
+		for (JadeTree tree : readNexson(filename, true)) {
 			System.out.println("Curator: " + tree.getObject("ot:curatorName"));
 			System.out.println("Reference: " + tree.getObject("ot:studyPublicationReference"));
 			System.out.println(tree.getRoot().getNewick(false));
@@ -55,15 +55,15 @@ public class NexsonReader {
 	}
 
 	/* Read Nexson study from a file, given file name */
-	public static List<JadeTree> readNexson(String filename) throws java.io.IOException {
+	public static List<JadeTree> readNexson(String filename, Boolean verbose) throws java.io.IOException {
 		Reader r = new BufferedReader(new FileReader(filename));
-		List<JadeTree> result = readNexson(r);
+		List<JadeTree> result = readNexson(r, verbose);
 		r.close();
 		return result;
 	}
 
 	/* Read Nexson study from a Reader */
-	public static List<JadeTree> readNexson(Reader r) throws java.io.IOException {
+	public static List<JadeTree> readNexson(Reader r, Boolean verbose) throws java.io.IOException {
 		JSONObject all = (JSONObject)JSONValue.parse(r);
 
 		/*
@@ -111,7 +111,7 @@ public class NexsonReader {
 				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
 			}
 			// tree2 = {"node": [...], "edge": [...]}
-			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), metaList, treeID));
+			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), metaList, treeID, verbose));
 		}
 		return result;
 	}
@@ -122,7 +122,8 @@ public class NexsonReader {
 									   JSONArray nodeList,
 									   JSONArray edgeList,
 									   List<Object> metaList,
-									   String treeID) {
+									   String treeID,
+									   Boolean verbose) {
 		System.out.println(nodeList.size() + " nodes, " + edgeList.size() + " edges");
 		Map<String, JadeNode> nodeMap = new HashMap<String, JadeNode>();
 
@@ -205,7 +206,7 @@ public class NexsonReader {
 				JSONObject j = (JSONObject)meta;
 				// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
 				String propname = (String)j.get("@property");
-				System.out.println("propname = " + propname);
+				if (verbose) {System.out.println("propname = " + propname);}
 				if (propname != null) {
 					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
 					// looking for either "$" or "@href" (former is more frequent)
@@ -215,14 +216,14 @@ public class NexsonReader {
 							throw new RuntimeException("missing value for " + propname);
 						}
 						tree.assocObject(propname, value);
-						System.out.println("Added propname (" + propname + "): " + value);
+						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
 					} else if ((j.get("@href")) != null) {
 						Object value = j.get("@href");
 						if (value == null) {
 							throw new RuntimeException("missing value for " + propname);
 						}
 						tree.assocObject(propname, value);
-						System.out.println("Added propname (" + propname + "): " + value);
+						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
 					} // is "@rel" being used?
 //					else if ((val = (String)j.get("@rel")) != null) {
 //						System.out.println("propname = " + propname);

@@ -120,7 +120,7 @@ public class PhylografterConnector {
 			conn.connect();
 			BufferedReader un = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
-			List<JadeTree> trees = NexsonReader.readNexson(un);
+			List<JadeTree> trees = NexsonReader.readNexson(un, true);
 			un.close();
 			conn.disconnect();
 			return trees;
@@ -161,7 +161,7 @@ public class PhylografterConnector {
 			
 //			BufferedReader un = new BufferedReader(new InputStreamReader(
 //					conn.getInputStream()));
-			List<JadeTree> trees = NexsonReader.readNexson(un);
+			List<JadeTree> trees = NexsonReader.readNexson(un, true);
 			un.close();
 			conn.disconnect();
 			return trees;

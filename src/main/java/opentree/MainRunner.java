@@ -194,7 +194,7 @@ public class MainRunner {
 					br.close();
 				} else { // nexson
 					System.out.println("Reading nexson file...");
-					for (JadeTree tree : NexsonReader.readNexson(filename)) {
+					for (JadeTree tree : NexsonReader.readNexson(filename, true)) {
 						jt.add(tree);
 						treeCounter++;
 					}
@@ -496,7 +496,7 @@ public class MainRunner {
 				}
 			} else { // nexson
 				System.out.println("Reading nexson file...");
-				for (JadeTree tree : NexsonReader.readNexson(filename)) {
+				for (JadeTree tree : NexsonReader.readNexson(filename, true)) {
 					jt.add(tree);
 					treeCounter++;
 				}
@@ -1227,7 +1227,7 @@ public class MainRunner {
 			List<JadeTree> jt = null;
 				try{
 					br = new BufferedReader(new FileReader(files[i]));
-					jt = NexsonReader.readNexson(br);
+					jt = NexsonReader.readNexson(br, true);
 					for (JadeTree j : jt) {
 						System.out.println(files[i] + ": " + j.getExternalNodeCount());
 					}
@@ -1332,7 +1332,7 @@ public class MainRunner {
 		List<JadeTree> jt = null;
 		try{
 			br = new BufferedReader(new FileReader(file));
-			jt = NexsonReader.readNexson(br);
+			jt = NexsonReader.readNexson(br, true);
 			System.out.println("number of tips for trees in file "+file);
 			int count = 0;
 			for (JadeTree j : jt) {
@@ -1587,7 +1587,7 @@ public class MainRunner {
 				return 1;
 			} else { // nexson
 				System.out.println("Reading nexson file...");
-				for (JadeTree tree : NexsonReader.readNexson(filename)) {
+				for (JadeTree tree : NexsonReader.readNexson(filename, false)) {
 					jt.add(tree);
 					treeCounter++;
 				}
