@@ -1557,6 +1557,63 @@ public class MainRunner {
 		return 0;
 	}
 	
+	/*
+	 * Read in nexson-formatted tree, export as newick
+	 */
+	/// @returns 0 for success, 1 for poorly formed command
+	public int nexson2newick(String [] args)
+				throws DataFormatException, TaxonNotFoundException, TreeIngestException {
+		if (args.length > 3 | args.length < 2) {
+			System.out.println("arguments should be: filename.nexson [outname.newick]");
+			return 1;
+		}
+		
+		String filename = args[1];
+		String outFilename = "";
+		
+		if (args.length == 3) {
+			outFilename = args[2];
+		} else {
+			outFilename = filename + ".tre";
+		}
+		
+		int treeCounter = 0;
+		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+		
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			if (divineTreeFormat(br).compareTo("nexson") != 0) {
+				System.out.println("tree does not appear to be in nexson format");
+				return 1;
+			} else { // nexson
+				System.out.println("Reading nexson file...");
+				for (JadeTree tree : NexsonReader.readNexson(filename)) {
+					jt.add(tree);
+					treeCounter++;
+				}
+			}
+			br.close();
+		} catch (IOException ioe) {}
+		System.out.println(treeCounter + " trees read.");
+		
+		PrintWriter outFile = null;
+		try {
+			outFile = new PrintWriter(new FileWriter(outFilename));
+			
+			for (int i = 0; i < jt.size(); i++) {
+				outFile.write(jt.get(i).getRoot().getNewick(false) + ";\n");
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			outFile.close();
+		}
+		
+		System.out.println("sucessfully wrote " + treeCounter + " newick trees to file '" + outFilename + "'");		
+		
+		return 0;
+	}
+	
 	public static void printHelp() {
 		System.out.println("==========================");
 		System.out.println("usage: treemachine command options");
@@ -1594,9 +1651,10 @@ public class MainRunner {
 		System.out.println("(This is temporary and for doing some functions on trees (output or potential input))");
 		System.out.println("\tcounttips <filename> (count the number of nodes and leaves in a newick)");
 		System.out.println("\tdiversity <filename> (for each node it will print the immediate descendents and their diversity)");
-		System.out.println("\tlabeltips <filename.tre> <filename>\n");
-		System.out.println("\tlabeltax <filename.tre> <graphdbfolder>\n");
-		System.out.println("\tchecktax <filename.tre> <graphdbfolder>\n");
+		System.out.println("\tlabeltips <filename.tre> <filename>");
+		System.out.println("\tlabeltax <filename.tre> <graphdbfolder>");
+		System.out.println("\tchecktax <filename.tre> <graphdbfolder>");
+		System.out.println("\tnexson2newick <filename.nexson> [filename.newick]\n");
 		
 		System.out.println("---synthesis functions---");
 		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
@@ -1694,7 +1752,12 @@ public class MainRunner {
 			// temporary
 			} else if (command.compareTo("addtaxonomymetadatanodetoindex") == 0) {
 				cmdReturnCode = mr.addTaxonomyMetadataNodeToIndex(args);
-			}else if(command.equals("nodeinfo")){
+			
+			// not sure where this should live
+			} else if (command.compareTo("nexson2newick") == 0) {
+				cmdReturnCode = mr.nexson2newick(args);
+
+			} else if(command.equals("nodeinfo")){
 				cmdReturnCode = mr.nodeInfo(args);
 			// testing functions
 			} else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
