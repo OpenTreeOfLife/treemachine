@@ -88,7 +88,12 @@ public class JSONExporter {
 	// returns true if a property/value pair was written.
 	public static boolean writeIntegerPropertyIfFound(StringBuffer buffer, Node nd, String propertyName, boolean prependComma) {
 		if (writePropertyNameColonIfFound(buffer, nd, propertyName, prependComma)){
-			buffer.append((Integer)nd.getProperty(propertyName));
+			Object o = nd.getProperty(propertyName);
+			try {
+				buffer.append((Integer)o);
+			} catch (Exception x){
+				buffer.append((Long)o);
+			}
 			return true;
 		}
 		return false;
