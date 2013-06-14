@@ -83,7 +83,6 @@ public class RankResolutionMethod implements ResolutionMethod {
 	    	//System.out.println("\ttesting rel " + candidate.getId() + " for conflicts");
 
 	    	boolean saveRel = true;
-
 	    	// test for conflict between candidate against all saved
 	    	for (Relationship saved : bestRels) {
 		    	//System.out.println("\t\tagainst rel " + saved.getId());
@@ -103,7 +102,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 		    	System.out.println("\t\t++rel " + candidate.getId() + " passed, it will be added");
 	    		bestRels.add(candidate);
 	    	}else{
-	    		System.out.println("\t\t--rel " + candidate.getId() + " failed, it will be added");
+	    		System.out.println("\t\t--rel " + candidate.getId() + " failed, it will NOT be added");
 	    	}
 	    }
 

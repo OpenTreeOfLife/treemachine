@@ -24,6 +24,7 @@ import java.util.Stack;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.synthesis.FilterComparisonType;
 import opentree.synthesis.RankResolutionMethod;
+import opentree.synthesis.RankResolutionMethodInferredPath;
 import opentree.synthesis.RankingOrder;
 import opentree.synthesis.RelationshipConflictResolver;
 import opentree.synthesis.RelationshipFilter;
@@ -785,8 +786,9 @@ public class GraphExplorer extends GraphBase {
         }
         System.out.println("filtered: "+filteredsources);
         rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDYID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
-        draftSynthesisMethod.setFilter(rf);
-        
+        //draftSynthesisMethod.setFilter(rf);
+        //if(true == true)
+        //	return true;
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
         rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDYID, sourceIdPriorityList, sourceMetaIndex));
@@ -794,7 +796,7 @@ public class GraphExplorer extends GraphBase {
         draftSynthesisMethod.setRanker(rs);
 
         // set conflict resolution criteria
-        RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethod());
+        RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethodInferredPath());
         draftSynthesisMethod.setConflictResolver(rcr);
         
         // user feedback
@@ -808,7 +810,7 @@ public class GraphExplorer extends GraphBase {
         Transaction tx = graphDb.beginTx();
         String synthTreeName = DRAFTTREENAME;
         try {
-        	for(Relationship rel: Traversal.description().depthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()){
+        	for(Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()){
                 // store the relationship
         		Node parentNode = rel.getEndNode();
         		Node curNode = rel.getStartNode();

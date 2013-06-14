@@ -983,6 +983,7 @@ public class MainRunner {
 			LinkedList<String> preferredSources = new LinkedList<String>();
 			String [] tsl = slist.split(",");
 			for(int i=0;i<tsl.length;i++){preferredSources.add(tsl[i]);}
+			System.out.println(preferredSources);
 			//preferredSources.add("taxonomy");, need to add taxonomy 
 
 			// find the start node

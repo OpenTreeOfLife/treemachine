@@ -75,7 +75,7 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 			return t.compareTo(v) >= 0;
 			
 		}else if (c == FilterComparisonType.CONTAINS) {
-			return t.compareTo(v) == 1; // does the comparison in reverse, so return the opposite
+			return t.compareTo(v) == 1;
 		} else {
 			throw new java.lang.UnsupportedOperationException("the comparison method " + c.toString() + " is not recognized");
 		}

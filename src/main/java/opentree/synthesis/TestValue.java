@@ -76,7 +76,9 @@ public class TestValue implements Comparable<SourcePropertyValue> {
 			if (comparable.type() != String.class) {
 				throw new java.lang.UnsupportedOperationException(illegalComparisonMessage(comparable.type()));
 			} else {
-				return s.compareTo((String) comparable.value());
+				boolean b = s.equals((String) comparable.value());//returns 1 if they are equal
+				int val = b? 1 : 0;
+				return val;
 			}
 		
 		} else if (this.type == Double.class) {

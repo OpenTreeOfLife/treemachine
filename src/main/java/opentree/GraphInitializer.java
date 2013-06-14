@@ -242,6 +242,7 @@ public class GraphInitializer extends GraphBase{
 					}else{//root node
 						Node mdnode = graphDb.createNode();
 						mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
+						mdnode.setProperty("source", "taxonomy");
 						sourceMetaIndex.add(mdnode, "source", "taxonomy");
 						System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());
 					}
