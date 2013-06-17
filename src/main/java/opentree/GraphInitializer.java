@@ -20,6 +20,8 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 
+import opentree.DataFormatException;
+
 public class GraphInitializer extends GraphBase{
 
 	//static Logger _LOG = Logger.getLogger(GraphImporter.class);
@@ -62,6 +64,29 @@ public class GraphInitializer extends GraphBase{
 		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
 		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
 	}
+
+	/**
+	 * Helper that adds a tax_source property to a node based on an input
+	 *	taxonomy which contains a string like  "ncbi:2,gbif:3"
+	 * Currently we'll store this string as entered, and parse it into
+	 *	the JSON [{"taxSource":"ncbi", foreignID:"2"}, {"taxSource":"gbif", foreignID:"3"}]
+	 *	so this function just validates the input.
+	 * It would be cleaner to parse it on input (might be a slight waste of memory to do that
+	 *	so we'll leave it like this for now. //@TEMP ? 
+	 */
+	static private void addTaxSourceProperties(Node tnode, 
+												String taxSourceInTaxonomyFile)
+												throws DataFormatException {
+		tnode.setProperty("tax_source", taxSourceInTaxonomyFile);
+		String [] taxSourceWithIDArr = taxSourceInTaxonomyFile.split(",");
+		for (int i = 0; i < taxSourceWithIDArr.length; ++i) {
+			String taxSourceWithID = taxSourceWithIDArr[i];
+			String [] unpacked = taxSourceWithID.split(":");
+			if (unpacked.length != 2) {
+				throw new DataFormatException("Expected \":\" to separate a taxon source name and the ID of the taxon in that source. Found \"" + taxSourceWithID + "\"");
+			}
+		}
+	}
 	
 	/**
 	 * Reads a taxonomy file with rows formatted as:
@@ -86,7 +111,9 @@ public class GraphInitializer extends GraphBase{
 	 * @param filename file path to the taxonomy file
 	 * @param synonymfile file that has the synonyms as dumped by ottol dump
 	 */
-	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile) {
+	public void addInitialTaxonomyTableIntoGraph(String filename,
+													String synonymfile)
+													throws DataFormatException {
 		String str = "";
 		int count = 0;
 		HashMap<String,ArrayList<ArrayList<String>>> synonymhash = null;
@@ -167,7 +194,7 @@ public class GraphInitializer extends GraphBase{
 							tnode.setProperty("tax_uid",tid);
 							tnode.setProperty("tax_parent_uid",pid);
 							tnode.setProperty("tax_rank",rank);
-							tnode.setProperty("tax_source",srce);
+							addTaxSourceProperties(tnode, srce);
 							//tnode.setProperty("tax_sourceid",srce_id);
 							//tnode.setProperty("tax_sourcepid",srce_pid);
 							tnode.setProperty("uniqname",uniqname);
@@ -231,7 +258,7 @@ public class GraphInitializer extends GraphBase{
 					tnode.setProperty("tax_uid",tid);
 					tnode.setProperty("tax_parent_uid",pid);
 					tnode.setProperty("tax_rank",rank);
-					tnode.setProperty("tax_source",srce);
+					addTaxSourceProperties(tnode, srce);
 					//tnode.setProperty("tax_sourceid",srce_id);
 					//tnode.setProperty("tax_sourcepid",srce_pid);
 					tnode.setProperty("uniqname",uniqname);
@@ -274,52 +301,57 @@ public class GraphInitializer extends GraphBase{
 				tx.finish();
 			}
 			templines.clear();
-			//add the relationships
-			ArrayList<String> temppar = new ArrayList<String>();
-			count = 0;
-			for (String key: dbnodes.keySet()) {
-				count += 1;
-				temppar.add(key);
-				if (count % transaction_iter == 0) {
-					System.out.println(count);
-					tx = graphDb.beginTx();
-					try {
-						for (int i = 0; i < temppar.size(); i++) {
-							try {
-								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
-								rel.setProperty("childid",temppar.get(i));
-								rel.setProperty("parentid",parents.get(temppar.get(i)));
-								rel.setProperty("source","ottol");
-							} catch(java.lang.IllegalArgumentException io) {
+		} catch(IOException ioe) {
+		} catch (DataFormatException dfe) {
+			dfe.setFilePath(filename);
+			dfe.setLineNumber(count);
+			throw dfe;
+		}
+		//add the relationships
+		ArrayList<String> temppar = new ArrayList<String>();
+		count = 0;
+		for (String key: dbnodes.keySet()) {
+			count += 1;
+			temppar.add(key);
+			if (count % transaction_iter == 0) {
+				System.out.println(count);
+				tx = graphDb.beginTx();
+				try {
+					for (int i = 0; i < temppar.size(); i++) {
+						try {
+							Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
+							rel.setProperty("childid",temppar.get(i));
+							rel.setProperty("parentid",parents.get(temppar.get(i)));
+							rel.setProperty("source","ottol");
+						} catch(java.lang.IllegalArgumentException io) {
 //								System.out.println(temppar.get(i));
-								continue;
-							}
+							continue;
 						}
-						tx.success();
-					} finally {
-						tx.finish();
 					}
-					temppar.clear();
+					tx.success();
+				} finally {
+					tx.finish();
 				}
+				temppar.clear();
 			}
-			tx = graphDb.beginTx();
-			try {
-				for (int i = 0; i < temppar.size(); i++) {
-					try {
-						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
-						rel.setProperty("childid",temppar.get(i));
-						rel.setProperty("parentid",parents.get(temppar.get(i)));
-						rel.setProperty("source","ottol");
-					} catch(java.lang.IllegalArgumentException io) {
+		}
+		tx = graphDb.beginTx();
+		try {
+			for (int i = 0; i < temppar.size(); i++) {
+				try {
+					Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
+					rel.setProperty("childid",temppar.get(i));
+					rel.setProperty("parentid",parents.get(temppar.get(i)));
+					rel.setProperty("source","ottol");
+				} catch(java.lang.IllegalArgumentException io) {
 //						System.out.println(temppar.get(i));
-						continue;
-					}
+					continue;
 				}
-				tx.success();
-			} finally {
-				tx.finish();
 			}
-		} catch(IOException ioe) {}
+			tx.success();
+		} finally {
+			tx.finish();
+		}
 		initMrcaAndStreeRelsTax();
 	}
 	

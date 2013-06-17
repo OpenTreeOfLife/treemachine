@@ -39,7 +39,7 @@ public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
 
 	/// @returns 0 for success, 1 for poorly formed command
-	public int taxonomyLoadParser(String [] args) {
+	public int taxonomyLoadParser(String [] args) throws DataFormatException {
 		if (args.length < 3) {
 			System.out.println("arguments should be: filename synfilename graphdbfolder");
 			return 1;

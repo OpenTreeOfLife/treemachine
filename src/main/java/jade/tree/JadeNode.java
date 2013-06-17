@@ -213,9 +213,39 @@ public class JadeNode {
 		} else {
 			ret.append(", \"nleaves\": 0");
 		}
-		String [] optionalPropN = {"uniqName", "taxSource", "taxSourceId", "taxRank", "ottolId"};
+		String [] optionalPropN = {"uniqName", "taxSource", "taxRank", "ottolId"};
 		for (String opn : optionalPropN) {
 			JSONExporter.writeStringPropertyIfNotNull(ret, this.getObject(opn), opn, true);
+		}
+
+		// if taxSource is "ncbi:2,gbif:3"
+		// Currently we'll store this string as entered, and parse it into
+		// the JSON 
+		//	"taxSourceArray": [{"taxSource":"ncbi", foreignID:"2"}, {"taxSource":"gbif", foreignID:"3"}]
+		Object tsa = this.getObject("taxSourceArray");
+		if (tsa != null) {
+			Object tsia = this.getObject("taxSourceIDArray");
+			assert tsia != null;
+			if (tsia != null) {
+				String [] taxSourceArray = (String []) tsa;
+				String [] taxSourceIDArray = (String []) tsia;
+				assert taxSourceIDArray.length == taxSourceArray.length;
+				ret.append(", \"taxSourceArray\": [");
+				for (int tsaIndex = 0; tsaIndex < taxSourceArray.length; ++tsaIndex) {
+					if (tsaIndex > 0) {
+						ret.append(", ");
+					}
+					ret.append("{");
+					JSONExporter.writeStringPropertyIfNotNull(ret,
+															  taxSourceArray[tsaIndex],
+															  "taxSource", false);
+					JSONExporter.writeStringPropertyIfNotNull(ret,
+															  taxSourceIDArray[tsaIndex],
+															  "foreignID", true);
+					ret.append("}");
+				}
+				ret.append("]");
+			}
 		}
 		Object ptr = this.getObject("pathToRoot");
 		if (ptr != null) {

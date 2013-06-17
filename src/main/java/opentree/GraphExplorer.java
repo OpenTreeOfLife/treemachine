@@ -1,6 +1,6 @@
 package opentree;
 
-
+import org.apache.log4j.Logger;
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
@@ -52,7 +52,7 @@ import org.neo4j.kernel.Traversal;
 
 
 public class GraphExplorer extends GraphBase {
-    //static Logger _LOG = Logger.getLogger(GraphExplorer.class);
+    static Logger _LOG = Logger.getLogger(GraphExplorer.class);
     private SpeciesEvaluator se;
     private ChildNumberEvaluator cne;
     private TaxaListEvaluator tle;
@@ -2202,6 +2202,45 @@ public class GraphExplorer extends GraphBase {
         }
         return toReturn;
     }
+
+    /**
+     * the tax_source property for taxa found in multiple source taxonomies will
+     * be decorated with a string like  "ncbi:2,gbif:3"
+     * Currently we'll store this string as entered, and parse it into
+     *  the JSON [{"taxSource":"ncbi", foreignID:"2"}, {"taxSource":"gbif", foreignID:"3"}]
+     *
+     * @TEMP taxSource are deprecated.
+     *  until changes to the opentree webapp are deployed which allow it 
+     *  to utilize taxSourceArray, we'll attach:
+     *    taxSource - old style, unparsed string...
+     *    taxSourceArray - array of sources
+     *    taxSourceIDArray - array of the IDs in the "foreign" source. Matches the
+     *      corresponging index in taxSourcArray
+     */
+    static private void addTaxSourceProperties(JadeNode jNd, Node nd) {
+        if (! nd.hasProperty("tax_source")) {
+            return;
+        }
+        String raw = (String) nd.getProperty("tax_source");
+        jNd.assocObject("taxSource", raw); // old way
+        // new, way parse in Java and prepare to emit better JSON...
+        String [] taxSourceWithIDArr = raw.split(",");
+        String [] taxSourceArr = new String[taxSourceWithIDArr.length];
+        String [] taxSourceIDArr = new String[taxSourceWithIDArr.length];
+        for (int i = 0; i < taxSourceWithIDArr.length; ++i) {
+            String taxSourceWithID = taxSourceWithIDArr[i];
+            String [] unpacked = taxSourceWithID.split(":");
+            if (unpacked.length != 2) {
+                _LOG.warn("Expected \":\" to separate a taxon source name and the ID of the taxon in that source. Found \"" + taxSourceWithID + "\". The taxSourceArray property will not be complete...");
+            }
+            taxSourceArr[i] = unpacked[0];
+            taxSourceIDArr[i] = unpacked[1];
+        }
+        jNd.assocObject("taxSourceArray", taxSourceArr);
+        jNd.assocObject("taxSourceIDArray", taxSourceIDArr);
+    }
+    
+
     private static void decorateJadeNodeWithCoreProperties(JadeNode jNd, Node nd) {
         if (nd.hasProperty("name")) {
             jNd.setName((String) nd.getProperty("name"));
@@ -2211,12 +2250,7 @@ public class GraphExplorer extends GraphBase {
         if (nd.hasProperty("uniqname")) {
             jNd.assocObject("uniqname", (String) nd.getProperty("uniqname"));
         }
-        if (nd.hasProperty("tax_source")) {
-            jNd.assocObject("taxSource", (String) nd.getProperty("tax_source"));
-        }
-        if (nd.hasProperty("tax_sourceid")) {
-            jNd.assocObject("taxSourceId", (String) nd.getProperty("tax_sourceid"));
-        }
+        addTaxSourceProperties(jNd, nd);
         if (nd.hasProperty("tax_rank")) {
             jNd.assocObject("taxRank", (String) nd.getProperty("tax_rank"));
         }
