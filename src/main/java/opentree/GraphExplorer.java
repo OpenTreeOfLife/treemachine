@@ -2207,7 +2207,7 @@ public class GraphExplorer extends GraphBase {
      * the tax_source property for taxa found in multiple source taxonomies will
      * be decorated with a string like  "ncbi:2,gbif:3"
      * Currently we'll store this string as entered, and parse it into
-     *  the JSON [{"taxSource":"ncbi", foreignID:"2"}, {"taxSource":"gbif", foreignID:"3"}]
+     *  the JSON taxSourceArray : [{"taxSource":"ncbi", foreignID:"2"}, {"taxSource":"gbif", foreignID:"3"}]
      *
      * @TEMP taxSource are deprecated.
      *  until changes to the opentree webapp are deployed which allow it 
