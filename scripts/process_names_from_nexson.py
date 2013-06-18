@@ -33,16 +33,24 @@ def get_original_name_from_meta(m):
 
 if __name__ == '__main__':
     import sys
-    for fn in sys.argv[1:]:
-        try:
-            fo = open(fn, 'rU')
-        except:
-            sys.exit('File "%s" could not be opened' % fn)
-        obj = json.load(fo)
-        otu_list = obj['nexml']['otus']['otu']
-        for otu in otu_list:
-            m = otu['meta']
-            ottol_id = get_ottol_id_from_meta(m)
-            original_label = get_original_name_from_meta(m)
-            normalized_label = otu['@label']
-            print '%s\t|\t%s\t|\t%s' % (normalized_label, original_label, ottol_id)
+    import codecs
+    output = codecs.open(sys.argv[2], mode='w', encoding='utf-8')
+    fn = sys.argv[1]
+    try:
+        fo = open(fn, 'rU')
+    except:
+        sys.exit('File "%s" could not be opened' % fn)
+    obj = json.load(fo)
+    otu_list = obj['nexml']['otus']['otu']
+    for otu in otu_list:
+        m = otu['meta']
+        ottol_id = get_ottol_id_from_meta(m)
+        original_label = get_original_name_from_meta(m)
+        normalized_label = otu['@label']
+        output.write(normalized_label)
+        output.write('\t|\t')
+        output.write(original_label)
+        output.write('\t|\t')
+        output.write(str(ottol_id))
+        output.write('\n')
+            
