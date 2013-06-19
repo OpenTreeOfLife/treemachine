@@ -267,7 +267,7 @@ The normalized name files should be:
                 norm_logger.num_mismatches += 1
                 suffix = '\t|\t%s\t|\t%s\t|\t%s\t|\t%s\n' % (normalized, original, timestamp, username)
                 ld = levenshtein(normalized, original)
-                if ld < 3:
+                if ld < 3 and abs(len(normalized) - len(original)) < 3:
                     norm_logger.num_suspected_typos += 1
                     s = 'TYPO\t|\tlevenshtein=%d%s' % (ld, suffix)
                     auto_diagnosed.write(s)
