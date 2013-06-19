@@ -58,3 +58,7 @@ https://docs.google.com/document/d/1J82ZvgqMwv9Y43SqSGcw1ZjqWEPHaFQww5deuFFV7Js/
 
 
 
+### Credits/Attribution
+The (non-essential) program scripts/compare_normalized_original_names_in_taxonomy.py
+uses a function from http://en.wikipedia.org/wiki/Levenshtein_distance That code is
+released under the CC-SA (http://creativecommons.org/licenses/by-sa/3.0/)

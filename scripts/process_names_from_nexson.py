@@ -33,6 +33,8 @@ def get_original_name_from_meta(m):
 
 if __name__ == '__main__':
     import sys
+    if len(sys.argv) != 3:
+        sys.exit('Expecting 2 arguments:\n  a filepath to a nexSON file, and\n  a filepath for an output tabular file. This path will be OVERWRITTEN')
     import codecs
     output = codecs.open(sys.argv[2], mode='w', encoding='utf-8')
     fn = sys.argv[1]
