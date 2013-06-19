@@ -5,7 +5,8 @@ Reads a '\t|\t' separated file in which:
     the column is the "normalized" label, and
     the second column is the "original" label
 '''
-
+from time import gmtime, strftime
+import getpass
 class OTT(object):
     def __init__(self, taxonomy, synonyms):
         id2name_list = {}
@@ -89,16 +90,101 @@ def levenshtein(s1, s2):
         previous_row = current_row
     return previous_row[-1]
 
+
+def read_previous_diagnoses(fo):
+    '''
+    Returns a dictionary with the original name as the key
+    the value is a list of [code, details string, normalized name]
+
+    '''
+    d = {}
+    for line in fo:
+        ls = line.split('\t|\t')
+        normalized, original = ls[2], ls[3]
+        diagnostic_code = ls[0]
+        diagnostic_details = ls[1]
+        d[original] = [diagnostic_code, diagnostic_details, normalized]
+    return d
+
+class NormalizationLogger(object):
+    def __init__(self, log_files):
+        self.logf = log_files
+        self.num_exact_matches = 0
+        self.num_case_i_matches = 0
+        self.num_mismatches = 0
+        self.num_suspected_typos = 0
+        self.num_misspelled = 0
+        self.num_abbrev = 0
+    def report(self):
+        self.num_unclassified_mismatch = self.num_mismatches
+        self.num_unclassified_mismatch -= self.num_suspected_typos
+        self.num_unclassified_mismatch -= self.num_misspelled
+        self.num_unclassified_mismatch -= self.num_abbrev
+        for status_log in self.logf:
+            status_log.write('#_perfect_matches = %d\n' % self.num_exact_matches)
+            status_log.write('#_case_i_matches  = %d\n' % self.num_case_i_matches)
+            status_log.write('#_mismatches      = %d\n' % self.num_mismatches)
+            status_log.write('#_suspected_typos = %d\n' % self.num_suspected_typos)
+            status_log.write('#_num_misspelled  = %d\n' % self.num_misspelled)
+            status_log.write('#_abbreviated     = %d\n' % self.num_abbrev)
+            status_log.write('#_unclassified    = %d\n' % self.num_unclassified_mismatch)
+
+def query_user(normalized, original, from_prev_run, norm_logger):
+    c, d = query_user_impl(normalized, original, from_prev_run)
+    if c == 'MISSPELLED':
+        norm_logger.num_misspelled += 1
+    elif c == 'TYPO':
+        norm_logger.num_suspected_typos += 1
+    elif c == 'ABBREVIATION':
+        norm_logger.num_abbrev += 1
+    return c, d
+def query_user_impl(normalized, original, from_prev_run):
+    sys.stderr.write('"%s" ==>> "%s" caused by:\n' % (original, normalized))
+    def_choice = from_prev_run[0]
+    def_details = from_prev_run[1]
+    cause_list = [['TYPO', ''],
+                  ['MISSPELLED', ''],
+                  ['ABBREVIATION', ''],
+                  ['UNCLASSIFIED', ''],
+                 ]
+    for i in range(len(cause_list)):
+        c, d = cause_list[i]
+        if c == def_choice:
+            sys.stderr.write('%d * %s\t|\t%s\n' % (1 + i, c, def_details))
+        else:
+            sys.stderr.write('%d   %s\t|\t%s\n' % (1 + i, c, d))
+    for i in range(10):
+        if i > 0:
+            sys.stderr.write('Invalid choice, try again...\n')
+        resp = raw_input('your response ? ')
+        if not resp:
+            return def_choice, def_details
+        try:
+            ind = resp.split()[0]
+            n = int(resp) - 1
+            if n >= 0 and  n < len(cause_list):
+                c = cause_list[n][0]
+                d = cause_list[n][0]
+                gd= resp[len(ind):].strip()
+                if gd:
+                    return c, gd
+                return c, d
+        except:
+            pass
+    raise RuntimeError('number of query attempts exceeded')
 if __name__ == '__main__':
     import sys
-    if len(sys.argv) < 4:
-        sys.exit('''Expecting at least 3 arguments:
- 1. filepath an OTT taxonomy file,
- 2. filepath to an OTT synonyms file, and
- 3. at least one filepath to normalized name file.
+    if len(sys.argv) < 7:
+        sys.exit('''Expecting at least 6 arguments:
+1. filepath an OTT taxonomy file,
+2. filepath to an OTT synonyms file, and
+3. an existing directory for the results
+4. a format string with %d in it to indicate the spot for integer interpolation. This will be the generator for the paths to the normalized name files.
+5. the first integer to be interpolated
+6. the last integer to be interpolated
 
- The normalized name file should be:
-    a utf-8 encoded,
+The normalized name files should be:
+    utf-8 encoded,
     "\\t|\\t" delimited file
     with the first column being the normalized name, 
     and the second column being theoriginal name.
@@ -108,12 +194,15 @@ if __name__ == '__main__':
     emitting_repr = 'EMIT_REPR' in os.environ
     reading_repr = 'READING_REPR' in os.environ
     repr_file = 'ott_repr.py'
-    num_exact_matches = 0
-    num_case_i_matches = 0
-    num_mismatches = 0
     output = sys.stdout
     taxonomy_file = sys.argv[1]
     synonyms_file = sys.argv[2]
+    results_dir = sys.argv[3]
+    if not os.path.exists(results_dir) or not os.path.isdir(results_dir):
+        sys.exit('Expecting an existing directory for output, found "%s"' % results_dir)
+    fn_fmt = sys.argv[4]
+    file_counter_start= int(sys.argv[5])
+    file_counter_last = int(sys.argv[6])
     if reading_repr:
         import cPickle
         ott = cPickle.load(open(repr_file, 'r'))
@@ -129,8 +218,40 @@ if __name__ == '__main__':
     else:
         ott = OTT(open(taxonomy_file, 'rU'), open(synonyms_file, 'rU'))
 
-    for fn in sys.argv[3:]:
+    assert file_counter_start <= file_counter_last
+    for file_counter in range(file_counter_start, 1 + file_counter_last):
+        fn = fn_fmt % file_counter
+        if not os.path.exists(fn):
+            sys.stderr.write('File "%s" not found. Skipping...\n' % fn)
+            continue
         infile = codecs.open(fn, mode='r', encoding='utf-8')
+        ##############
+        # hacky system for creating output for diagnosis of mismatches
+        out_dir = os.path.join(results_dir, 'out-%d' % file_counter)
+        if os.path.exists(out_dir):
+            if not os.path.isdir(out_dir):
+                sys.exit('Directory "%s" is in the way\n' % out_dir)
+        else:
+            os.makedirs(out_dir)
+        auto_diagnosed_filename = os.path.join(out_dir, 'auto-diagnosed.txt')
+        manually_diagnosed_filename = os.path.join(out_dir, 'manually-diagnosed.txt')
+        status_filename = os.path.join(out_dir, 'status')
+        logfile_filename = os.path.join(out_dir, 'log')
+        try:
+            md = open(manually_diagnosed_filename, 'rU')
+            previously_diagnosed = read_previous_diagnoses(md)
+            md.close()
+        except:
+            previously_diagnosed = {}
+        auto_diagnosed = open(auto_diagnosed_filename, 'w')
+        manually_diagnosed = open(manually_diagnosed_filename, 'a')
+        status_log = open(status_filename, 'w')
+        growing_log = open(logfile_filename, 'a')
+        
+        timestamp = strftime("%d %b %Y %H:%M:%S", gmtime())
+        username = getpass.getuser()
+
+        norm_logger = NormalizationLogger([status_log, growing_log])
         for line_num, line in enumerate(infile):
             ls = line.split('\t|\t')
             if len(ls) < 2:
@@ -139,13 +260,29 @@ if __name__ == '__main__':
                 continue
             normalized, original = ls[0], ls[1]
             if normalized == original:
-                num_exact_matches += 1
+                norm_logger.num_exact_matches += 1
             elif normalized.lower() == original.lower():
-                num_case_i_matches += 1
+                norm_logger.num_case_i_matches += 1
             else:
-                num_mismatches += 1
+                norm_logger.num_mismatches += 1
+                suffix = '\t|\t%s\t|\t%s\t|\t%s\t|\t%s\n' % (normalized, original, timestamp, username)
                 ld = levenshtein(normalized, original)
-                output.write('"%s" != "%s (Levenshtein distance = %d)"\n' % (normalized, original, ld))
-    sys.stderr.write('#_perfect_matches = %d\n' % num_exact_matches)
-    sys.stderr.write('#_case_i_matches  = %d\n' % num_case_i_matches)
-    sys.stderr.write('#_mismatches      = %d\n' % num_mismatches)
+                if ld < 3:
+                    norm_logger.num_suspected_typos += 1
+                    s = 'TYPO\t|\tlevenshtein=%d%s' % (ld, suffix)
+                    auto_diagnosed.write(s)
+                    sys.stdout.write(s)
+                else:
+                    from_prev_run = previously_diagnosed.get(original, ['UNCLASSIFIED', ''])
+                    fpr_code = from_prev_run[0]
+                    fpr_details = from_prev_run[0]
+                    diag_code, diag_details = query_user(normalized, 
+                                                         original,
+                                                         from_prev_run,
+                                                         norm_logger)
+                    if diag_code != 'UNCLASSIFIED' and (
+                        diag_code != fpr_code or diag_details != fpr_details):
+                        s = '%s\t|\t%s%s' % (diag_code, diag_details, suffix)
+                        manually_diagnosed.write(s)
+                        sys.stdout.write(s)
+        norm_logger.report()
