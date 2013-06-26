@@ -500,8 +500,9 @@ public class GraphImporter extends GraphBase{
 			TLongArrayList outndids = new TLongArrayList();
 			//add all the children of the mapped nodes to the outgroup as well
 			for (int i = 0; i < root_ndids.size(); i++) {
-				if(childndids.contains(root_ndids.getQuick(i))==false)
+				if (childndids.contains(root_ndids.getQuick(i)) == false) {
 					outndids.addAll((long[])graphDb.getNodeById(root_ndids.get(i)).getProperty("mrca"));
+				}
 			}
 			childndids.sort();
 			outndids.removeAll(childndids);
@@ -512,15 +513,15 @@ public class GraphImporter extends GraphBase{
 			 * we can use a simpler calculation if we can assume that the 'trees that come in 
 			 * are complete in their taxa
 			 */
-			if(assumecomplete == true){
+			if (assumecomplete == true) {
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
-			}else{
+			} else {
 				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
 			}
-			for(Node tnd: ancestors){
+			for (Node tnd : ancestors) {
 				System.out.println("\tmatched nodes: "+tnd);
-				if(tnd.hasProperty("name")){
-					System.out.println("\t\t"+tnd.getProperty("name"));
+				if (tnd.hasProperty("name")) {
+					System.out.println("\t\t" + tnd.getProperty("name"));
 				}
 			}
 		}
@@ -552,16 +553,17 @@ public class GraphImporter extends GraphBase{
 				if (treeID != null)
 					sourceRootIndex.add(currGoLNode, "rootnodeForID", treeID);
 
-				
-				
 				/* TODO: Need to add metadata (if present) from jadetree coming from nexson.
-				   Fields at present:
+				   STUDY-wide fields used at present:
 					ot:studyPublicationReference - string: ot:studyPublicationReference "long string"
 					ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
 					ot:curatorName - string: ot:curatorName "Jane Doe"
 					ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
 					ot:studyId - string / integer ot:studyId "123"
 					ot:ottolid - integer: ot:ottolid 783941
+				   TREE-wide fields used at present:
+					ot:branchLengthMode - string: ot:branchLengthMode "ot:substitutionCount"
+					ot:inGroupClade - string: ot:inGroupClade node208482
 				*/
 				
 				// Note: setProperty throws IllegalArgumentException - if value is of an unsupported type (including null)
@@ -582,18 +584,23 @@ public class GraphImporter extends GraphBase{
 				if (jt.getObject("ot:curatorName") != null) {
 					System.out.println("Adding property 'ot:curatorName' for tree " + sourcename + ": " + jt.getObject("ot:curatorName"));
 					metadatanode.setProperty("ot:curatorName", jt.getObject("ot:curatorName"));
-				} 
+				}
 				if (jt.getObject("ot:dataDeposit") != null) {
 					System.out.println("Adding property 'ot:dataDeposit' for tree " + sourcename + ": " + jt.getObject("ot:dataDeposit"));
 					metadatanode.setProperty("ot:dataDeposit", jt.getObject("ot:dataDeposit"));
-				} 
+				}
 				if (jt.getObject("ot:studyId") != null) {
 					System.out.println("Adding property 'ot:studyId' for tree " + sourcename + ": " + jt.getObject("ot:studyId"));
 					metadatanode.setProperty("ot:studyId", jt.getObject("ot:studyId"));
-				} if (jt.getObject("ot:studyYear") != null) {
+				}
+				if (jt.getObject("ot:studyYear") != null) {
 					System.out.println("Adding property 'ot:studyYear' for tree " + sourcename + ": " + jt.getObject("ot:studyYear"));
 					metadatanode.setProperty("ot:studyYear", jt.getObject("ot:studyYear"));
-				} 
+				}
+				if (jt.getObject("ot:inGroupClade") != null) {
+					System.out.println("Adding property 'ot:inGroupClade' for tree " + sourcename + ": " + jt.getObject("ot:inGroupClade"));
+					metadatanode.setProperty("ot:inGroupClade", jt.getObject("ot:inGroupClade"));
+				}
 				
 		// should studyID replace sourcename?
 				metadatanode.setProperty("source", sourcename);
@@ -677,7 +684,7 @@ public class GraphImporter extends GraphBase{
 	public void deleteAllTrees() {
 		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
 		System.out.println(hits.size());
-		for (Node itrel: hits) {
+		for (Node itrel : hits) {
 			String source = (String)itrel.getProperty("source");
 			deleteTreeBySource(source);
 		}
@@ -689,7 +696,7 @@ public class GraphImporter extends GraphBase{
 	public void deleteAllTreesAndReprocess() {
 		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
 		System.out.println(hits.size());
-		for (Node itrel: hits) {
+		for (Node itrel : hits) {
 			String source = (String)itrel.getProperty("source");
 			String trees = (String)itrel.getProperty("newick");
 			String treeID = (String)itrel.getProperty("treeID");
@@ -729,7 +736,7 @@ public class GraphImporter extends GraphBase{
 		IndexHits <Node> shits = sourceRootIndex.get("rootnode", source);
 		tx = graphDb.beginTx();
 		try {
-			for (Node itrel: shits) {
+			for (Node itrel : shits) {
 				sourceRootIndex.remove(itrel, "rootnode", source);
 			}
 			tx.success();
