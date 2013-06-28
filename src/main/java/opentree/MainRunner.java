@@ -1343,29 +1343,29 @@ public class MainRunner {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			graphDb.shutdownDb();
-			return 0;
+			return -1;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			graphDb.shutdownDb();
-			return 0;
+			return -1;
 		}catch (java.lang.NullPointerException e){
 			e.printStackTrace();
 			graphDb.shutdownDb();
-			return 0;
+			return -1;
 		}
 		try{
 			boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,true);
 			if (good == false){
 				System.out.println("failed to get the names from server fixNamesFromTrees");
 				graphDb.shutdownDb();
-				return 0;
+				return -1;
 			}
 		}catch(IOException ioe){
 			ioe.printStackTrace();
 			System.out.println("failed to get the names from server fixNamesFromTrees");
 			graphDb.shutdownDb();
-			return 0;
+			return -1;
 		}
 		try{
 			for(JadeTree j: jt){
@@ -1415,17 +1415,17 @@ public class MainRunner {
 		} catch(java.lang.NullPointerException e){
 			System.out.println("failed to get study "+file.getName());
 			graphDb.shutdownDb();
-			return 0;
+			return -1;
 		} catch (TaxonNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			graphDb.shutdownDb();
-			return 0;
+			return -1;
 		} catch (TreeIngestException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			graphDb.shutdownDb();
-			return 0;
+			return -1;
 		}
 		try {
 			br.close();
@@ -1433,7 +1433,7 @@ public class MainRunner {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			graphDb.shutdownDb();
-			return 0;
+			return -1;
 		}
 		graphDb.shutdownDb();
 		return 0;
