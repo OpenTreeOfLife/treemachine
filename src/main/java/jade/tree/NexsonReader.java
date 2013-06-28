@@ -81,8 +81,9 @@ public class NexsonReader {
 		// The XML root element
 		JSONObject root = (JSONObject)all.get("nexml");
 
-		// All of the <meta> elements
-		List<Object> metaList = getMetaList(root);
+		// All of the <meta> elements from root (i.e. study-wide). Trees may have their own meta elements (e.g. inGroupClade)
+		List<Object> studyMetaList = getMetaList(root);
+		//System.out.println("studyMetaList = " + studyMetaList);
 			
 		// All of the <otu> elements
 		JSONObject otus = (JSONObject)root.get("otus");
@@ -107,11 +108,18 @@ public class NexsonReader {
 		for (Object tree : treeList) {
 			JSONObject tree2 = (JSONObject)tree;
 			String treeID = (String)tree2.get("@id");
+			
+			System.out.println("Processing tree '" + treeID + "'...");
+			
+		// trees can have their own specific metadata e.g. [{"@property":"ot:branchLengthMode","@xsi:type":"nex:LiteralMeta","$":"ot:substitutionCount"},{"@property":"ot:inGroupClade","$":"node208482","xsi:type":"nex:LiteralMeta"}]
+			List<Object> treeMetaList = getMetaList(tree2);
+			//System.out.println("treeMetaList = " + treeMetaList);
+			
 			if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
 				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
 			}
 			// tree2 = {"node": [...], "edge": [...]}
-			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), metaList, treeID, verbose));
+			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), studyMetaList, treeMetaList, treeID, verbose));
 		}
 		return result;
 	}
@@ -121,13 +129,32 @@ public class NexsonReader {
 	private static JadeTree importTree(Map<String,JSONObject> otuMap,
 									   JSONArray nodeList,
 									   JSONArray edgeList,
-									   List<Object> metaList,
+									   List<Object> studyMetaList,
+									   List<Object> treeMetaList,
 									   String treeID,
 									   Boolean verbose) {
 		System.out.println(nodeList.size() + " nodes, " + edgeList.size() + " edges");
 		Map<String, JadeNode> nodeMap = new HashMap<String, JadeNode>();
-
-		// arbitraryNode is for finding the root later on, see below
+		
+		JadeNode root = null;
+		
+		// first, check if an ingroup is defined. if so, discard outgroup(s).
+		String ingroup = null;
+		if (treeMetaList != null) {
+			for (Object meta : treeMetaList) {
+				JSONObject j = (JSONObject)meta;
+				if (((String)j.get("@property")).compareTo("ot:inGroupClade") == 0) {
+					if ((j.get("$")) != null) {
+						ingroup = (String)j.get("$");
+						System.out.println("Found ingroup node: " + ingroup);
+					} else {
+						throw new RuntimeException("missing property value for name: " + j);
+					}
+				}
+			}
+		}
+		
+		// arbitraryNode is for finding the root later on (if not specified), see below
 		JadeNode arbitraryNode = null;
 
 		// For each node as specified in the Nexson file, create a JadeNode, and squirrel it away
@@ -137,8 +164,15 @@ public class NexsonReader {
 			// System.out.println(j);
 
 			JadeNode jn = new JadeNode();
-			nodeMap.put((String)j.get("@id"), jn);
+			String id = (String)j.get("@id");
+			nodeMap.put(id, jn);
 			arbitraryNode = jn;
+			
+			// Set the root node
+			if (ingroup != null && id.compareTo(ingroup) == 0) {
+				System.out.println("Setting ingroup root node.");
+				root = jn;
+			}
 
 			// Some nodes have associated OTUs, others don't
 			String otuId = (String)j.get("@otu");
@@ -176,7 +210,7 @@ public class NexsonReader {
 			}
 		}
 
-		// For each specified each, hook up the two corresponding JadeNodes
+		// For each specified edge, hook up the two corresponding JadeNodes
 		for (Object edge : edgeList) {
 			JSONObject j = (JSONObject)edge;
 			// {"@source": "node830", "@target": "node834", "@length": 0.000241603, "@id": "edge834"}
@@ -189,24 +223,31 @@ public class NexsonReader {
 			}
 			source.addChild(target);
 		}
-
+		
 		// Find the root (the node without a parent) so we can return it.
 		// If the input file is malicious this might loop forever.
-		JadeNode root = null;
-		for (JadeNode jn = arbitraryNode; jn != null; jn = jn.getParent()) {
-			root = jn;
+		if (root == null) {
+			for (JadeNode jn = arbitraryNode; jn != null; jn = jn.getParent()) {
+				root = jn;
+			}
+		} else { // a pruned tree. GraphImporter looks for root as node with no parents.
+			root.setParent(null);
 		}
-
+		
 		JadeTree tree = new JadeTree(root);
-
-		// Copy tree-level metadata into the JadeTree
+		
+		int nc = tree.getExternalNodeCount();
+		if (nc != otuMap.size()) {
+			System.out.println("Ingested tree has " + nc + " external nodes.");
+		}
+		
+		// Copy STUDY-level metadata into the JadeTree
 		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
-		if (metaList != null) {
-			for (Object meta : metaList) {
+		if (studyMetaList != null) {
+			for (Object meta : studyMetaList) {
 				JSONObject j = (JSONObject)meta;
 				// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
 				String propname = (String)j.get("@property");
-				if (verbose) {System.out.println("propname = " + propname);}
 				if (propname != null) {
 					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
 					// looking for either "$" or "@href" (former is more frequent)
@@ -224,17 +265,39 @@ public class NexsonReader {
 						}
 						tree.assocObject(propname, value);
 						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
-					} // is "@rel" being used?
-//					else if ((val = (String)j.get("@rel")) != null) {
-//						System.out.println("propname = " + propname);
-//						// String propkind = (String)j.get("@xsi:type");  = nex:ResourceMeta
-//						Object value = j.get("@href");
-//						if (value == null) {
-//							throw new RuntimeException("missing value for " + propname);
-//						}
-//						tree.assocObject(propname, value);
-//					}
-					else {
+					} else {
+						throw new RuntimeException("missing property value for name: " + j);
+					}
+				} else {
+					throw new RuntimeException("missing property name: " + j);
+				}
+			}
+		}
+		// Copy TREE-level metadata into the JadeTree
+		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
+		if (treeMetaList != null) {
+			for (Object meta : treeMetaList) {
+				JSONObject j = (JSONObject)meta;
+				// {"@property":"ot:inGroupClade","$":"node208482","xsi:type":"nex:LiteralMeta"}
+				String propname = (String)j.get("@property");
+				if (propname != null) {
+					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
+					// looking for either "$" or "@href" (former is more frequent)
+					if ((j.get("$")) != null) {
+						Object value = j.get("$");
+						if (value == null) {
+							throw new RuntimeException("missing value for " + propname);
+						}
+						tree.assocObject(propname, value);
+						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
+					} else if ((j.get("@href")) != null) {
+						Object value = j.get("@href");
+						if (value == null) {
+							throw new RuntimeException("missing value for " + propname);
+						}
+						tree.assocObject(propname, value);
+						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
+					} else {
 						throw new RuntimeException("missing property value for name: " + j);
 					}
 				} else {
@@ -247,10 +310,13 @@ public class NexsonReader {
 	}
 
 	private static List<Object> getMetaList(JSONObject obj) {
+		//System.out.println("looking up meta for: " + obj);
 		Object meta = obj.get("meta");
 		if (meta == null) {
+			//System.out.println("meta == NULL");
 			return null;
 		}
+		//System.out.println("meta != NULL: " + meta);
 		if (meta instanceof JSONObject) {
 			List l = new ArrayList(1);
 			l.add(meta);

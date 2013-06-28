@@ -381,7 +381,7 @@ public class GraphInitializer extends GraphBase{
 		} finally {
 			tx.finish();
 		}
-		//NOTE: outmrcas don't exist for taxchild of nodes because they are assumed to be the whoel thing
+		//NOTE: outmrcas don't exist for taxchild of nodes because they are assumed to be the whole thing
 	}
 	
 	/**

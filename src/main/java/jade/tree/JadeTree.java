@@ -1,6 +1,7 @@
 package jade.tree;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 public class JadeTree {
 	/*
@@ -180,7 +181,16 @@ public class JadeTree {
 	public Object getObject(String key) {
 		return assoc.get(key);
 	}
-
+	
+	/**
+	 * Return the HashMap of metadata associated with the tree
+	 * @todo need to check
+	 * @todo we should probably have a boolean flag to indicate whether or not the tree should be treated as rooted
+	 */
+	public HashMap<String,Object> getAssoc() {
+		return assoc;
+	}
+	
 	/**
 	 * @todo need to check
 	 * @todo we should probably have a boolean flag to indicate whether or not the tree should be treated as rooted
