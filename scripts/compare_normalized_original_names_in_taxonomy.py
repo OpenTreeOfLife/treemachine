@@ -5,6 +5,7 @@ Reads a '\t|\t' separated file in which:
     the column is the "normalized" label, and
     the second column is the "original" label
 '''
+VERY_VERBOSE = False
 from time import gmtime, strftime
 import getpass
 class OTT(object):
@@ -65,6 +66,11 @@ class OTT(object):
                         h_list.append(o_id)
                 else:
                     name2id[n]= o_id
+    def get_names_for_id(self, ott_id):
+        try:
+            return self.id2name_list[ott_id]
+        except:
+            return []
 
 def levenshtein(s1, s2):
     '''
@@ -115,19 +121,23 @@ class NormalizationLogger(object):
         self.num_suspected_typos = 0
         self.num_misspelled = 0
         self.num_abbrev = 0
+        self.num_case_i_synonym_matches = 0
+        self.num_exact_synonym_matches = 0
     def report(self):
         self.num_unclassified_mismatch = self.num_mismatches
         self.num_unclassified_mismatch -= self.num_suspected_typos
         self.num_unclassified_mismatch -= self.num_misspelled
         self.num_unclassified_mismatch -= self.num_abbrev
         for status_log in self.logf:
-            status_log.write('#_perfect_matches = %d\n' % self.num_exact_matches)
-            status_log.write('#_case_i_matches  = %d\n' % self.num_case_i_matches)
-            status_log.write('#_mismatches      = %d\n' % self.num_mismatches)
-            status_log.write('#_suspected_typos = %d\n' % self.num_suspected_typos)
-            status_log.write('#_num_misspelled  = %d\n' % self.num_misspelled)
-            status_log.write('#_abbreviated     = %d\n' % self.num_abbrev)
-            status_log.write('#_unclassified    = %d\n' % self.num_unclassified_mismatch)
+            status_log.write('#_perfect_matches    = %d\n' % self.num_exact_matches)
+            status_log.write('#_case_i_matches     = %d\n' % self.num_case_i_matches)
+            status_log.write('#_perf_syn_matches   = %d\n' % self.num_exact_synonym_matches)
+            status_log.write('#_case_i_syn_matches = %d\n' % self.num_case_i_synonym_matches)
+            status_log.write('#_mismatches         = %d\n' % self.num_mismatches)
+            status_log.write('#_suspected_typos    = %d\n' % self.num_suspected_typos)
+            status_log.write('#_num_misspelled     = %d\n' % self.num_misspelled)
+            status_log.write('#_abbreviated        = %d\n' % self.num_abbrev)
+            status_log.write('#_unclassified       = %d\n' % self.num_unclassified_mismatch)
 
 class AbbrevGen(object):
     def __init__(self, word_crop_list, abbrev_sep_list=None, extra_suffix='', full_sep_list=None):
@@ -245,7 +255,6 @@ class AbbrevGen(object):
         else:
             raise NotImplementedError()
 
-
 class MappingBlob(object):
     '''Structure that holds info one how one mapping (typically one phylografter study)
     has been accomplished (a record of mappings used) and where the study should record its info
@@ -255,7 +264,8 @@ class MappingBlob(object):
                  auto_diagnosed_filepath,
                  manually_diagnosed_filepath,
                  status_filepath,
-                 logfile_filepath):
+                 logfile_filepath,
+                 taxonomy):
         for fp in [auto_diagnosed_filepath, manually_diagnosed_filepath, status_filepath, logfile_filepath]:
             out_dir = os.path.dirname(fp)
             if os.path.exists(out_dir):
@@ -281,43 +291,68 @@ class MappingBlob(object):
         self.timestamp = strftime("%d %b %Y %H:%M:%S", gmtime()) # not sure if this should be a per-study or per annotation timestamp
         self.curr_username = getpass.getuser()
         self.abbrev_collection = [] # pairs of [# usages, AbbrevGen] objects
+        self.taxonomy = taxonomy
 
     def display_analysis_of_nontrivial_mapping(self, s):
         sys.stdout.write(s)
 
-    def analyze_mapping(self, original, normalized):
+    def analyze_mapping(self, original, normalized, ott_id):
         if normalized == original:
             self.norm_logger.num_exact_matches += 1
-        elif normalized.lower() == original.lower():
+            return 
+        if normalized.lower() == original.lower():
             self.norm_logger.num_case_i_matches += 1
-        else:
-            self.norm_logger.num_mismatches += 1
-            suffix = '\t|\t%s\t|\t%s\t|\t%s\t|\t%s\n' % (normalized, original, self.timestamp, self.curr_username)
-            ld = levenshtein(normalized, original)
-            if ld < 3 and abs(len(normalized) - len(original)) < 3:
-                self.norm_logger.num_suspected_typos += 1
-                s = 'TYPO\t|\tlevenshtein=%d%s' % (ld, suffix)
+            return
+        name_list = self.taxonomy.get_names_for_id(ott_id)
+        synonym_list = [name for name in name_list if name.lower() != normalized.lower()]
+        suffix = '\t|\t%s\t|\t%s\t|\t%s\t|\t%s\n' % (normalized, original, self.timestamp, self.curr_username)
+        for name in synonym_list:
+            matched_syn= False
+            if name == original:
+                self.norm_logger.num_exact_synonym_matches += 1
+                matched_syn = True
+            elif name.lower() == original.lower():
+                self.norm_logger.num_case_i_synonym_matches += 1
+                matched_syn = True
+            if matched_syn:
+                s = 'SYNONYM\t|\t%s%s' % (name, suffix)
                 self.auto_diagnosed.write(s)
                 self.display_analysis_of_nontrivial_mapping(s)
-            else:
-                from_prev_run = self.previously_diagnosed.get(original, ['UNCLASSIFIED', ''])
-                fpr_code = from_prev_run[0]
-                fpr_details = from_prev_run[0]
-                diag_code, diag_details = self.query_user(original,
-                                                          normalized, 
-                                                          from_prev_run,
-                                                          self.norm_logger)
-                if diag_code != 'UNCLASSIFIED' and (
-                    diag_code != fpr_code or diag_details != fpr_details):
-                    s = '%s\t|\t%s%s' % (diag_code, diag_details, suffix)
-                    self.manually_diagnosed.write(s)
-                    self.display_analysis_of_nontrivial_mapping(s)
+                return
+        self.norm_logger.num_mismatches += 1
+        full_name_list = [normalized] + synonym_list
+        for name in full_name_list:
+            ld = levenshtein(name, original)
+            if ld < 3 and abs(len(name) - len(original)) < 3:
+                if name == normalized:
+                    self.norm_logger.num_suspected_typos += 1
+                    s = 'TYPO\t|\tlevenshtein=%d%s' % (ld, suffix)
+                else:
+                    self.norm_logger.num_suspected_syn_typos += 1
+                    s = 'TYPOSYNONYMS\t|\t%s levenshtein=%d%s' % (name, ld, suffix)
+                self.auto_diagnosed.write(s)
+                self.display_analysis_of_nontrivial_mapping(s)
+                return
+
+        from_prev_run = self.previously_diagnosed.get(original, ['UNCLASSIFIED', ''])
+        fpr_code = from_prev_run[0]
+        fpr_details = from_prev_run[0]
+        diag_code, diag_details = self.query_user(original,
+                                                  normalized,
+                                                  synonym_list,
+                                                  from_prev_run,
+                                                  self.norm_logger)
+        if diag_code != 'UNCLASSIFIED' and (
+            diag_code != fpr_code or diag_details != fpr_details):
+            s = '%s\t|\t%s%s' % (diag_code, diag_details, suffix)
+            self.manually_diagnosed.write(s)
+            self.display_analysis_of_nontrivial_mapping(s)
 
     def report(self):
          self.norm_logger.report()
 
-    def query_user(self, original, normalized, from_prev_run, norm_logger):
-        c, d = self._query_user_impl(original, normalized, from_prev_run)
+    def query_user(self, original, normalized, synonym_list, from_prev_run, norm_logger):
+        c, d = self._query_user_impl(original, normalized, synonym_list, from_prev_run)
         if c == 'MISSPELLED':
             norm_logger.num_misspelled += 1
         elif c == 'TYPO':
@@ -331,6 +366,7 @@ class MappingBlob(object):
         Returns None of a list of AbbrevGen objects that could be used to abbreviate 
         the string normalized as the abbreviation original (not an exhaustive list)
         '''
+        NO_CROPPING_INDEX = 100000
         lo = original.lower()
         ln = normalized.lower()
         len_o = len(lo)
@@ -346,7 +382,11 @@ class MappingBlob(object):
                     break
             if shared_pref_index == 0:
                 return None
-            suffix = original[shared_pref_index:]
+            if shared_pref_index == len_o - 1:
+                shared_pref_index = NO_CROPPING_INDEX# uncropped
+                suffix = ''
+            else:
+                suffix = original[shared_pref_index:]
             return [AbbrevGen([shared_pref_index], extra_suffix=suffix)]
         else:
             o_separator_list = [' ', '_', '-']
@@ -358,7 +398,8 @@ class MappingBlob(object):
                 len_w = len(word)
                 n_index = 0
                 o_index = lo_offset
-                sys.stderr.write('Trying to match "%s" to "%s"\n' % (word, lo[o_index:]))
+                if VERY_VERBOSE:
+                    sys.stderr.write('Trying to match "%s" to "%s"\n' % (word, lo[o_index:]))
                 while (n_index < len_w) and (o_index < len_o):
                     if word[n_index] == lo[o_index]:
                         n_index += 1
@@ -374,15 +415,18 @@ class MappingBlob(object):
                                           abbrev_sep_list=abbrev_sep_list,
                                           extra_suffix=suffix)]
                     return None
-                crop_list.append(n_index)
                 if o_index < len_o:
                     next_o = original[o_index]
                     if next_o in o_separator_list:
+                        crop_list.append(NO_CROPPING_INDEX)
                         abbrev_sep_list.append(next_o)
                         non_empty_sep_entered = True
                         o_index += 1
                     else:
+                        crop_list.append(n_index)
                         abbrev_sep_list.append('')
+                else:
+                    crop_list.append(n_index)
                 lo_offset = o_index
             if crop_list:
                 suffix = original[o_index:]
@@ -394,17 +438,17 @@ class MappingBlob(object):
             return None
 
 
-    def _query_user_impl(self, original, normalized, from_prev_run):
-        sys.stderr.write('"%s" ==>> "%s" caused by:\n' % (original, normalized))
+    def _query_user_impl(self, original, normalized, synonym_list, from_prev_run):
+        sys.stderr.write('"%s" was normalized to "%s" caused by:\n' % (original, normalized))
         def_choice = from_prev_run[0]
         def_details = from_prev_run[1]
-
+        syn_lower = [i.lower() for i in synonym_list]
         # filter the list of previously used abbreviations...
         plausible_abbrev = []
         for nag in self.abbrev_collection:
             ag = nag[1]
             a = ag.generate_abbreviation(normalized).lower()
-            if a == original.lower():
+            if (a == original.lower()) or (a in syn_lower):
                 plausible_abbrev.append(nag)
             #    sys.stderr.write('Previously used abbrev could work\n')
             #else:
@@ -413,9 +457,11 @@ class MappingBlob(object):
         
         # If we don't have any possible abbreviation generators, try to create some...
         if not plausible_abbrev:
-            new_possible_abbrev = self.diagnose_possible_abbrev(original, normalized)
-            if not new_possible_abbrev:
-                new_possible_abbrev = []
+            new_possible_abbrev = []
+            for n in [normalized] + synonym_list:
+                x = self.diagnose_possible_abbrev(original, n)
+                if x:
+                    new_possible_abbrev.extend(x)
             to_add = []
             for pa in new_possible_abbrev:
                 new_abbrev = True
@@ -431,7 +477,7 @@ class MappingBlob(object):
                      ]
         choice2abbrev = {}
         for n, pa in enumerate(plausible_abbrev):
-            s = '%s # (used %d time(s) previously)' % (pa[1], pa[0])
+            s = '%s # => "%s" (used %d time(s) previously)' % (pa[1], pa[1].generate_abbreviation(original), pa[0])
             is_new = bool(n >= ind_of_last_reused)
             choice2abbrev[len(cause_list)] = [pa, is_new]
             cause_list.append(['ABBREVIATION', s])
@@ -448,9 +494,13 @@ class MappingBlob(object):
         empty_response_means = len(cause_list) - 1
         for i in range(len(cause_list)):
             c, d = cause_list[i]
-            if (i == def_index) \
-                    or (c == def_choice \
-                        and (c != 'ABBREVIATION' or d.startswith(def_details))):
+            is_default = False
+            if def_index is None:
+                if c == def_choice and (c != 'ABBREVIATION' or d.startswith(def_details)):
+                    is_default = True
+            elif def_index == i:
+                is_default = True
+            if is_default:
                 empty_response_means = i
                 sys.stderr.write('%d * %s\t|\t%s\n' % (1 + i, c, d))
             else:
@@ -544,7 +594,8 @@ The normalized name files should be:
         curr_study = MappingBlob(auto_diagnosed_filepath=os.path.join(out_dir, 'auto-diagnosed.txt'),
                                  manually_diagnosed_filepath=os.path.join(out_dir, 'manually-diagnosed.txt'),
                                  status_filepath=os.path.join(out_dir, 'status'),
-                                 logfile_filepath=os.path.join(out_dir, 'log'))
+                                 logfile_filepath=os.path.join(out_dir, 'log'),
+                                 taxonomy=ott)
         for line_num, line in enumerate(infile):
             ls = line.split('\t|\t')
             if len(ls) < 2:
@@ -552,7 +603,11 @@ The normalized name files should be:
                     sys.exit('Expecting at least two columns. Found:\n%sin file "%s" at line %d' % (line, fn, line_num))
                 continue
             normalized, original = ls[0], ls[1]
-            curr_study.analyze_mapping(original, normalized)
+            try:
+                ott_id = ls[3]
+            except:
+                ott_id = ''
+            curr_study.analyze_mapping(original, normalized, ott_id)
         curr_study.report()
 
     # """ # end of comment
