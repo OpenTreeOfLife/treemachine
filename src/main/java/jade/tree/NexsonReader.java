@@ -63,6 +63,7 @@ public class NexsonReader {
 	}
 
 	/* Read Nexson study from a Reader */
+	// TODO: tree(s) may be deprecated. Need to check this. May result in no trees to return.
 	public static List<JadeTree> readNexson(Reader r, Boolean verbose) throws java.io.IOException {
 		JSONObject all = (JSONObject)JSONValue.parse(r);
 
@@ -119,13 +120,15 @@ public class NexsonReader {
 				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
 			}
 			// tree2 = {"node": [...], "edge": [...]}
-			result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), studyMetaList, treeMetaList, treeID, verbose));
+			JadeTree temp = importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), studyMetaList, treeMetaList, treeID, verbose);
+			if (temp != null) {
+				result.add(temp);
+			}
 		}
 		return result;
 	}
 
 	/* Process a single tree (subroutine of above) */
-
 	private static JadeTree importTree(Map<String,JSONObject> otuMap,
 									   JSONArray nodeList,
 									   JSONArray edgeList,
@@ -138,7 +141,27 @@ public class NexsonReader {
 		
 		JadeNode root = null;
 		
-		// first, check if an ingroup is defined. if so, discard outgroup(s).
+		// first, check if tree is deprecated. will be a tree-specific tag (ot:tag). if so, abort.
+		if (treeMetaList != null) {
+			for (Object meta : treeMetaList) {
+				JSONObject j = (JSONObject)meta;
+				if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
+					if ((j.get("$")) != null) {
+						String currentTag = (String)j.get("$");
+						if (currentTag.startsWith("del"));
+						System.out.println("Tree has deprecation tag '" + currentTag + "'. Ignore.");
+						return null;
+					} else {
+						throw new RuntimeException("missing property value for name: " + j);
+					}
+				}
+			}
+		}
+		
+		
+		//treeID.startsWith("tree")
+		
+		// check if an ingroup is defined. if so, discard outgroup(s).
 		String ingroup = null;
 		if (treeMetaList != null) {
 			for (Object meta : treeMetaList) {
@@ -183,7 +206,7 @@ public class NexsonReader {
 
 				// Get taxon id (usually present) and maybe other metadata (rarely present)
 				List<Object> metaList2 = getMetaList(otu);
-				if (metaList2 != null)
+				if (metaList2 != null) {
 					for (Object meta : metaList2) {
 						JSONObject m = (JSONObject)meta;
 						String propname = (String)m.get("@property");
@@ -207,6 +230,7 @@ public class NexsonReader {
 						}
 						jn.assocObject(propname, value);
 					}
+				}
 			}
 		}
 
