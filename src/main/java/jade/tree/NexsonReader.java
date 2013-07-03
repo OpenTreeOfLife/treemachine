@@ -299,14 +299,18 @@ public class NexsonReader {
 						throw new RuntimeException("missing value for " + propname);
 					}
 					tree.assocObject(propname, value);
-					if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
+					if (verbose) {
+						System.out.println("Added propname (" + propname + "): " + value);
+					}
 				} else if ((j.get("@href")) != null) {
 					Object value = j.get("@href");
 					if (value == null) {
 						throw new RuntimeException("missing value for " + propname);
 					}
 					tree.assocObject(propname, value);
-					if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
+					if (verbose) {
+						System.out.println("Added propname (" + propname + "): " + value);
+					}
 				} else {
 					throw new RuntimeException("missing property value for name: " + j);
 				}
