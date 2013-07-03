@@ -1326,21 +1326,21 @@ public class MainRunner {
 			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
 		}if(args.length == 4){
-			System.out.println("not entering into the database, just testing");
+			System.err.println("not entering into the database, just testing");
 			test = true;
 		}
 		String filen = args[2];
 		File file = new File(filen);
-		System.out.println("file "+ file);
+		System.err.println("file "+ file);
 		BufferedReader br= null;
 		List<JadeTree> jt = null;
 		try{
 			br = new BufferedReader(new FileReader(file));
 			jt = NexsonReader.readNexson(br, true);
-			System.out.println("number of tips for trees in file "+file);
+			System.err.println("number of tips for trees in file "+file);
 			int count = 0;
 			for (JadeTree j : jt) {
-				System.out.println("\ttree "+count+": " + j.getExternalNodeCount());
+				System.err.println("\ttree "+count+": " + j.getExternalNodeCount());
 				count += 1;
 			}
 		} catch (FileNotFoundException e) {
