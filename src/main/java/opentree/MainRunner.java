@@ -504,6 +504,10 @@ public class MainRunner {
 			br.close();
 		} catch (IOException ioe) {}
 		System.out.println(treeCounter + " trees read.");
+		
+		
+		// Should abort here if no valid trees read
+		
 
 		HashSet<String> names = new HashSet<String>();
 		for (int i = 0; i < jt.size(); i++) {

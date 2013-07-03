@@ -78,14 +78,23 @@ public class NexsonReader {
 
 		  See http://www.nexml.org/manual for NexML documentation.
 		*/
-
+		
+		// the desired result: a list of valid trees
+		List<JadeTree> result = new ArrayList<JadeTree>();
+		
 		// The XML root element
 		JSONObject root = (JSONObject)all.get("nexml");
 
 		// All of the <meta> elements from root (i.e. study-wide). Trees may have their own meta elements (e.g. inGroupClade)
 		List<Object> studyMetaList = getMetaList(root);
 		//System.out.println("studyMetaList = " + studyMetaList);
-			
+		
+		// check if study is flagged as deprecated. if so, skip.
+		if (checkDeprecated(studyMetaList)) {
+			System.out.println("Study tagged as deprecated. Ignore.");
+			return result;
+		}
+		
 		// All of the <otu> elements
 		JSONObject otus = (JSONObject)root.get("otus");
 		JSONArray otuList = (JSONArray)otus.get("otu");
@@ -103,8 +112,6 @@ public class NexsonReader {
 		JSONObject trees = (JSONObject)root.get("trees");
 		JSONArray treeList = (JSONArray)trees.get("tree");
 
-		List<JadeTree> result = new ArrayList<JadeTree>();
-
 		// Process each tree in turn, yielding a JadeTree
 		for (Object tree : treeList) {
 			JSONObject tree2 = (JSONObject)tree;
@@ -115,14 +122,15 @@ public class NexsonReader {
 		// trees can have their own specific metadata e.g. [{"@property":"ot:branchLengthMode","@xsi:type":"nex:LiteralMeta","$":"ot:substitutionCount"},{"@property":"ot:inGroupClade","$":"node208482","xsi:type":"nex:LiteralMeta"}]
 			List<Object> treeMetaList = getMetaList(tree2);
 			//System.out.println("treeMetaList = " + treeMetaList);
-			
-			if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
-				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
-			}
-			// tree2 = {"node": [...], "edge": [...]}
-			JadeTree temp = importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), studyMetaList, treeMetaList, treeID, verbose);
-			if (temp != null) {
-				result.add(temp);
+			// check if tree is deprecated. will be a tree-specific tag (ot:tag). if so, abort.
+			if (checkDeprecated(treeMetaList)) {
+				System.out.println("Tree '" + treeID + "' tagged as deprecated. Ignore.");
+			} else {
+				if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
+					treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
+				}
+				// tree2 = {"node": [...], "edge": [...]}
+				result.add(importTree(otuMap, (JSONArray)tree2.get("node"), (JSONArray)tree2.get("edge"), studyMetaList, treeMetaList, treeID, verbose));
 			}
 		}
 		return result;
@@ -140,26 +148,6 @@ public class NexsonReader {
 		Map<String, JadeNode> nodeMap = new HashMap<String, JadeNode>();
 		
 		JadeNode root = null;
-		
-		// first, check if tree is deprecated. will be a tree-specific tag (ot:tag). if so, abort.
-		if (treeMetaList != null) {
-			for (Object meta : treeMetaList) {
-				JSONObject j = (JSONObject)meta;
-				if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
-					if ((j.get("$")) != null) {
-						String currentTag = (String)j.get("$");
-						if (currentTag.startsWith("del"));
-						System.out.println("Tree has deprecation tag '" + currentTag + "'. Ignore.");
-						return null;
-					} else {
-						throw new RuntimeException("missing property value for name: " + j);
-					}
-				}
-			}
-		}
-		
-		
-		//treeID.startsWith("tree")
 		
 		// check if an ingroup is defined. if so, discard outgroup(s).
 		String ingroup = null;
@@ -331,6 +319,25 @@ public class NexsonReader {
 		}
 		tree.assocObject("id", treeID);
 		return tree;
+	}
+	
+	// check through metadata information for ot:tag del*
+	// works for both study-wide and tree-specific metadata
+	private static Boolean checkDeprecated (List<Object> metaData) {
+		Boolean deprecated = false;
+		for (Object meta : metaData) {
+			JSONObject j = (JSONObject)meta;
+			if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
+				if ((j.get("$")) != null) {
+					String currentTag = (String)j.get("$");
+					if (currentTag.startsWith("del"));
+					return true;
+				} else {
+					throw new RuntimeException("missing property value for name: " + j);
+				}
+			}
+		}
+		return deprecated;
 	}
 
 	private static List<Object> getMetaList(JSONObject obj) {
