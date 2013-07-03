@@ -1408,11 +1408,7 @@ public class MainRunner {
 					if (hits.size() > 0){
 						System.out.println("source "+sourcename+" already added");
 					}else{
-						if(test == false){
-							gi.addSetTreeToGraphWIdsSet(sourcename,false,false);
-						}else{
-							gi.addSetTreeToGraphWIdsSet(sourcename,false,true);
-						}
+						gi.addSetTreeToGraphWIdsSet(sourcename,false,test);
 					}
 				}
 			}
@@ -1630,7 +1626,8 @@ public class MainRunner {
 		System.out.println("\taddnewick <filename> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
-		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)\n");
+		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)");
+		System.out.println("\tpgloadind <graphdbfolder> filepath [test] (add trees from the nexson file \"filepath\" into the db. If third arg is found the tree is just tested, not added).\n");
 
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
