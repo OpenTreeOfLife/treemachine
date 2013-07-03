@@ -256,66 +256,11 @@ public class NexsonReader {
 		// Copy STUDY-level metadata into the JadeTree
 		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
 		if (studyMetaList != null) {
-			for (Object meta : studyMetaList) {
-				JSONObject j = (JSONObject)meta;
-				// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
-				String propname = (String)j.get("@property");
-				if (propname != null) {
-					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
-					// looking for either "$" or "@href" (former is more frequent)
-					if ((j.get("$")) != null) {
-						Object value = j.get("$");
-						if (value == null) {
-							throw new RuntimeException("missing value for " + propname);
-						}
-						tree.assocObject(propname, value);
-						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
-					} else if ((j.get("@href")) != null) {
-						Object value = j.get("@href");
-						if (value == null) {
-							throw new RuntimeException("missing value for " + propname);
-						}
-						tree.assocObject(propname, value);
-						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
-					} else {
-						throw new RuntimeException("missing property value for name: " + j);
-					}
-				} else {
-					throw new RuntimeException("missing property name: " + j);
-				}
-			}
+			associateMetadata(tree, studyMetaList, verbose);
 		}
 		// Copy TREE-level metadata into the JadeTree
-		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
 		if (treeMetaList != null) {
-			for (Object meta : treeMetaList) {
-				JSONObject j = (JSONObject)meta;
-				// {"@property":"ot:inGroupClade","$":"node208482","xsi:type":"nex:LiteralMeta"}
-				String propname = (String)j.get("@property");
-				if (propname != null) {
-					// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
-					// looking for either "$" or "@href" (former is more frequent)
-					if ((j.get("$")) != null) {
-						Object value = j.get("$");
-						if (value == null) {
-							throw new RuntimeException("missing value for " + propname);
-						}
-						tree.assocObject(propname, value);
-						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
-					} else if ((j.get("@href")) != null) {
-						Object value = j.get("@href");
-						if (value == null) {
-							throw new RuntimeException("missing value for " + propname);
-						}
-						tree.assocObject(propname, value);
-						if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
-					} else {
-						throw new RuntimeException("missing property value for name: " + j);
-					}
-				} else {
-					throw new RuntimeException("missing property name: " + j);
-				}
-			}
+			associateMetadata(tree, treeMetaList, verbose);
 		}
 		tree.assocObject("id", treeID);
 		return tree;
@@ -339,7 +284,38 @@ public class NexsonReader {
 		}
 		return deprecated;
 	}
-
+	
+	private static void associateMetadata (JadeTree tree, List<Object> metaData, Boolean verbose) {
+		for (Object meta : metaData) {
+			JSONObject j = (JSONObject)meta;
+			// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
+			String propname = (String)j.get("@property");
+			if (propname != null) {
+				// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
+				// looking for either "$" or "@href" (former is more frequent)
+				if ((j.get("$")) != null) {
+					Object value = j.get("$");
+					if (value == null) {
+						throw new RuntimeException("missing value for " + propname);
+					}
+					tree.assocObject(propname, value);
+					if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
+				} else if ((j.get("@href")) != null) {
+					Object value = j.get("@href");
+					if (value == null) {
+						throw new RuntimeException("missing value for " + propname);
+					}
+					tree.assocObject(propname, value);
+					if (verbose) {System.out.println("Added propname (" + propname + "): " + value);}
+				} else {
+					throw new RuntimeException("missing property value for name: " + j);
+				}
+			} else {
+				throw new RuntimeException("missing property name: " + j);
+			}
+		}
+	}
+	
 	private static List<Object> getMetaList(JSONObject obj) {
 		//System.out.println("looking up meta for: " + obj);
 		Object meta = obj.get("meta");
