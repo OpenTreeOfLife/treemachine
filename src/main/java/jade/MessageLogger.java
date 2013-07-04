@@ -24,6 +24,10 @@ public class MessageLogger {
 		this.sep = separator;
 	}
 
+	public void setPrintStream(PrintStream ps) {
+		this.outStream = ps;
+	}
+
 	
 	public void message(String label) {
 		this.indentMessage(0, label);
@@ -88,40 +92,40 @@ public class MessageLogger {
 	}
 
 	// prepend prefix (or no-op in JSON)
-	private void _write_prefix() {
+	protected void _write_prefix() {
 		this.outStream.print(this.msgPrefix + this.sep);
 	}
 
 	// indent with spaces (or nest if JSON)
-	private void _indent(int indentLevel) {
+	protected void _indent(int indentLevel) {
 		for (int x = 0; x < indentLevel; ++x) {
 			this.outStream.print("  ");
 		}
 	}
 
-	private void _message(String label) {
+	protected void _message(String label) {
 		this.outStream.println(label);
 	}
 
-	private void _messageStrStr(String label, String s, String s2) {
+	protected void _messageStrStr(String label, String s, String s2) {
 		this.outStream.println(label + this.sep + s + this.sep + '"' + s2 + '"');
 	}
-	private void _messageStrLong(String label, String s, Long i) {
+	protected void _messageStrLong(String label, String s, Long i) {
 		this.outStream.println(label + this.sep + s + this.sep + i);
 	}
 
-	public void _messageStrInt(String label, String s, int i) {
+	protected void _messageStrInt(String label, String s, int i) {
 		this.outStream.println(label + this.sep + s + this.sep + i);
 	}
 
-	private void _messageStrStrStrStr(String label, String s, String s2, String s3, String s4) {
+	protected void _messageStrStrStrStr(String label, String s, String s2, String s3, String s4) {
 		this.outStream.println(label + this.sep + s + this.sep + '"' + s2 + '"' + this.sep + s3 + this.sep + '"' + s4 + '"');
 	}
-	private void _messageStrLongStrStr(String label, String s, Long i, String s3, String s4) {
+	protected void _messageStrLongStrStr(String label, String s, Long i, String s3, String s4) {
 		this.outStream.println(label + this.sep + s + this.sep + i + this.sep + s3 + this.sep + '"' + s4 + '"');
 	}
 
-	public void _messageStrIntStrStr(String label, String s, int i, String s3, String s4) {
+	protected void _messageStrIntStrStr(String label, String s, int i, String s3, String s4) {
 		this.outStream.println(label + this.sep + s + this.sep + i + this.sep + s3 + this.sep + '"' + s4 + '"');
 	}
 

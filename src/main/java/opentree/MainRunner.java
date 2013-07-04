@@ -10,8 +10,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,6 +37,7 @@ import opentree.TreeNotFoundException;
 import opentree.StoredEntityNotFoundException;
 import opentree.testing.TreeUtils;
 import jade.MessageLogger;
+import jade.JSONMessageLogger;
 
 public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
@@ -1330,21 +1333,37 @@ public class MainRunner {
 	public int pg_loading_ind_studies(String [] args){
 		boolean test = false;
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+		PrintStream jsonOutputPrintStream = null;
 		if (args.length != 3 && args.length != 4) {
 			graphDb.shutdownDb();
 			System.out.println("the argument has to be graphdb filen (test)");
 			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
-		}if(args.length == 4){
+		}
+		if(args.length == 4) {
 			System.err.println("not entering into the database, just testing");
 			test = true;
+			if (args[3].endsWith(".json")) {
+				try {
+					jsonOutputPrintStream = new PrintStream(new FileOutputStream(args[3]));
+				} catch (Exception x) {
+					System.err.println("Could not open the file \"" + args[3] + "\" Exiting...");
+					return -1;
+				}
+			}
 		}
 		String filen = args[2];
 		File file = new File(filen);
 		System.err.println("file "+ file);
 		BufferedReader br= null;
 		List<JadeTree> jt = null;
-		MessageLogger messageLogger = new MessageLogger("pgloadind", " ");
+		MessageLogger messageLogger;
+		if (jsonOutputPrintStream == null) {
+			messageLogger = new MessageLogger("pgloadind", " ");
+		} else {
+			messageLogger = new JSONMessageLogger("pgloadind");
+			messageLogger.setPrintStream(jsonOutputPrintStream);
+		}
 		try{
 			br = new BufferedReader(new FileReader(file));
 			jt = NexsonReader.readNexson(br, true, messageLogger);
@@ -1437,20 +1456,24 @@ public class MainRunner {
 				++treeIndex;
 			}
 		} catch(java.lang.NullPointerException e){
-			System.out.println("failed to get study "+file.getName());
+			System.err.println("failed to get study "+file.getName());
+			messageLogger.close();
 			graphDb.shutdownDb();
 			return -1;
 		} catch (TaxonNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			messageLogger.close();
 			graphDb.shutdownDb();
 			return -1;
 		} catch (TreeIngestException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			messageLogger.close();
 			graphDb.shutdownDb();
 			return -1;
 		}
+		messageLogger.close();
 		try {
 			br.close();
 		} catch (IOException e) {
