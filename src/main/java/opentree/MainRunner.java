@@ -34,6 +34,7 @@ import opentree.TaxonNotFoundException;
 import opentree.TreeNotFoundException;
 import opentree.StoredEntityNotFoundException;
 import opentree.testing.TreeUtils;
+import opentree.MessageLogger;
 
 public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
@@ -940,17 +941,18 @@ public class MainRunner {
 		String graphdbn = args[2];
 		
 		String arg = args[0];
+		MessageLogger stdOutLogger = new MessageLogger("treeUtilsDB", " ");
 		if (arg.equals("labeltax")){
 			GraphExplorer ge = new GraphExplorer(graphdbn);	
 			for (int i=0;i<jt.size();i++){
-				ge.labelInternalNodesTax(jt.get(i));
+				ge.labelInternalNodesTax(jt.get(i), stdOutLogger);
 				System.out.println(jt.get(i).getRoot().getNewick(false));
 			}
 			ge.shutdownDB();
 		}else if(arg.equals("checktax")){
 			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 			try{
-				boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
+				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, stdOutLogger);
 				if (good == false){
 					System.out.println("failed to get the names from server fixNamesFromTrees");
 					graphDb.shutdownDb();
@@ -1225,6 +1227,7 @@ public class MainRunner {
 		System.out.println("loading files from "+directory+" into "+args[1]);
 		File file = new File(directory);
 		File [] files = file.listFiles();
+		MessageLogger stdOutLogger = new MessageLogger("pg_loading", " ");
 		for(int i =0;i<files.length;i++){
 			System.out.println("files "+ files[i]);
 			BufferedReader br= null;
@@ -1245,7 +1248,7 @@ public class MainRunner {
 					e.printStackTrace();
 				}
 				try{
-					PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
+					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, stdOutLogger);
 				}catch(IOException ioe){
 					ioe.printStackTrace();
 					System.out.println("failed to get the names from server fixNamesFromTrees");
@@ -1359,7 +1362,8 @@ public class MainRunner {
 			return -1;
 		}
 		try{
-			boolean good = PhylografterConnector.fixNamesFromTrees(jt,graphDb,true);
+			MessageLogger stdOutLogger = new MessageLogger("pgloadind", " ");
+			boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, stdOutLogger);
 			if (good == false){
 				System.out.println("failed to get the names from server fixNamesFromTrees");
 				graphDb.shutdownDb();
@@ -1454,13 +1458,15 @@ public class MainRunner {
 				break;
 			}
 			try {
+				MessageLogger stdOutLogger = new MessageLogger("pgtesting", " ");
+				
 				//List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k);
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
 				try {
-					PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
+					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, stdOutLogger);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

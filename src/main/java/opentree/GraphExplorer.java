@@ -37,6 +37,9 @@ import opentree.synthesis.SourcePropertyRankingCriterion;
 import opentree.synthesis.TestValue;
 import opentree.synthesis.TreeMakingBandB;
 
+
+import opentree.MessageLogger;
+
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -2315,7 +2318,7 @@ public class GraphExplorer extends GraphBase {
 
     
     // ================================= methods for trees ====================================
-    public void labelInternalNodesTax(JadeTree tree){
+    public void labelInternalNodesTax(JadeTree tree, MessageLogger logger){
     	//first get the unequivocal ones
 		ArrayList<JadeNode> nds = tree.getRoot().getTips();
 		for (int j = 0; j < nds.size(); j++) {
@@ -2337,7 +2340,7 @@ public class GraphExplorer extends GraphBase {
     	ArrayList<JadeTree> al = new ArrayList<JadeTree> ();
     	al.add(tree);
     	try {
-			PhylografterConnector.fixNamesFromTrees(al,graphDb,false);
+			PhylografterConnector.fixNamesFromTrees(al,graphDb,false, logger);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -192,14 +192,14 @@ public class PhylografterConnector {
 	 * @param graphDb
 	 * @throws IOException
 	 */
-	public static boolean fixNamesFromTrees(List<JadeTree> trees, GraphDatabaseAgent graphDb,boolean prune) throws IOException{
+	public static boolean fixNamesFromTrees(List<JadeTree> trees, GraphDatabaseAgent graphDb,boolean prune, MessageLogger logger) throws IOException{
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
 		String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
 		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/doTNRSForNames";
 		System.out.println("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
-			System.out.println("name fixing on tree "+i);
+			logger.messageInt("name fixing on tree ", i);
 			//get the names that don't have ids
 			//if the number is 0 then break
 			ArrayList<JadeNode> searchnds = new ArrayList<JadeNode>();
@@ -273,7 +273,9 @@ public class PhylografterConnector {
 						String searchString = (String)((JSONObject)tid).get("searchString");
 						//	        		System.out.println(score+" "+permat+" "+ottolid);
 						if (score >= 1){
-							namenodemap.get(searchString).assocObject("ot:ottolid", Long.valueOf(ottolid));
+							Long tnrsOttolID = Long.valueOf(ottolid);
+							logger.messageStrLong("TNRS resolved OttolID", searchString, tnrsOttolID);
+							namenodemap.get(searchString).assocObject("ot:ottolid", tnrsOttolID);
 							matchednodes.add(namenodemap.get(searchString));
 							namenodemap.remove(searchString);
 							break;
@@ -377,11 +379,18 @@ public class PhylografterConnector {
         		Node firstNode = hits.getSingle();
         		hits.close();
         		Node cnode = firstNode;
-        		System.out.print(cnode.getProperty("name"));
-        		while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.TAXCHILDOF)){
-        			cnode = cnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
-        			System.out.print("->"+cnode.getProperty("name"));
-        		}System.out.print("\n");
+        		if (cnode == null) {
+        			System.out.println("ottolid " + tid + " is indexed to a null node!");
+        		} else {
+	        		String cnodeName = (String) cnode.getProperty("name");
+	        		System.out.print(cnodeName == null ? "{null name}" : cnodeName);
+	        		while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.TAXCHILDOF)){
+	        			cnode = cnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+	        			cnodeName = (String) cnode.getProperty("name");
+	        			System.out.print("->" + (cnodeName == null ? "{null name}" : cnodeName));
+	        		}
+	        		System.out.print("\n");
+        		}
 	        }
 		}
 		return true;

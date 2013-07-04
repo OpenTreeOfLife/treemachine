@@ -12,6 +12,7 @@ import opentree.GraphImporter;
 import opentree.PhylografterConnector;
 import opentree.TaxonNotFoundException;
 import opentree.TreeIngestException;
+import opentree.MessageLogger;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -43,12 +44,14 @@ public class PhylografterUpdater extends ServerPlugin{
 			if (k<8)
 				continue;
 			try{
+				MessageLogger stdOutLogger = new MessageLogger("updateGraphFromPhylografter", " ");
+
 				List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
 				try {
-					PhylografterConnector.fixNamesFromTrees(jt,graphDb,false);
+					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, stdOutLogger);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
