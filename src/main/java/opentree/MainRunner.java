@@ -1401,7 +1401,7 @@ public class MainRunner {
 						sourcename = (String)j.getObject("ot:studyId");
 					}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
 						sourcename += "_"+(String)j.getObject("id");
-					}							
+					}
 					//test to see if the tree is already in there
 					Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
 					IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);

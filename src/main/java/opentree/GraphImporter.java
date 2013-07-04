@@ -193,10 +193,11 @@ public class GraphImporter extends GraphBase{
 		root_ndids = ndids;
 		try {
 			tx = graphDb.beginTx();
-			if(test == false)
+			if(test == false) {
 				postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
-			else
+			} else {
 				postOrderAddProcessedTreeToGraphNoAdd(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+			}
 			tx.success();
 		} finally {
 			tx.finish();
@@ -301,10 +302,11 @@ public class GraphImporter extends GraphBase{
 		root_ndids = ndids;
 		try {
 			tx = graphDb.beginTx();
-			if(test == false)
+			if(test == false) {
 				postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
-			else
+			} else {
 				postOrderAddProcessedTreeToGraphNoAdd(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+			}
 			tx.success();
 		} finally {
 			tx.finish();
