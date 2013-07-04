@@ -38,7 +38,7 @@ import opentree.synthesis.TestValue;
 import opentree.synthesis.TreeMakingBandB;
 
 
-import opentree.MessageLogger;
+import jade.MessageLogger;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;

@@ -1,4 +1,4 @@
-package opentree;
+package jade;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -41,19 +41,19 @@ public class MessageLogger {
 		this.indentMessageStrInt(0, label, s, i);
 	}
 
-	void indentMessage(int indentLevel, String label) {
+	public void indentMessage(int indentLevel, String label) {
 		this._write_prefix();
 		this._indent(indentLevel);
 		this._message(label);
 	}
 
-	void indentMessageStrStr(int indentLevel, String label, String s, String s2) {
+	public void indentMessageStrStr(int indentLevel, String label, String s, String s2) {
 		this._write_prefix();
 		this._indent(indentLevel);
 		this._messageStrStr(label, s, s2);
 	}
 
-	void indentMessageStrInt(int indentLevel, String label, String s, int i) {
+	public void indentMessageStrInt(int indentLevel, String label, String s, int i) {
 		this._write_prefix();
 		this._indent(indentLevel);
 		this._messageStrInt(label, s, i);

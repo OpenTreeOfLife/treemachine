@@ -12,7 +12,7 @@ import opentree.GraphImporter;
 import opentree.PhylografterConnector;
 import opentree.TaxonNotFoundException;
 import opentree.TreeIngestException;
-import opentree.MessageLogger;
+import jade.MessageLogger;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;

@@ -24,7 +24,7 @@ import java.util.Map;
 import javax.ws.rs.core.MediaType;
 
 import opentree.RelTypes;
-import opentree.MessageLogger;
+import jade.MessageLogger;
 
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;

@@ -34,7 +34,7 @@ import opentree.TaxonNotFoundException;
 import opentree.TreeNotFoundException;
 import opentree.StoredEntityNotFoundException;
 import opentree.testing.TreeUtils;
-import opentree.MessageLogger;
+import jade.MessageLogger;
 
 public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
@@ -1341,6 +1341,7 @@ public class MainRunner {
 		System.err.println("file "+ file);
 		BufferedReader br= null;
 		List<JadeTree> jt = null;
+		MessageLogger messageLogger = new MessageLogger("pgloadind", " ");
 		try{
 			br = new BufferedReader(new FileReader(file));
 			jt = NexsonReader.readNexson(br, true);
@@ -1365,7 +1366,6 @@ public class MainRunner {
 			graphDb.shutdownDb();
 			return -1;
 		}
-		MessageLogger messageLogger = new MessageLogger("pgloadind", " ");
 		try{
 			boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, messageLogger);
 			if (good == false){
