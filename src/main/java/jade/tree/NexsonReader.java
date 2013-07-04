@@ -90,7 +90,7 @@ public class NexsonReader {
 		//System.out.println("studyMetaList = " + studyMetaList);
 		
 		// check if study is flagged as deprecated. if so, skip.
-		if (checkDeprecated(studyMetaList)) {
+		if (studyMetaList != null && checkDeprecated(studyMetaList)) {
 			System.out.println("Study tagged as deprecated. Ignore.");
 			return result;
 		}
@@ -123,7 +123,7 @@ public class NexsonReader {
 			List<Object> treeMetaList = getMetaList(tree2);
 			//System.out.println("treeMetaList = " + treeMetaList);
 			// check if tree is deprecated. will be a tree-specific tag (ot:tag). if so, abort.
-			if (checkDeprecated(treeMetaList)) {
+			if (treeMetaList != null && checkDeprecated(treeMetaList)) {
 				System.out.println("Tree '" + treeID + "' tagged as deprecated. Ignore.");
 			} else {
 				if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
@@ -275,8 +275,9 @@ public class NexsonReader {
 			if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
 				if ((j.get("$")) != null) {
 					String currentTag = (String)j.get("$");
-					if (currentTag.startsWith("del"));
-					return true;
+					if (currentTag.startsWith("del")); {
+						return true;
+					}
 				} else {
 					throw new RuntimeException("missing property value for name: " + j);
 				}
