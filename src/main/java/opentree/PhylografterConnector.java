@@ -24,6 +24,7 @@ import java.util.Map;
 import javax.ws.rs.core.MediaType;
 
 import opentree.RelTypes;
+import opentree.MessageLogger;
 
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
@@ -197,9 +198,9 @@ public class PhylografterConnector {
 		// we are testing
 		String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
 		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/doTNRSForNames";
-		System.out.println("conducting TNRS on trees");
+		logger.message("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
-			logger.messageInt("name fixing on tree ", i);
+			logger.messageStrInt("name fixing on tree", "index", i);
 			//get the names that don't have ids
 			//if the number is 0 then break
 			ArrayList<JadeNode> searchnds = new ArrayList<JadeNode>();
@@ -207,14 +208,14 @@ public class PhylografterConnector {
 			ArrayList<JadeNode> matchednodes = new ArrayList<JadeNode>();
 			for (int j = 0; j < trees.get(i).getExternalNodeCount(); j++) {
 				if(trees.get(i).getExternalNode(j).getObject("ot:ottolid")==null){
-					System.out.println("\tlooking for:"+trees.get(i).getExternalNode(j).getName());
+					logger.indentMessageStrStr(1, "OTT ID missing", "name", trees.get(i).getExternalNode(j).getName());
 					searchnds.add(trees.get(i).getExternalNode(j));
 					namenodemap.put(trees.get(i).getExternalNode(j).getName(), trees.get(i).getExternalNode(j));
 				}
 			}
 			if (searchnds.size() == 0){
-				System.out.println("\tall nodes have ottolids");
-			}else{
+				logger.indentMessage(1, "all nodes have ottolids");
+			} else {
 				StringBuffer sb = new StringBuffer();
 				// build the parameter string for the context query
 				sb.append("{\"queryString\":\"");
@@ -261,7 +262,7 @@ public class PhylografterConnector {
 				contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
 				// System.out.println(contextResponse);
 				JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
-				//	        System.out.println("total unmatched: "+unmcount);
+				logger.indentMessageStrInt(1, "TNRS unmatched", "total number", unm.size());
 				JSONArray res = (JSONArray) contextResponse.get("results");
 				//if the match is with score 1, then we keep
 				for (Object id: res){
@@ -274,7 +275,7 @@ public class PhylografterConnector {
 						//	        		System.out.println(score+" "+permat+" "+ottolid);
 						if (score >= 1){
 							Long tnrsOttolID = Long.valueOf(ottolid);
-							logger.messageStrLong("TNRS resolved OttolID", searchString, tnrsOttolID);
+							logger.indentMessageStrLong(1, "TNRS resolved OttolID", searchString, tnrsOttolID);
 							namenodemap.get(searchString).assocObject("ot:ottolid", tnrsOttolID);
 							matchednodes.add(namenodemap.get(searchString));
 							namenodemap.remove(searchString);
@@ -290,10 +291,11 @@ public class PhylografterConnector {
 					IndexHits <Node> hits = graphNodeIndex.get("name", name);
 					if (hits.size() == 1){
 						Long lid = (Long) hits.getSingle().getProperty("tax_uid");
+						logger.indentMessageStrLong(1, "Name previously ingested into graphNamedNodes", name, lid);
 						namenodemap.get(name).assocObject("ot:ottolid", Long.valueOf(lid));
 						removenames.add(name);
 					}else{
-						//System.out.println(hits.size());
+						logger.indentMessageStrInt(1, "Name not unique in graphNamedNodes", name, hits.size());
 					}
 					hits.close();
 				}
@@ -313,7 +315,7 @@ public class PhylografterConnector {
 				if (namenodemap.size() > 0){
 					if(prune){
 						for(String name: namenodemap.keySet()){
-							System.out.println("\tpruning unmapped name: "+name);
+							logger.indentMessageStrStr(1, "pruning unmapped", "name", name);
 							JadeNode jnode = namenodemap.get(name);
 							trees.get(i).pruneExternalNode(jnode);
 						}
@@ -331,7 +333,9 @@ public class PhylografterConnector {
 	        		Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
 	        		if(tipottols.contains(tid)){
 	        			//prune
-	        			System.out.println("\tduplicate names: "+trees.get(i).getExternalNode(j).getName());
+	        			logger.indentMessage(1, "OTT ID reused in tree");
+	        			logger.indentMessageStrStr(2, "duplicate", "name", trees.get(i).getExternalNode(j).getName());
+	        			logger.indentMessageStrLong(2, "duplicate", "OTT ID", tid);
 	        			pru.add(trees.get(i).getExternalNode(j));
 	        		}else{
 	        			tipottols.add(tid);
@@ -357,19 +361,20 @@ public class PhylografterConnector {
 		        		hits2.close();
 		        		TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
 		        		if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
-		        			System.out.println("\toverlapping tips: "+trees.get(i).getExternalNode(k).getName());
+		        			logger.indentMessage(1, "overlapping tips");
+		        			logger.indentMessageStrStr(2, "overlapping retained", "name", trees.get(i).getExternalNode(j).getName());
+		        			logger.indentMessageStrStr(2, "overlapping pruned", "name", trees.get(i).getExternalNode(k).getName());
 		        			pru.add(trees.get(i).getExternalNode(k));
 		        		}
 	        		}
 	        	}
 	        	for(JadeNode tn: pru){
-	        		System.out.println("\tpruning dups and overlapping: "+tn.getName());
+	        		logger.indentMessageStrStr(1, "pruning dups and overlapping", "name", tn.getName());
 	        		trees.get(i).pruneExternalNode(tn);
 	        	}
 	        	trees.get(i).processRoot();
 	        	if(prune == true){
-					System.out.println("\tpostpruning newick");
-					System.out.println("\t"+trees.get(i).getRoot().getNewick(false));
+					logger.indentMessageStrStr(1, "postpruning newick", "tree", trees.get(i).getRoot().getNewick(false));
 	        	}
 	        }
 	        //final mapping of the taxonomy
@@ -380,16 +385,20 @@ public class PhylografterConnector {
         		hits.close();
         		Node cnode = firstNode;
         		if (cnode == null) {
-        			System.out.println("ottolid " + tid + " is indexed to a null node!");
+        			logger.indentMessageStrLong(1, "Error ottolid indexed to a null node!", "OTT ID", tid);
         		} else {
 	        		String cnodeName = (String) cnode.getProperty("name");
-	        		System.out.print(cnodeName == null ? "{null name}" : cnodeName);
+	        		StringBuffer sb = new StringBuffer();
+	        		sb.append(cnodeName == null ? "{null name}" : cnodeName);
 	        		while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.TAXCHILDOF)){
 	        			cnode = cnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 	        			cnodeName = (String) cnode.getProperty("name");
-	        			System.out.print("->" + (cnodeName == null ? "{null name}" : cnodeName));
+	        			sb.append("->");
+	        			sb.append(cnodeName == null ? "{null name}" : cnodeName);
 	        		}
-	        		System.out.print("\n");
+	        		logger.indentMessage(1, "taxon mapping summary");
+	        		logger.indentMessageStrLong(2, "taxon mapping", "OTT ID", tid);
+	        		logger.indentMessageStrStr(2, "taxon mapping", "taxonomy", sb.toString());
         		}
 	        }
 		}

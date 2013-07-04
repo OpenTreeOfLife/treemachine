@@ -941,29 +941,33 @@ public class MainRunner {
 		String graphdbn = args[2];
 		
 		String arg = args[0];
-		MessageLogger stdOutLogger = new MessageLogger("treeUtilsDB", " ");
+		MessageLogger messageLogger = new MessageLogger("treeUtilsDB", " ");
 		if (arg.equals("labeltax")){
 			GraphExplorer ge = new GraphExplorer(graphdbn);	
 			for (int i=0;i<jt.size();i++){
-				ge.labelInternalNodesTax(jt.get(i), stdOutLogger);
+				ge.labelInternalNodesTax(jt.get(i), messageLogger);
 				System.out.println(jt.get(i).getRoot().getNewick(false));
 			}
+			messageLogger.close();
 			ge.shutdownDB();
 		}else if(arg.equals("checktax")){
 			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 			try{
-				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, stdOutLogger);
+				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
 				if (good == false){
 					System.out.println("failed to get the names from server fixNamesFromTrees");
+					messageLogger.close();
 					graphDb.shutdownDb();
 					return 0;
 				}
 			}catch(IOException ioe){
 				ioe.printStackTrace();
 				System.out.println("failed to get the names from server fixNamesFromTrees");
+				messageLogger.close();
 				graphDb.shutdownDb();
 				return 0;
 			}
+			messageLogger.close();
 			graphDb.shutdownDb();
 		}
 		return (success ? 0 : -1);
@@ -1227,7 +1231,7 @@ public class MainRunner {
 		System.out.println("loading files from "+directory+" into "+args[1]);
 		File file = new File(directory);
 		File [] files = file.listFiles();
-		MessageLogger stdOutLogger = new MessageLogger("pg_loading", " ");
+		MessageLogger messageLogger = new MessageLogger("pg_loading:", " ");
 		for(int i =0;i<files.length;i++){
 			System.out.println("files "+ files[i]);
 			BufferedReader br= null;
@@ -1248,7 +1252,7 @@ public class MainRunner {
 					e.printStackTrace();
 				}
 				try{
-					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, stdOutLogger);
+					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
 				}catch(IOException ioe){
 					ioe.printStackTrace();
 					System.out.println("failed to get the names from server fixNamesFromTrees");
@@ -1310,8 +1314,8 @@ public class MainRunner {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			
 		}
+		messageLogger.close();
 		graphDb.shutdownDb();
 		return 0;
 	}
@@ -1361,17 +1365,19 @@ public class MainRunner {
 			graphDb.shutdownDb();
 			return -1;
 		}
+		MessageLogger messageLogger = new MessageLogger("pgloadind", " ");
 		try{
-			MessageLogger stdOutLogger = new MessageLogger("pgloadind", " ");
-			boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, stdOutLogger);
+			boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, messageLogger);
 			if (good == false){
-				System.out.println("failed to get the names from server fixNamesFromTrees");
+				System.err.println("failed to get the names from server fixNamesFromTrees");
+				messageLogger.close();
 				graphDb.shutdownDb();
 				return -1;
 			}
 		}catch(IOException ioe){
 			ioe.printStackTrace();
-			System.out.println("failed to get the names from server fixNamesFromTrees");
+			System.err.println("failed to get the names from server fixNamesFromTrees");
+			messageLogger.close();
 			graphDb.shutdownDb();
 			return -1;
 		}
@@ -1452,13 +1458,13 @@ public class MainRunner {
 		int rc = 0;
 		
 		long start = System.currentTimeMillis();
-		
+		MessageLogger messageLogger = new MessageLogger("pgtesting", " ");
+
 		for (Long k: list) {
 			if (k > 20) {
 				break;
 			}
 			try {
-				MessageLogger stdOutLogger = new MessageLogger("pgtesting", " ");
 				
 				//List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k);
@@ -1466,7 +1472,7 @@ public class MainRunner {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
 				try {
-					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, stdOutLogger);
+					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -1525,7 +1531,7 @@ public class MainRunner {
 		long elapsedTimeMillis = System.currentTimeMillis() - start;
 		float elapsedTimeSec = elapsedTimeMillis/1000F;
 		System.out.println("elapsed time: " + elapsedTimeSec);
-		
+		messageLogger.close();
 		graphDb.shutdownDb();
 		return rc;
 	}
