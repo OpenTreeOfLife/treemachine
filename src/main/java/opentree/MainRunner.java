@@ -160,7 +160,7 @@ public class MainRunner {
 		}
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
-		MessageLogger messageLogger = new MessageLogger("graphImporterParser:");
+		MessageLogger messageLogger = new MessageLogger(args[0] + ":");
 		try {
 			if (gi.hasSoureTreeName(sourcename)) {
 				String emsg = "Tree with the name \"" + sourcename + "\" already exists in this db.";
@@ -212,9 +212,9 @@ public class MainRunner {
 					sourcename = (String)jt.get(i).getObject("ot:studyId");
 				}
 				if (jt.size() == 1) {
-					gi.addSetTreeToGraph(focalgroup, sourcename,false);
+					gi.addSetTreeToGraph(focalgroup, sourcename, false, messageLogger);
 				} else {
-					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i), false);
+					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i), false, messageLogger);
 					gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
 				}
 				// gi.updateAfterTreeIngest(false);
@@ -227,10 +227,12 @@ public class MainRunner {
 					}
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
-					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i),false); //@QUERY treeID has been added, so I'm not sure we want to munge the sourcename
+					String tmpName = sourcename + "_" + String.valueOf(i);
+					gi.addSetTreeToGraph(focalgroup, tmpName, false, messageLogger); //@QUERY treeID has been added, so I'm not sure we want to munge the sourcename
 				}
 			}
 		} finally {
+			messageLogger.close();
 			gi.shutdownDB();
 		}
 		return 0;
@@ -564,7 +566,7 @@ public class MainRunner {
 
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph("life", sourcename,overlap);
+			gi.addSetTreeToGraph("life", sourcename, overlap, messageLogger);
 			gi.deleteTreeBySource(sourcename);
 		}			
 		// adding them again after all the nodes are there
@@ -577,7 +579,7 @@ public class MainRunner {
 
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph("life", sourcename, overlap);
+			gi.addSetTreeToGraph("life", sourcename, overlap, messageLogger);
 		}
 		gi.shutdownDB();
 		return 0;
@@ -1295,7 +1297,7 @@ public class MainRunner {
 							if (hits.size() > 0){
 								System.out.println("source "+sourcename+" already added");
 							}else{
-								gi.addSetTreeToGraphWIdsSet(sourcename,false,false);
+								gi.addSetTreeToGraphWIdsSet(sourcename, false, false, messageLogger);
 							}
 						}
 					}
@@ -1382,20 +1384,25 @@ public class MainRunner {
 			graphDb.shutdownDb();
 			return -1;
 		}
+		messageLogger.message("Finished with attempts to fix names");
 		try{
+			int treeIndex = 0;
 			for(JadeTree j: jt){
 				GraphImporter gi = new GraphImporter(graphDb);
 				boolean doubname = false;
 				HashSet<Long> ottols = new HashSet<Long>();
+				messageLogger.indentMessageStrInt(1, "Checking for uniqueness of OTT IDs", "tree index", treeIndex);
 				for(int m=0;m<j.getExternalNodeCount();m++){
 					//System.out.println(j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
 					if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
-						System.out.println("null: " + j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
+						messageLogger.indentMessageStrStr(2, "null OTT ID for node", "name", j.getExternalNode(m).getName());
 						doubname = true;
 						break;
 					}
-					if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid")) == true){
-						System.out.println("dupl: " + j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
+					Long ottID = (Long)j.getExternalNode(m).getObject("ot:ottolid");
+					if (ottols.contains(ottID) == true){
+						messageLogger.indentMessageStrLongStrStr(2, "duplicate OTT ID for node", "OTT ID", ottID,
+																								 "name", j.getExternalNode(m).getName());
 						doubname = true;
 						break;
 					} else {
@@ -1404,7 +1411,7 @@ public class MainRunner {
 				}
 				//check for any duplicate ottol:id
 				if (doubname == true){
-					System.out.println("there are null or duplicate names");
+					messageLogger.indentMessageStrInt(1, "null or duplicate names. Skipping tree", "tree index", treeIndex);
 				} else {
 					gi.setTree(j);
 					String sourcename = "";
@@ -1417,11 +1424,17 @@ public class MainRunner {
 					Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
 					IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
 					if (hits.size() > 0){
-						System.out.println("source "+sourcename+" already added");
+						messageLogger.indentMessageStrIntStrStr(1, "Source tree already added", "tree index", treeIndex,
+																								"source ", sourcename);
 					}else{
-						gi.addSetTreeToGraphWIdsSet(sourcename,false,test);
-					}
+						if (test) {
+							messageLogger.indentMessageStrInt(1, "Checking if tree could be added to graph", "tree index", treeIndex);
+						} else {
+							messageLogger.indentMessageStrInt(1, "Adding tree to graph", "tree index", treeIndex);
+						}
+						gi.addSetTreeToGraphWIdsSet(sourcename, false, test, messageLogger); }
 				}
+				++treeIndex;
 			}
 		} catch(java.lang.NullPointerException e){
 			System.out.println("failed to get study "+file.getName());
@@ -1512,7 +1525,7 @@ public class MainRunner {
 						if (hits.size() > 0){
 							System.out.println("source "+sourcename+" already added");
 						}else{
-							gi.addSetTreeToGraphWIdsSet(sourcename,false,false);
+							gi.addSetTreeToGraphWIdsSet(sourcename, false, false, messageLogger);
 						}
 					}
 		        }

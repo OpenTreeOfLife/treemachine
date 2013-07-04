@@ -397,8 +397,7 @@ public class PhylografterConnector {
 	        			sb.append(cnodeName == null ? "{null name}" : cnodeName);
 	        		}
 	        		logger.indentMessage(1, "taxon mapping summary");
-	        		logger.indentMessageStrLong(2, "taxon mapping", "OTT ID", tid);
-	        		logger.indentMessageStrStr(2, "taxon mapping", "taxonomy", sb.toString());
+	        		logger.indentMessageStrLongStrStr(2, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString());
         		}
 	        }
 		}

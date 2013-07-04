@@ -3,6 +3,7 @@ package opentree;
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.*;
+import jade.MessageLogger;
 
 import java.lang.StringBuffer;
 import java.io.BufferedReader;
@@ -141,7 +142,10 @@ public class GraphImporter extends GraphBase{
 	 *		every edge in this tree.
 	 * @param test don't add to the database
 	 */
-	public void addSetTreeToGraphWIdsSet(String sourcename,boolean taxacompletelyoverlap, boolean test) throws TaxonNotFoundException,TreeIngestException {
+	public void addSetTreeToGraphWIdsSet(String sourcename,
+										 boolean taxacompletelyoverlap,
+										 boolean test,
+										 MessageLogger msgLogger) throws TaxonNotFoundException,TreeIngestException {
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
 		assumecomplete = taxacompletelyoverlap;
@@ -194,9 +198,9 @@ public class GraphImporter extends GraphBase{
 		try {
 			tx = graphDb.beginTx();
 			if(test == false) {
-				postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+				postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"), msgLogger);
 			} else {
-				postOrderAddProcessedTreeToGraphNoAdd(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+				postOrderAddProcessedTreeToGraphNoAdd(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"), msgLogger);
 			}
 			tx.success();
 		} finally {
@@ -221,7 +225,10 @@ public class GraphImporter extends GraphBase{
 	 *		this we could just randomly choose one of the edges that is connected
 	 *		to the root node that is in the index
 	 */
-	public void addSetTreeToGraph(String focalgroup, String sourcename,boolean taxacompletelyoverlap) throws TaxonNotFoundException, TreeIngestException {
+	public void addSetTreeToGraph(String focalgroup,
+								  String sourcename,
+								  boolean taxacompletelyoverlap,
+								  MessageLogger msgLogger) throws TaxonNotFoundException, TreeIngestException {
 		boolean test = false;
 		Node focalnode = findTaxNodeByName(focalgroup);
 		updatedNodes = new ArrayList<Node>();
@@ -254,7 +261,7 @@ public class GraphImporter extends GraphBase{
 			if (numh == 1) {
 				hitnode = hits.getSingle();
 			} else if (numh > 1) {
-				System.out.println(processedname + " gets " + numh +" hits");
+				msgLogger.indentMessageStrIntStrStr(2, "multiple graphNamedNodes hits", "number of hits", numh, "name", processedname);
 				int shortest = 1000; // this is shortest to the focal, could reverse this
 				Node shortn = null;
 				for (Node tnode : hits) {
@@ -269,7 +276,7 @@ public class GraphImporter extends GraphBase{
 						}
 //						System.out.println(shortest + " " + tpath.length());
 					} else {
-						System.out.println("one taxon is not within "+ focalgroup);
+						msgLogger.indentMessageStrStr(3, "graphNamedNodes hit not within focalgroup", "focalgroup", focalgroup);
 					}
 				}
 				assert shortn != null; // TODO this could happen if there are multiple hits outside the focalgroup, and none inside the focalgroup.  We should develop an AmbiguousTaxonException class
@@ -303,9 +310,9 @@ public class GraphImporter extends GraphBase{
 		try {
 			tx = graphDb.beginTx();
 			if(test == false) {
-				postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+				postOrderAddProcessedTreeToGraph(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"), msgLogger);
 			} else {
-				postOrderAddProcessedTreeToGraphNoAdd(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"));
+				postOrderAddProcessedTreeToGraphNoAdd(jt.getRoot(), jt.getRoot(), sourcename, (String)jt.getObject("id"), msgLogger);
 			}
 			tx.success();
 		} finally {
@@ -333,10 +340,14 @@ public class GraphImporter extends GraphBase{
 	 *		
 	 */
 	@SuppressWarnings("unchecked")
-	private void postOrderAddProcessedTreeToGraph(JadeNode inode, JadeNode root, String sourcename, String treeID) throws TreeIngestException {
+	private void postOrderAddProcessedTreeToGraph(JadeNode inode,
+												  JadeNode root,
+												  String sourcename,
+												  String treeID,
+												  MessageLogger msgLogger) throws TreeIngestException {
 		// postorder traversal via recursion
 		for (int i = 0; i < inode.getChildCount(); i++) {
-			postOrderAddProcessedTreeToGraph(inode.getChild(i), root, sourcename, treeID);
+			postOrderAddProcessedTreeToGraph(inode.getChild(i), root, sourcename, treeID, msgLogger);
 		}
 		//		_LOG.trace("children: "+inode.getChildCount());
 		// roothash are the actual ids with the nested names -- used for storing
@@ -472,10 +483,14 @@ public class GraphImporter extends GraphBase{
 	 *		
 	 */
 	@SuppressWarnings("unchecked")
-	private void postOrderAddProcessedTreeToGraphNoAdd(JadeNode inode, JadeNode root, String sourcename, String treeID) throws TreeIngestException {
+	private void postOrderAddProcessedTreeToGraphNoAdd(JadeNode inode, 
+													   JadeNode root,
+													   String sourcename,
+													   String treeID,
+													   MessageLogger msgLogger) throws TreeIngestException {
 		// postorder traversal via recursion
 		for (int i = 0; i < inode.getChildCount(); i++) {
-			postOrderAddProcessedTreeToGraphNoAdd(inode.getChild(i), root, sourcename, treeID);
+			postOrderAddProcessedTreeToGraphNoAdd(inode.getChild(i), root, sourcename, treeID, msgLogger);
 		}
 		//		_LOG.trace("children: "+inode.getChildCount());
 		// roothash are the actual ids with the nested names -- used for storing
@@ -484,7 +499,7 @@ public class GraphImporter extends GraphBase{
 		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode, ArrayList<Long>>)root.getObject("hashnodeidssearch"));
 
 		if (inode.getChildCount() > 0) {
-			System.out.println(inode.getNewick(false));
+			msgLogger.indentMessageStrStr(2, "subtree", "newick", inode.getNewick(false));
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
@@ -523,9 +538,10 @@ public class GraphImporter extends GraphBase{
 				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
 			}
 			for (Node tnd : ancestors) {
-				System.out.println("\tmatched nodes: "+tnd);
 				if (tnd.hasProperty("name")) {
-					System.out.println("\t\t" + tnd.getProperty("name"));
+					msgLogger.indentMessageStrStrStrStr(3, "matched anc", "node", tnd.toString(), "name", (String)tnd.getProperty("name"));
+				} else {
+					msgLogger.indentMessageStrStr(3, "matched anc", "node", tnd.toString());
 				}
 			}
 		}
@@ -694,7 +710,7 @@ public class GraphImporter extends GraphBase{
 			System.out.println("tree read");
 			setTree(jt,trees);
 			try {
-				addSetTreeToGraph("life",source,false);
+				addSetTreeToGraph("life",source,false, null);
 			} catch (TaxonNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
