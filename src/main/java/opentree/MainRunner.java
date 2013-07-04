@@ -160,6 +160,7 @@ public class MainRunner {
 		}
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
+		MessageLogger messageLogger = new MessageLogger("graphImporterParser:");
 		try {
 			if (gi.hasSoureTreeName(sourcename)) {
 				String emsg = "Tree with the name \"" + sourcename + "\" already exists in this db.";
@@ -195,7 +196,7 @@ public class MainRunner {
 					br.close();
 				} else { // nexson
 					System.out.println("Reading nexson file...");
-					for (JadeTree tree : NexsonReader.readNexson(filename, true)) {
+					for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 						jt.add(tree);
 						treeCounter++;
 					}
@@ -483,7 +484,7 @@ public class MainRunner {
 		// read the tree from a file
 		String ts = "";
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-
+		MessageLogger messageLogger = new MessageLogger("justTreeAnalysis:");
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
@@ -497,7 +498,7 @@ public class MainRunner {
 				}
 			} else { // nexson
 				System.out.println("Reading nexson file...");
-				for (JadeTree tree : NexsonReader.readNexson(filename, true)) {
+				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 					jt.add(tree);
 					treeCounter++;
 				}
@@ -1238,7 +1239,7 @@ public class MainRunner {
 			List<JadeTree> jt = null;
 				try{
 					br = new BufferedReader(new FileReader(files[i]));
-					jt = NexsonReader.readNexson(br, true);
+					jt = NexsonReader.readNexson(br, true, messageLogger);
 					for (JadeTree j : jt) {
 						System.out.println(files[i] + ": " + j.getExternalNodeCount());
 					}
@@ -1344,7 +1345,7 @@ public class MainRunner {
 		MessageLogger messageLogger = new MessageLogger("pgloadind", " ");
 		try{
 			br = new BufferedReader(new FileReader(file));
-			jt = NexsonReader.readNexson(br, true);
+			jt = NexsonReader.readNexson(br, true, messageLogger);
 			System.err.println("number of tips for trees in file "+file);
 			int count = 0;
 			for (JadeTree j : jt) {
@@ -1467,7 +1468,7 @@ public class MainRunner {
 			try {
 				
 				//List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
-				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k);
+				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k, messageLogger);
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
@@ -1591,7 +1592,7 @@ public class MainRunner {
 		
 		int treeCounter = 0;
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-		
+		MessageLogger messageLogger = new MessageLogger("nexson2newick:");
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			if (divineTreeFormat(br).compareTo("nexson") != 0) {
@@ -1599,7 +1600,7 @@ public class MainRunner {
 				return 1;
 			} else { // nexson
 				System.out.println("Reading nexson file...");
-				for (JadeTree tree : NexsonReader.readNexson(filename, false)) {
+				for (JadeTree tree : NexsonReader.readNexson(filename, false, messageLogger)) {
 					jt.add(tree);
 					treeCounter++;
 				}

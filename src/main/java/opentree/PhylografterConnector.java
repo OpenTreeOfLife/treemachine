@@ -110,7 +110,7 @@ public class PhylografterConnector {
 	 *            that is being requested
 	 * @return a List<JadeTree> of the trees processed
 	 */
-	public static List<JadeTree> fetchTreesFromStudy(Long studyid) {
+	public static List<JadeTree> fetchTreesFromStudy(Long studyid, MessageLogger messageLogger) {
 		String urlbase = "http://www.reelab.net/phylografter/study/export_NexSON.json/"
 				+ String.valueOf(studyid);
 		System.out.println("Looking up study: " + urlbase);
@@ -121,7 +121,7 @@ public class PhylografterConnector {
 			conn.connect();
 			BufferedReader un = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
-			List<JadeTree> trees = NexsonReader.readNexson(un, true);
+			List<JadeTree> trees = NexsonReader.readNexson(un, true, messageLogger);
 			un.close();
 			conn.disconnect();
 			return trees;
@@ -146,7 +146,7 @@ public class PhylografterConnector {
 	 *            that is being requested
 	 * @return a List<JadeTree> of the trees processed
 	 */
-	public static List<JadeTree> fetchGzippedTreesFromStudy(Long studyid) {
+	public static List<JadeTree> fetchGzippedTreesFromStudy(Long studyid, MessageLogger messageLogger) {
 		String urlbase = "http://www.reelab.net/phylografter/study/export_gzipNexSON.json/"
 				+ String.valueOf(studyid);
 		System.out.println("Looking up study: " + urlbase);
@@ -162,7 +162,7 @@ public class PhylografterConnector {
 			
 //			BufferedReader un = new BufferedReader(new InputStreamReader(
 //					conn.getInputStream()));
-			List<JadeTree> trees = NexsonReader.readNexson(un, true);
+			List<JadeTree> trees = NexsonReader.readNexson(un, true, messageLogger);
 			un.close();
 			conn.disconnect();
 			return trees;

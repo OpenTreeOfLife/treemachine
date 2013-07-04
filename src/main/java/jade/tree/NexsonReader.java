@@ -18,6 +18,8 @@ package jade.tree;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 
+import jade.MessageLogger;
+
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
@@ -38,33 +40,38 @@ public class NexsonReader {
 		if (argv.length == 1) {
 			filename = argv[0];
 		}
-		for (JadeTree tree : readNexson(filename, true)) {
-			System.out.println("Curator: " + tree.getObject("ot:curatorName"));
-			System.out.println("Reference: " + tree.getObject("ot:studyPublicationReference"));
-			System.out.println(tree.getRoot().getNewick(false));
-
+		MessageLogger msgLogger = new MessageLogger("nexsonReader:");
+		int treeIndex = 0;
+		for (JadeTree tree : readNexson(filename, true, msgLogger)) {
+			msgLogger.messageStrInt("tree", "index", treeIndex);
+			msgLogger.indentMessageStrStr(1, "annotation", "Curator", (String)tree.getObject("ot:curatorName"));
+			msgLogger.indentMessageStrStr(1, "annotation", "Reference", (String)tree.getObject("ot:studyPublicationReference"));
+			msgLogger.indentMessageStrStr(1, "representation", "newick", tree.getRoot().getNewick(false));
 			int i = 0;
 			for (JadeNode node : tree.iterateExternalNodes()) {
 				Object o = node.getObject("ot:ottolid");
-				System.out.println(node.getName() + " / " + o + " " + o.getClass());
+				msgLogger.indentMessageStrStr(2, "node", "name", node.getName());
+				msgLogger.indentMessageStrStr(2, "node", "OTT ID", o.toString());
+				msgLogger.indentMessageStrStr(2, "node", "ID class", o.getClass().toString());
 				if (++i > 10) {
 					break;
 				}
 			}
+			++treeIndex;
 		}
 	}
 
 	/* Read Nexson study from a file, given file name */
-	public static List<JadeTree> readNexson(String filename, Boolean verbose) throws java.io.IOException {
+	public static List<JadeTree> readNexson(String filename, Boolean verbose, MessageLogger msgLogger) throws java.io.IOException {
 		Reader r = new BufferedReader(new FileReader(filename));
-		List<JadeTree> result = readNexson(r, verbose);
+		List<JadeTree> result = readNexson(r, verbose, msgLogger);
 		r.close();
 		return result;
 	}
 
 	/* Read Nexson study from a Reader */
 	// TODO: tree(s) may be deprecated. Need to check this. May result in no trees to return.
-	public static List<JadeTree> readNexson(Reader r, Boolean verbose) throws java.io.IOException {
+	public static List<JadeTree> readNexson(Reader r, Boolean verbose, MessageLogger msgLogger) throws java.io.IOException {
 		JSONObject all = (JSONObject)JSONValue.parse(r);
 
 		/*
