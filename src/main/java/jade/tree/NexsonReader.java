@@ -43,18 +43,22 @@ public class NexsonReader {
 		MessageLogger msgLogger = new MessageLogger("nexsonReader:");
 		int treeIndex = 0;
 		for (JadeTree tree : readNexson(filename, true, msgLogger)) {
-			msgLogger.messageStrInt("tree", "index", treeIndex);
-			msgLogger.indentMessageStrStr(1, "annotation", "Curator", (String)tree.getObject("ot:curatorName"));
-			msgLogger.indentMessageStrStr(1, "annotation", "Reference", (String)tree.getObject("ot:studyPublicationReference"));
-			msgLogger.indentMessageStrStr(1, "representation", "newick", tree.getRoot().getNewick(false));
-			int i = 0;
-			for (JadeNode node : tree.iterateExternalNodes()) {
-				Object o = node.getObject("ot:ottolid");
-				msgLogger.indentMessageStrStr(2, "node", "name", node.getName());
-				msgLogger.indentMessageStrStr(2, "node", "OTT ID", o.toString());
-				msgLogger.indentMessageStrStr(2, "node", "ID class", o.getClass().toString());
-				if (++i > 10) {
-					break;
+			if (tree == null) {
+				msgLogger.messageStrInt("Null tree indicating unparseable NexSON", "index", treeIndex);
+			} else {
+				msgLogger.messageStrInt("tree", "index", treeIndex);
+				msgLogger.indentMessageStrStr(1, "annotation", "Curator", (String)tree.getObject("ot:curatorName"));
+				msgLogger.indentMessageStrStr(1, "annotation", "Reference", (String)tree.getObject("ot:studyPublicationReference"));
+				msgLogger.indentMessageStrStr(1, "representation", "newick", tree.getRoot().getNewick(false));
+				int i = 0;
+				for (JadeNode node : tree.iterateExternalNodes()) {
+					Object o = node.getObject("ot:ottolid");
+					msgLogger.indentMessageStrStr(2, "node", "name", node.getName());
+					msgLogger.indentMessageStrStr(2, "node", "OTT ID", o.toString());
+					msgLogger.indentMessageStrStr(2, "node", "ID class", o.getClass().toString());
+					if (++i > 10) {
+						break;
+					}
 				}
 			}
 			++treeIndex;
@@ -204,6 +208,10 @@ public class NexsonReader {
 			String otuId = (String)j.get("@otu");
 			if (otuId != null) {
 				JSONObject otu = otuMap.get(otuId);
+				if (otu == null) {
+					msgLogger.indentMessageStrStr(1, "Error. Node with otuID of unknown OTU", "@otu", otuId);
+					return null;
+				}
 				String label = (String)otu.get("@label");
 				jn.setName(label);
 

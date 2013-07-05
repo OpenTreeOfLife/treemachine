@@ -200,8 +200,12 @@ public class MainRunner {
 				} else { // nexson
 					System.out.println("Reading nexson file...");
 					for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
-						jt.add(tree);
-						treeCounter++;
+						if (tree == null) {
+							messageLogger.indentMessage(1, "Skipping null tree.");
+						} else {
+							jt.add(tree);
+							treeCounter++;
+						}
 					}
 				}
 			} catch (IOException ioe) {}
@@ -504,8 +508,12 @@ public class MainRunner {
 			} else { // nexson
 				System.out.println("Reading nexson file...");
 				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
-					jt.add(tree);
-					treeCounter++;
+					if (tree == null) {
+						messageLogger.indentMessage(1, "Skipping null tree.");
+					} else {
+						jt.add(tree);
+						treeCounter++;
+					}
 				}
 			}
 			br.close();
@@ -1241,12 +1249,18 @@ public class MainRunner {
 		for(int i =0;i<files.length;i++){
 			System.out.println("files "+ files[i]);
 			BufferedReader br= null;
-			List<JadeTree> jt = null;
+			List<JadeTree> rawTreeList = new ArrayList<JadeTree>();
+			List<JadeTree> jt = new ArrayList<JadeTree>();;
 				try{
 					br = new BufferedReader(new FileReader(files[i]));
-					jt = NexsonReader.readNexson(br, true, messageLogger);
-					for (JadeTree j : jt) {
-						System.out.println(files[i] + ": " + j.getExternalNodeCount());
+					rawTreeList = NexsonReader.readNexson(br, true, messageLogger);
+					for (JadeTree j : rawTreeList) {
+						if (j == null) {
+							messageLogger.indentMessage(1, "Skipping null tree...");
+						} else {
+							System.out.println(files[i] + ": " + j.getExternalNodeCount());
+							jt.add(j);
+						}
 					}
 				} catch (FileNotFoundException e) {
 					// TODO Auto-generated catch block
@@ -1356,7 +1370,8 @@ public class MainRunner {
 		File file = new File(filen);
 		System.err.println("file "+ file);
 		BufferedReader br= null;
-		List<JadeTree> jt = null;
+		List<JadeTree> rawTreeList = null;
+		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
 		MessageLogger messageLogger;
 		if (jsonOutputPrintStream == null) {
 			messageLogger = new MessageLogger("pgloadind", " ");
@@ -1366,12 +1381,17 @@ public class MainRunner {
 		}
 		try{
 			br = new BufferedReader(new FileReader(file));
-			jt = NexsonReader.readNexson(br, true, messageLogger);
+			rawTreeList = NexsonReader.readNexson(br, true, messageLogger);
 			System.err.println("number of tips for trees in file "+file);
 			int count = 0;
-			for (JadeTree j : jt) {
-				System.err.println("\ttree "+count+": " + j.getExternalNodeCount());
-				count += 1;
+			for (JadeTree j : rawTreeList) {
+				if (j == null) {
+					messageLogger.indentMessage(1, "Skipping null tree...");
+				} else {
+					System.err.println("\ttree "+count+": " + j.getExternalNodeCount());
+					count += 1;
+					jt.add(j);
+				}
 			}
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -1506,7 +1526,9 @@ public class MainRunner {
 				//List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k, messageLogger);
 				for (JadeTree j : jt) {
-					System.out.println(k + ": " + j.getExternalNodeCount());
+					if (j != null) {
+						System.out.println(k + ": " + j.getExternalNodeCount());
+					}
 				}
 				try {
 					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
@@ -1515,6 +1537,9 @@ public class MainRunner {
 					e.printStackTrace();
 				}
 		        for(JadeTree j: jt){
+		        	if (j == null) {
+						messageLogger.indentMessage(1, "Skipping null tree...");
+					}
 		        	GraphImporter gi = new GraphImporter(graphDb);
 		        	boolean doubname = false;
 		        	HashSet<Long> ottols = new HashSet<Long>();
@@ -1637,8 +1662,12 @@ public class MainRunner {
 			} else { // nexson
 				System.out.println("Reading nexson file...");
 				for (JadeTree tree : NexsonReader.readNexson(filename, false, messageLogger)) {
-					jt.add(tree);
-					treeCounter++;
+					if (tree == null) {
+						messageLogger.indentMessage(1, "Skipping null tree.");
+					} else {
+						jt.add(tree);
+						treeCounter++;
+					}
 				}
 			}
 			br.close();
