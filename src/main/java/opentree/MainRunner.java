@@ -1429,8 +1429,9 @@ public class MainRunner {
 			for(JadeTree j: jt){
 				GraphImporter gi = new GraphImporter(graphDb);
 				boolean doubname = false;
+				String treeJId = (String)j.getObject("id");
 				HashSet<Long> ottols = new HashSet<Long>();
-				messageLogger.indentMessageStrInt(1, "Checking for uniqueness of OTT IDs", "tree index", treeIndex);
+				messageLogger.indentMessageStrStr(1, "Checking for uniqueness of OTT IDs", "tree id", treeJId);
 				for(int m=0;m<j.getExternalNodeCount();m++){
 					//System.out.println(j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
 					if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
@@ -1450,26 +1451,26 @@ public class MainRunner {
 				}
 				//check for any duplicate ottol:id
 				if (doubname == true){
-					messageLogger.indentMessageStrInt(1, "null or duplicate names. Skipping tree", "tree index", treeIndex);
+					messageLogger.indentMessageStrStr(1, "null or duplicate names. Skipping tree", "tree id", treeJId);
 				} else {
 					gi.setTree(j);
 					String sourcename = "";
 					if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
 						sourcename = (String)j.getObject("ot:studyId");
-					}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
-						sourcename += "_"+(String)j.getObject("id");
+					}if (treeJId != null) { // use treeid (if present) as sourcename
+						sourcename += "_" + treeJId;
 					}
 					//test to see if the tree is already in there
 					Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
 					IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
 					if (hits.size() > 0){
-						messageLogger.indentMessageStrIntStrStr(1, "Source tree already added", "tree index", treeIndex,
+						messageLogger.indentMessageStrStrStrStr(1, "Source tree already added", "tree id", treeJId,
 																								"source ", sourcename);
 					}else{
 						if (test) {
-							messageLogger.indentMessageStrInt(1, "Checking if tree could be added to graph", "tree index", treeIndex);
+							messageLogger.indentMessageStrStr(1, "Checking if tree could be added to graph", "tree id", treeJId);
 						} else {
-							messageLogger.indentMessageStrInt(1, "Adding tree to graph", "tree index", treeIndex);
+							messageLogger.indentMessageStrStr(1, "Adding tree to graph", "tree id", treeJId);
 						}
 						gi.addSetTreeToGraphWIdsSet(sourcename, false, test, messageLogger); }
 				}

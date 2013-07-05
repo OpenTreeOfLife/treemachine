@@ -127,8 +127,11 @@ public class NexsonReader {
 		for (Object tree : treeList) {
 			JSONObject tree2 = (JSONObject)tree;
 			String treeID = (String)tree2.get("@id");
-			
+			if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
+				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
+			}
 			msgLogger.messageStrStr("Processing tree", "@id", treeID);
+			
 			
 		// trees can have their own specific metadata e.g. [{"@property":"ot:branchLengthMode","@xsi:type":"nex:LiteralMeta","$":"ot:substitutionCount"},{"@property":"ot:inGroupClade","$":"node208482","xsi:type":"nex:LiteralMeta"}]
 			List<Object> treeMetaList = getMetaList(tree2);
@@ -137,9 +140,6 @@ public class NexsonReader {
 			if (treeMetaList != null && checkDeprecated(treeMetaList)) {
 				msgLogger.messageStrStr("Tree tagged as deprecated. Ignoring.", "@id", treeID);
 			} else {
-				if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
-					treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
-				}
 				// tree2 = {"node": [...], "edge": [...]}
 				result.add(importTree(otuMap, 
 									  (JSONArray)tree2.get("node"),
@@ -332,7 +332,7 @@ public class NexsonReader {
 					}
 					tree.assocObject(propname, value);
 					if (msgLogger != null) {
-						msgLogger.indentMessageStrStr(2, "property added", propname, value.toString());
+						msgLogger.indentMessageStrStr(1, "property added", propname, value.toString());
 					}
 				} else if ((j.get("@href")) != null) {
 					Object value = j.get("@href");
@@ -341,7 +341,7 @@ public class NexsonReader {
 					}
 					tree.assocObject(propname, value);
 					if (msgLogger != null) {
-						msgLogger.indentMessageStrStr(2, "property added", propname, value.toString());
+						msgLogger.indentMessageStrStr(1, "property added", propname, value.toString());
 					}
 				} else {
 					throw new RuntimeException("missing property value for name: " + j);

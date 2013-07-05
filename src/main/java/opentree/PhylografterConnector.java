@@ -201,7 +201,7 @@ public class PhylografterConnector {
 		logger.message("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
 			JadeTree currTree = trees.get(i);
-			logger.indentMessageStrInt(1, "name fixing on tree", "index", i);
+			logger.indentMessageStrStr(1, "name fixing on tree", "tree id", (String)currTree.getObject("id"));
 			//get the names that don't have ids
 			//if the number is 0 then break
 			ArrayList<JadeNode> searchnds = new ArrayList<JadeNode>();
@@ -429,8 +429,8 @@ public class PhylografterConnector {
 						sb.append("->");
 						sb.append(cnodeName == null ? "{null name}" : cnodeName);
 					}
-					logger.indentMessage(2, "taxon mapping summary");
-					logger.indentMessageStrLongStrStr(3, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString());
+					logger.indentMessage(1, "taxon mapping summary");
+					logger.indentMessageStrLongStrStr(2, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString());
 				}
 			}
 		}
