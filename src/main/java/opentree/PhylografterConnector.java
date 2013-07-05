@@ -200,17 +200,19 @@ public class PhylografterConnector {
 		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/doTNRSForNames";
 		logger.message("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
-			logger.messageStrInt("name fixing on tree", "index", i);
+			JadeTree currTree = trees.get(i);
+			logger.indentMessageStrInt(1, "name fixing on tree", "index", i);
 			//get the names that don't have ids
 			//if the number is 0 then break
 			ArrayList<JadeNode> searchnds = new ArrayList<JadeNode>();
 			HashMap<String,JadeNode> namenodemap = new HashMap<String,JadeNode>();
 			ArrayList<JadeNode> matchednodes = new ArrayList<JadeNode>();
-			for (int j = 0; j < trees.get(i).getExternalNodeCount(); j++) {
-				if(trees.get(i).getExternalNode(j).getObject("ot:ottolid")==null){
-					logger.indentMessageStrStr(1, "OTT ID missing", "name", trees.get(i).getExternalNode(j).getName());
-					searchnds.add(trees.get(i).getExternalNode(j));
-					namenodemap.put(trees.get(i).getExternalNode(j).getName(), trees.get(i).getExternalNode(j));
+			for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
+				JadeNode ndJ = currTree.getExternalNode(j);
+				if(ndJ.getObject("ot:ottolid")==null){
+					logger.indentMessageStrStr(2, "OTT ID missing", "name", ndJ.getName());
+					searchnds.add(ndJ);
+					namenodemap.put(ndJ.getName(), ndJ);
 				}
 			}
 			if (searchnds.size() == 0){
@@ -219,9 +221,9 @@ public class PhylografterConnector {
 				StringBuffer sb = new StringBuffer();
 				// build the parameter string for the context query
 				sb.append("{\"queryString\":\"");
-				sb.append(trees.get(i).getExternalNode(0).getName());
-				for (int j = 1; j < trees.get(i).getExternalNodeCount(); j++) {
-					sb.append("," + trees.get(i).getExternalNode(j).getName());
+				sb.append(currTree.getExternalNode(0).getName());
+				for (int j = 1; j < currTree.getExternalNodeCount(); j++) {
+					sb.append("," + currTree.getExternalNode(j).getName());
 				}
 				sb.append("\"}");
 				String contextQueryParameters = sb.toString();
@@ -233,8 +235,8 @@ public class PhylografterConnector {
 				WebResource contextQuery = c.resource(urlbasecontext);
 
 				// query for the context
-				String contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
-				JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
+				String contextResponseJSONStr = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
+				JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSONStr);
 				String cn = (String)contextResponse.get("context_name");
 				// Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
 				//  System.out.println(contextResponse);
@@ -258,28 +260,37 @@ public class PhylografterConnector {
 				contextQuery = c.resource(urlbasefetch);
 
 				// query for the context
-				contextResponseJSON = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
-				contextResponse = (JSONObject) JSONValue.parse(contextResponseJSON);
-				// System.out.println(contextResponse);
-				JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
-				logger.indentMessageStrInt(1, "TNRS unmatched", "total number", unm.size());
-				JSONArray res = (JSONArray) contextResponse.get("results");
-				//if the match is with score 1, then we keep
-				for (Object id: res){
-					JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
-					for(Object tid: tres){
-						Double score = (Double)((JSONObject)tid).get("score");
-						boolean permat = (Boolean)((JSONObject)tid).get("isPerfectMatch");
-						String ottolid = (String)((JSONObject)tid).get("matchedOttolID");
-						String searchString = (String)((JSONObject)tid).get("searchString");
-						//	        		System.out.println(score+" "+permat+" "+ottolid);
-						if (score >= 1){
-							Long tnrsOttolID = Long.valueOf(ottolid);
-							logger.indentMessageStrLong(1, "TNRS resolved OttolID", searchString, tnrsOttolID);
-							namenodemap.get(searchString).assocObject("ot:ottolid", tnrsOttolID);
-							matchednodes.add(namenodemap.get(searchString));
-							namenodemap.remove(searchString);
-							break;
+				String tnrsResponseJSONStr = null;
+				try {
+					tnrsResponseJSONStr = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE)
+													  .type(MediaType.APPLICATION_JSON_TYPE)
+													  .post(String.class, contextQueryParameters);
+				} catch (Exception x) {
+					logger.indentMessageStrStr(1, "Error in call to tnrs", "params", contextQueryParameters);
+				}
+				if (tnrsResponseJSONStr != null) {
+					contextResponse = (JSONObject) JSONValue.parse(tnrsResponseJSONStr);
+					// System.out.println(contextResponse);
+					JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
+					logger.indentMessageStrInt(1, "TNRS unmatched", "total number", unm.size());
+					JSONArray res = (JSONArray) contextResponse.get("results");
+					//if the match is with score 1, then we keep
+					for (Object id: res){
+						JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
+						for(Object tid: tres){
+							Double score = (Double)((JSONObject)tid).get("score");
+							boolean permat = (Boolean)((JSONObject)tid).get("isPerfectMatch");
+							String ottolid = (String)((JSONObject)tid).get("matchedOttolID");
+							String searchString = (String)((JSONObject)tid).get("searchString");
+							//	        		System.out.println(score+" "+permat+" "+ottolid);
+							if (score >= 1){
+								Long tnrsOttolID = Long.valueOf(ottolid);
+								logger.indentMessageStrLong(2, "TNRS resolved OttolID", searchString, tnrsOttolID);
+								namenodemap.get(searchString).assocObject("ot:ottolid", tnrsOttolID);
+								matchednodes.add(namenodemap.get(searchString));
+								namenodemap.remove(searchString);
+								break;
+							}
 						}
 					}
 				}
@@ -291,11 +302,11 @@ public class PhylografterConnector {
 					IndexHits <Node> hits = graphNodeIndex.get("name", name);
 					if (hits.size() == 1){
 						Long lid = (Long) hits.getSingle().getProperty("tax_uid");
-						logger.indentMessageStrLong(1, "Name previously ingested into graphNamedNodes", name, lid);
+						logger.indentMessageStrLong(2, "Name previously ingested into graphNamedNodes", name, lid);
 						namenodemap.get(name).assocObject("ot:ottolid", Long.valueOf(lid));
 						removenames.add(name);
 					}else{
-						logger.indentMessageStrInt(1, "Name not unique in graphNamedNodes", name, hits.size());
+						logger.indentMessageStrInt(2, "Name not unique in graphNamedNodes", name, hits.size());
 					}
 					hits.close();
 				}
@@ -315,12 +326,12 @@ public class PhylografterConnector {
 				if (namenodemap.size() > 0){
 					if(prune){
 						for(String name: namenodemap.keySet()){
-							logger.indentMessageStrStr(1, "pruning unmapped", "name", name);
+							logger.indentMessageStrStr(2, "pruning unmapped", "name", name);
 							JadeNode jnode = namenodemap.get(name);
 							try {
-								trees.get(i).pruneExternalNode(jnode);
+								currTree.pruneExternalNode(jnode);
 							} catch (Exception x) {
-								logger.indentMessageStrStr(2, "Error pruning leaf", "name", name);
+								logger.indentMessageStrStr(3, "Error pruning leaf", "name", name);
 								return false;
 							}
 						}
@@ -334,72 +345,80 @@ public class PhylografterConnector {
 				//for each tip in the tree, see if there are duplicates
 				TLongHashSet tipottols = new TLongHashSet();
 				HashSet<JadeNode> pru = new HashSet<JadeNode> ();
-				for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
-					Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
+				for(int j=0;j<currTree.getExternalNodeCount();j++){
+					JadeNode currNd = currTree.getExternalNode(j);
+					Long tid = (Long)currNd.getObject("ot:ottolid");
 					if (tid == null) {
-						logger.indentMessage(1, "Null OTT ID in tree");
-						logger.indentMessageStrStr(2, "null", "name", trees.get(i).getExternalNode(j).getName());
-						pru.add(trees.get(i).getExternalNode(j));
+						logger.indentMessage(2, "Null OTT ID in tree");
+						logger.indentMessageStrStr(3, "null", "name", currNd.getName());
+						pru.add(currNd);
 					} else if (tipottols.contains(tid)){
 						//prune
-						logger.indentMessage(1, "OTT ID reused in tree");
-						logger.indentMessageStrStr(2, "duplicate", "name", trees.get(i).getExternalNode(j).getName());
-						logger.indentMessageStrLong(2, "duplicate", "OTT ID", tid);
-						pru.add(trees.get(i).getExternalNode(j));
+						logger.indentMessage(2, "OTT ID reused in tree");
+						logger.indentMessageStrStr(3, "duplicate", "name", currNd.getName());
+						logger.indentMessageStrLong(3, "duplicate", "OTT ID", tid);
+						pru.add(currNd);
 					}else{
 						tipottols.add(tid);
 					}
 				}
 				//for each tip see if there are tips that map to parents of other tips
 				//do this by seeing if there is any overlap between the mrcas from different 
-				for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
-					if(pru.contains(trees.get(i).getExternalNode(j)))
+				for(int j=0;j<currTree.getExternalNodeCount();j++){
+					JadeNode currNdJ = currTree.getExternalNode(j);
+					if(pru.contains(currNdJ))
 						continue;
-					Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
+					Long tid = (Long)currNdJ.getObject("ot:ottolid");
 					IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
 					Node firstNode = hits.getSingle();
 					hits.close();
 					TLongArrayList t1 = new TLongArrayList((long [])firstNode.getProperty("mrca"));
-					for(int k=0;k<trees.get(i).getExternalNodeCount();k++){
-						if(pru.contains(trees.get(i).getExternalNode(k)) 
-							|| k==j)
+					for(int k=0;k<currTree.getExternalNodeCount();k++){
+						JadeNode currNdK = currTree.getExternalNode(k);
+						if (pru.contains(currNdK) || k==j) {
 							continue;
-						Long tid2 = (Long)trees.get(i).getExternalNode(k).getObject("ot:ottolid");
+						}
+						Long tid2 = (Long)currNdK.getObject("ot:ottolid");
 						IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid2));
 						Node secondNode = hits2.getSingle();
 						hits2.close();
-						TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
-						if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
-							logger.indentMessage(1, "overlapping tips");
-							logger.indentMessageStrStr(2, "overlapping retained", "name", trees.get(i).getExternalNode(j).getName());
-							logger.indentMessageStrStr(2, "overlapping pruned", "name", trees.get(i).getExternalNode(k).getName());
-							pru.add(trees.get(i).getExternalNode(k));
+						if (secondNode == null) {
+							logger.indentMessageStrStr(2, "null node in graphTaxUIDNodes", "tax_uid", String.valueOf(tid2));
+							pru.add(currNdK);
+						} else {
+							TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
+							if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
+								logger.indentMessage(2, "overlapping tips");
+								logger.indentMessageStrStr(3, "overlapping retained", "name", currNdJ.getName());
+								logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdK.getName());
+								pru.add(currNdK);
+							}
 						}
 					}
 				}
 				for(JadeNode tn: pru){
-					logger.indentMessageStrStr(1, "pruning dups and overlapping", "name", tn.getName());
+					logger.indentMessageStrStr(2, "pruning dups and overlapping", "name", tn.getName());
 					try {
-						trees.get(i).pruneExternalNode(tn);
+						currTree.pruneExternalNode(tn);
 					} catch (Exception x) {
-						logger.indentMessageStrStr(2, "Error pruning leaf", "name", tn.getName());
+						logger.indentMessageStrStr(3, "Error pruning leaf", "name", tn.getName());
 						return false;
 					}
 				}
-				trees.get(i).processRoot();
+				currTree.processRoot();
 				if(prune == true){
-					logger.indentMessageStrStr(1, "postpruning newick", "tree", trees.get(i).getRoot().getNewick(false));
+					logger.indentMessageStrStr(1, "postpruning newick", "tree", currTree.getRoot().getNewick(false));
 				}
 			}
 			//final mapping of the taxonomy
-			for(int k=0;k<trees.get(i).getExternalNodeCount();k++){
-				Long tid = (Long)trees.get(i).getExternalNode(k).getObject("ot:ottolid");
+			for(int k=0;k<currTree.getExternalNodeCount();k++){
+				Long tid = (Long)currTree.getExternalNode(k).getObject("ot:ottolid");
 				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
 				Node firstNode = hits.getSingle();
 				hits.close();
 				Node cnode = firstNode;
 				if (cnode == null) {
-					logger.indentMessageStrLong(1, "Error ottolid indexed to a null node!", "OTT ID", tid);
+					logger.indentMessageStrLong(2, "Error ottolid indexed to a null node!", "OTT ID", tid);
 				} else {
 					String cnodeName = (String) cnode.getProperty("name");
 					StringBuffer sb = new StringBuffer();
@@ -410,8 +429,8 @@ public class PhylografterConnector {
 						sb.append("->");
 						sb.append(cnodeName == null ? "{null name}" : cnodeName);
 					}
-					logger.indentMessage(1, "taxon mapping summary");
-					logger.indentMessageStrLongStrStr(2, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString());
+					logger.indentMessage(2, "taxon mapping summary");
+					logger.indentMessageStrLongStrStr(3, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString());
 				}
 			}
 		}
