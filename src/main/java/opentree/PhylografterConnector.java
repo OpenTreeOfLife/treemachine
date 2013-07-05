@@ -329,91 +329,91 @@ public class PhylografterConnector {
 					}
 				}
 			}
-	        //now checking for duplicate names or names to point to parents
-	        if(prune){
-	        	//for each tip in the tree, see if there are duplicates
-	        	TLongHashSet tipottols = new TLongHashSet();
-	        	HashSet<JadeNode> pru = new HashSet<JadeNode> ();
-	        	for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
-	        		Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
-	        		if (tid == null) {
-	        			logger.indentMessage(1, "Null OTT ID in tree");
-	        			logger.indentMessageStrStr(2, "null", "name", trees.get(i).getExternalNode(j).getName());
-	        			pru.add(trees.get(i).getExternalNode(j));
-	        		} else if (tipottols.contains(tid)){
-	        			//prune
-	        			logger.indentMessage(1, "OTT ID reused in tree");
-	        			logger.indentMessageStrStr(2, "duplicate", "name", trees.get(i).getExternalNode(j).getName());
-	        			logger.indentMessageStrLong(2, "duplicate", "OTT ID", tid);
-	        			pru.add(trees.get(i).getExternalNode(j));
-	        		}else{
-	        			tipottols.add(tid);
-	        		}
-	        	}
-	        	//for each tip see if there are tips that map to parents of other tips
-	        	//do this by seeing if there is any overlap between the mrcas from different 
-	        	for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
-	        		if(pru.contains(trees.get(i).getExternalNode(j)))
-        				continue;
-	        		Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
-	        		IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
-	        		Node firstNode = hits.getSingle();
-	        		hits.close();
-	        		TLongArrayList t1 = new TLongArrayList((long [])firstNode.getProperty("mrca"));
-	        		for(int k=0;k<trees.get(i).getExternalNodeCount();k++){
-	        			if(pru.contains(trees.get(i).getExternalNode(k)) 
-	        				|| k==j)
-	        				continue;
-	        			Long tid2 = (Long)trees.get(i).getExternalNode(k).getObject("ot:ottolid");
-		        		IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid2));
-		        		Node secondNode = hits2.getSingle();
-		        		hits2.close();
-		        		TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
-		        		if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
-		        			logger.indentMessage(1, "overlapping tips");
-		        			logger.indentMessageStrStr(2, "overlapping retained", "name", trees.get(i).getExternalNode(j).getName());
-		        			logger.indentMessageStrStr(2, "overlapping pruned", "name", trees.get(i).getExternalNode(k).getName());
-		        			pru.add(trees.get(i).getExternalNode(k));
-		        		}
-	        		}
-	        	}
-	        	for(JadeNode tn: pru){
-	        		logger.indentMessageStrStr(1, "pruning dups and overlapping", "name", tn.getName());
-	        		try {
-	        			trees.get(i).pruneExternalNode(tn);
-	        		} catch (Exception x) {
+			//now checking for duplicate names or names to point to parents
+			if(prune){
+				//for each tip in the tree, see if there are duplicates
+				TLongHashSet tipottols = new TLongHashSet();
+				HashSet<JadeNode> pru = new HashSet<JadeNode> ();
+				for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
+					Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
+					if (tid == null) {
+						logger.indentMessage(1, "Null OTT ID in tree");
+						logger.indentMessageStrStr(2, "null", "name", trees.get(i).getExternalNode(j).getName());
+						pru.add(trees.get(i).getExternalNode(j));
+					} else if (tipottols.contains(tid)){
+						//prune
+						logger.indentMessage(1, "OTT ID reused in tree");
+						logger.indentMessageStrStr(2, "duplicate", "name", trees.get(i).getExternalNode(j).getName());
+						logger.indentMessageStrLong(2, "duplicate", "OTT ID", tid);
+						pru.add(trees.get(i).getExternalNode(j));
+					}else{
+						tipottols.add(tid);
+					}
+				}
+				//for each tip see if there are tips that map to parents of other tips
+				//do this by seeing if there is any overlap between the mrcas from different 
+				for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
+					if(pru.contains(trees.get(i).getExternalNode(j)))
+						continue;
+					Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
+					IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+					Node firstNode = hits.getSingle();
+					hits.close();
+					TLongArrayList t1 = new TLongArrayList((long [])firstNode.getProperty("mrca"));
+					for(int k=0;k<trees.get(i).getExternalNodeCount();k++){
+						if(pru.contains(trees.get(i).getExternalNode(k)) 
+							|| k==j)
+							continue;
+						Long tid2 = (Long)trees.get(i).getExternalNode(k).getObject("ot:ottolid");
+						IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid2));
+						Node secondNode = hits2.getSingle();
+						hits2.close();
+						TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
+						if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
+							logger.indentMessage(1, "overlapping tips");
+							logger.indentMessageStrStr(2, "overlapping retained", "name", trees.get(i).getExternalNode(j).getName());
+							logger.indentMessageStrStr(2, "overlapping pruned", "name", trees.get(i).getExternalNode(k).getName());
+							pru.add(trees.get(i).getExternalNode(k));
+						}
+					}
+				}
+				for(JadeNode tn: pru){
+					logger.indentMessageStrStr(1, "pruning dups and overlapping", "name", tn.getName());
+					try {
+						trees.get(i).pruneExternalNode(tn);
+					} catch (Exception x) {
 						logger.indentMessageStrStr(2, "Error pruning leaf", "name", tn.getName());
 						return false;
 					}
-	        	}
-	        	trees.get(i).processRoot();
-	        	if(prune == true){
+				}
+				trees.get(i).processRoot();
+				if(prune == true){
 					logger.indentMessageStrStr(1, "postpruning newick", "tree", trees.get(i).getRoot().getNewick(false));
-	        	}
-	        }
-	        //final mapping of the taxonomy
-	        for(int k=0;k<trees.get(i).getExternalNodeCount();k++){
-	        	Long tid = (Long)trees.get(i).getExternalNode(k).getObject("ot:ottolid");
-        		IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
-        		Node firstNode = hits.getSingle();
-        		hits.close();
-        		Node cnode = firstNode;
-        		if (cnode == null) {
-        			logger.indentMessageStrLong(1, "Error ottolid indexed to a null node!", "OTT ID", tid);
-        		} else {
-	        		String cnodeName = (String) cnode.getProperty("name");
-	        		StringBuffer sb = new StringBuffer();
-	        		sb.append(cnodeName == null ? "{null name}" : cnodeName);
-	        		while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.TAXCHILDOF)){
-	        			cnode = cnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
-	        			cnodeName = (String) cnode.getProperty("name");
-	        			sb.append("->");
-	        			sb.append(cnodeName == null ? "{null name}" : cnodeName);
-	        		}
-	        		logger.indentMessage(1, "taxon mapping summary");
-	        		logger.indentMessageStrLongStrStr(2, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString());
-        		}
-	        }
+				}
+			}
+			//final mapping of the taxonomy
+			for(int k=0;k<trees.get(i).getExternalNodeCount();k++){
+				Long tid = (Long)trees.get(i).getExternalNode(k).getObject("ot:ottolid");
+				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+				Node firstNode = hits.getSingle();
+				hits.close();
+				Node cnode = firstNode;
+				if (cnode == null) {
+					logger.indentMessageStrLong(1, "Error ottolid indexed to a null node!", "OTT ID", tid);
+				} else {
+					String cnodeName = (String) cnode.getProperty("name");
+					StringBuffer sb = new StringBuffer();
+					sb.append(cnodeName == null ? "{null name}" : cnodeName);
+					while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.TAXCHILDOF)){
+						cnode = cnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+						cnodeName = (String) cnode.getProperty("name");
+						sb.append("->");
+						sb.append(cnodeName == null ? "{null name}" : cnodeName);
+					}
+					logger.indentMessage(1, "taxon mapping summary");
+					logger.indentMessageStrLongStrStr(2, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString());
+				}
+			}
 		}
 		return true;
 	}
