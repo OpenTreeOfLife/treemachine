@@ -209,7 +209,7 @@ public class NexsonReader {
 			if (otuId != null) {
 				JSONObject otu = otuMap.get(otuId);
 				if (otu == null) {
-					msgLogger.indentMessageStrStr(1, "Error. Node with otuID of unknown OTU", "@otu", otuId);
+					msgLogger.indentMessageStrStr(2, "Error. Node with otuID of unknown OTU", "@otu", otuId);
 					return null;
 				}
 				String label = (String)otu.get("@label");
@@ -250,8 +250,16 @@ public class NexsonReader {
 			JSONObject j = (JSONObject)edge;
 			// {"@source": "node830", "@target": "node834", "@length": 0.000241603, "@id": "edge834"}
 			// source is parent, target is child
-			JadeNode source = nodeMap.get(j.get("@source"));  // why isn't this a type error?
+			JadeNode source = nodeMap.get(j.get("@source"));
+			if (source == null) {
+				msgLogger.indentMessageStrStr(2, "Error. Edge with source property not found in map", "@source", (String)j.get("@source"));
+				return null;
+			}
 			JadeNode target = nodeMap.get(j.get("@target"));
+			if (target == null) {
+				msgLogger.indentMessageStrStr(2, "Error. Edge with target property not found in map", "@target", (String)j.get("@target"));
+				return null;
+			}
 			Double length = (Double)j.get("@length");
 			if (length != null) {
 				target.setBL(length);

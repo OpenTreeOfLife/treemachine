@@ -317,7 +317,12 @@ public class PhylografterConnector {
 						for(String name: namenodemap.keySet()){
 							logger.indentMessageStrStr(1, "pruning unmapped", "name", name);
 							JadeNode jnode = namenodemap.get(name);
-							trees.get(i).pruneExternalNode(jnode);
+							try {
+								trees.get(i).pruneExternalNode(jnode);
+							} catch (Exception x) {
+								logger.indentMessageStrStr(2, "Error pruning leaf", "name", name);
+								return false;
+							}
 						}
 					}else{
 						return false;
@@ -331,7 +336,11 @@ public class PhylografterConnector {
 	        	HashSet<JadeNode> pru = new HashSet<JadeNode> ();
 	        	for(int j=0;j<trees.get(i).getExternalNodeCount();j++){
 	        		Long tid = (Long)trees.get(i).getExternalNode(j).getObject("ot:ottolid");
-	        		if(tipottols.contains(tid)){
+	        		if (tid == null) {
+	        			logger.indentMessage(1, "Null OTT ID in tree");
+	        			logger.indentMessageStrStr(2, "null", "name", trees.get(i).getExternalNode(j).getName());
+	        			pru.add(trees.get(i).getExternalNode(j));
+	        		} else if (tipottols.contains(tid)){
 	        			//prune
 	        			logger.indentMessage(1, "OTT ID reused in tree");
 	        			logger.indentMessageStrStr(2, "duplicate", "name", trees.get(i).getExternalNode(j).getName());
@@ -370,7 +379,12 @@ public class PhylografterConnector {
 	        	}
 	        	for(JadeNode tn: pru){
 	        		logger.indentMessageStrStr(1, "pruning dups and overlapping", "name", tn.getName());
-	        		trees.get(i).pruneExternalNode(tn);
+	        		try {
+	        			trees.get(i).pruneExternalNode(tn);
+	        		} catch (Exception x) {
+						logger.indentMessageStrStr(2, "Error pruning leaf", "name", tn.getName());
+						return false;
+					}
 	        	}
 	        	trees.get(i).processRoot();
 	        	if(prune == true){
