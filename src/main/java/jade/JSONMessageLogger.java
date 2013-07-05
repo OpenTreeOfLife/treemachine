@@ -103,4 +103,8 @@ public class JSONMessageLogger extends MessageLogger {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + "}");
 	}
 
+	protected void _messageStrLongStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6) {
+		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + ", \"" + s5 + "\": " + escapeStr(s6) + "}");
+	}
+
 }

@@ -210,7 +210,7 @@ public class PhylografterConnector {
 			for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
 				JadeNode ndJ = currTree.getExternalNode(j);
 				if(ndJ.getObject("ot:ottolid")==null){
-					logger.indentMessageStrStr(2, "OTT ID missing", "name", ndJ.getName());
+					logger.indentMessageStrStrStrStr(2, "OTT ID missing", "name", ndJ.getName(), "nexsonid", (String)ndJ.getObject("nexsonid"));
 					searchnds.add(ndJ);
 					namenodemap.put(ndJ.getName(), ndJ);
 				}
@@ -285,8 +285,9 @@ public class PhylografterConnector {
 							//	        		System.out.println(score+" "+permat+" "+ottolid);
 							if (score >= 1){
 								Long tnrsOttolID = Long.valueOf(ottolid);
-								logger.indentMessageStrLong(2, "TNRS resolved OttolID", searchString, tnrsOttolID);
-								namenodemap.get(searchString).assocObject("ot:ottolid", tnrsOttolID);
+								JadeNode fixedNode = namenodemap.get(searchString);
+								logger.indentMessageStrLongStrStr(2, "TNRS resolved OttolID", searchString, tnrsOttolID, "nexsonid", (String)fixedNode.getObject("nexsonid"));
+								fixedNode.assocObject("ot:ottolid", tnrsOttolID);
 								matchednodes.add(namenodemap.get(searchString));
 								namenodemap.remove(searchString);
 								break;
@@ -326,8 +327,8 @@ public class PhylografterConnector {
 				if (namenodemap.size() > 0){
 					if(prune){
 						for(String name: namenodemap.keySet()){
-							logger.indentMessageStrStr(2, "pruning unmapped", "name", name);
 							JadeNode jnode = namenodemap.get(name);
+							logger.indentMessageStrStrStrStr(2, "pruning unmapped", "name", name, "nexsonid", (String)jnode.getObject("nexsonid"));
 							try {
 								currTree.pruneExternalNode(jnode);
 							} catch (Exception x) {
@@ -350,12 +351,12 @@ public class PhylografterConnector {
 					Long tid = (Long)currNd.getObject("ot:ottolid");
 					if (tid == null) {
 						logger.indentMessage(2, "Null OTT ID in tree");
-						logger.indentMessageStrStr(3, "null", "name", currNd.getName());
+						logger.indentMessageStrStrStrStr(3, "null", "name", currNd.getName(), "nexsonid", (String)currNd.getObject("nexsonid"));
 						pru.add(currNd);
 					} else if (tipottols.contains(tid)){
 						//prune
 						logger.indentMessage(2, "OTT ID reused in tree");
-						logger.indentMessageStrStr(3, "duplicate", "name", currNd.getName());
+						logger.indentMessageStrStrStrStr(3, "duplicate", "name", currNd.getName(), "nexsonid", (String)currNd.getObject("nexsonid"));
 						logger.indentMessageStrLong(3, "duplicate", "OTT ID", tid);
 						pru.add(currNd);
 					}else{
@@ -389,15 +390,15 @@ public class PhylografterConnector {
 							TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
 							if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
 								logger.indentMessage(2, "overlapping tips");
-								logger.indentMessageStrStr(3, "overlapping retained", "name", currNdJ.getName());
-								logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdK.getName());
+								logger.indentMessageStrStrStrStr(3, "overlapping retained", "name", currNdJ.getName(), "nexsonid", (String)currNdJ.getObject("nexsonid"));
+								logger.indentMessageStrStrStrStr(3, "overlapping pruned", "name", currNdK.getName(), "nexsonid", (String)currNdK.getObject("nexsonid"));
 								pru.add(currNdK);
 							}
 						}
 					}
 				}
 				for(JadeNode tn: pru){
-					logger.indentMessageStrStr(2, "pruning dups and overlapping", "name", tn.getName());
+					logger.indentMessageStrStrStrStr(2, "pruning dups and overlapping", "name", tn.getName(), "nexsonid", (String)tn.getObject("nexsonid"));
 					try {
 						currTree.pruneExternalNode(tn);
 					} catch (Exception x) {
@@ -411,14 +412,16 @@ public class PhylografterConnector {
 				}
 			}
 			//final mapping of the taxonomy
+			logger.indentMessage(1, "taxon mapping summary");
 			for(int k=0;k<currTree.getExternalNodeCount();k++){
-				Long tid = (Long)currTree.getExternalNode(k).getObject("ot:ottolid");
+				JadeNode ndK = currTree.getExternalNode(k);
+				Long tid = (Long)ndK.getObject("ot:ottolid");
 				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
 				Node firstNode = hits.getSingle();
 				hits.close();
 				Node cnode = firstNode;
 				if (cnode == null) {
-					logger.indentMessageStrLong(2, "Error ottolid indexed to a null node!", "OTT ID", tid);
+					logger.indentMessageStrLongStrStrStrStr(2, "Error ottolid indexed to a null node!", "OTT ID", tid, "original name", ndK.getName(), "nexsonid", (String)ndK.getObject("nexsonid"));
 				} else {
 					String cnodeName = (String) cnode.getProperty("name");
 					StringBuffer sb = new StringBuffer();
@@ -429,8 +432,7 @@ public class PhylografterConnector {
 						sb.append("->");
 						sb.append(cnodeName == null ? "{null name}" : cnodeName);
 					}
-					logger.indentMessage(1, "taxon mapping summary");
-					logger.indentMessageStrLongStrStr(2, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString());
+					logger.indentMessageStrLongStrStrStrStr(2, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString(), "nexsonid", (String)ndK.getObject("nexsonid"));
 				}
 			}
 		}

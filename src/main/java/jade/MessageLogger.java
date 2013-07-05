@@ -86,7 +86,12 @@ public class MessageLogger {
 		this._indent(indentLevel);
 		this._messageStrStrStrStr(label, s, s2, s3, s4);
 	}
-
+	public void indentMessageStrLongStrStrStrStr(int indentLevel, String label, String s, Long i, String s2, String s3, String s4, String s5) {
+		this._write_prefix();
+		this._indent(indentLevel);
+		this._messageStrLongStrStr(label, s, i, s2, s3, s4, s5);
+	}
+	
 	// no-op for streaming to std out. close objects for JSON
 	public void close() {
 	}
@@ -127,6 +132,9 @@ public class MessageLogger {
 
 	protected void _messageStrIntStrStr(String label, String s, int i, String s3, String s4) {
 		this.outStream.println(label + this.sep + s + this.sep + i + this.sep + s3 + this.sep + '"' + s4 + '"');
+	}
+	protected void _messageStrLongStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6) {
+		this.outStream.println(label + this.sep + s + this.sep + i + this.sep + s3 + this.sep + '"' + s4 + '"' + this.sep + s5 + this.sep + '"' + s6 + '"');
 	}
 
 }

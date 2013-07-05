@@ -197,7 +197,7 @@ public class NexsonReader {
 			String id = (String)j.get("@id");
 			nodeMap.put(id, jn);
 			arbitraryNode = jn;
-			
+			jn.assocObject("nexsonid", id);
 			// Set the root node
 			if (ingroup != null && id.compareTo(ingroup) == 0) {
 				msgLogger.indentMessage(1, "Setting ingroup root node.");
@@ -231,13 +231,13 @@ public class NexsonReader {
 							} else if (value instanceof Integer) {
 								value = new Long((long)(((Integer)value).intValue()));
 							} else if (value == null) {
-								msgLogger.indentMessage(1, "Warning: dealing with null ot:ottolid here.");
+								msgLogger.indentMessageStrStr(1, "Warning: dealing with null ot:ottolid here.", "nexsonid", id);
 							} else {
 								System.err.println("Error with: " + m);
 								throw new RuntimeException("Invalid ottolid value: " + value);
 							}
 						} else {
-							msgLogger.indentMessageStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname);
+							msgLogger.indentMessageStrStrStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);
 						}
 						jn.assocObject(propname, value);
 					}
@@ -280,9 +280,8 @@ public class NexsonReader {
 		JadeTree tree = new JadeTree(root);
 		
 		int nc = tree.getExternalNodeCount();
-		if (nc != otuMap.size()) {
-			msgLogger.indentMessageStrInt(1, "Ingested tree", "number of external nodes", nc);
-		}
+		msgLogger.indentMessageStrInt(1, "Ingested tree", "number of external nodes", nc);
+
 		
 		// Copy STUDY-level metadata into the JadeTree
 		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
