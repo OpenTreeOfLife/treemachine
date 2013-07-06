@@ -305,7 +305,7 @@ public class NexsonReader {
 			if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
 				if ((j.get("$")) != null) {
 					String currentTag = (String)j.get("$");
-					if (currentTag.startsWith("del")); {
+					if (currentTag.startsWith("del")) {
 						return true;
 					}
 				} else {
