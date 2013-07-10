@@ -44,18 +44,18 @@ public class NexsonReader {
 		int treeIndex = 0;
 		for (JadeTree tree : readNexson(filename, true, msgLogger)) {
 			if (tree == null) {
-				msgLogger.messageStrInt("Null tree indicating unparseable NexSON", "index", treeIndex);
+				msgLogger.messageInt("Null tree indicating unparseable NexSON", "index", treeIndex);
 			} else {
-				msgLogger.messageStrInt("tree", "index", treeIndex);
-				msgLogger.indentMessageStrStr(1, "annotation", "Curator", (String)tree.getObject("ot:curatorName"));
-				msgLogger.indentMessageStrStr(1, "annotation", "Reference", (String)tree.getObject("ot:studyPublicationReference"));
-				msgLogger.indentMessageStrStr(1, "representation", "newick", tree.getRoot().getNewick(false));
+				msgLogger.messageInt("tree", "index", treeIndex);
+				msgLogger.indentMessageStr(1, "annotation", "Curator", (String)tree.getObject("ot:curatorName"));
+				msgLogger.indentMessageStr(1, "annotation", "Reference", (String)tree.getObject("ot:studyPublicationReference"));
+				msgLogger.indentMessageStr(1, "representation", "newick", tree.getRoot().getNewick(false));
 				int i = 0;
 				for (JadeNode node : tree.iterateExternalNodes()) {
 					Object o = node.getObject("ot:ottolid");
-					msgLogger.indentMessageStrStr(2, "node", "name", node.getName());
-					msgLogger.indentMessageStrStr(2, "node", "OTT ID", o.toString());
-					msgLogger.indentMessageStrStr(2, "node", "ID class", o.getClass().toString());
+					msgLogger.indentMessageStr(2, "node", "name", node.getName());
+					msgLogger.indentMessageStr(2, "node", "OTT ID", o.toString());
+					msgLogger.indentMessageStr(2, "node", "ID class", o.getClass().toString());
 					if (++i > 10) {
 						break;
 					}
@@ -109,7 +109,7 @@ public class NexsonReader {
 		// All of the <otu> elements
 		JSONObject otus = (JSONObject)root.get("otus");
 		JSONArray otuList = (JSONArray)otus.get("otu");
-		msgLogger.messageStrInt("OTUs", "number", otuList.size());
+		msgLogger.messageInt("OTUs", "number", otuList.size());
 
 		// Make an index by id of the OTUs. We'll need to be able to find them when we built the trees.
 		Map<String,JSONObject> otuMap = new HashMap<String,JSONObject>();
@@ -130,7 +130,7 @@ public class NexsonReader {
 			if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
 				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
 			}
-			msgLogger.messageStrStr("Processing tree", "@id", treeID);
+			msgLogger.messageStr("Processing tree", "@id", treeID);
 			
 			
 		// trees can have their own specific metadata e.g. [{"@property":"ot:branchLengthMode","@xsi:type":"nex:LiteralMeta","$":"ot:substitutionCount"},{"@property":"ot:inGroupClade","$":"node208482","xsi:type":"nex:LiteralMeta"}]
@@ -138,7 +138,7 @@ public class NexsonReader {
 			//System.out.println("treeMetaList = " + treeMetaList);
 			// check if tree is deprecated. will be a tree-specific tag (ot:tag). if so, abort.
 			if (treeMetaList != null && checkDeprecated(treeMetaList)) {
-				msgLogger.messageStrStr("Tree tagged as deprecated. Ignoring.", "@id", treeID);
+				msgLogger.messageStr("Tree tagged as deprecated. Ignoring.", "@id", treeID);
 			} else {
 				// tree2 = {"node": [...], "edge": [...]}
 				result.add(importTree(otuMap, 
@@ -163,8 +163,8 @@ public class NexsonReader {
 									   String treeID,
 									   Boolean verbose,
 									   MessageLogger msgLogger) {
-		msgLogger.indentMessageStrInt(1, "tree info", "number nodes", nodeList.size());
-		msgLogger.indentMessageStrInt(1, "tree info", "number edges", edgeList.size());
+		msgLogger.indentMessageInt(1, "tree info", "number nodes", nodeList.size());
+		msgLogger.indentMessageInt(1, "tree info", "number edges", edgeList.size());
 		Map<String, JadeNode> nodeMap = new HashMap<String, JadeNode>();
 		JadeNode root = null;
 		
@@ -176,7 +176,7 @@ public class NexsonReader {
 				if (((String)j.get("@property")).compareTo("ot:inGroupClade") == 0) {
 					if ((j.get("$")) != null) {
 						ingroup = (String)j.get("$");
-						msgLogger.indentMessageStrStr(1, "tree info", "ingroup", ingroup);
+						msgLogger.indentMessageStr(1, "tree info", "ingroup", ingroup);
 					} else {
 						throw new RuntimeException("missing property value for name: " + j);
 					}
@@ -209,7 +209,7 @@ public class NexsonReader {
 			if (otuId != null) {
 				JSONObject otu = otuMap.get(otuId);
 				if (otu == null) {
-					msgLogger.indentMessageStrStr(2, "Error. Node with otuID of unknown OTU", "@otu", otuId);
+					msgLogger.indentMessageStr(2, "Error. Node with otuID of unknown OTU", "@otu", otuId);
 					return null;
 				}
 				String label = (String)otu.get("@label");
@@ -231,7 +231,7 @@ public class NexsonReader {
 							} else if (value instanceof Integer) {
 								value = new Long((long)(((Integer)value).intValue()));
 							} else if (value == null) {
-								msgLogger.indentMessageStrStr(1, "Warning: dealing with null ot:ottolid here.", "nexsonid", id);
+								msgLogger.indentMessageStr(1, "Warning: dealing with null ot:ottolid here.", "nexsonid", id);
 							} else {
 								System.err.println("Error with: " + m);
 								throw new RuntimeException("Invalid ottolid value: " + value);
@@ -239,7 +239,7 @@ public class NexsonReader {
 						} else if(propname.equals("ot:originalLabel")){
 							// ignoring originalLabel, but not emitting the unknown property warning
 						} else {
-							msgLogger.indentMessageStrStrStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);
+							msgLogger.indentMessageStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);
 						}
 						jn.assocObject(propname, value);
 					}
@@ -254,12 +254,12 @@ public class NexsonReader {
 			// source is parent, target is child
 			JadeNode source = nodeMap.get(j.get("@source"));
 			if (source == null) {
-				msgLogger.indentMessageStrStr(2, "Error. Edge with source property not found in map", "@source", (String)j.get("@source"));
+				msgLogger.indentMessageStr(2, "Error. Edge with source property not found in map", "@source", (String)j.get("@source"));
 				return null;
 			}
 			JadeNode target = nodeMap.get(j.get("@target"));
 			if (target == null) {
-				msgLogger.indentMessageStrStr(2, "Error. Edge with target property not found in map", "@target", (String)j.get("@target"));
+				msgLogger.indentMessageStr(2, "Error. Edge with target property not found in map", "@target", (String)j.get("@target"));
 				return null;
 			}
 			Double length = (Double)j.get("@length");
@@ -282,7 +282,7 @@ public class NexsonReader {
 		JadeTree tree = new JadeTree(root);
 		
 		int nc = tree.getExternalNodeCount();
-		msgLogger.indentMessageStrInt(1, "Ingested tree", "number of external nodes", nc);
+		msgLogger.indentMessageInt(1, "Ingested tree", "number of external nodes", nc);
 
 		
 		// Copy STUDY-level metadata into the JadeTree
@@ -333,7 +333,7 @@ public class NexsonReader {
 					}
 					tree.assocObject(propname, value);
 					if (msgLogger != null) {
-						msgLogger.indentMessageStrStr(1, "property added", propname, value.toString());
+						msgLogger.indentMessageStr(1, "property added", propname, value.toString());
 					}
 				} else if ((j.get("@href")) != null) {
 					Object value = j.get("@href");
@@ -342,7 +342,7 @@ public class NexsonReader {
 					}
 					tree.assocObject(propname, value);
 					if (msgLogger != null) {
-						msgLogger.indentMessageStrStr(1, "property added", propname, value.toString());
+						msgLogger.indentMessageStr(1, "property added", propname, value.toString());
 					}
 				} else {
 					throw new RuntimeException("missing property value for name: " + j);

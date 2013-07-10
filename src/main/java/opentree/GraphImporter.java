@@ -261,7 +261,7 @@ public class GraphImporter extends GraphBase{
 			if (numh == 1) {
 				hitnode = hits.getSingle();
 			} else if (numh > 1) {
-				msgLogger.indentMessageStrIntStrStr(2, "multiple graphNamedNodes hits", "number of hits", numh, "name", processedname);
+				msgLogger.indentMessageIntStr(2, "multiple graphNamedNodes hits", "number of hits", numh, "name", processedname);
 				int shortest = 1000; // this is shortest to the focal, could reverse this
 				Node shortn = null;
 				for (Node tnode : hits) {
@@ -276,7 +276,7 @@ public class GraphImporter extends GraphBase{
 						}
 //						System.out.println(shortest + " " + tpath.length());
 					} else {
-						msgLogger.indentMessageStrStr(3, "graphNamedNodes hit not within focalgroup", "focalgroup", focalgroup);
+						msgLogger.indentMessageStr(3, "graphNamedNodes hit not within focalgroup", "focalgroup", focalgroup);
 					}
 				}
 				assert shortn != null; // TODO this could happen if there are multiple hits outside the focalgroup, and none inside the focalgroup.  We should develop an AmbiguousTaxonException class
@@ -499,7 +499,7 @@ public class GraphImporter extends GraphBase{
 		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode, ArrayList<Long>>)root.getObject("hashnodeidssearch"));
 
 		if (inode.getChildCount() > 0) {
-			msgLogger.indentMessageStrStr(2, "subtree", "newick", inode.getNewick(false));
+			msgLogger.indentMessageStr(2, "subtree", "newick", inode.getNewick(false));
 			ArrayList<JadeNode> nds = inode.getTips();
 			ArrayList<Node> hit_nodes = new ArrayList<Node>();
 			ArrayList<Node> hit_nodes_search = new ArrayList<Node> ();
@@ -539,9 +539,9 @@ public class GraphImporter extends GraphBase{
 			}
 			for (Node tnd : ancestors) {
 				if (tnd.hasProperty("name")) {
-					msgLogger.indentMessageStrStrStrStr(3, "matched anc", "node", tnd.toString(), "name", (String)tnd.getProperty("name"));
+					msgLogger.indentMessageStrStr(3, "matched anc", "node", tnd.toString(), "name", (String)tnd.getProperty("name"));
 				} else {
-					msgLogger.indentMessageStrStr(3, "matched anc", "node", tnd.toString());
+					msgLogger.indentMessageStr(3, "matched anc", "node", tnd.toString());
 				}
 			}
 		}

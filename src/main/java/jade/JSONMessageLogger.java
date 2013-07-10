@@ -81,30 +81,33 @@ public class JSONMessageLogger extends MessageLogger {
 		this.outStream.println("\"label\":" + escapeStr(label) + '}');
 	}
 
-	protected void _messageStrStr(String label, String s, String s2) {
+	protected void _messageStr(String label, String s, String s2) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + escapeStr(s2) + "}");
 	}
-	protected void _messageStrLong(String label, String s, Long i) {
+	protected void _messageLong(String label, String s, Long i) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + "}");
 	}
 
-	protected void _messageStrInt(String label, String s, int i) {
+	protected void _messageInt(String label, String s, int i) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + "}");
 	}
 
-	protected void _messageStrStrStrStr(String label, String s, String s2, String s3, String s4) {
+	protected void _messageStrStr(String label, String s, String s2, String s3, String s4) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + escapeStr(s2) + ", \"" + s3 + "\": " + escapeStr(s4) + "}");
 	}
-	protected void _messageStrLongStrStr(String label, String s, Long i, String s3, String s4) {
+	protected void _messageLongStr(String label, String s, Long i, String s3, String s4) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + "}");
 	}
 
-	protected void _messageStrIntStrStr(String label, String s, int i, String s3, String s4) {
+	protected void _messageIntStr(String label, String s, int i, String s3, String s4) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + "}");
 	}
 
-	protected void _messageStrLongStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6) {
+	protected void _messageLongStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + ", \"" + s5 + "\": " + escapeStr(s6) + "}");
+	}
+	protected void _messageLongStrStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6, String s7, String s8) {
+		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + ", \"" + s5 + "\": " + escapeStr(s6) + ", \"" + s7 + "\": " + escapeStr(s8) + "}");
 	}
 
 }

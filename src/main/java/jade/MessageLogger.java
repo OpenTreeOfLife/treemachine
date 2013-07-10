@@ -33,16 +33,16 @@ public class MessageLogger {
 		this.indentMessage(0, label);
 	}
 
-	public void messageStrStr(String label, String s, String s2) {
-		this.indentMessageStrStr(0, label, s, s2);
+	public void messageStr(String label, String s, String s2) {
+		this.indentMessageStr(0, label, s, s2);
 	}
 
-	public void messageStrLong(String label, String s, Long i) {
-		this.indentMessageStrLong(0, label, s, i);
+	public void messageLong(String label, String s, Long i) {
+		this.indentMessageLong(0, label, s, i);
 	}
 
-	public void messageStrInt(String label, String s, int i) {
-		this.indentMessageStrInt(0, label, s, i);
+	public void messageInt(String label, String s, int i) {
+		this.indentMessageInt(0, label, s, i);
 	}
 
 	public void indentMessage(int indentLevel, String label) {
@@ -51,45 +51,51 @@ public class MessageLogger {
 		this._message(label);
 	}
 
-	public void indentMessageStrStr(int indentLevel, String label, String s, String s2) {
+	public void indentMessageStr(int indentLevel, String label, String s, String s2) {
 		this._write_prefix();
 		this._indent(indentLevel);
-		this._messageStrStr(label, s, s2);
+		this._messageStr(label, s, s2);
 	}
 
-	public void indentMessageStrInt(int indentLevel, String label, String s, int i) {
+	public void indentMessageInt(int indentLevel, String label, String s, int i) {
 		this._write_prefix();
 		this._indent(indentLevel);
-		this._messageStrInt(label, s, i);
+		this._messageInt(label, s, i);
 	}
 
-	public void indentMessageStrLong(int indentLevel, String label, String s, Long i) {
+	public void indentMessageLong(int indentLevel, String label, String s, Long i) {
 		this._write_prefix();
 		this._indent(indentLevel);
-		this._messageStrLong(label, s, i);
+		this._messageLong(label, s, i);
 	}
 
-	public void indentMessageStrLongStrStr(int indentLevel, String label, String s, Long i, String s2, String s3) {
+	public void indentMessageLongStr(int indentLevel, String label, String s, Long i, String s2, String s3) {
 		this._write_prefix();
 		this._indent(indentLevel);
-		this._messageStrLongStrStr(label, s, i, s2, s3);
+		this._messageLongStr(label, s, i, s2, s3);
 	}
 	
-	public void indentMessageStrIntStrStr(int indentLevel, String label, String s, int i, String s2, String s3) {
+	public void indentMessageIntStr(int indentLevel, String label, String s, int i, String s2, String s3) {
 		this._write_prefix();
 		this._indent(indentLevel);
-		this._messageStrIntStrStr(label, s, i, s2, s3);
+		this._messageIntStr(label, s, i, s2, s3);
 	}
 	
-	public void indentMessageStrStrStrStr(int indentLevel, String label, String s, String s2, String s3, String s4) {
+	public void indentMessageStrStr(int indentLevel, String label, String s, String s2, String s3, String s4) {
 		this._write_prefix();
 		this._indent(indentLevel);
-		this._messageStrStrStrStr(label, s, s2, s3, s4);
+		this._messageStrStr(label, s, s2, s3, s4);
 	}
-	public void indentMessageStrLongStrStrStrStr(int indentLevel, String label, String s, Long i, String s2, String s3, String s4, String s5) {
+	public void indentMessageLongStrStr(int indentLevel, String label, String s, Long i, String s2, String s3, String s4, String s5) {
 		this._write_prefix();
 		this._indent(indentLevel);
-		this._messageStrLongStrStr(label, s, i, s2, s3, s4, s5);
+		this._messageLongStrStr(label, s, i, s2, s3, s4, s5);
+	}
+
+	public void indentMessageLongStrStrStr(int indentLevel, String label, String s, Long i, String s2, String s3, String s4, String s5, String s6, String s7) {
+		this._write_prefix();
+		this._indent(indentLevel);
+		this._messageLongStrStrStr(label, s, i, s2, s3, s4, s5, s6, s7);
 	}
 	
 	// no-op for streaming to std out. close objects for JSON
@@ -112,29 +118,32 @@ public class MessageLogger {
 		this.outStream.println(label);
 	}
 
-	protected void _messageStrStr(String label, String s, String s2) {
+	protected void _messageStr(String label, String s, String s2) {
 		this.outStream.println(label + this.sep + s + this.sep + '"' + s2 + '"');
 	}
-	protected void _messageStrLong(String label, String s, Long i) {
+	protected void _messageLong(String label, String s, Long i) {
 		this.outStream.println(label + this.sep + s + this.sep + i);
 	}
 
-	protected void _messageStrInt(String label, String s, int i) {
+	protected void _messageInt(String label, String s, int i) {
 		this.outStream.println(label + this.sep + s + this.sep + i);
 	}
 
-	protected void _messageStrStrStrStr(String label, String s, String s2, String s3, String s4) {
+	protected void _messageStrStr(String label, String s, String s2, String s3, String s4) {
 		this.outStream.println(label + this.sep + s + this.sep + '"' + s2 + '"' + this.sep + s3 + this.sep + '"' + s4 + '"');
 	}
-	protected void _messageStrLongStrStr(String label, String s, Long i, String s3, String s4) {
+	protected void _messageLongStr(String label, String s, Long i, String s3, String s4) {
 		this.outStream.println(label + this.sep + s + this.sep + i + this.sep + s3 + this.sep + '"' + s4 + '"');
 	}
 
-	protected void _messageStrIntStrStr(String label, String s, int i, String s3, String s4) {
+	protected void _messageIntStr(String label, String s, int i, String s3, String s4) {
 		this.outStream.println(label + this.sep + s + this.sep + i + this.sep + s3 + this.sep + '"' + s4 + '"');
 	}
-	protected void _messageStrLongStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6) {
+	protected void _messageLongStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6) {
 		this.outStream.println(label + this.sep + s + this.sep + i + this.sep + s3 + this.sep + '"' + s4 + '"' + this.sep + s5 + this.sep + '"' + s6 + '"');
+	}
+	protected void _messageLongStrStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6, String s7, String s8) {
+		this.outStream.println(label + this.sep + s + this.sep + i + this.sep + s3 + this.sep + '"' + s4 + '"' + this.sep + s5 + this.sep + '"' + s6 + '"' + s7 + this.sep + '"' + s8 + '"');
 	}
 
 }
