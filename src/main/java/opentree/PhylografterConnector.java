@@ -286,7 +286,7 @@ public class PhylografterConnector {
 							if (score >= 1){
 								Long tnrsOttolID = Long.valueOf(ottolid);
 								JadeNode fixedNode = namenodemap.get(searchString);
-								logger.indentMessageStrLongStrStr(2, "TNRS resolved OttolID", searchString, tnrsOttolID, "nexsonid", (String)fixedNode.getObject("nexsonid"));
+								logger.indentMessageStrLongStrStrStrStr(2, "TNRS resolved OttolID", "OTT ID", tnrsOttolID, "searched on", searchString, "nexsonid", (String)fixedNode.getObject("nexsonid"));
 								fixedNode.assocObject("ot:ottolid", tnrsOttolID);
 								matchednodes.add(namenodemap.get(searchString));
 								namenodemap.remove(searchString);
@@ -306,7 +306,7 @@ public class PhylografterConnector {
 						logger.indentMessageStrLong(2, "Name previously ingested into graphNamedNodes", name, lid);
 						namenodemap.get(name).assocObject("ot:ottolid", Long.valueOf(lid));
 						removenames.add(name);
-					}else{
+					} else if (hits .size() > 1) {
 						logger.indentMessageStrInt(2, "Name not unique in graphNamedNodes", name, hits.size());
 					}
 					hits.close();
