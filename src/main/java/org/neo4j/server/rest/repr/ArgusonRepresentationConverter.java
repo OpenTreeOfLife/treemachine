@@ -103,7 +103,9 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 					
 				}
 				
-				serializer.putList("children", OpenTreeMachineRepresentationConverter.getListRepresentation(children));
+				if (children.size() > 0) {
+					serializer.putList("children", OpenTreeMachineRepresentationConverter.getListRepresentation(children));
+				}
 				
 				// if you want branch lengths
 //					serializer.putNumber("size", inNode.getBL());
@@ -168,7 +170,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 //					JSONExporter.writeStringArrayAsJSON(ret, (String []) sup);
 					LinkedList<String> supList = new LinkedList<String>();
 					for (int i = 0; i < sup.length; i++) {
-						supList.add(dnl[i]);
+						supList.add(sup[i]);
 					}
 					serializer.putList("supportedBy", OpenTreeMachineRepresentationConverter.getListRepresentation(supList));
 
