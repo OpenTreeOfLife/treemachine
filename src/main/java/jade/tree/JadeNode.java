@@ -175,9 +175,11 @@ public class JadeNode {
 	}
 	
 	/**
+	 * Get JSON output for argus viewer. DEPRECATED. Use the ArgusRepresentationConverter instead.
 	 * @param bl should be true to include branch lengths
 	 * @return string with JSON representation of the subtree rooted at this node
 	 */
+	@Deprecated
 	public String getJSON(boolean bl) {
 		StringBuffer ret = new StringBuffer("{");
 		if (this.name != null) {

@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Stack;
 
 import opentree.synthesis.DraftTreePathExpander;
@@ -788,13 +789,13 @@ public class GraphExplorer extends GraphBase {
             }
         }
         System.out.println("filtered: "+filteredsources);
-        rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDYID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
+        rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
         //draftSynthesisMethod.setFilter(rf);
         //if(true == true)
         //	return true;
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
-        rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDYID, sourceIdPriorityList, sourceMetaIndex));
+        rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDY_ID, sourceIdPriorityList, sourceMetaIndex));
         rs.addCriterion(new SourcePropertyRankingCriterion(SourceProperty.YEAR, RankingOrder.DECREASING, sourceMetaIndex));
         draftSynthesisMethod.setRanker(rs);
 
@@ -2275,8 +2276,17 @@ public class GraphExplorer extends GraphBase {
                         jChild.assocObject("supporting_sources", supportingSources);
                         for (String s : supportingSources) {
                             if (!mentionedSources.containsKey(s)) {
-                                Node m1 = sourceMetaIndex.get("source", s).getSingle();
-                                mentionedSources.put(s, m1);
+                            	IndexHits<Node> metanodes = null;
+                            	try {
+                            		metanodes = sourceMetaIndex.get("source", s);
+	                            	Node m1 = null;
+	                            	if (metanodes.hasNext()) {
+	                            		m1 = metanodes.next();
+	                            	}
+	                        		mentionedSources.put(s, m1);
+                            	} finally {
+                            		metanodes.close();
+                            	}
                             }
                         }
                     }

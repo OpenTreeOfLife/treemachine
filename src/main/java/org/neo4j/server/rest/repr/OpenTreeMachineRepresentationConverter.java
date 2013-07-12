@@ -155,6 +155,9 @@ public class OpenTreeMachineRepresentationConverter {
         if (data == null) {
             return ValueRepresentation.string("null");        
 
+        } else if (data instanceof Representation) {
+        	return (Representation) data;
+            
         } else if (data instanceof Double || data instanceof Float) {
             return ValueRepresentation.number(((Number) data).doubleValue());
         
