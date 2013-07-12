@@ -5,6 +5,7 @@ import org.neo4j.graphdb.Node;
 
 /** 
  * DEPRECATED. Use the ArgusRepresentationConverter class instead.
+ * 
  * This class has only static methods. The main reasons for its existence are to:
  * 	1. Consolidate serialization code so that it can be easily re-used. This will make
  *		it easier to refactor exporting of JSON (e.g. into GraphExplorer rather than via a JadeTree)
