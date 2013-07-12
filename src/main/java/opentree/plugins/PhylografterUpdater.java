@@ -56,23 +56,23 @@ public class PhylografterUpdater extends ServerPlugin{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-		        for(JadeTree j: jt){
-		        	GraphImporter gi = new GraphImporter(graphDb);
-		        	boolean doubname = false;
-		        	HashSet<Long> ottols = new HashSet<Long>();
-		        	for(int m=0;m<j.getExternalNodeCount();m++){
-		        		if(j.getExternalNode(m).getObject("ot:ottolid")==null){//use doubname as also 
-		        			doubname = true;
-		        			break;
-		        		}
-		        		if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid"))==true){
-		        			doubname = true;
-		        			break;
-		        		}else{
-		        			ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
-		        		}
-		        	}
-		        	//check for any duplicate ottol:id
+				for(JadeTree j: jt){
+					GraphImporter gi = new GraphImporter(graphDb);
+					boolean doubname = false;
+					HashSet<Long> ottols = new HashSet<Long>();
+					for(int m=0;m<j.getExternalNodeCount();m++){
+						if(j.getExternalNode(m).getObject("ot:ottolid")==null){//use doubname as also 
+							doubname = true;
+							break;
+						}
+						if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid"))==true){
+							doubname = true;
+							break;
+						}else{
+							ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
+						}
+					}
+					//check for any duplicate ottol:id
 					if(doubname == true){
 						System.out.println("there are duplicate names");
 					}else{
@@ -84,7 +84,7 @@ public class PhylografterUpdater extends ServerPlugin{
 						}
 						gi.addSetTreeToGraphWIdsSet(sourcename, false, false, messageLogger);
 					}
-		        }
+				}
 			} catch(java.lang.NullPointerException e){
 				System.out.println("failed to get study "+k);
 				rc = 1;

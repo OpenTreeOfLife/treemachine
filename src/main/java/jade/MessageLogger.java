@@ -8,6 +8,22 @@ import java.io.IOException;
 import java.io.PrintStream;
 import org.apache.commons.lang3.StringUtils;
 
+/**
+ * A simple class for emitting output in the form of:
+ *	1. indentation level (to denote hierarchical structure of messages)
+ *	2. label a free-from string expressing to a user the type of message
+ *	3. one or more pairs of key-value pairs
+ *
+ * In this base classs the messages are simply emitted using println in
+ *	the form: label + sep + key1 + sep + val1 + sep + key2 + sep val2
+ *
+ * If the JSONMessageLogger is used, the same set of calls will result in
+ *	the writing of a simple JSON representation of nested object which 
+ *	preserve the indentation via their nesting.
+ *
+ * This logging system is used in functions called by the pgloadind command to 
+ *	to produce a set of easily parseable messages about a phylografter study
+ */
 public class MessageLogger {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
 	String msgPrefix;

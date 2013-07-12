@@ -1,9 +1,16 @@
 package opentree.plugins;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -12,12 +19,19 @@ import java.util.LinkedList;
 import java.util.List;
 
 import jade.tree.JadeTree;
+import jade.MessageLogger;
+import jade.JSONMessageLogger;
 
 import opentree.GraphBase;
+import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.GraphExporter;
+import opentree.MainRunner;
 import opentree.OttolIdNotFoundException;
 import opentree.RelTypes;
+import opentree.TaxonNotFoundException;
+import opentree.TreeIngestException;
+import opentree.TreeNotFoundException;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -33,7 +47,6 @@ import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.ArgusonRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OpenTreeMachineRepresentationConverter;
-import opentree.TreeNotFoundException;
 
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
@@ -50,6 +63,36 @@ public class GoLS extends ServerPlugin {
 			ge.shutdownDB();
 		}
 		return OpenTreeMachineRepresentationConverter.convert(sourceArrayList);
+	}
+
+	@Description("Return a JSON obj that represents the error and warning messages associated with attempting to ingest a NexSON blob")
+	@PluginTarget (GraphDatabaseService.class)
+	public Representation getStudyIngestMessagesForNexSON(
+				@Source GraphDatabaseService graphDbs,
+				@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+				@Parameter(name = "nexsonBlob", optional = true) String nexsonBlob)
+				throws UnsupportedEncodingException, 
+					   IOException,
+					   TaxonNotFoundException,
+					   TreeIngestException {
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
+		ByteArrayInputStream inpStream = new ByteArrayInputStream(nexsonBlob.getBytes("UTF-8"));
+		BufferedReader nexsonContentBR = new BufferedReader(new InputStreamReader(inpStream));
+		JSONMessageLogger messageLogger = new JSONMessageLogger("pgloadind-ws");
+		ByteArrayOutputStream outputJSONStream = new ByteArrayOutputStream();
+		PrintStream outputPrintStream = new PrintStream(outputJSONStream);
+		messageLogger.setPrintStream(outputPrintStream);
+		try {
+			boolean onlyTestTheInput = true;
+			MainRunner.loadPhylografterStudy(graphDb, nexsonContentBR, messageLogger, onlyTestTheInput);
+		} finally {
+			messageLogger.close();
+			outputPrintStream.close();
+		}
+		String jsonResponse = outputJSONStream.toString();
+		return OpenTreeMachineRepresentationConverter.convert(jsonResponse); // double wrapping string. Need to figure out a thin String->Representation wrapper.
+/*
+*/
 	}
 
 	@Description("Returns identifying information for the current draft tree")

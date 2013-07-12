@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import org.apache.commons.lang3.StringUtils;
 
+/**
+ * See notes in the MessageLogger base class.
+ */
 public class JSONMessageLogger extends MessageLogger {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
 	int currNestingLevel;
