@@ -1,45 +1,33 @@
 package opentree.plugins;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
-
-
-import opentree.GraphExplorer;
 import opentree.GraphExporter;
 
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphalgo.GraphAlgoFactory;
-import org.neo4j.graphalgo.PathFinder;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.DynamicRelationshipType;
-import org.neo4j.graphdb.Expander;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.kernel.Traversal;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
-import org.neo4j.tooling.GlobalGraphOperations;
-
-import jade.tree.*;
 
 public class GetJsons extends ServerPlugin {
+	
+	/* This enum exists in its own class file
 	protected static enum RelTypes implements RelationshipType{
 		MRCACHILDOF, //standard rel for graph db, from node to parent
 		TAXCHILDOF, //standard rel for tax db, from node to parent
 		STREECHILDOF, //standard rel for input tree, from node to parent  
 		ISCALLED // is called ,from node in graph of life to node in tax graph 
-	}
+	} */
 	
+	/**
+	 * Is this service used?
+	 * @param source
+	 * @return
+	 */
 	@Description( "Return a JSON with alternative parents presented" )
 	@PluginTarget( Node.class )
 	public String getConflictJson(@Source Node source) {
@@ -47,9 +35,18 @@ public class GetJsons extends ServerPlugin {
 		GraphExporter ge = new GraphExporter();
 		return ge.constructJSONAltParents(firstNode);
 	}
-	
+
+	/**
+	 * Is this service used? For now I have marked it as deprecated, if it should not be then please fix (and provide some indication of where it is used?)
+	 * @param source
+	 * @param domsource
+	 * @param altrels
+	 * @param nubrel
+	 * @return
+	 */
 	@Description ("Return a JSON with alternative TAXONOMIC relationships noted and returned")
 	@PluginTarget (Node.class)
+	@Deprecated
 	public String getConflictTaxJsonAltRel(@Source Node source,
 			@Description( "The dominant source.")
 			@Parameter(name = "domsource", optional = true) String domsource,
@@ -84,6 +81,13 @@ public class GetJsons extends ServerPlugin {
 		return retst;
 	}
 	
+	/**
+	 * Shouldn't this functionality be accessed using the TNRS? For now I have marked this as deprecated, if this is wrong please fix and indicate what this is for.
+	 * @param graphDb
+	 * @param nodename
+	 * @return
+	 */
+	@Deprecated
 	@Description ("Return a JSON with the node id given a name")
 	@PluginTarget (GraphDatabaseService.class)
 	public String getNodeIDJSONFromName(@Source GraphDatabaseService graphDb,

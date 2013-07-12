@@ -46,13 +46,13 @@ public class GeneralizedMappingRepresentation extends MappingRepresentation {
 
                     String key = pair.getKey();
                     Object value = pair.getValue();
-                    Object valueConverted = OpenTreeMachineRepresentationConverter.convert(value);
+//                    Object valueConverted = OpenTreeMachineRepresentationConverter.convert(value);
 
                     if (value instanceof Map) {
-                        serializer.putMapping(key, (MappingRepresentation) valueConverted);
+                        serializer.putMapping(key, (MappingRepresentation) GeneralizedMappingRepresentation.getMapRepresentation((Map) value));
 
                     } else if (value instanceof List) {
-                        serializer.putList(key, (ListRepresentation) valueConverted);
+                        serializer.putList(key, (ListRepresentation) OpenTreeMachineRepresentationConverter.getListRepresentation((List) value));
 
                     } else if (value instanceof Boolean) {
                         serializer.putBoolean(key, (Boolean) value);
