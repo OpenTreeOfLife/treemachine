@@ -766,7 +766,13 @@ public class GraphExplorer extends GraphBase {
         for (String sourceId : preferredSourceIds) {
         	sourceIdPriorityList.add((Object) sourceId);
         }
-                
+        
+        // build the list of ids, have to use generic objects
+        ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
+        for (String sourceId : preferredSourceIds) {
+        	justSourcePriorityList.add((Object) sourceId.split("_")[0]);
+        }
+        
         // define the synthesis protocol
         ResolvingExpander draftSynthesisMethod = new ResolvingExpander();
 
@@ -781,16 +787,17 @@ public class GraphExplorer extends GraphBase {
         while (hits.hasNext()) {
             Node n = hits.next();
             if(n.hasProperty("ot:studyId")){
-            	if(sourceIdPriorityList.contains(n.getProperty("ot:studyId"))==false)
+            	if(justSourcePriorityList.contains(n.getProperty("ot:studyId"))==false)
             		filteredsources.add((String)n.getProperty("ot:studyId"));
             }else{
-            	if(sourceIdPriorityList.contains(n.getProperty("source"))==false)
+            	if(justSourcePriorityList.contains(n.getProperty("source"))==false)
             		filteredsources.add((String) n.getProperty("source"));
             }
         }
         System.out.println("filtered: "+filteredsources);
+
         rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
-        //draftSynthesisMethod.setFilter(rf);
+        draftSynthesisMethod.setFilter(rf);
         //if(true == true)
         //	return true;
         // set ranking criteria
@@ -853,14 +860,10 @@ public class GraphExplorer extends GraphBase {
         } finally {
         	tx.finish();
         }
-
-        // somehow need to identify the taxonomy root node for starting the addition of lost children
-        // CURENTLY SET MANUALLY FOR TESTING ONLY
-        Node taxRootNode = findGraphNodeByName("life");
-
+        
         tx = graphDb.beginTx();
         try {
-            //addMissingChildrenToDraftTreeTEMP(startNode);
+            addMissingChildrenToDraftTree(startNode,startNode);
         	tx.success();
 
         } catch (Exception ex) {
@@ -1112,13 +1115,6 @@ public class GraphExplorer extends GraphBase {
     }
     
     /**
-     * Used to add missing external nodes to the draft tree stored in the graph.
-     * 
-     * The idea here is to start from the tips that are in the synthetic tree. We are 
-     * sure that they all connect to the taxonomy. We can then walk back from each 
-     * of the tips and add the taxonomy that doesn't conflict with the next parent 
-     * in the synthesis. This requires changing the relationships from the synthetic tree
-     * to reconnect with the taxonomy. This will only add non conflicting taxonomy
      * 
      * @param startNode
      */
@@ -1129,81 +1125,23 @@ public class GraphExplorer extends GraphBase {
         String[] supportingSources = new String[1];
         supportingSources[0] = "taxonomy";
         
-        TLongHashSet visited = new TLongHashSet();//stores  the nodes that have been visited
-        TLongArrayList synthtips = new TLongArrayList();
-        
         //put all the tips in the array
-        for (Node tnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
-            if (tnode.hasRelationship(Direction.INCOMING, RelTypes.SYNTHCHILDOF) == true) {
-                // only consider taxa that are tips
-                continue;
-            }
-            synthtips.add(tnode.getId());
-        }
-        System.out.println(synthtips.size());
         int count = 0;
-        for (int i=0;i<synthtips.size();i++){
-        	if (count % 10000 == 0)
-        		System.out.println(count);
-        	count += 1;
-            Node cnode = graphDb.getNodeById(synthtips.getQuick(i));
-            if (cnode.hasRelationship(RelTypes.TAXCHILDOF) == false){
-            	System.out.println("no tax for "+cnode);
-            }
-            TLongArrayList m = new TLongArrayList ((long[]) cnode.getProperty("mrca"));
-            TLongArrayList smc = new TLongArrayList(synthtips);
-            smc.removeAll(m);
-            //get parent
-            while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.SYNTHCHILDOF)){
-            	if (visited.contains(cnode.getId())){
-            		break;
-            	}
-            	visited.add(cnode.getId());
-            	//this assumes that m will be the list of mrcas at the node
-            	Node tcnode = LicaUtil.getTaxonomicLICA(m,graphDb);
-            	TLongArrayList tcmrcas = new TLongArrayList((long[]) tcnode.getProperty("mrca"));
-            	Node pnode = cnode.getRelationships(Direction.OUTGOING, RelTypes.SYNTHCHILDOF).iterator().next().getEndNode();
-            	TLongArrayList pmrcas = new TLongArrayList((long[]) pnode.getProperty("mrca"));
-            	TLongArrayList psmc = new TLongArrayList(smc);
-            	psmc.removeAll(pmrcas);
-            	Node tnode = LicaUtil.getTaxonomicLICA(pmrcas,graphDb);
-//            	System.out.println(tnode.getProperty("name")+" "+pmrcas+" "+m);
-            	TLongArrayList tmrcas = new TLongArrayList((long[]) tnode.getProperty("mrca"));
-
-            	//original relationship that will be deleted
-            	Relationship rel = cnode.getSingleRelationship(RelTypes.SYNTHCHILDOF, Direction.OUTGOING);
-            	//if the taxonomic nodes are good lica and the parent and child taxonomic mrcas aren't the same
-            	if (tcnode.getId() != tnode.getId()){
-            		System.out.println("made it here");
-            		if (LicaUtil.containsAnyt4jUnsorted(tcmrcas, smc) == false){
-            			System.out.println("1 "+tcmrcas+" "+smc);
-            			if (LicaUtil.containsAnyt4jUnsorted(tmrcas, psmc)==false){  
-            				System.out.println("for "+tcnode.getProperty("name"));
-            				Node csnode = cnode;
-            				tcnode = tcnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
-            				while(tcnode.getId() != tnode.getId()){
-            					csnode.createRelationshipTo(tcnode, RelTypes.SYNTHCHILDOF);
-            					csnode = tcnode;
-            					tcnode = tcnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
-            					System.out.println("adding -"+tcnode.getProperty("name"));
-            				}
-            				//TODO: need to make a new node in the future
-            				if (cnode != csnode){
-            					csnode.createRelationshipTo(pnode, RelTypes.SYNTHCHILDOF);
-            					rel.delete();
-            				}
-            			}
-            		}
-            	}else{
- //           		System.out.println("won't add "+tnode.getProperty("name"));
-            	}
-            	//we may add some synthchildofs but don't want to traverse them
-            	cnode = pnode;
-            	m = pmrcas;//this may need to change with the addition of the taxonomic things
-            	smc = psmc;
-            	break;
-            }
+        for (Node tnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
+        	if(tnode.hasRelationship(RelTypes.SYNTHCHILDOF, Direction.INCOMING)==false)
+        		continue;
+        	TLongHashSet childsets = new TLongHashSet();
+        	for(Relationship rel : tnode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)){
+        		childsets.addAll((long[])rel.getStartNode().getProperty("mrca"));
+        	}
+        	TLongHashSet curset = new TLongHashSet((long[])tnode.getProperty("mrca"));
+    		curset.removeAll(childsets);
+        	if (curset.size() > 0){
+        		System.out.println(tnode+ " would add "+curset.size());
+        	}
+            count += curset.size();
         }
+        System.out.println(count);
     }
     
     
