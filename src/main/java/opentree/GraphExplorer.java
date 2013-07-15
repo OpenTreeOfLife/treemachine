@@ -1,6 +1,5 @@
 package opentree;
 
-
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
@@ -53,8 +52,6 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.Traversal;
-
-
 
 public class GraphExplorer extends GraphBase {
     //static Logger _LOG = Logger.getLogger(GraphExplorer.class);
@@ -1933,8 +1930,6 @@ public class GraphExplorer extends GraphBase {
         Node rootnode = graphDb.getNodeById(subtreeNodeID);
         return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
     }
-
-    
 
     public Node getRootNodeByTreeID(String treeID) throws TreeNotFoundException {
         IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);

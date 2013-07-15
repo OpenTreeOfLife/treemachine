@@ -91,8 +91,6 @@ public class GoLS extends ServerPlugin {
 		}
 		String jsonResponse = outputJSONStream.toString();
 		return OpenTreeMachineRepresentationConverter.convert(jsonResponse); // double wrapping string. Need to figure out a thin String->Representation wrapper.
-/*
-*/
 	}
 
 	@Description("Returns identifying information for the current draft tree")
@@ -122,7 +120,7 @@ public class GoLS extends ServerPlugin {
 		if (rootOttolID == null || rootOttolID.length() == 0)
 			rootOttolID = (String) ge.findGraphNodeByName("life").getProperty("tax_uid");
 		
-    	// TODO: need to build the ordered list of studies, refer to the study list on the dev server to create this
+    	// TODO: for now just using very simple list of studies, this will need to be extended for this service to be useful
 		LinkedList<String> preferredSources = new LinkedList<String>();
 		preferredSources.add("15");
 		preferredSources.add("taxonomy");
@@ -154,59 +152,49 @@ public class GoLS extends ServerPlugin {
 			@Parameter(name = "subtreeNodeID", optional = true) String subtreeNodeIDStr, 
 			@Description( "An integer controlling the max number of edges between the leaves and the node. The default is -1; a negative number corresponds to no pruning of the tree.")
 			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException {
+
+		// set defaults
 		int maxDepth = -1;
+		long subtreeNodeID = 0;
+		boolean emitNewick = false;
+
+		// override defaults if user-specified
 		if (maxDepthArg != null) {
 			maxDepth = maxDepthArg;
 		}
-		long subtreeNodeID = 0;
 		if (subtreeNodeIDStr != null) {
 			subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
 		}
-		boolean emitNewick = false;
+
+		// determine format
 		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
 			emitNewick = true;
-		} else if (!format.equalsIgnoreCase("arguson")) {//@TEMP what is the name of the format argus likes???
+		} else if (!format.equalsIgnoreCase("arguson")) {
 			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
 		}
-		String newick = "";
-		String retst = ""; // suppressing uninit warning
+
+		// get the tree
 		GraphExplorer ge = new GraphExplorer(graphDb);
-		GraphExporter gExporter = null;
+		JadeTree tree = null;
 		try {
-			JadeTree tree;
 			if (subtreeNodeIDStr == null) {
 				tree = ge.reconstructSourceByTreeID(treeID, maxDepth);
 			} else {
 				tree = ge.reconstructSourceByTreeID(treeID, subtreeNodeID, maxDepth);
 			}
-			if (emitNewick) {
-				newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
-			} else {
-				// Code from GetJsons.java getConflictTaxJsonAltRel
-				
-				//	ArrayList<Long> rels = new ArrayList<Long>();
-				//	gExporter = new GraphExporter(graphDb);
-				//	Node rootNode = ge.getRootNodeByTreeID(treeID);
-				//	int maxdepth = 5;
-				//	String sourcename = ge.findSourceNameFromTreeID(treeID);
-				//	retst = gExporter.constructJSONAltRels(rootNode, sourcename, rels, maxdepth);
-				
-				// not sure why argus wants a list...
-				retst = "[" + tree.getRoot().getJSON(false) + "]";
-			}
 		} finally {
 			ge.shutdownDB();
-			if (gExporter != null) {
-				gExporter.shutdownDB();
-			}
 		}
+		
+		// return results
 		if (emitNewick) {
 			HashMap<String, Object> responseMap = new HashMap<String, Object>();
-			responseMap.put("newick", newick);
+			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()));
 			responseMap.put("treeID", treeID);
 			return OpenTreeMachineRepresentationConverter.convert(responseMap);
-		} else {
-			return OpenTreeMachineRepresentationConverter.convert(retst); // double wrapping string
+
+		} else { // emit arguson
+			return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
 		}
 	}
 
@@ -242,13 +230,12 @@ public class GoLS extends ServerPlugin {
 		// determine output format
 		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
 			emitNewick = true;
-		} else if (!format.equalsIgnoreCase("arguson")) {//@TEMP what is the name of the format argus likes???
+		} else if (!format.equalsIgnoreCase("arguson")) {
 			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
 		}
 
 		// get the subtree for export
 		GraphExplorer ge = new GraphExplorer(graphDb);
-//		GraphExporter gExporter = null;
 		JadeTree tree = null;
 		try {
 			if (subtreeNodeIDStr == null) {
@@ -258,60 +245,27 @@ public class GoLS extends ServerPlugin {
 			}
 		} finally {
 			ge.shutdownDB();
-//			if (gExporter != null) {
-//				gExporter.shutdownDB();
-//			}
 		}
 
-		// initialize containers for possible return values
-//		String newickStr = "";
-//		Representation argusonRepresentation = null;
-//		String retst = ""; // suppressing uninit warning
-
 		if (emitNewick) {
-			String newickStr = tree.getRoot().getNewick(tree.getHasBranchLengths());
 			HashMap<String, Object> responseMap = new HashMap<String, Object>();
-			responseMap.put("newick", newickStr);
+			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()));
 			responseMap.put("treeID", treeID);
 			return OpenTreeMachineRepresentationConverter.convert(responseMap);
 			
-		} else {
-			
-			// begin A ================ this section appears to be completely unused... should it be removed? ==============
-			
-			// Code from GetJsons.java getConflictTaxJsonAltRel
-			//	ArrayList<Long> rels = new ArrayList<Long>();
-			//	gExporter = new GraphExporter(graphDb);
-			//	Node rootNode = ge.getRootNodeByTreeID(treeID);
-			//	int maxdepth = 5;
-			//	String sourcename = ge.findSourceNameFromTreeID(treeID);
-			//	retst = gExporter.constructJSONAltRels(rootNode, sourcename, rels, maxdepth);
-
-			// end A ==================
-
-			// begin B ================ this section to be switched for opentreeconverter methods =================
-			
-			// not sure why argus wants a list...
-//			StringBuffer retB = new StringBuffer("[");
-//			retB.append(tree.getRoot().getJSON(false));
-//			retB.append("]");
-//			retst = retB.toString();
-//			return OpenTreeMachineRepresentationConverter.convert(retst); // double wrapping string
-			
-			// end B =================
-			
+		} else { // emit arguson
 			return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
 		}
 	}
 	
-	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottolID`.")
+	@Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottolID`.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation getDraftTreeForOttolID(
+	public Representation getDraftTreeForOttolID( // TODO: should be renamed getDraftTreeNewickForOttolID, will need to be updated in argus
 			@Source GraphDatabaseService graphDb,
 			@Description( "The ottol id of the taxon to be used as the root for the tree.")
-			@Parameter(name = "ottolID", optional = false) String ottolID,
-			@Description( "DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
-			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) {
+			@Parameter(name = "ottolID", optional = false) String ottolID) { //,
+//			@Description( "DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
+//			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) { // TODO: Remove this parameter if it is unused
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		Node startNode = ge.findGraphTaxNodeByUID(ottolID);
@@ -326,7 +280,7 @@ public class GoLS extends ServerPlugin {
 
 	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `nodeID`.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation getDraftTreeForNodeID(
+	public Representation getDraftTreeForNodeID( // TODO: should be renamed getDraftTreeNewickForNodeID, will need to be updated in argus
 			@Source GraphDatabaseService graphDb,
 			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
 			@Parameter(name = "nodeID", optional = false) Long nodeID) {
@@ -342,6 +296,17 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(response);
 	}
 
+	@Description("Returns the the node id of the named node identified by `ottolID`.")
+	@PluginTarget(GraphDatabaseService.class)
+	public Long getNodeIDForOttolID(
+			@Source GraphDatabaseService graphDb,
+			@Description( "The ottol id of the taxon to be used as the root for the tree.")
+			@Parameter(name = "ottolID", optional = false) String ottolID) {
+		
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		return ge.findGraphTaxNodeByUID(ottolID).getId();
+	}
+	
 	// ============================== arbor interoperability services ==================================
 
 	@Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree. Temporary, for interoperability testing with the arbor project.")
@@ -364,15 +329,5 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(childIds);
 	}
 	
-	@Description("Returns the the node id of the named node identified by `ottolID`. Temporary, for interoperability testing with the arbor project.")
-	@PluginTarget(GraphDatabaseService.class)
-	public Long getNodeIDForOttolID(
-			@Source GraphDatabaseService graphDb,
-			@Description( "The ottol id of the taxon to be used as the root for the tree.")
-			@Parameter(name = "ottolID", optional = false) String ottolID) {
-		
-		GraphExplorer ge = new GraphExplorer(graphDb);
-		return ge.findGraphTaxNodeByUID(ottolID).getId();
-	}
 }
 
