@@ -90,7 +90,7 @@ public class GoLS extends ServerPlugin {
 			outputPrintStream.close();
 		}
 		String jsonResponse = outputJSONStream.toString();
-		return OpenTreeMachineRepresentationConverter.convert(jsonResponse); // double wrapping string. Need to figure out a thin String->Representation wrapper.
+		return OpenTreeMachineRepresentationConverter.convert(jsonResponse); // TODO: still double wrapping string. Need to figure out a thin String->Representation wrapper.
 	}
 
 	@Description("Returns identifying information for the current draft tree")
