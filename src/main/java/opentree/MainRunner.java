@@ -54,10 +54,12 @@ public class MainRunner {
 		String filename = args[1];
 		String synfilename = args[2];
 		String graphname = args[3] ;
-		if (args[0].compareTo("inittax") != 0) {
-			System.err.println("ERROR: not a known command");
-			return 1;
-		}
+	// this should never get called. must be true or this will not be entered
+		//if (args[0].compareTo("inittax") != 0) {
+		//	System.err.println("ERROR: not a known command");
+		//	return 1;
+		//}
+		
 		GraphInitializer tl = new GraphInitializer(graphname);
 		System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
 		try {
