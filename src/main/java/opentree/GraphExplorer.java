@@ -849,30 +849,24 @@ public class GraphExplorer extends GraphBase {
                 knownIdsInTree.add(curNode.getId());
         	}
         	tx.success();
-
         } catch (Exception ex) {
         	tx.failure();
         	ex.printStackTrace();
-
         } finally {
         	tx.finish();
         }
-        
         tx = graphDb.beginTx();
         try {
-            addMissingChildrenToDraftTree(startNode,startNode);
+            //addMissingChildrenToDraftTree(startNode,startNode);
         	tx.success();
-
         } catch (Exception ex) {
         	tx.failure();
         	ex.printStackTrace();
-
         } finally {
         	tx.finish();
         }
-        
+        System.out.println("exiting the sythesis");
         return true;
-        
     }
     
     /**

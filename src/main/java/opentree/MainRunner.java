@@ -1017,6 +1017,7 @@ public class MainRunner {
 			}
 
 			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
+			System.out.println("done with synthesis");
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
