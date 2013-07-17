@@ -47,13 +47,13 @@ public class SourcePropertyValue implements Comparable<SourcePropertyValue> {
 	public Object value() {
 
 		if (property.type == String.class) {
-			return (Object) s;
+			return s;
 
 		} else if (property.type == Long.class || property.type == Integer.class) {
-			return (Object) l;
+			return l;
 
 		} else if (property.type == Double.class) {
-			return (Object) d;
+			return d;
 
 		} else {
 			// for objects without stored values

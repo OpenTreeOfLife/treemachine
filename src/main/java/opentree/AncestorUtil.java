@@ -7,20 +7,13 @@ package opentree;
  * merged with that and should be kept distinct.
  */
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import opentree.RelTypes;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipExpander;
-import org.neo4j.kernel.Traversal;
 
 /**
  * @author Pablo Pareja Tobes

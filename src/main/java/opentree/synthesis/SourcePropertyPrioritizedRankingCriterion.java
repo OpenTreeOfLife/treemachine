@@ -65,6 +65,7 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		}
 	}
 
+	@Override
 	public String getDescription() {
 		return desc;
 	}
@@ -108,25 +109,25 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		Integer rank2 = NOTRANKED;
 
 		if (property.type == String.class) {
-			if (priorityMapString.containsKey((String) v1))
-				rank1 = priorityMapString.get((String) v1);
+			if (priorityMapString.containsKey(v1))
+				rank1 = priorityMapString.get(v1);
 
-			if (priorityMapString.containsKey((String) v2))
-				rank2 = priorityMapString.get((String) v2);
+			if (priorityMapString.containsKey(v2))
+				rank2 = priorityMapString.get(v2);
 			
 		} else if (property.type == Long.class || property.type == Integer.class) {
-			if (priorityMapString.containsKey((Long) v1))
-				rank1 = priorityMapLong.get((Long) v1);
+			if (priorityMapString.containsKey(v1))
+				rank1 = priorityMapLong.get(v1);
 			
-			if (priorityMapString.containsKey((Long) v2))
-				rank2 = priorityMapLong.get((Long) v2);
+			if (priorityMapString.containsKey(v2))
+				rank2 = priorityMapLong.get(v2);
 
 		} else if (property.type == Double.class) {
-			if (priorityMapString.containsKey((Double) v1))
-				rank1 = priorityMapDouble.get((Double) v1);
+			if (priorityMapString.containsKey(v1))
+				rank1 = priorityMapDouble.get(v1);
 
-			if (priorityMapString.containsKey((Double) v2))
-				rank2 = priorityMapDouble.get((Double) v2);
+			if (priorityMapString.containsKey(v2))
+				rank2 = priorityMapDouble.get(v2);
 
 		} else {
 			throw new java.lang.UnsupportedOperationException("the source property datatype " + String.valueOf(property.type) + " is unrecognized");
@@ -161,6 +162,7 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		return retval * -1;
 	}
 
+	@Override
 	public void sort(List<Relationship> rels) {
 		Collections.sort(rels, this);
 	}

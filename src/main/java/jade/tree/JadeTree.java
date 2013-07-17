@@ -1,7 +1,6 @@
 package jade.tree;
 
 import java.util.*;
-import java.util.Map.Entry;
 
 public class JadeTree {
 	/*
@@ -114,7 +113,7 @@ public class JadeTree {
 	public JadeNode getExternalNode(String name) {
 		Iterator<JadeNode> go = externalNodes.iterator();
 		while (go.hasNext()) {
-			JadeNode ne = (JadeNode) go.next();
+			JadeNode ne = go.next();
 			if (ne.getName().compareTo(name) == 0) {
 				return ne;
 			}
@@ -137,7 +136,7 @@ public class JadeTree {
 	public JadeNode getInternalNode(String name) {
 		Iterator<JadeNode> go = internalNodes.iterator();
 		while (go.hasNext()) {
-			JadeNode ne = (JadeNode) go.next();
+			JadeNode ne = go.next();
 			if (ne.getName().compareTo(name) == 0) {
 				return ne;
 			}

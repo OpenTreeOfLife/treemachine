@@ -1,23 +1,14 @@
 package opentree;
 
-//import java.util.Arrays;
-//import java.util.Collections;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 
 import java.util.Iterator;
 
-import gnu.trove.iterator.TLongIterator;
 import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.set.*;
-import gnu.trove.set.hash.TLongHashSet;
-
 import opentree.RelTypes;
 
-import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -275,7 +266,7 @@ public class LicaUtil {
 
 	protected static void checkNodeId(Node n) {
 		// eventually need bitset that accepts long ids
-		if ((long) Integer.MAX_VALUE < n.getId()) {
+		if (Integer.MAX_VALUE < n.getId()) {
 			throw new java.lang.ArrayIndexOutOfBoundsException("the node id " + n.getId() + " exceeds the maximum integer value");
 		}	
 	}
@@ -360,7 +351,7 @@ public class LicaUtil {
 					
 //					checkNodeId(curNode);
 					
-					if ((long) Integer.MAX_VALUE < curIds.get(i)) {
+					if (Integer.MAX_VALUE < curIds.get(i)) {
 						throw new java.lang.ArrayIndexOutOfBoundsException("the node id " + curIds.get(i) + " exceeds the maximum integer value");
 					}
 					refIdBits.set((int) curIds.get(i));

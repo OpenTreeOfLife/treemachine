@@ -1,26 +1,13 @@
 package opentree.plugins;
 
-import java.util.ArrayList;
-import opentree.GraphExporter;
-
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.server.plugins.Description;
-import org.neo4j.server.plugins.Parameter;
-import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
-import org.neo4j.server.plugins.Source;
 
 /**
  * This class appears to be a relict of a code-transfer from taxomachine, and if this is true then it should probably be removed.
  * 
  * ADDENDUM: I have commented out the entire class since it was causing compilation errors. If necessary, it can be reinstated
- * and the errors can be fixed.
+ * and the errors can be fixed. Otherwise it should be removed. - ceh 2013 07 17
  * 
- * @author cody
- *
  */
 @Deprecated
 public class GetJsons extends ServerPlugin {

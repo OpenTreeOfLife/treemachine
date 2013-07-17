@@ -160,7 +160,7 @@ public class GraphExporter extends GraphBase {
 					if (parcount.containsKey(rel.getEndNode().getId()) == false) {
 						parcount.put(rel.getEndNode().getId(), 0);
 					}
-					Integer tint = (Integer) parcount.get(rel.getEndNode().getId()) + 1;
+					Integer tint = parcount.get(rel.getEndNode().getId()) + 1;
 					parcount.put(rel.getEndNode().getId(), tint);
 					relcount += 1;
 					slist.add((String) rel.getProperty("source"));
@@ -184,7 +184,7 @@ public class GraphExporter extends GraphBase {
 					if (chcount.containsKey(rel.getStartNode().getId()) == false) {
 						chcount.put(rel.getStartNode().getId(), 0);
 					}
-					Integer tint = (Integer) chcount.get(rel.getStartNode().getId()) + 1;
+					Integer tint = chcount.get(rel.getStartNode().getId()) + 1;
 					chcount.put(rel.getStartNode().getId(), tint);
 					relcount += 1;
 				}
@@ -210,7 +210,7 @@ public class GraphExporter extends GraphBase {
 			HashSet<String> sources = new HashSet<String>();
 			long[] mrcas = (long[]) tnode.getProperty("mrca");
 			for (int i = 0; i < mrcas.length; i++) {
-				sources.addAll(sourcelists.get((Long) mrcas[i]));
+				sources.addAll(sourcelists.get(mrcas[i]));
 			}
 			double supp = (double) sourcelists.get(tnode.getId()).size() / (double) sources.size();
 			// give tips no support so they don't give weird looking
@@ -359,7 +359,7 @@ public class GraphExporter extends GraphBase {
 						outFile.write(((String) trel.getEndNode().getProperty("name")).replace(",", "_"));
 					outFile.write("," + trel.getProperty("source") + ",");
 					if (trel.hasProperty("branch_length"))
-						outFile.write((String) String.valueOf(trel.getProperty("branch_length")));
+						outFile.write(String.valueOf(trel.getProperty("branch_length")));
 					outFile.write("\n");
 				}
 			}

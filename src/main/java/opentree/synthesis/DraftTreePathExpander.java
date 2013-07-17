@@ -11,6 +11,12 @@ import org.neo4j.graphdb.PathExpander;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.BranchState;
 
+/**
+ * Used to traverse the draft tree. Not sure what is meant by the request for a <STATE> parameter for PathExpander interface.
+ * If this becomes clear then we should probably provide it.
+ * @author cody
+ *
+ */
 public class DraftTreePathExpander implements PathExpander {
 	
 	Direction direction;

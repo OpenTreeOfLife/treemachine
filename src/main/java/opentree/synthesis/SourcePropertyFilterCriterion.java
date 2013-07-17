@@ -1,7 +1,5 @@
 package opentree.synthesis;
 
-import java.util.HashSet;
-
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.Index;
@@ -34,6 +32,7 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 		metadataNodeIndex = sourceMetaNodes;
 	}
 	
+	@Override
 	public boolean test(Relationship r) {
 		//TODO: there can be multiple given multiple LICA mappings 
 //		Node m1 = metadataNodeIndex.get("source", r.getProperty("source")).getSingle();
@@ -81,6 +80,7 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 		}
 	}
 	
+	@Override
 	public String getDescription() {
 		return "source property " + property.propertyName + " " + c.name() + " " + t.getValue();
 	}

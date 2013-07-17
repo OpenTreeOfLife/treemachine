@@ -15,10 +15,7 @@ import opentree.exceptions.TreeIngestException;
 import jade.MessageLogger;
 
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.server.plugins.Description;
-import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
@@ -65,7 +62,7 @@ public class PhylografterUpdater extends ServerPlugin{
 							doubname = true;
 							break;
 						}
-						if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid"))==true){
+						if (ottols.contains(j.getExternalNode(m).getObject("ot:ottolid"))==true){
 							doubname = true;
 							break;
 						}else{

@@ -25,7 +25,6 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 //import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
@@ -1294,7 +1293,7 @@ public class MainRunner {
 								doubname = true;
 								break;
 							}
-							if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid")) == true){
+							if (ottols.contains(j.getExternalNode(m).getObject("ot:ottolid")) == true){
 								doubname = true;
 								break;
 							} else {
@@ -1540,7 +1539,7 @@ public class MainRunner {
 		        			doubname = true;
 		        			break;
 		        		}
-		        		if (ottols.contains((Long)j.getExternalNode(m).getObject("ot:ottolid")) == true){
+		        		if (ottols.contains(j.getExternalNode(m).getObject("ot:ottolid")) == true){
 		        			doubname = true;
 		        			break;
 		        		} else {

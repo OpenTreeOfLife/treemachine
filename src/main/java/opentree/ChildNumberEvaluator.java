@@ -21,6 +21,7 @@ public class ChildNumberEvaluator implements Evaluator{
 	public void setStartNode(Node n){
 		startNode = n;
 	}
+	@Override
 	public Evaluation evaluate(Path arg0) {
 		boolean tthresh = false;
 		int count = 0;

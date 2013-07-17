@@ -3,29 +3,21 @@ package opentree.plugins;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
-
 import jade.tree.JadeTree;
-import jade.MessageLogger;
 import jade.JSONMessageLogger;
 
 import opentree.GraphBase;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
-import opentree.GraphExporter;
 import opentree.MainRunner;
 import opentree.RelTypes;
 import opentree.exceptions.OttolIdNotFoundException;
@@ -36,8 +28,6 @@ import opentree.exceptions.TreeNotFoundException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
@@ -100,7 +90,7 @@ public class GoLS extends ServerPlugin {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		HashMap<String,String> draftTreeInfo = new HashMap<String,String>();
 		try {
-			draftTreeInfo.put("draftTreeName",GraphExplorer.DRAFTTREENAME);
+			draftTreeInfo.put("draftTreeName",GraphBase.DRAFTTREENAME);
 			draftTreeInfo.put("lifeNodeID", String.valueOf(ge.findTaxNodeByName("life").getId()));
 		} finally {
 			ge.shutdownDB();

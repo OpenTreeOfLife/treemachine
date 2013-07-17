@@ -41,7 +41,8 @@ public class StoredEntityNotFoundException extends Exception {
         return "\'" + this.getNames() + "\'";
     }
     
-    public String toString(){
+    @Override
+	public String toString(){
         return this.singularEntity + " \"" + this.getNames() + "\" is not recognized.";
     }
 

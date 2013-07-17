@@ -2,12 +2,8 @@ package opentree;
 
 import java.util.BitSet;
 import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.set.hash.TLongHashSet;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 
@@ -50,6 +46,7 @@ public class LicaBipartEvaluatorBS implements Evaluator{
 		return visited;
 	}
 	
+	@Override
 	public Evaluation evaluate(Path arg0) {
 		//System.out.println(arg0);
 		Node tn = arg0.endNode();
@@ -93,7 +90,7 @@ public class LicaBipartEvaluatorBS implements Evaluator{
 						inIdBS2.andNot(tm);//any missing ones we want to add
 						for (int i=0;i<inIdBS2.length();i++){
 							if (inIdBS2.get(i) == true){
-								ttm.add((long)i);
+								ttm.add(i);
 								tmt = true;
 							}
 						}
@@ -106,7 +103,7 @@ public class LicaBipartEvaluatorBS implements Evaluator{
 						outIdBS2.andNot(to);//any missing ones we want to add
 						for (int i=0;i<outIdBS2.length();i++){
 							if (outIdBS2.get(i) == true){
-								tto.add((long)i);
+								tto.add(i);
 								tmt = true;
 							}
 						}

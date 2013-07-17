@@ -8,11 +8,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import org.neo4j.graphdb.Node;
 
-import opentree.JSONExporter;
 import opentree.synthesis.SourceProperty;
 
 public class ArgusonRepresentationConverter extends MappingRepresentation {
@@ -202,9 +199,9 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 			final Node n) {
 		
 		HashMap<String, Object> nodeInfoMap = new HashMap<String, Object>();
-		nodeInfoMap.put("nodeid", (Long) n.getId());
+		nodeInfoMap.put("nodeid", n.getId());
 		if (n.hasProperty("name")) {
-			nodeInfoMap.put("name", (String) n.getProperty("name"));
+			nodeInfoMap.put("name", n.getProperty("name"));
 		}
 		
 		return GeneralizedMappingRepresentation.getMapRepresentation(nodeInfoMap);

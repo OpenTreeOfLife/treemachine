@@ -1,11 +1,5 @@
 package jade;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintStream;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -24,6 +18,7 @@ public class JSONMessageLogger extends MessageLogger {
 	}
 
 	// no-op for streaming to std out. close objects for JSON
+	@Override
 	public void close() {
 		while (this.currNestingLevel > -1) {
 			for (int i = 0; i < this.currNestingLevel + 1; ++i) {
@@ -36,10 +31,12 @@ public class JSONMessageLogger extends MessageLogger {
 	}
 
 	// prepend prefix (or no-op in JSON)
+	@Override
 	protected void _write_prefix() {
 	}
 
 	// indent with spaces (or nest if JSON)
+	@Override
 	protected void _indent(int indentLevel) {
 		if (indentLevel == this.currNestingLevel) {
 			for (int i = 0; i < this.currNestingLevel + 1; ++i) {
@@ -80,35 +77,44 @@ public class JSONMessageLogger extends MessageLogger {
 		return '"' + StringUtils.join(s.split("\""), "\\\"") + '"';
 	}
 
+	@Override
 	protected void _message(String label) {
 		this.outStream.println("\"label\":" + escapeStr(label) + '}');
 	}
 
+	@Override
 	protected void _messageStr(String label, String s, String s2) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + escapeStr(s2) + "}");
 	}
+	@Override
 	protected void _messageLong(String label, String s, Long i) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + "}");
 	}
 
+	@Override
 	protected void _messageInt(String label, String s, int i) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + "}");
 	}
 
+	@Override
 	protected void _messageStrStr(String label, String s, String s2, String s3, String s4) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + escapeStr(s2) + ", \"" + s3 + "\": " + escapeStr(s4) + "}");
 	}
+	@Override
 	protected void _messageLongStr(String label, String s, Long i, String s3, String s4) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + "}");
 	}
 
+	@Override
 	protected void _messageIntStr(String label, String s, int i, String s3, String s4) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + "}");
 	}
 
+	@Override
 	protected void _messageLongStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + ", \"" + s5 + "\": " + escapeStr(s6) + "}");
 	}
+	@Override
 	protected void _messageLongStrStrStr(String label, String s, Long i, String s3, String s4, String s5, String s6, String s7, String s8) {
 		this.outStream.println("\"label\": " + escapeStr(label) + ", \"" + s + "\": " + i + ", \"" + s3 + "\": " + escapeStr(s4) + ", \"" + s5 + "\": " + escapeStr(s6) + ", \"" + s7 + "\": " + escapeStr(s8) + "}");
 	}

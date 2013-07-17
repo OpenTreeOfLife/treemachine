@@ -9,13 +9,10 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-//
-import java.util.List;
 import java.util.LinkedList;
 
 // Core neo4j components for a test db
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.test.ImpermanentGraphDatabase;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
 // neo4 packages needed by this test

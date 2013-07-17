@@ -3,7 +3,6 @@ package opentree.synthesis;
 import gnu.trove.list.array.TLongArrayList;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -109,6 +108,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 		return bestRels;
 	}
 	
+	@Override
 	public String getDescription() {
 		return "prefer relationships with higher ranking, and guarantee a fully acyclic result";
 	}

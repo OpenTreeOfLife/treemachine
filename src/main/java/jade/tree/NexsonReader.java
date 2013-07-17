@@ -229,7 +229,7 @@ public class NexsonReader {
 							} else if (value instanceof Long) {
 								; // what is this about?
 							} else if (value instanceof Integer) {
-								value = new Long((long)(((Integer)value).intValue()));
+								value = new Long((((Integer)value).intValue()));
 							} else if (value == null) {
 								msgLogger.indentMessageStr(1, "Warning: dealing with null ot:ottolid here.", "nexsonid", id);
 							} else {

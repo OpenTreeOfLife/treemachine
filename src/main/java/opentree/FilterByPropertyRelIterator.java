@@ -162,11 +162,13 @@ public class FilterByPropertyRelIterator implements Iterator<Relationship> {
         return this.lastDepth;
     }
 
-    public boolean hasNext() {
+    @Override
+	public boolean hasNext() {
         return (this.nextToReturn != null); 
     }
 
-    public Relationship next() {
+    @Override
+	public Relationship next() {
         Relationship r = this.nextToReturn;
         if (r == null) {
             throw new NoSuchElementException();
@@ -176,7 +178,8 @@ public class FilterByPropertyRelIterator implements Iterator<Relationship> {
         return r;
     }
 
-    public void remove() {
+    @Override
+	public void remove() {
         throw new UnsupportedOperationException();
     }
 

@@ -34,6 +34,7 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 		this.metadataNodeIndex = sourceMetaNodes;
 	}
 	
+	@Override
 	public String getDescription() {
 		return "by source property " + property.propertyName + " in " + order.name() + " order";
 	}

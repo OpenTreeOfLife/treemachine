@@ -1,7 +1,6 @@
 package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.TreeReader;
@@ -18,7 +17,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Stack;
 
 import opentree.exceptions.OttolIdNotFoundException;
@@ -26,7 +24,6 @@ import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.synthesis.FilterComparisonType;
-import opentree.synthesis.RankResolutionMethod;
 import opentree.synthesis.RankResolutionMethodInferredPath;
 import opentree.synthesis.RankingOrder;
 import opentree.synthesis.RelationshipConflictResolver;
@@ -399,7 +396,7 @@ public class GraphExplorer extends GraphBase {
                 if (conflicts_count.containsKey(rel.getEndNode()) == false) {
                     conflicts_count.put(rel.getEndNode(), 0);
                 }
-                Integer tint = (Integer) conflicts_count.get(rel.getEndNode()) + 1;
+                Integer tint = conflicts_count.get(rel.getEndNode()) + 1;
                 conflicts_count.put(rel.getEndNode(), tint);
                 child_parents_map.get(friendnode).add(rel.getEndNode());
                 count += 1;
@@ -426,11 +423,11 @@ public class GraphExplorer extends GraphBase {
             } else {
                 long[] mrcas = (long[]) friendnode.getProperty("mrca");
                 for (int i = 0; i < mrcas.length; i++) {
-                    if (id_to_name.containsKey((Long) mrcas[i]) == false) {
+                    if (id_to_name.containsKey(mrcas[i]) == false) {
                         id_to_name.put((Long) mrcas[i], (String) graphDb.getNodeById(mrcas[i]).getProperty("name"));
                     }
-                    System.out.print(id_to_name.get((Long) mrcas[i]) + " ");
-                    mrname += id_to_name.get((Long) mrcas[i]) + " ";
+                    System.out.print(id_to_name.get(mrcas[i]) + " ");
+                    mrname += id_to_name.get(mrcas[i]) + " ";
                 }
                 System.out.print(friendnode + " \n");
             }
@@ -443,10 +440,10 @@ public class GraphExplorer extends GraphBase {
                 System.out.print("\t\t");
                 long[] mrcas = (long[]) tnode.getProperty("mrca");
                 for (int i = 0; i < mrcas.length; i++) {
-                    if (id_to_name.containsKey((Long) mrcas[i]) == false) {
+                    if (id_to_name.containsKey(mrcas[i]) == false) {
                         id_to_name.put((Long) mrcas[i], (String) graphDb.getNodeById(mrcas[i]).getProperty("name"));
                     }
-                    System.out.print(id_to_name.get((Long) mrcas[i]) + " ");
+                    System.out.print(id_to_name.get(mrcas[i]) + " ");
                 }
                 System.out.print("\n");
             }
@@ -537,7 +534,7 @@ public class GraphExplorer extends GraphBase {
                 ArrayList<Long> tset = new ArrayList<Long>();
                 for (int k = 0; k < mrcas.length; k++) {
                     ndidssearch.add(mrcas[k]);
-                    tset.add((Long) mrcas[k]);
+                    tset.add(mrcas[k]);
                 }
                 hashnodeidssearch.put(nds.get(j), tset);
                 ndids.add(hitnode.getId());
@@ -668,7 +665,7 @@ public class GraphExplorer extends GraphBase {
                 if (friendnode.hasProperty("name"))
                     pnode.setName((String) friendnode.getProperty("name"));
                 else
-                    pnode.setName(String.valueOf((long) friendnode.getId()));
+                    pnode.setName(String.valueOf(friendnode.getId()));
                 pnode.setName(pnode.getName() + "_" + String.valueOf(node_score.get(friendnode)));
             }
             long[] mrcas = (long[]) friendnode.getProperty("mrca");
@@ -691,7 +688,7 @@ public class GraphExplorer extends GraphBase {
                             boolean br = false;
                             long[] mrcas2 = (long[]) tnode.getProperty("mrca");
                             for (int i = 0; i < mrcas2.length; i++) {
-                                if (curmrcas.contains((Long) mrcas2[i])) {
+                                if (curmrcas.contains(mrcas2[i])) {
                                     br = true;
                                     break;
                                 }
@@ -722,7 +719,7 @@ public class GraphExplorer extends GraphBase {
                             tnode1.setName((String) bnode.getProperty("name"));
                         }
                         else {
-                            tnode1.setName(String.valueOf((long) bnode.getId()));
+                            tnode1.setName(String.valueOf(bnode.getId()));
                             tnode1.setName(tnode1.getName() + "_" + String.valueOf(node_score.get(bnode)));
                         }
                     }
@@ -758,13 +755,13 @@ public class GraphExplorer extends GraphBase {
     	// build the list of ids, have to use generic objects
         ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
-        	sourceIdPriorityList.add((Object) sourceId);
+        	sourceIdPriorityList.add(sourceId);
         }
         
         // build the list of ids, have to use generic objects
         ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
-        	justSourcePriorityList.add((Object) sourceId.split("_")[0]);
+        	justSourcePriorityList.add(sourceId.split("_")[0]);
         }
         
         // define the synthesis protocol
@@ -1766,7 +1763,7 @@ public class GraphExplorer extends GraphBase {
             	if (sourceList.contains((String)n.getProperty("ot:studyId")+"\t"+(String)n.getProperty("ot:studyPublicationReference")) == false)
             		sourceList.add((String)n.getProperty("ot:studyId")+"\t"+(String)n.getProperty("ot:studyPublicationReference"));
             }else{
-            	if (sourceList.contains((String)n.getProperty("source")) == false)
+            	if (sourceList.contains(n.getProperty("source")) == false)
             		sourceList.add((String) n.getProperty("source"));
             }
         }
@@ -2053,7 +2050,7 @@ public class GraphExplorer extends GraphBase {
             boolean matches = false;
             if (treeID == null || treeID.length() == 0) {
                 return true;
-            } else if (rel.hasProperty("name") && treeID.equals((String)rel.getProperty("name"))) {
+            } else if (rel.hasProperty("name") && treeID.equals(rel.getProperty("name"))) {
                 return true;
             }
         }
@@ -2069,7 +2066,7 @@ public class GraphExplorer extends GraphBase {
             boolean matches = false;
             if (treeID == null || treeID.length() == 0) {
                 matches = true;
-            } else if (rel.hasProperty("name") && treeID.equals((String)rel.getProperty("name"))) {
+            } else if (rel.hasProperty("name") && treeID.equals(rel.getProperty("name"))) {
                 matches = true;
             }
             if (matches) {
@@ -2108,19 +2105,19 @@ public class GraphExplorer extends GraphBase {
         final long nid = nd.getId();
         jNd.assocObject("nodeid", nid);
         if (nd.hasProperty("uniqname")) {
-            jNd.assocObject("uniqname", (String) nd.getProperty("uniqname"));
+            jNd.assocObject("uniqname", nd.getProperty("uniqname"));
         }
         if (nd.hasProperty("tax_source")) {
-            jNd.assocObject("taxSource", (String) nd.getProperty("tax_source"));
+            jNd.assocObject("taxSource", nd.getProperty("tax_source"));
         }
         if (nd.hasProperty("tax_sourceid")) {
-            jNd.assocObject("taxSourceId", (String) nd.getProperty("tax_sourceid"));
+            jNd.assocObject("taxSourceId", nd.getProperty("tax_sourceid"));
         }
         if (nd.hasProperty("tax_rank")) {
-            jNd.assocObject("taxRank", (String) nd.getProperty("tax_rank"));
+            jNd.assocObject("taxRank", nd.getProperty("tax_rank"));
         }
         if (nd.hasProperty("tax_uid")) {
-            jNd.assocObject("ottolId", (String) nd.getProperty("tax_uid"));
+            jNd.assocObject("ottolId", nd.getProperty("tax_uid"));
         }
     }
     /**

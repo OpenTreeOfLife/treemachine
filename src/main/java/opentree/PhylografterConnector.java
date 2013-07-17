@@ -7,10 +7,8 @@ import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -19,8 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-
 import javax.ws.rs.core.MediaType;
 
 import opentree.RelTypes;
@@ -30,14 +26,9 @@ import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
-
-import scala.actors.threadpool.Arrays;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
@@ -46,7 +37,6 @@ import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 // for gzipped nexsons
 import java.util.zip.*;
-import java.io.FileInputStream;
 
 public class PhylografterConnector {
 

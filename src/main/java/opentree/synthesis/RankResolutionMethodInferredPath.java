@@ -132,6 +132,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 		return bestRels;
 	}
 	
+	@Override
 	public String getDescription() {
 		return "prefer relationships with higher ranking, and guarantee a fully acyclic result";
 	}

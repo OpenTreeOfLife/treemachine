@@ -4,10 +4,7 @@ import gnu.trove.list.array.TLongArrayList;
 
 import java.util.BitSet;
 
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 
@@ -25,6 +22,7 @@ public class LicaEvaluatorBS implements Evaluator{
 			fullIdBS.set((int)fids.getQuick(i));
 		}
 	}
+	@Override
 	public Evaluation evaluate(Path arg0) {
 		TLongArrayList Ldbnodei = new TLongArrayList((long[]) arg0.endNode().getProperty("mrca"));
 		BitSet tBS = new BitSet((int) Ldbnodei.max());

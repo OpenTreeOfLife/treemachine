@@ -14,15 +14,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.StringTokenizer;
-
 import java.util.Map;
 
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 //import opentree.RelTypes;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -30,10 +27,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 //import org.apache.log4j.Logger;
@@ -188,7 +183,7 @@ public class GraphImporter extends GraphBase {
 			ArrayList<Long> tset = new ArrayList<Long>(); 
 			for (int k = 0; k < mrcas.length; k++) {
 				ndidssearch.add(mrcas[k]);
-				tset.add((Long)mrcas[k]);
+				tset.add(mrcas[k]);
 			}
 			hashnodeidssearch.put(nds.get(j), tset);
 			ndids.add(hitnode.getId());
@@ -299,7 +294,7 @@ public class GraphImporter extends GraphBase {
 			ArrayList<Long> tset = new ArrayList<Long>(); 
 			for (int k = 0; k < mrcas.length; k++) {
 				ndidssearch.add(mrcas[k]);
-				tset.add((Long)mrcas[k]);
+				tset.add(mrcas[k]);
 			}
 
 			hashnodeidssearch.put(nds.get(j), tset);
@@ -635,8 +630,8 @@ public class GraphImporter extends GraphBase {
 					Node childGoLNode = allChildGoLNodes[m];
 					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREECHILDOF);
 					sourceRelIndex.add(rel, "source", sourcename);
-					rel.setProperty("exclusive_mrca", (long [])inode.getObject("exclusive_mrca"));
-					rel.setProperty("root_exclusive_mrca", (long []) inode.getObject("root_exclusive_mrca"));
+					rel.setProperty("exclusive_mrca", inode.getObject("exclusive_mrca"));
+					rel.setProperty("root_exclusive_mrca", inode.getObject("root_exclusive_mrca"));
 					long [] licaids = new long[allGoLNodes.length];
 					for (int n = 0; n < licaids.length; n++) {
 						licaids[n] = allGoLNodes[n].getId();

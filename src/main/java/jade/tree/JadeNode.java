@@ -1,7 +1,6 @@
 package jade.tree;
 
 import java.util.*;
-import opentree.JSONExporter;
 
 public class JadeNode {
     
@@ -112,7 +111,7 @@ public class JadeNode {
 	
 	public void setBL(double b) {this.BL = b;}
 	
-	public boolean hasChild(JadeNode test) {return this.children.contains((JadeNode)test);}
+	public boolean hasChild(JadeNode test) {return this.children.contains(test);}
 	
 	public boolean addChild(JadeNode c) {
 		if (this.hasChild(c) == false) {

@@ -1,12 +1,8 @@
 package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.set.hash.TLongHashSet;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 
@@ -39,6 +35,7 @@ public class LicaBipartEvaluator implements Evaluator{
 		return visited;
 	}
 	
+	@Override
 	public Evaluation evaluate(Path arg0) {
 		//System.out.println(arg0);
 		Node tn = arg0.endNode();

@@ -2,12 +2,8 @@ package opentree;
 
 import java.util.HashSet;
 
-import opentree.RelTypes;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 
@@ -22,6 +18,7 @@ public class TaxaListEvaluator implements Evaluator{
 		taxalist = tl;
 	}
 	
+	@Override
 	public Evaluation evaluate(Path arg0) {
 		boolean match = false;
 		Node tnode = arg0.endNode();

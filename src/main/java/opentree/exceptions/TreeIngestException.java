@@ -20,7 +20,8 @@ public class TreeIngestException extends Exception {
     }
 
     
-    public String toString(){
+    @Override
+	public String toString(){
         return "TreeIngestException: " + this.msg;
     }
 

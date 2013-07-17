@@ -19,6 +19,7 @@ public class SpeciesEvaluator implements Evaluator{
 	public void setStartNode(Node n){
 		startNode = n;
 	}
+	@Override
 	public Evaluation evaluate(Path arg0) {
 		//TODO: take in whether this is a taxonomy tree or not
 		boolean parent_startnode = false;

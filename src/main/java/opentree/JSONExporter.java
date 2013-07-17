@@ -1,7 +1,4 @@
 package opentree;
-import java.util.*;
-
-import org.neo4j.graphdb.Node;
 
 /** 
  * DEPRECATED. Use the ArgusRepresentationConverter class instead.
