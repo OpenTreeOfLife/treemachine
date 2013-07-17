@@ -176,11 +176,18 @@ public class JadeNode {
 	
 	/**
 	 * Get JSON output for argus viewer. DEPRECATED. Use the ArgusRepresentationConverter instead.
+	 * 
+	 * Addendum: I have commented out this method and replaced calls to it with methods from ArgusRepresentationConverter.class.
+	 * If this is to remain unused then it should be removed. - ceh 2013 07 17
+	 * 
 	 * @param bl should be true to include branch lengths
 	 * @return string with JSON representation of the subtree rooted at this node
 	 */
 	@Deprecated
-	public String getJSON(boolean bl) {
+	public String getJSON(boolean bl) { 
+		
+		throw new java.lang.UnsupportedOperationException("The getJSON method is deprecated. Use ArgusRepresentationConverter instead.");
+		/*
 		StringBuffer ret = new StringBuffer("{");
 		if (this.name != null) {
 			ret.append(" \"name\": \"" + this.getName() + "\"");
@@ -252,7 +259,7 @@ public class JadeNode {
 			JSONExporter.writeSourceToMetaMapForArgus(ret, n2m);
 		}
 		ret.append("}");
-		return ret.toString();
+		return ret.toString(); */
 	}
 
 	/**

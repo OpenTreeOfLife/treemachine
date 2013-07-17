@@ -6,6 +6,9 @@ import org.neo4j.graphdb.Node;
 /** 
  * DEPRECATED. Use the ArgusRepresentationConverter class instead.
  * 
+ * Addendum: I have commented out the contents of this class and replaced calls to it with methods from
+ * ArgusRepresentationConverter.class. If this class is to remain unused then it should be removed. - ceh 2013 07 17
+ * 
  * This class has only static methods. The main reasons for its existence are to:
  * 	1. Consolidate serialization code so that it can be easily re-used. This will make
  *		it easier to refactor exporting of JSON (e.g. into GraphExplorer rather than via a JadeTree)
@@ -13,7 +16,7 @@ import org.neo4j.graphdb.Node;
  *		file but not neo4j Nodes, Relationships...),
  */
 @Deprecated
-public class JSONExporter {
+public class JSONExporter { /*
 	public static void writeStringArrayAsJSON(StringBuffer buffer, String [] sArr) {
 		buffer.append("[");
 		boolean first = true;
@@ -159,5 +162,5 @@ public class JSONExporter {
 			}
 		}
 		buffer.append("}");
-	}
+	} */
 }
