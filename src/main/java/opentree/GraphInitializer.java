@@ -105,8 +105,8 @@ public class GraphInitializer extends GraphBase{
 		if (synonymfile.length() > 0) {
 			synFileExists = true;
 		}
-		//preprocess the synonym file
-		//key is the id from the taxonomy, the array has the synonym and the type of synonym
+		// preprocess the synonym file
+		// key is the id from the taxonomy, the array has the synonym and the type of synonym
 		if (synFileExists) {
 			synonymhash = new HashMap<String,ArrayList<ArrayList<String>>>();
 			try {
@@ -154,7 +154,13 @@ public class GraphInitializer extends GraphBase{
 				tx.finish();
 			}*/
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			while ((str = br.readLine())!=null) {
+			while ((str = br.readLine()) != null) {
+				if (count == 0) {
+					if (str.startsWith("uid")) { // file contains a header. skip line
+						System.out.println("Skipping taxonomy header line: " + str);
+						continue;
+					}
+				}
 				count += 1;
 				templines.add(str);
 				if (count % transaction_iter == 0) {
