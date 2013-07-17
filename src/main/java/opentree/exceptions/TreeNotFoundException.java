@@ -1,13 +1,12 @@
 package opentree.exceptions;
-import java.lang.Exception;
-import java.util.ArrayList;
 import java.util.List;
-import java.io.PrintStream;
 
 
 public class TreeNotFoundException extends StoredEntityNotFoundException {
 
-    // single name constructor
+	private static final long serialVersionUID = 1L;
+
+	// single name constructor
     public TreeNotFoundException(String nameOfTree) {
         super(nameOfTree, "tree", "trees");
     }

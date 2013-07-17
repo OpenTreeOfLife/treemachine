@@ -2,10 +2,14 @@ package opentree.exceptions;
 
 import java.util.List;
 
-
+/**
+ *  Thrown when we cannot find an indicated ottolid.
+ */
 public class OttolIdNotFoundException extends StoredEntityNotFoundException {
 
-    // single id constructor
+	private static final long serialVersionUID = 1L;
+
+	// single id constructor
     public OttolIdNotFoundException(String ottolId) {
         super(ottolId, "ottolid", "ottolids");
     }

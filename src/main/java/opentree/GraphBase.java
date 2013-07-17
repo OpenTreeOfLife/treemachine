@@ -52,7 +52,7 @@ public abstract class GraphBase {
 	// this is clunky, might be a better way to do this
 	public static final String DRAFTTREENAME = (String) Constants.DRAFT_TREE_NAME.value;
 	
-	// all constructor methods require some kind of reference to a graph database that will be used
+	// all constructor methods require a graph database to be provided
 	public GraphBase(String graphName) {
 		graphDb = new GraphDatabaseAgent(graphName);
 		initNodeIndexes();

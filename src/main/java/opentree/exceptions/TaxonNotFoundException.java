@@ -1,13 +1,14 @@
 package opentree.exceptions;
-import java.lang.Exception;
-import java.util.ArrayList;
 import java.util.List;
-import java.io.PrintStream;
 
-
+/**
+ * Thrown when we cannot find an indicated taxon.
+ */
 public class TaxonNotFoundException extends StoredEntityNotFoundException {
 
-    // single name constructor
+	private static final long serialVersionUID = 1L;
+
+	// single name constructor
     public TaxonNotFoundException(String nameOfTaxon) {
         super(nameOfTaxon, "taxon", "taxa");
     }

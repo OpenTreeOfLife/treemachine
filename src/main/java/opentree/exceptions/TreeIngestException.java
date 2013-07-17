@@ -8,6 +8,7 @@ import java.io.PrintStream;
  */
 public class TreeIngestException extends Exception {
  
+	private static final long serialVersionUID = 1L;
 	private String msg;
  
     public TreeIngestException(String error_msg){

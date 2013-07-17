@@ -10,7 +10,9 @@ import org.apache.commons.lang3.StringUtils;
  * Calling functions 
  */
 public class StoredEntityNotFoundException extends Exception {
-    private String singularEntity;
+
+	private static final long serialVersionUID = 1L;
+	private String singularEntity;
     private String pluralEntity;
     private ArrayList<String> missingNames;
 
