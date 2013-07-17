@@ -24,7 +24,7 @@ public class DraftTreePathExpander implements PathExpander {
 		ArrayList<Relationship> rels = new ArrayList<Relationship>();
 		for (Relationship rel : arg0.endNode().getRelationships(direction, RelTypes.SYNTHCHILDOF)) {
 			if (rel.hasProperty("name")) {
-				if (String.valueOf(rel.getProperty("name")).equals(Constants.DRAFTTREENAME.value)) {
+				if (String.valueOf(rel.getProperty("name")).equals(Constants.DRAFT_TREE_NAME.value)) {
 					rels.add(rel);
 				}
 			}

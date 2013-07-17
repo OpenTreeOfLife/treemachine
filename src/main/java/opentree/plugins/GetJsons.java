@@ -13,6 +13,16 @@ import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 
+/**
+ * This class appears to be a relict of a code-transfer from taxomachine, and if this is true then it should probably be removed.
+ * 
+ * ADDENDUM: I have commented out the entire class since it was causing compilation errors. If necessary, it can be reinstated
+ * and the errors can be fixed.
+ * 
+ * @author cody
+ *
+ */
+@Deprecated
 public class GetJsons extends ServerPlugin {
 	
 	/* This enum exists in its own class file
@@ -21,15 +31,16 @@ public class GetJsons extends ServerPlugin {
 		TAXCHILDOF, //standard rel for tax db, from node to parent
 		STREECHILDOF, //standard rel for input tree, from node to parent  
 		ISCALLED // is called ,from node in graph of life to node in tax graph 
-	} */
+	} *
 	
 	/**
-	 * Is this service used?
+	 * Is this service used? For now I have marked it as deprecated.
 	 * @param source
 	 * @return
-	 */
+	 *
 	@Description( "Return a JSON with alternative parents presented" )
 	@PluginTarget( Node.class )
+	@Deprecated
 	public String getConflictJson(@Source Node source) {
 		Node firstNode = source;
 		GraphExporter ge = new GraphExporter();
@@ -43,7 +54,7 @@ public class GetJsons extends ServerPlugin {
 	 * @param altrels
 	 * @param nubrel
 	 * @return
-	 */
+	 *
 	@Description ("Return a JSON with alternative TAXONOMIC relationships noted and returned")
 	@PluginTarget (Node.class)
 	@Deprecated
@@ -86,7 +97,7 @@ public class GetJsons extends ServerPlugin {
 	 * @param graphDb
 	 * @param nodename
 	 * @return
-	 */
+	 *
 	@Deprecated
 	@Description ("Return a JSON with the node id given a name")
 	@PluginTarget (GraphDatabaseService.class)
@@ -108,5 +119,5 @@ public class GetJsons extends ServerPlugin {
 			retst = "[]";
 		}
 		return retst;
-	}
+	} */
 }

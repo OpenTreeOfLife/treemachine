@@ -43,7 +43,7 @@ public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
 
 	/// @returns 0 for success, 1 for poorly formed command
-	public int taxonomyLoadParser(String [] args) {
+	public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
 		if (args.length < 3) {
 			System.out.println("arguments should be: filename synfilename graphdbfolder");
 			return 1;
@@ -252,7 +252,7 @@ public class MainRunner {
 	 * @throws TaxonNotFoundException
 	 */
 	public int graphArgusJSON(String [] args)
-			throws TreeNotFoundException {
+			throws TreeNotFoundException, TaxonNotFoundException {
 		GraphExplorer ge = null;
 		if (args[0].compareTo("argusjson") == 0) {
 			if (args.length != 6) {
@@ -381,7 +381,7 @@ public class MainRunner {
 			gi.setSinkLostChildren(sinkLostChildren);
 			
 	        // find the start node
-	        Node firstNode = gi.findGraphNodeByName(name);
+	        Node firstNode = gi.findTaxNodeByName(name);
 	        Long nodeId = null;
 	        if (firstNode == null) {
 	            System.out.println("name not found");
@@ -444,7 +444,7 @@ public class MainRunner {
 			gi = new GraphExplorer(graphname);
 			gi.setSinkLostChildren(sinkLostChildren);
 			
-			Node firstNode = gi.findGraphNodeByName(name);
+			Node firstNode = gi.findTaxNodeByName(name);
 	        if (firstNode == null) {
 	            System.out.println("name not found");
 	            return -1;
@@ -597,7 +597,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int graphListPruner(String [] args) {
+	public int graphListPruner(String [] args) throws TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be: name preferredsource graphdbfolder");
 			return 1;
@@ -621,7 +621,7 @@ public class MainRunner {
 		try {
 			HashSet<Long> fnodes = new HashSet<Long>();
 			for (String tn: speciesnames) {
-				Node t = gi.findGraphNodeByName(tn);
+				Node t = gi.findTaxNodeByName(tn);
 				if (t != null) {
 					fnodes.add(t.getId());
 				} else {
@@ -821,7 +821,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int csvDumpParser(String [] args) {
+	public int csvDumpParser(String [] args) throws TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be name outfile graphdbfolder");
 			return 1;
@@ -988,7 +988,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException {
+	public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException, MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
 		boolean test = false; 
 		if (args.length != 4 && args.length != 5) {
 			System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder (test)");
@@ -1027,7 +1027,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException {
+	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException, MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
 		boolean test = false;
 		if (args.length != 3) {
 			System.out.println("arguments should be rootOTToLid graphdbfolder");
@@ -1058,7 +1058,7 @@ public class MainRunner {
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftTree(String [] args) throws OttolIdNotFoundException {
+	public int extractDraftTree(String [] args) throws OttolIdNotFoundException, MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be rootOTToLid outFileName graphdbfolder");
 			return 1;
@@ -1096,7 +1096,7 @@ public class MainRunner {
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftSubTreeForOttIDs(String [] args) throws OttolIdNotFoundException {
+	public int extractDraftSubTreeForOttIDs(String [] args) throws OttolIdNotFoundException, MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
 			return 1;

@@ -26,12 +26,15 @@ import org.neo4j.kernel.Traversal;
 /*
  * There is nothing particularly special about this file. It is just currently a test
  * class for experimenting with some synthesis queries. I fully expect that it will be
- * deleted at some point.
+ * deleted at some point. (from sas?)
+ * 
+ * response: I have commented out the class in light of the above comment, as it was causing
+ * compile errors due to some refactoring. It can be reinstated if it is still being used. - ceh 2013 07 17
  */
 
-public class SynthesisUtils extends GraphBase{
+public class SynthesisUtils /* extends GraphBase */  {
 	
-	public SynthesisUtils(){}
+/*	public SynthesisUtils(){}
 	
 	public void get_edges_for_taxaset(GraphDatabaseService graphDb, HashSet<String> TaxaList) throws TaxonNotFoundException{
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
@@ -74,6 +77,6 @@ public class SynthesisUtils extends GraphBase{
 			nodes.add(hitnode);
 		}
 		
-	}
+	} */
 
 }

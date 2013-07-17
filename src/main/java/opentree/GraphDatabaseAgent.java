@@ -152,7 +152,7 @@ public class GraphDatabaseAgent {
         if (embedded) {
             embeddedGraphDb.shutdown();
 
-    	// Apparently the use of an anonymous thread instance is required when the server is running as a service (at least on localhost).
+    	// Apparently the use of an anonymous instance of Thread.class is required when the graph is running as a service (at least on localhost).
     	// If we just call the shutdown() method directly from within a plugin (via GraphExplorer.shutdownDB() for instance), the server fails.
         } else {
     	    Runtime.getRuntime().addShutdownHook(new Thread() {

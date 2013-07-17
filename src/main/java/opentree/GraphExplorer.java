@@ -62,13 +62,13 @@ public class GraphExplorer extends GraphBase {
     private HashSet<Long> knownIdsInTree;
 
     public GraphExplorer(String graphname) {
-        graphDb = new GraphDatabaseAgent(graphname);
+    	super(graphname);
         setDefaultParameters();
         finishInitialization();
     }
 
     public GraphExplorer(GraphDatabaseService gdb) {
-        graphDb = new GraphDatabaseAgent(gdb);
+    	super(gdb);
         setDefaultParameters();
         finishInitialization();
     }
@@ -78,12 +78,6 @@ public class GraphExplorer extends GraphBase {
         cne.setChildThreshold(100);
         se = new SpeciesEvaluator();
         tle = new TaxaListEvaluator();
-        graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
-        sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
-        sourceRelIndex = graphDb.getRelIndex("sourceRels");
-        sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-    	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes"); // tax_uid is the key, this points to the tax node
-    	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns"); //tax_uid is the key, this points to the synonymn node
     }
 
     private void setDefaultParameters() {
@@ -318,8 +312,8 @@ public class GraphExplorer extends GraphBase {
      * @param name
      *            the name of the root node (should be the name in the graphNodeIndex)
      */
-    public void constructJSONGraph(String name) {
-        Node firstNode = findGraphNodeByName(name);
+    public void constructJSONGraph(String name) throws TaxonNotFoundException {
+        Node firstNode = findTaxNodeByName(name);
         if (firstNode == null) {
             System.out.println("name not found");
             return;
@@ -1204,7 +1198,7 @@ public class GraphExplorer extends GraphBase {
      * @param sourcesArray
      */
     @Deprecated
-    public JadeTree sourceSynthesis(Node startNode, LinkedList<String> sourcesArray, boolean useTaxonomy) {
+    public JadeTree sourceSynthesis(Node startNode, LinkedList<String> sourcesArray, boolean useTaxonomy) throws TaxonNotFoundException {
         
     	// initial (empty) parameters for recursion
     	JadeNode parentJadeNode = null;
@@ -1675,7 +1669,7 @@ public class GraphExplorer extends GraphBase {
      *        the name of the inclusive taxon to add missing descendants of (will include all descendant taxa)
      * @return JadeNode tree (the root of a JadeNode tree) with missing children added
      */
-    private void addMissingChildrenToJadeTreeRelaxed(JadeTree tree, String taxRootName) {
+    private void addMissingChildrenToJadeTreeRelaxed(JadeTree tree, String taxRootName) throws TaxonNotFoundException {
     	
     	// TODO: make a version of this that adds these to the graph instead of a JadeTree
 
@@ -1683,7 +1677,7 @@ public class GraphExplorer extends GraphBase {
         LinkedList<Node> taxNodes = new LinkedList<Node>();
 
         // walk taxonomy and save nodes in postorder
-        Node taxRoot = findGraphNodeByName(taxRootName);
+        Node taxRoot = findTaxNodeByName(taxRootName);
         TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.TAXCHILDOF, Direction.INCOMING);
         for (Node taxChild : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRoot).nodes()) {
             taxNodes.add(0, taxChild);
@@ -1840,10 +1834,10 @@ public class GraphExplorer extends GraphBase {
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
 
-    //@TODO we should store an index of synthesis "name" -> root node. Here we'll just rely on the fact that
+    // TODO: we should store an index of synthesis "name" -> root node. Here we'll just rely on the fact that
     //      the root of the synthesis tree will be "life"...
-    private Node getSynthesisRoot(String treeID) {
-        return findGraphNodeByName("life");
+    private Node getSynthesisRoot(String treeID) throws TaxonNotFoundException {
+        return getLifeNode();
     }
     /**
      * @returns a JadeTree representation of the synthesis tree with the specified treeID
@@ -1851,7 +1845,7 @@ public class GraphExplorer extends GraphBase {
      *      if non-negative this can be used to prune off subtrees that exceed the threshold
      *      distance from the root. If maxDepth is negative, no threshold is applied
      */
-    public JadeTree reconstructSyntheticTree(String treeID, int maxDepth) throws TreeNotFoundException {
+    public JadeTree reconstructSyntheticTree(String treeID, int maxDepth) throws TreeNotFoundException, TaxonNotFoundException {
         Node rootnode = getSynthesisRoot(treeID);
         return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
     }
@@ -2319,8 +2313,8 @@ public class GraphExplorer extends GraphBase {
 	 * @param sources
 	 */
 	@Deprecated
-	public void constructNewickTaxaListTieBreaker(HashSet<Long> innodes, String[] sources) {
-	    Node lifeNode = findGraphNodeByName("life");
+	public void constructNewickTaxaListTieBreaker(HashSet<Long> innodes, String[] sources) throws TaxonNotFoundException {
+	    Node lifeNode = findTaxNodeByName("life");
 	    if (lifeNode == null) {
 	        System.out.println("name not found");
 	        return;

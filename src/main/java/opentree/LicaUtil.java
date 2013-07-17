@@ -270,7 +270,7 @@ public class LicaUtil {
 	 * @return
 	 */
 	public static Node getDraftTreeLICA(Iterable<Node> inNodes) {
-		return getSynthTreeLICA(inNodes, (String) Constants.DRAFTTREENAME.value);
+		return getSynthTreeLICA(inNodes, (String) Constants.DRAFT_TREE_NAME.value);
 	}
 
 	protected static void checkNodeId(Node n) {

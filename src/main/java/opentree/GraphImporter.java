@@ -26,6 +26,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
@@ -44,8 +45,7 @@ import scala.actors.threadpool.Arrays;
  * and addition of trees to the tree graph.
  */
 
-
-public class GraphImporter extends GraphBase{
+public class GraphImporter extends GraphBase {
 	//static Logger _LOG = Logger.getLogger(GraphImporter.class);
 
 	private int transaction_iter = 100000;
@@ -59,24 +59,31 @@ public class GraphImporter extends GraphBase{
 	private TLongArrayList root_ndids;
 	boolean assumecomplete = false;//this will trigger getalllica if true (getbipart otherwise)
 	
-	public GraphImporter(String graphname) {
-		graphDb = new GraphDatabaseAgent(graphname);
-		this.initializeIndices();
+	public GraphImporter(String graphName) {
+		super(graphName);
+//		graphDb = new GraphDatabaseAgent(graphname);
+//		this.initializeIndices();
 	}
 
-	public GraphImporter(EmbeddedGraphDatabase graphn) {
-		graphDb = new GraphDatabaseAgent(graphn);
-		this.initializeIndices();
+	public GraphImporter(EmbeddedGraphDatabase eg) {
+		super(eg);
+//		graphDb = new GraphDatabaseAgent(graphn);
+//		this.initializeIndices();
 	}
 	
-	public GraphImporter(GraphDatabaseAgent graphn) {
-		graphDb = graphn;
-		this.initializeIndices();
+	public GraphImporter(GraphDatabaseService gs) {
+		super(gs);
 	}
 	
-	/**
+	public GraphImporter(GraphDatabaseAgent gdb) {
+		super(gdb);
+//		graphDb = graphn;
+//		this.initializeIndices();
+	}
+	
+	/*
 	 * Helper function called by constructors so that we can update the list of indices in one place.
-	 */
+	 *
 	private void initializeIndices() {
 		graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
 		graphTaxUIDNodeIndex = graphDb.getNodeIndex( "graphTaxUIDNodes" ); // tax_uid is the key
@@ -85,7 +92,7 @@ public class GraphImporter extends GraphBase{
 		sourceRelIndex = graphDb.getRelIndex("sourceRels");
 		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
 		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-	}
+	} */
 
 	public boolean hasSoureTreeName(String sourcename) {
 		IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);

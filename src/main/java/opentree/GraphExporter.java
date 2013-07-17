@@ -44,22 +44,26 @@ public class GraphExporter extends GraphBase {
 	private ChildNumberEvaluator cne;
 	private TaxaListEvaluator tle;
 
+	/*
 	public GraphExporter() {
 		finishInitialization();
-	}
+	} */
 
 	public GraphExporter(String graphname) {
-		graphDb = new GraphDatabaseAgent(graphname);
+		super(graphname);
+//		graphDb = new GraphDatabaseAgent(graphname);
 		finishInitialization();
 	}
 
-	public GraphExporter(EmbeddedGraphDatabase graphn) {
-		graphDb = new GraphDatabaseAgent(graphn);
+	public GraphExporter(EmbeddedGraphDatabase embeddedGraph) {
+//		graphDb = new GraphDatabaseAgent(embeddedGraph);
+		super(embeddedGraph);
 		finishInitialization();
 	}
 
 	public GraphExporter(GraphDatabaseService gdb) {
-		graphDb = new GraphDatabaseAgent(gdb);
+		super(gdb);
+//		graphDb = new GraphDatabaseAgent(gdb);
 		finishInitialization();
 	}
 
@@ -68,11 +72,11 @@ public class GraphExporter extends GraphBase {
 		cne.setChildThreshold(100);
 		se = new SpeciesEvaluator();
 		tle = new TaxaListEvaluator();
-		if (graphDb != null) {
+/*		if (graphDb != null) {
 			graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
 			sourceRelIndex = graphDb.getRelIndex("sourceRels");
 			sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
-		}
+		} */
 	}
 
 	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) 
@@ -326,10 +330,11 @@ public class GraphExporter extends GraphBase {
 
 	/**
 	 * This will dump a csv for each of the relationships in the format nodeid,parentid,nodename,parentname,source,brlen
+	 * @throws TaxonNotFoundException 
 	 * 
 	 */
-	public void dumpCSV(String startnodes, String outfile, boolean taxonomy) {
-		Node startnode = findGraphNodeByName(startnodes);
+	public void dumpCSV(String startnodes, String outfile, boolean taxonomy) throws TaxonNotFoundException {
+		Node startnode = findTaxNodeByName(startnodes);
 		if (startnode == null) {
 			System.out.println("name not found");
 			return;

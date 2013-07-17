@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.StringTokenizer;
 
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
@@ -36,23 +37,30 @@ public class GraphInitializer extends GraphBase{
 	boolean assumecomplete = false;//this will trigger getalllica if true (getbipart otherwise)
 	
 	public GraphInitializer(String graphname) {
-		graphDb = new GraphDatabaseAgent(graphname);
-		this.initializeIndices();
+		super(graphname);
+//		graphDb = new GraphDatabaseAgent(graphname);
+//		this.initializeIndices();
 	}
 
-	public GraphInitializer(EmbeddedGraphDatabase graphn) {
-		graphDb = new GraphDatabaseAgent(graphn);
-		this.initializeIndices();
+	public GraphInitializer(EmbeddedGraphDatabase eg) {
+		super(eg);
+//		graphDb = new GraphDatabaseAgent(graphn);
+//		this.initializeIndices();
 	}
 	
-	public GraphInitializer(GraphDatabaseAgent graphn) {
-		graphDb = graphn;
-		this.initializeIndices();
+	public GraphInitializer(GraphDatabaseAgent gdb) {
+		super(gdb);
+//		graphDb = graphn;
+//		this.initializeIndices();
 	}
 	
-	/**
+	public GraphInitializer(GraphDatabaseService gs) {
+		super(gs);
+	}
+	
+	/*
 	 * Helper function called by constructors so that we can update the list of indices in one place.
-	 */
+	 *
 	private void initializeIndices() {
 		graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
 		graphTaxUIDNodeIndex = graphDb.getNodeIndex( "graphTaxUIDNodes" ); // tax_uid is the key
@@ -61,7 +69,7 @@ public class GraphInitializer extends GraphBase{
 		sourceRelIndex = graphDb.getRelIndex("sourceRels");
 		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
 		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-	}
+	} */
 	
 	/**
 	 * Reads a taxonomy file with rows formatted as:
@@ -85,8 +93,9 @@ public class GraphInitializer extends GraphBase{
 	 * 
 	 * @param filename file path to the taxonomy file
 	 * @param synonymfile file that has the synonyms as dumped by ottol dump
+	 * @throws TaxonNotFoundException 
 	 */
-	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile) {
+	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile) throws TaxonNotFoundException {
 		String str = "";
 		int count = 0;
 		HashMap<String,ArrayList<ArrayList<String>>> synonymhash = null;
@@ -331,11 +340,13 @@ public class GraphInitializer extends GraphBase{
 	 * for a more general implementation, could just go through and work on the preferred nodes
 	 * 
 	 * STREE
+	 * @throws TaxonNotFoundException 
 	 */
-	private void initMrcaAndStreeRelsTax() {
+	private void initMrcaAndStreeRelsTax() throws TaxonNotFoundException {
 		tx = graphDb.beginTx();
 		//start from the node called root
-		Node startnode = (graphNodeIndex.get("name", "life")).next();
+//		Node startnode = (graphNodeIndex.get("name", "life")).next();
+		Node startnode = getLifeNode();
 		try {
 			//root should be the taxonomy startnode
 //			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
