@@ -3,7 +3,7 @@ package opentree;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 
-import opentree.exceptions.MultipleHitsWhenOneExpectedException;
+import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.TaxonNotFoundException;
 
 import org.neo4j.graphdb.Direction;
@@ -120,15 +120,15 @@ public abstract class GraphBase {
 	 * Wrapper function for taxUID searches on the graphTaxUIDNodes index. Throws TaxonNotFoundException if the search fails,
 	 * or a MultipleHitsWhenOneExpectedException if the uid matches multiple taxa.
 	 * @return taxNode
-	 * @throws MultipleHitsWhenOneExpectedException, TaxonNotFoundException
+	 * @throws MultipleHitsException, TaxonNotFoundException
 	 */
-    public Node findGraphTaxNodeByUID(final String taxUID) throws MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
+    public Node findGraphTaxNodeByUID(final String taxUID) throws MultipleHitsException, TaxonNotFoundException {
         IndexHits<Node> hits = GraphBase.graphTaxUIDNodeIndex.get("tax_uid", taxUID);
         Node firstNode = null;
         try {
         	firstNode = hits.getSingle();
         } catch (NoSuchElementException ex) {
-        	throw new MultipleHitsWhenOneExpectedException(taxUID);
+        	throw new MultipleHitsException(taxUID);
         } finally {
         	hits.close();
         }
@@ -142,15 +142,15 @@ public abstract class GraphBase {
 	 * Wrapper function for simple name searches on the graphNamedNodes index. Throws TaxonNotFoundException if the search fails,
 	 * or a MultipleHitsWhenOneExpectedException if the name matches multiple taxa.
 	 * @return taxNode
-	 * @throws MultipleHitsWhenOneExpectedException, TaxonNotFoundException
+	 * @throws MultipleHitsException, TaxonNotFoundException
 	 */
-    public Node findTaxNodeByName(final String name) throws TaxonNotFoundException {
+    public Node findTaxNodeByName(final String name) throws TaxonNotFoundException, MultipleHitsException {
         IndexHits<Node> hits = GraphBase.graphNodeIndex.get("name", name);
         Node firstNode = null;
         try {
         	firstNode = hits.getSingle();
         } catch (NoSuchElementException ex) {
-        	throw new MultipleHitsWhenOneExpectedException(name);
+        	throw new MultipleHitsException(name);
         } finally {
         	hits.close();
         }

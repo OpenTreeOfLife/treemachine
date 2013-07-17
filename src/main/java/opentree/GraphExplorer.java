@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Stack;
 
+import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttolIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeNotFoundException;
@@ -311,8 +312,9 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param name
      *            the name of the root node (should be the name in the graphNodeIndex)
+     * @throws MultipleHitsException 
      */
-    public void constructJSONGraph(String name) throws TaxonNotFoundException {
+    public void constructJSONGraph(String name) throws TaxonNotFoundException, MultipleHitsException {
         Node firstNode = findTaxNodeByName(name);
         if (firstNode == null) {
             System.out.println("name not found");
@@ -463,8 +465,9 @@ public class GraphExplorer extends GraphBase {
      * @param infile
      * @param outfile
      * @throws TaxonNotFoundException
+     * @throws MultipleHitsException 
      */
-    public void getMapTreeSupport(String infile, String outfile) throws TaxonNotFoundException {
+    public void getMapTreeSupport(String infile, String outfile) throws TaxonNotFoundException, MultipleHitsException {
         PathFinder<Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
         Node focalnode = findTaxNodeByName("life");
         String ts = "";
@@ -1159,9 +1162,10 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param taxName
      * @param sourcesArray
+     * @throws MultipleHitsException 
      */
     @Deprecated
-    public JadeTree sourceSynthesis(Node startNode, LinkedList<String> sourcesArray, boolean useTaxonomy) throws TaxonNotFoundException {
+    public JadeTree sourceSynthesis(Node startNode, LinkedList<String> sourcesArray, boolean useTaxonomy) throws TaxonNotFoundException, MultipleHitsException {
         
     	// initial (empty) parameters for recursion
     	JadeNode parentJadeNode = null;
@@ -1631,8 +1635,9 @@ public class GraphExplorer extends GraphBase {
      * @param taxRootName
      *        the name of the inclusive taxon to add missing descendants of (will include all descendant taxa)
      * @return JadeNode tree (the root of a JadeNode tree) with missing children added
+     * @throws MultipleHitsException 
      */
-    private void addMissingChildrenToJadeTreeRelaxed(JadeTree tree, String taxRootName) throws TaxonNotFoundException {
+    private void addMissingChildrenToJadeTreeRelaxed(JadeTree tree, String taxRootName) throws TaxonNotFoundException, MultipleHitsException {
     	
     	// TODO: make a version of this that adds these to the graph instead of a JadeTree
 
@@ -2274,9 +2279,10 @@ public class GraphExplorer extends GraphBase {
 	 * 
 	 * @param innodes
 	 * @param sources
+	 * @throws MultipleHitsException 
 	 */
 	@Deprecated
-	public void constructNewickTaxaListTieBreaker(HashSet<Long> innodes, String[] sources) throws TaxonNotFoundException {
+	public void constructNewickTaxaListTieBreaker(HashSet<Long> innodes, String[] sources) throws TaxonNotFoundException, MultipleHitsException {
 	    Node lifeNode = findTaxNodeByName("life");
 	    if (lifeNode == null) {
 	        System.out.println("name not found");

@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
+import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 //import opentree.RelTypes;
@@ -230,7 +231,7 @@ public class GraphImporter extends GraphBase {
 	public void addSetTreeToGraph(String focalgroup,
 								  String sourcename,
 								  boolean taxacompletelyoverlap,
-								  MessageLogger msgLogger) throws TaxonNotFoundException, TreeIngestException {
+								  MessageLogger msgLogger) throws TaxonNotFoundException, TreeIngestException, MultipleHitsException {
 		boolean test = false;
 		Node focalnode = findTaxNodeByName(focalgroup);
 		updatedNodes = new ArrayList<Node>();
@@ -697,6 +698,7 @@ public class GraphImporter extends GraphBase {
 	
 	/**
 	 * TODO: update this for the new method
+	 * @throws MultipleHitsException 
 	 */
 	public void deleteAllTreesAndReprocess() {
 		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");

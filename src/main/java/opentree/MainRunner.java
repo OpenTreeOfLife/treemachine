@@ -32,7 +32,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
 import opentree.exceptions.DataFormatException;
-import opentree.exceptions.MultipleHitsWhenOneExpectedException;
+import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttolIdNotFoundException;
 import opentree.exceptions.StoredEntityNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
@@ -69,7 +69,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int graphReloadTrees(String [] args) {
+	public int graphReloadTrees(String [] args) throws MultipleHitsException {
 		GraphImporter gi = null;
 		if (args.length != 2) {
 			System.out.println("arguments should be: graphdbfolder");
@@ -128,7 +128,7 @@ public class MainRunner {
 	 * @returns 0 for success, 1 for error, 2 for error with a request that the generic help be displayed
 	 */
 	public int graphImporterParser(String [] args) 
-					throws TaxonNotFoundException, DataFormatException, TreeIngestException {
+					throws TaxonNotFoundException, DataFormatException, TreeIngestException, MultipleHitsException {
 		boolean readingNewick = false;
 		boolean readingNexson = false;
 		if (args[0].compareTo("addnewick") == 0) {
@@ -322,9 +322,10 @@ public class MainRunner {
 	 * @param args
 	 * @return 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
 	 * @throws TaxonNotFoundException
+	 * @throws MultipleHitsException 
 	 */
 	public int graphExplorerParser(String [] args)
-			throws TaxonNotFoundException {
+			throws TaxonNotFoundException, MultipleHitsException {
 		GraphExplorer gi = null;
 		GraphExporter ge = null;
 		if (args[0].compareTo("jsgol") == 0) {
@@ -479,9 +480,9 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int justTreeAnalysis(String [] args)
-				throws DataFormatException, TaxonNotFoundException, TreeIngestException{
-		if (args.length != 4) {
-			System.out.println("arguments should be: filename (taxacompletelyoverlap)T|F graphdbfolder");
+				throws DataFormatException, TaxonNotFoundException, TreeIngestException, MultipleHitsException{
+		if (args.length != 5) {
+			System.out.println("arguments should be: filename (taxacompletelyoverlap)T|F rootnodename graphdbfolder");
 			return 1;
 		}
 		String filename = args[1];
@@ -490,7 +491,8 @@ public class MainRunner {
 		if (soverlap.toLowerCase().equals("f")){
 			overlap = false;
 		}
-		String graphname = args[3];
+		String rootnodename = args[3];
+		String graphname = args[4];
 		int treeCounter = 0;
 		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
 		// read the tree from a file
@@ -580,7 +582,7 @@ public class MainRunner {
 
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph("life", sourcename, overlap, messageLogger);
+			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
 			gi.deleteTreeBySource(sourcename);
 		}			
 		// adding them again after all the nodes are there
@@ -593,14 +595,14 @@ public class MainRunner {
 
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph("life", sourcename, overlap, messageLogger);
+			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
 		}
 		gi.shutdownDB();
 		return 0;
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int graphListPruner(String [] args) throws TaxonNotFoundException {
+	public int graphListPruner(String [] args) throws TaxonNotFoundException, MultipleHitsException {
 		if (args.length != 4) {
 			System.out.println("arguments should be: name preferredsource graphdbfolder");
 			return 1;
@@ -760,7 +762,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int graphExplorerMapSupport(String [] args) throws TaxonNotFoundException {
+	public int graphExplorerMapSupport(String [] args) throws TaxonNotFoundException, MultipleHitsException {
 		if (args.length != 4) {
 			System.out.println("arguments should be infile outfile graphdbfolder");
 			return 1;
@@ -991,7 +993,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException, MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
+	public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		boolean test = false; 
 		if (args.length != 4 && args.length != 5) {
 			System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder (test)");
@@ -1031,7 +1033,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException, MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
+	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		boolean test = false;
 		if (args.length != 3) {
 			System.out.println("arguments should be rootOTToLid graphdbfolder");
@@ -1062,7 +1064,7 @@ public class MainRunner {
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftTree(String [] args) throws OttolIdNotFoundException, MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
+	public int extractDraftTree(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be rootOTToLid outFileName graphdbfolder");
 			return 1;
@@ -1100,7 +1102,7 @@ public class MainRunner {
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftSubTreeForOttIDs(String [] args) throws OttolIdNotFoundException, MultipleHitsWhenOneExpectedException, TaxonNotFoundException {
+	public int extractDraftSubTreeForOttIDs(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
 			return 1;
@@ -1709,7 +1711,7 @@ public class MainRunner {
 
 		System.out.println("---graph exploration---");
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
-		System.out.println("\tjusttrees <filename> <taxacompletelyoverlap[T|F]> <graphdbfolder> (loads the trees into a graph)");
+		System.out.println("\tjusttrees <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder> (loads the trees into a graph)");
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tsourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
@@ -1744,8 +1746,9 @@ public class MainRunner {
 	
 	/**
 	 * @param args
+	 * @throws MultipleHitsException 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws MultipleHitsException {
 		//PropertyConfigurator.configure(System.getProperties());
 		//System.err.println("treemachine version alpha.alpha.prealpha");
 		if (args.length < 1) {

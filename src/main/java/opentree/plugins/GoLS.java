@@ -20,6 +20,7 @@ import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.MainRunner;
 import opentree.RelTypes;
+import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttolIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
@@ -86,7 +87,7 @@ public class GoLS extends ServerPlugin {
 	@Description("Returns identifying information for the current draft tree")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeID (
-			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException {
+			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		HashMap<String,String> draftTreeInfo = new HashMap<String,String>();
 		try {
@@ -103,7 +104,7 @@ public class GoLS extends ServerPlugin {
 	public String synthesizeSubtree(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
-			@Parameter(name = "rootOttolID", optional = true) String rootOttolID) throws OttolIdNotFoundException, TaxonNotFoundException {
+			@Parameter(name = "rootOttolID", optional = true) String rootOttolID) throws OttolIdNotFoundException, TaxonNotFoundException, MultipleHitsException {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		
@@ -118,7 +119,7 @@ public class GoLS extends ServerPlugin {
         // find the start node
         Node firstNode = ge.findGraphTaxNodeByUID(rootOttolID);
         if (firstNode == null) {
-            throw new opentree.exceptions.OttolIdNotFoundException(rootOttolID);
+            throw new OttolIdNotFoundException(rootOttolID);
         }
 		
 		if (ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,false)) {
@@ -253,7 +254,7 @@ public class GoLS extends ServerPlugin {
 	public Representation getDraftTreeForOttolID( // TODO: should be renamed getDraftTreeNewickForOttolID, will need to be updated in argus
 			@Source GraphDatabaseService graphDb,
 			@Description( "The ottol id of the taxon to be used as the root for the tree.")
-			@Parameter(name = "ottolID", optional = false) String ottolID) throws TaxonNotFoundException { //,
+			@Parameter(name = "ottolID", optional = false) String ottolID) throws TaxonNotFoundException, MultipleHitsException { //,
 //			@Description( "DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
 //			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) { // TODO: Remove this parameter if it is unused
 		
@@ -291,7 +292,7 @@ public class GoLS extends ServerPlugin {
 	public Long getNodeIDForOttolID(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The ottol id of the taxon to be used as the root for the tree.")
-			@Parameter(name = "ottolID", optional = false) String ottolID) throws TaxonNotFoundException {
+			@Parameter(name = "ottolID", optional = false) String ottolID) throws TaxonNotFoundException, MultipleHitsException {
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		return ge.findGraphTaxNodeByUID(ottolID).getId();
