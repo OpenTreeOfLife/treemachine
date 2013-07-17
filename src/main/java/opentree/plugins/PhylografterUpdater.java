@@ -10,8 +10,8 @@ import java.util.List;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphImporter;
 import opentree.PhylografterConnector;
-import opentree.TaxonNotFoundException;
-import opentree.TreeIngestException;
+import opentree.exceptions.TaxonNotFoundException;
+import opentree.exceptions.TreeIngestException;
 import jade.MessageLogger;
 
 import org.neo4j.graphdb.GraphDatabaseService;

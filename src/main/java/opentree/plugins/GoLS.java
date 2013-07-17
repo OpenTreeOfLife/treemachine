@@ -27,11 +27,11 @@ import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.GraphExporter;
 import opentree.MainRunner;
-import opentree.OttolIdNotFoundException;
 import opentree.RelTypes;
-import opentree.TaxonNotFoundException;
-import opentree.TreeIngestException;
-import opentree.TreeNotFoundException;
+import opentree.exceptions.OttolIdNotFoundException;
+import opentree.exceptions.TaxonNotFoundException;
+import opentree.exceptions.TreeIngestException;
+import opentree.exceptions.TreeNotFoundException;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -128,7 +128,7 @@ public class GoLS extends ServerPlugin {
         // find the start node
         Node firstNode = ge.findGraphTaxNodeByUID(rootOttolID);
         if (firstNode == null) {
-            throw new opentree.OttolIdNotFoundException(rootOttolID);
+            throw new opentree.exceptions.OttolIdNotFoundException(rootOttolID);
         }
 		
 		if (ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,false)) {

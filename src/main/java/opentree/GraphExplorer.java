@@ -21,6 +21,9 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 
+import opentree.exceptions.OttolIdNotFoundException;
+import opentree.exceptions.TaxonNotFoundException;
+import opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.synthesis.FilterComparisonType;
 import opentree.synthesis.RankResolutionMethod;

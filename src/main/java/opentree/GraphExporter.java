@@ -24,6 +24,8 @@ import java.util.Stack;
 
 //import opentree.RelTypes;
 
+import opentree.exceptions.TaxonNotFoundException;
+
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphalgo.PathFinder;

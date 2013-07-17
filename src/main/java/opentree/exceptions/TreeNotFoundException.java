@@ -1,9 +1,9 @@
-package opentree;
+package opentree.exceptions;
 import java.lang.Exception;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.PrintStream;
-import opentree.StoredEntityNotFoundException;
+
 
 public class TreeNotFoundException extends StoredEntityNotFoundException {
 

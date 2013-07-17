@@ -7,9 +7,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
-import opentree.TaxonNotFoundException;
 import opentree.GraphBase;
 import opentree.RelTypes;
+import opentree.exceptions.TaxonNotFoundException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;

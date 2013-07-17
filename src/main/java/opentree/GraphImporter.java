@@ -18,8 +18,8 @@ import java.util.StringTokenizer;
 
 import java.util.Map;
 
-import opentree.TaxonNotFoundException;
-import opentree.TreeIngestException;
+import opentree.exceptions.TaxonNotFoundException;
+import opentree.exceptions.TreeIngestException;
 //import opentree.RelTypes;
 
 import org.apache.commons.lang3.ArrayUtils;

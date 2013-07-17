@@ -1,13 +1,12 @@
-package opentree.synthesis;
+package opentree.exceptions;
 
+/** appears never to be used. commenting it out for now, should be removed it if it remains unused. */
+@Deprecated
 public class NullComparisonException extends ClassCastException {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
-    String error;
+    /*    String error;
 
     public NullComparisonException() {
         super();
@@ -21,4 +20,5 @@ public class NullComparisonException extends ClassCastException {
 
     public String getError() {
         return error;
-    }}
+    } */
+}

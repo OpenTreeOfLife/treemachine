@@ -3,6 +3,9 @@ package opentree;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 
+import opentree.exceptions.MultipleHitsWhenOneExpectedException;
+import opentree.exceptions.TaxonNotFoundException;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;

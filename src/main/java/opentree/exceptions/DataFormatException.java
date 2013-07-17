@@ -1,4 +1,4 @@
-package opentree;
+package opentree.exceptions;
 import java.lang.Exception;
 import java.util.ArrayList;
 import java.util.List;

@@ -32,9 +32,13 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
-import opentree.TaxonNotFoundException;
-import opentree.TreeNotFoundException;
-import opentree.StoredEntityNotFoundException;
+import opentree.exceptions.DataFormatException;
+import opentree.exceptions.MultipleHitsWhenOneExpectedException;
+import opentree.exceptions.OttolIdNotFoundException;
+import opentree.exceptions.StoredEntityNotFoundException;
+import opentree.exceptions.TaxonNotFoundException;
+import opentree.exceptions.TreeIngestException;
+import opentree.exceptions.TreeNotFoundException;
 import opentree.testing.TreeUtils;
 import jade.MessageLogger;
 import jade.JSONMessageLogger;
@@ -1013,7 +1017,7 @@ public class MainRunner {
 			// find the start node
 			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
 			if (firstNode == null) {
-				throw new opentree.OttolIdNotFoundException(ottolId);
+				throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
 			}
 
 			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
@@ -1047,7 +1051,7 @@ public class MainRunner {
 			// find the start node
 			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
 			if (firstNode == null) {
-				throw new opentree.OttolIdNotFoundException(ottolId);
+				throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
 			}
 			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
 		} catch (OttolIdNotFoundException oex) {
@@ -1072,7 +1076,7 @@ public class MainRunner {
 		// find the start node
         Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
         if (firstNode == null) {
-            throw new opentree.OttolIdNotFoundException(ottolId);
+            throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
         }
 		
 		JadeTree synthTree = null;

@@ -1,6 +1,7 @@
-package opentree;
+package opentree.exceptions;
 
 import java.util.List;
+
 
 public class OttolIdNotFoundException extends StoredEntityNotFoundException {
 
