@@ -792,9 +792,10 @@ public class GraphExplorer extends GraphBase {
             }
         }
         System.out.println("filtered: "+filteredsources);
-
-        rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
-        draftSynthesisMethod.setFilter(rf);
+        if(filteredsources.size() > 0){
+        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
+        	draftSynthesisMethod.setFilter(rf);
+        }
         //if(true == true)
         //	return true;
         // set ranking criteria
@@ -1013,11 +1014,9 @@ public class GraphExplorer extends GraphBase {
     
     /**
      * Used to add missing external nodes to the draft tree stored in the graph.
-     * THIS SHOULD BE DELETED ONCE THE TEMP ONE HAS BEEN VALIDATED
      * @param startNode
      * @param taxRootNode
      */
-    @Deprecated
     private void addMissingChildrenToDraftTree(Node startNode, Node taxRootNode) {
     	
     	// will hold nodes from the taxonomy to check
@@ -1103,36 +1102,6 @@ public class GraphExplorer extends GraphBase {
             // update the JadeTree, otherwise we won't always find newly added taxa when we look for mrcas
 //            tree.processRoot();
         }
-    }
-    
-    /**
-     * 
-     * @param startNode
-     */
-    private void addMissingChildrenToDraftTreeTEMP(Node startNode) {
-    	
-        TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.SYNTHCHILDOF, Direction.INCOMING);
-        
-        String[] supportingSources = new String[1];
-        supportingSources[0] = "taxonomy";
-        
-        //put all the tips in the array
-        int count = 0;
-        for (Node tnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
-        	if(tnode.hasRelationship(RelTypes.SYNTHCHILDOF, Direction.INCOMING)==false)
-        		continue;
-        	TLongHashSet childsets = new TLongHashSet();
-        	for(Relationship rel : tnode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)){
-        		childsets.addAll((long[])rel.getStartNode().getProperty("mrca"));
-        	}
-        	TLongHashSet curset = new TLongHashSet((long[])tnode.getProperty("mrca"));
-    		curset.removeAll(childsets);
-        	if (curset.size() > 0){
-        		System.out.println(tnode+ " would add "+curset.size());
-        	}
-            count += curset.size();
-        }
-        System.out.println(count);
     }
     
     
