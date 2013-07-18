@@ -121,9 +121,9 @@ public class GraphDatabaseAgent {
     }
     
     /**
-     * These assume that the graph properties will be stored at the 
-     * root node as properties. The root node should always be node 0
-     * @param propname
+     * These assume that the graph properties will be stored at the actual graph db root node as properties. The root node of the
+     * graph db itself should always be node 0, although this is not necessarily of the tree alignment graph stored within the graphdb.
+     * @param propname, prop
      * @return
      */
     public void setGraphProperty(String propname, Object prop){

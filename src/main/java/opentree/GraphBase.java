@@ -6,6 +6,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import opentree.constants.GeneralConstants;
+import opentree.constants.GraphProperty;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.exceptions.MultipleHitsException;
@@ -146,7 +147,7 @@ public abstract class GraphBase {
      * @return rootnode
      */
     public Node getGraphRootNode() {
-    	return graphDb.getNodeById((Long) graphDb.getGraphProperty(NodeProperty.GRAPH_ROOT_NODE_ID.propertyName));
+    	return graphDb.getNodeById((Long) graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName));
     }
     
     /**
@@ -156,10 +157,10 @@ public abstract class GraphBase {
     	
     	System.out.println("setting root node");
     	System.out.println("name: " + rootNode.getProperty(NodeProperty.NAME.propertyName));
-    	graphDb.setGraphProperty(NodeProperty.GRAPH_ROOT_NODE_NAME.propertyName, rootNode.getProperty(NodeProperty.NAME.propertyName));
+    	graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_NAME.propertyName, rootNode.getProperty(NodeProperty.NAME.propertyName));
     	
     	System.out.println("id: " + rootNode.getId());
-    	graphDb.setGraphProperty(NodeProperty.GRAPH_ROOT_NODE_ID.propertyName, rootNode.getId());
+    	graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName, rootNode.getId());
     }
     
     /**

@@ -12,7 +12,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import opentree.constants.NodeProperty;
+import opentree.constants.RelProperty;
 import opentree.constants.RelType;
+import opentree.constants.SourceProperty;
 import opentree.exceptions.TaxonNotFoundException;
 
 import org.neo4j.graphdb.Direction;
@@ -28,7 +31,7 @@ public class GraphInitializer extends GraphBase{
 
 	//static Logger _LOG = Logger.getLogger(GraphImporter.class);
 
-	private int transaction_iter = 100000;
+	private int transactionFrequency = 100000;
 	private int cur_tran_iter = 0;
 	private JadeTree jt;
 	private String treestring; // original newick string for the jt
@@ -38,6 +41,12 @@ public class GraphInitializer extends GraphBase{
 	//THIS IS FOR PERFORMANCE
 	private TLongArrayList root_ndids;
 	boolean assumecomplete = false;//this will trigger getalllica if true (getbipart otherwise)
+	
+	// containers used during import
+	HashMap<String,ArrayList<ArrayList<String>>> synonymHash;
+	HashMap<String, Node> taxUIDToNodeMap;
+	HashMap<String, String> childNodeIDToParentNodeIDMap;
+	boolean synFileExists;
 	
 	public GraphInitializer(String graphname) {
 		super(graphname);
@@ -59,6 +68,13 @@ public class GraphInitializer extends GraphBase{
 	
 	public GraphInitializer(GraphDatabaseService gs) {
 		super(gs);
+	}
+
+	private void initContainersForTaxLoading() {
+		synonymHash = new HashMap<String,ArrayList<ArrayList<String>>>();
+		taxUIDToNodeMap = new HashMap<String, Node>();
+		childNodeIDToParentNodeIDMap = new HashMap<String, String>();
+		synFileExists = false;
 	}
 	
 	/*
@@ -99,17 +115,19 @@ public class GraphInitializer extends GraphBase{
 	 * @throws TaxonNotFoundException 
 	 */
 	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile) throws TaxonNotFoundException {
+		
+		initContainersForTaxLoading();
+		
 		String str = "";
 		int count = 0;
-		HashMap<String,ArrayList<ArrayList<String>>> synonymhash = null;
-		boolean synFileExists = false;
+
 		if (synonymfile.length() > 0) {
 			synFileExists = true;
 		}
 		// preprocess the synonym file
 		// key is the id from the taxonomy, the array has the synonym and the type of synonym
 		if (synFileExists) {
-			synonymhash = new HashMap<String,ArrayList<ArrayList<String>>>();
+			synonymHash = new HashMap<String,ArrayList<ArrayList<String>>>();
 			try {
 				BufferedReader sbr = new BufferedReader(new FileReader(synonymfile));
 				while ((str = sbr.readLine()) != null) {
@@ -122,111 +140,49 @@ public class GraphInitializer extends GraphBase{
 					String source = "OTT";//st.nextToken();
 					ArrayList<String> tar = new ArrayList<String>();
 					tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
-					if (synonymhash.get(parentuid) == null) {
+					if (synonymHash.get(parentuid) == null) {
 						ArrayList<ArrayList<String> > ttar = new ArrayList<ArrayList<String> >();
-						synonymhash.put(parentuid, ttar);
+						synonymHash.put(parentuid, ttar);
 					}
-					synonymhash.get(parentuid).add(tar);
+					synonymHash.get(parentuid).add(tar);
 				}
 				sbr.close();
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.exit(0);
 			}
-			System.out.println("synonyms: " + synonymhash.size());
+			System.out.println("synonyms: " + synonymHash.size());
 		}
 		//finished processing synonym file
 
-
-		HashMap<String, Node> dbnodes = new HashMap<String, Node>();
-		HashMap<String, String> parents = new HashMap<String, String>();
 		Transaction tx;
 		ArrayList<String> templines = new ArrayList<String>();
 		try {
-			//create the root node
-			//tx = graphDb.beginTx();
-			/*try {
-				Node node = graphDb.createNode();
-				node.setProperty("name", "root");
-				graphNodeIndex.add( node, "name", "root" );
-				dbnodes.put("0", node);
-				tx.success();
-			}finally{
-				tx.finish();
-			}*/
+			
+			// for each line in input file
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			while ((str = br.readLine()) != null) {
+				
+				// check the first line to see if it the file has a header that we should skip
 				if (count == 0) {
 					if (str.startsWith("uid")) { // file contains a header. skip line
 						System.out.println("Skipping taxonomy header line: " + str);
 						continue;
 					}
 				}
+				
+				// collect sets of lines until we reach the transaction frequency
 				count += 1;
 				templines.add(str);
-				if (count % transaction_iter == 0) {
+				
+				// process lines in sets of N = transactionFrequency
+				if (count % transactionFrequency == 0) {
 					System.out.print(count);
 					System.out.print("\n");
 					tx = graphDb.beginTx();
 					try {
 						for (int i = 0; i < templines.size(); i++) {
-							StringTokenizer st = new StringTokenizer(templines.get(i),"|");
-							String tid = st.nextToken().trim();
-							String pid = st.nextToken().trim();
-							String name = st.nextToken().trim();
-							String rank = st.nextToken().trim();
-							String srce = st.nextToken().trim();
-							//String srce_id = st.nextToken().trim();
-							//String srce_pid = st.nextToken().trim();
-							String uniqname = st.nextToken().trim();
-							
-							Node tnode = graphDb.createNode();
-							tnode.setProperty("name", name);
-							tnode.setProperty("tax_uid",tid);
-							tnode.setProperty("tax_parent_uid",pid);
-							tnode.setProperty("tax_rank",rank);
-							tnode.setProperty("tax_source",srce);
-							//tnode.setProperty("tax_sourceid",srce_id);
-							//tnode.setProperty("tax_sourcepid",srce_pid);
-							tnode.setProperty("uniqname",uniqname);
-							graphNodeIndex.add( tnode, "name", name );
-							graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-							if (pid.length() > 0) {
-								parents.put(tid, pid);
-							}else{//root node
-								System.out.println("found root node: " + tnode.getProperty("name"));
-								// set the name of the life node property in the graph
-								setGraphRootNode(tnode);
-								
-								Node mdnode = graphDb.createNode();
-								
-								mdnode.createRelationshipTo(tnode, RelType.METADATAFOR);
-								sourceMetaIndex.add(mdnode, "source", "taxonomy");
-								System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());								
-							}
-							dbnodes.put(tid, tnode);
-							// synonym processing
-							if (synFileExists) {
-								if (synonymhash.get(tid) != null) {
-									ArrayList<ArrayList<String>> syns = synonymhash.get(tid);
-									for (int j = 0; j < syns.size(); j++) {
-										String tax_uid = syns.get(j).get(0);
-										String synName = syns.get(j).get(1);
-										String synNameType = syns.get(j).get(2);
-										String sourcename = syns.get(j).get(3);
-										Node synode = graphDb.createNode();
-										synode.setProperty("name",synName);
-										synode.setProperty("tax_uid", tax_uid);
-										if (tax_uid.length() > 0) {
-											synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-										}
-										synode.setProperty("nametype",synNameType);
-										synode.setProperty("source",sourcename);
-										synode.createRelationshipTo(tnode, RelType.SYNONYMOF);
-										synNodeIndex.add(tnode, "name", synName);
-									}
-								}
-							}
+							processTaxInputLine(templines.get(i));
 						}
 						tx.success();
 					} finally {
@@ -236,90 +192,38 @@ public class GraphInitializer extends GraphBase{
 				}
 			}
 			br.close();
+
+			// we hit the end of the file, so do a final transaction to process any remaining lines
 			tx = graphDb.beginTx();
 			try {
 				for (int i = 0; i < templines.size(); i++) {
-					StringTokenizer st = new StringTokenizer(templines.get(i),"|");
-					String tid = st.nextToken().trim();
-					String pid = st.nextToken().trim();
-					String name = st.nextToken().trim();
-					String rank = st.nextToken().trim();
-					String srce = st.nextToken().trim();
-					//String srce_id = st.nextToken().trim();
-					//String srce_pid = st.nextToken().trim();
-					String uniqname = st.nextToken().trim();
-
-					Node tnode = graphDb.createNode();
-					tnode.setProperty("name", name);
-					tnode.setProperty("tax_uid",tid);
-					tnode.setProperty("tax_parent_uid",pid);
-					tnode.setProperty("tax_rank",rank);
-					tnode.setProperty("tax_source",srce);
-					//tnode.setProperty("tax_sourceid",srce_id);
-					//tnode.setProperty("tax_sourcepid",srce_pid);
-					tnode.setProperty("uniqname",uniqname);
-					graphNodeIndex.add( tnode, "name", name );
-					graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-					
-					if (pid.length() > 0) {
-						parents.put(tid, pid);
-					}else{//root node
-						
-						System.out.println("found root node: " + tnode.getProperty("name"));
-						// set the name of the life node property in the graph
-						setGraphRootNode(tnode);
-
-						Node mdnode = graphDb.createNode();
-						mdnode.createRelationshipTo(tnode, RelType.METADATAFOR);
-						mdnode.setProperty("source", "taxonomy");						
-						sourceMetaIndex.add(mdnode, "source", "taxonomy");
-						System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());
-					}
-					dbnodes.put(tid, tnode);
-					// synonym processing
-					if (synFileExists) {
-						if (synonymhash.get(tid) != null) {
-							ArrayList<ArrayList<String>> syns = synonymhash.get(tid);
-							for (int j=0; j < syns.size(); j++) {
-								String tax_uid = syns.get(j).get(0);
-								String synName = syns.get(j).get(1);
-								String synNameType = syns.get(j).get(2);
-								String sourcename = syns.get(j).get(3);
-								Node synode = graphDb.createNode();
-								synode.setProperty("name",synName);
-								synode.setProperty("tax_uid", tax_uid);
-								if (tax_uid.length()>0) {
-									synTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
-								}
-								synode.setProperty("nametype",synNameType);
-								synode.setProperty("source",sourcename);
-								synode.createRelationshipTo(tnode, RelType.SYNONYMOF);
-								synNodeIndex.add(tnode, "name", synName);
-							}
-						}
-					}
+					processTaxInputLine(templines.get(i)); // replaced repeated code with function call
 				}
 				tx.success();
 			} finally {
 				tx.finish();
 			}
 			templines.clear();
-			//add the relationships
+			
+			// add the relationships
 			ArrayList<String> temppar = new ArrayList<String>();
 			count = 0;
-			for (String key: dbnodes.keySet()) {
+			
+			// for every taxon node that was added
+			for (String key: taxUIDToNodeMap.keySet()) {
+				
+				// collect nodes until we reach the transaction frequency
 				count += 1;
 				temppar.add(key);
-				if (count % transaction_iter == 0) {
+				
+				// process nodes in sets of N = transactionFrequency
+				if (count % transactionFrequency == 0) {
 					System.out.println(count);
 					tx = graphDb.beginTx();
 					try {
 						for (int i = 0; i < temppar.size(); i++) {
 							try {
-								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelType.TAXCHILDOF);
-								rel.setProperty("childid",temppar.get(i));
-								rel.setProperty("parentid",parents.get(temppar.get(i)));
-								rel.setProperty("source","ottol");
+								addParentRelationshipForTaxUID(temppar.get(i)); // replaced repeated code with function call
 							} catch(java.lang.IllegalArgumentException io) {
 //								System.out.println(temppar.get(i));
 								continue;
@@ -332,14 +236,13 @@ public class GraphInitializer extends GraphBase{
 					temppar.clear();
 				}
 			}
+			
+			// we hit the end of the nodes list, so process all remaining nodes
 			tx = graphDb.beginTx();
 			try {
 				for (int i = 0; i < temppar.size(); i++) {
 					try {
-						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelType.TAXCHILDOF);
-						rel.setProperty("childid",temppar.get(i));
-						rel.setProperty("parentid",parents.get(temppar.get(i)));
-						rel.setProperty("source","ottol");
+						addParentRelationshipForTaxUID(temppar.get(i)); // replaced repeated code with function call
 					} catch(java.lang.IllegalArgumentException io) {
 //						System.out.println(temppar.get(i));
 						continue;
@@ -349,17 +252,99 @@ public class GraphInitializer extends GraphBase{
 			} finally {
 				tx.finish();
 			}
+			
 		} catch(IOException ioe) {}
+
+		// taxonomy structure is done. now add the MRCA and STREE_CHILDOF relationships
 		initMrcaAndStreeRelsTax();
 	}
 	
+	private void addParentRelationshipForTaxUID(String taxUID) {
+		Relationship rel = taxUIDToNodeMap.get(taxUID).createRelationshipTo(taxUIDToNodeMap.get(childNodeIDToParentNodeIDMap.get(taxUID)), RelType.TAXCHILDOF);
+		rel.setProperty(RelProperty.CHILD_TAX_UID.propertyName, taxUID);
+		rel.setProperty(RelProperty.PARENT_TAX_UID.propertyName, childNodeIDToParentNodeIDMap.get(taxUID));
+		rel.setProperty(RelProperty.SOURCE.propertyName, "ottol");
+	}
+	
 	/**
-	 * assumes the structure of the graphdb where the taxonomy is stored alongside the graph of life
+	 * Called during taxonomy loading to process each line of input from the taxonomy file
+	 * @param line
+	 */
+	private void processTaxInputLine(String line) {
+		
+		StringTokenizer st = new StringTokenizer(line,"|");
+		String tid = st.nextToken().trim();
+		String pid = st.nextToken().trim();
+		String name = st.nextToken().trim();
+		String rank = st.nextToken().trim();
+		String srce = st.nextToken().trim();
+		//String srce_id = st.nextToken().trim();
+		//String srce_pid = st.nextToken().trim();
+		String uniqname = st.nextToken().trim();
+
+		Node tnode = graphDb.createNode();
+		tnode.setProperty(NodeProperty.NAME.propertyName, name);
+		tnode.setProperty(NodeProperty.TAX_UID.propertyName, tid);
+		tnode.setProperty(NodeProperty.TAX_PARENT_UID.propertyName, pid);
+		tnode.setProperty(NodeProperty.TAX_RANK.propertyName, rank);
+		tnode.setProperty(NodeProperty.TAX_SOURCE.propertyName, srce);
+		//tnode.setProperty("tax_sourceid",srce_id);
+		//tnode.setProperty("tax_sourcepid",srce_pid);
+		tnode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uniqname);
+		graphNodeIndex.add( tnode, NodeProperty.NAME.propertyName, name );
+		graphTaxUIDNodeIndex.add(tnode, NodeProperty.NAME.propertyName, tid);
+		
+		if (pid.length() > 0) {
+			childNodeIDToParentNodeIDMap.put(tid, pid);
+
+		} else { // root node
+
+			System.out.println("found root node: " + tnode.getProperty("name"));
+			setGraphRootNode(tnode);
+			
+			// set the source metadata
+			Node mdnode = graphDb.createNode();
+			mdnode.createRelationshipTo(tnode, RelType.METADATAFOR);
+			mdnode.setProperty(SourceProperty.SOURCE.propertyName, "taxonomy");
+			sourceMetaIndex.add(mdnode, SourceProperty.SOURCE.propertyName, "taxonomy");
+			System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());								
+		}
+		
+		// remember that we added this node
+		taxUIDToNodeMap.put(tid, tnode);
+
+		// synonym processing
+		if (synFileExists) {
+			if (synonymHash.get(tid) != null) {
+				ArrayList<ArrayList<String>> syns = synonymHash.get(tid);
+				for (int j = 0; j < syns.size(); j++) {
+					String tax_uid = syns.get(j).get(0);
+					String synName = syns.get(j).get(1);
+					String synNameType = syns.get(j).get(2);
+					String sourcename = syns.get(j).get(3);
+					Node synode = graphDb.createNode();
+					synode.setProperty(NodeProperty.NAME.propertyName,synName);
+					synode.setProperty(NodeProperty.TAX_UID.propertyName, tax_uid);
+					if (tax_uid.length() > 0) {
+						synTaxUIDNodeIndex.add(tnode, NodeProperty.TAX_UID.propertyName, tid);
+					}
+					synode.setProperty(NodeProperty.NAMETYPE.propertyName, synNameType);
+					synode.setProperty(NodeProperty.SOURCE.propertyName, sourcename);
+					synode.createRelationshipTo(tnode, RelType.SYNONYMOF);
+					synNodeIndex.add(tnode, NodeProperty.NAME.propertyName, synName);
+				}
+			}
+		}		
+	}
+	
+	/**
+	 * Adds the MRCA_CHILDOF and STREE_CHILDOF relationships to an existing taxonomy.
+	 * 
+	 * Assumes the structure of the graphdb where the taxonomy is stored alongside the graph of life
 	 * and therefore the graph is initialized, in this case, with the taxonomy relationships
 	 * 
 	 * for a more general implementation, could just go through and work on the preferred nodes
 	 * 
-	 * STREE
 	 * @throws TaxonNotFoundException 
 	 */
 	private void initMrcaAndStreeRelsTax() throws TaxonNotFoundException {
@@ -378,25 +363,25 @@ public class GraphInitializer extends GraphBase{
 					Node firstchild = getAdjNodeFromFirstRelationshipBySource(friendnode, RelType.TAXCHILDOF, Direction.INCOMING, "ottol");
 					if (firstchild == null) {//leaf
 						long [] tmrcas = {friendnode.getId()};
-						friendnode.setProperty("mrca", tmrcas);
+						friendnode.setProperty(NodeProperty.MRCA.propertyName, tmrcas);
 						long [] ntmrcas = {};
-						friendnode.setProperty("nested_mrca", ntmrcas);
+						friendnode.setProperty(NodeProperty.NESTED_MRCA.propertyName, ntmrcas);
 					}
 					if (startnode != friendnode) {//not the root
 						friendnode.createRelationshipTo(taxparent, RelType.MRCACHILDOF);
 						Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelType.STREECHILDOF);
-						trel2.setProperty("source", "taxonomy");
-						sourceRelIndex.add(trel2, "source", "taxonomy");
+						trel2.setProperty(RelProperty.SOURCE.propertyName, "taxonomy");
+						sourceRelIndex.add(trel2, RelProperty.SOURCE.propertyName, "taxonomy");
 					}
 					cur_tran_iter += 1;
-					if (cur_tran_iter % transaction_iter == 0) {
+					if (cur_tran_iter % transactionFrequency == 0) {
 						tx.success();
 						tx.finish();
 						tx = graphDb.beginTx();
 						System.out.println("cur transaction: "+cur_tran_iter);
 					}
 				} else {
-					System.out.println(friendnode+"\t"+friendnode.getProperty("name"));
+					System.out.println(friendnode+"\t"+friendnode.getProperty(NodeProperty.NAME.propertyName));
 				}
 			}
 			tx.success();
@@ -433,16 +418,16 @@ public class GraphInitializer extends GraphBase{
 		//could make this a hashset if dups become a problem
 		TLongArrayList mrcas = new TLongArrayList();
 		TLongArrayList nested_mrcas = new TLongArrayList();
-		if (dbnode.hasProperty("mrca") == false) {
+		if (dbnode.hasProperty(NodeProperty.MRCA.propertyName) == false) {
 			for (Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelType.MRCACHILDOF)) {
 				Node tnode = rel.getStartNode();
-				mrcas.addAll((long[])tnode.getProperty("mrca"));
-				nested_mrcas.addAll((long[])tnode.getProperty("nested_mrca"));
+				mrcas.addAll((long[]) tnode.getProperty(NodeProperty.MRCA.propertyName));
+				nested_mrcas.addAll((long[]) tnode.getProperty(NodeProperty.NESTED_MRCA.propertyName));
 			}
 			mrcas.sort();
-			dbnode.setProperty("mrca", mrcas.toArray());
+			dbnode.setProperty(NodeProperty.MRCA.propertyName, mrcas.toArray());
 			nested_mrcas.sort();
-			dbnode.setProperty("nested_mrca", nested_mrcas.toArray());
+			dbnode.setProperty(NodeProperty.NESTED_MRCA.propertyName, nested_mrcas.toArray());
 		}
 	}
 	
