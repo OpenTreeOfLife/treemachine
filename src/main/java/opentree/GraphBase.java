@@ -142,29 +142,32 @@ public abstract class GraphBase {
 	}
 
     /**
-     * A wrapper for the index call to find the life node. Supplies a meaningful error message if it fails.
-     * @return lifenode
-     * @throws TaxonNotFoundException
+     * A wrapper for the index call to find the life node.
+     * @return rootnode
      */
     public Node getGraphRootNode() {
     	return graphDb.getNodeById((Long) graphDb.getGraphProperty(NodeProperty.GRAPH_ROOT_NODE_ID.propertyName));
     }
     
     /**
-     * Used to set a graph property containing the name of the root node so that future calls to
-     * getGraphRootNode() work no matter what the name of the root node is.
+     * Used to set graph properties identifying the root node, so that is will always be known.
      */
     public void setGraphRootNode(Node rootNode) {
+    	
+    	System.out.println("setting root node");
+    	System.out.println("name: " + rootNode.getProperty(NodeProperty.NAME.propertyName));
     	graphDb.setGraphProperty(NodeProperty.GRAPH_ROOT_NODE_NAME.propertyName, rootNode.getProperty(NodeProperty.NAME.propertyName));
+    	
+    	System.out.println("id: " + rootNode.getId());
     	graphDb.setGraphProperty(NodeProperty.GRAPH_ROOT_NODE_ID.propertyName, rootNode.getId());
     }
     
     /**
-     * Look up and return a Set containing the nodes corresponding to the passed long array nodeIDArray.
+     * Return a HashSet containing the nodes corresponding to the passed long array nodeIDArr.
      * @param nodeIDArr
      * @return nodes
      */
-	public Set<Node> getNodesForIds(long [] nodeIDArr) {
+	public HashSet<Node> getNodesForIds(long [] nodeIDArr) {
 		HashSet<Node> s = new HashSet<Node>();
 		for (int i = 0; i < nodeIDArr.length; i++) {
 			Node n = graphDb.getNodeById(nodeIDArr[i]);
@@ -174,11 +177,11 @@ public abstract class GraphBase {
 	}
 
     /**
-     * Look up and return a Set containing the nodes corresponding to the passed Iterable<Long> nodeIDIter.
+     * Return a HashSet containing the nodes corresponding to the passed Iterable<Long> nodeIDIter.
      * @param nodeIDIter
      * @return nodes
      */
-	public Set<Node> getNodesForIds(Iterable<Long> nodeIDIter) {
+	public HashSet<Node> getNodesForIds(Iterable<Long> nodeIDIter) {
 		HashSet<Node> s = new HashSet<Node>();
 		for (Long nid : nodeIDIter) {
 			Node n = graphDb.getNodeById(nid);

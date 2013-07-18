@@ -64,10 +64,10 @@ public class FilterByPropertyRelIterator implements Iterator<Relationship> {
         // If each set of "tied" LICA rels was tagged with a ordinal property (relset=0, relset=1,...) then we could
         // avoid these big, slow set operations....
         long [] leafIDArr = (long[]) metadataNode.getProperty("original_taxa_map"); //@TEMP this is going to be slow on big trees...
-        this.leafSet = (HashSet<Node>) gb.getNodesForIds(leafIDArr);
+        this.leafSet = gb.getNodesForIds(leafIDArr);
         debugnodeset("treeleaves:", this.leafSet);
         long [] nodeMRCAArr = (long[]) startNode.getProperty("mrca"); //@TEMP this is going to be slow deep in the tree...
-        HashSet<Node> rootNodesLeaves = (HashSet<Node>) gb.getNodesForIds(nodeMRCAArr);
+        HashSet<Node> rootNodesLeaves = gb.getNodesForIds(nodeMRCAArr);
         debugnodeset("mrca:", rootNodesLeaves);
         this.graphDB = gb;
         this.leafSet.retainAll(rootNodesLeaves);
@@ -108,7 +108,7 @@ public class FilterByPropertyRelIterator implements Iterator<Relationship> {
                     HashSet<Node> fnNodes;
                     if (furtherNode.hasProperty("mrca")) {
                         long [] nodeMRCAArr = (long[]) furtherNode.getProperty("mrca"); //@TEMP this is going to be slow deep in the tree...
-                        fnNodes = (HashSet<Node>) this.graphDB.getNodesForIds(nodeMRCAArr);
+                        fnNodes = this.graphDB.getNodesForIds(nodeMRCAArr);
                         fnNodes.retainAll(this.leafSet);
                     } else {
                         fnNodes = new HashSet<Node>();

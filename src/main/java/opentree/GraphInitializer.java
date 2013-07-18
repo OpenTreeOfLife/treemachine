@@ -194,10 +194,15 @@ public class GraphInitializer extends GraphBase{
 							if (pid.length() > 0) {
 								parents.put(tid, pid);
 							}else{//root node
+								System.out.println("found root node: " + tnode.getProperty("name"));
+								// set the name of the life node property in the graph
+								setGraphRootNode(tnode);
+								
 								Node mdnode = graphDb.createNode();
+								
 								mdnode.createRelationshipTo(tnode, RelType.METADATAFOR);
 								sourceMetaIndex.add(mdnode, "source", "taxonomy");
-								System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());
+								System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());								
 							}
 							dbnodes.put(tid, tnode);
 							// synonym processing
@@ -255,16 +260,18 @@ public class GraphInitializer extends GraphBase{
 					tnode.setProperty("uniqname",uniqname);
 					graphNodeIndex.add( tnode, "name", name );
 					graphTaxUIDNodeIndex.add(tnode, "tax_uid", tid);
+					
 					if (pid.length() > 0) {
 						parents.put(tid, pid);
 					}else{//root node
-						Node mdnode = graphDb.createNode();
-						mdnode.createRelationshipTo(tnode, RelType.METADATAFOR);
-						mdnode.setProperty("source", "taxonomy");
 						
+						System.out.println("found root node: " + tnode.getProperty("name"));
 						// set the name of the life node property in the graph
 						setGraphRootNode(tnode);
-						
+
+						Node mdnode = graphDb.createNode();
+						mdnode.createRelationshipTo(tnode, RelType.METADATAFOR);
+						mdnode.setProperty("source", "taxonomy");						
 						sourceMetaIndex.add(mdnode, "source", "taxonomy");
 						System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());
 					}
