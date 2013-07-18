@@ -6,7 +6,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Stack;
-import opentree.RelTypes;
+
+import opentree.constants.RelType;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -37,7 +39,7 @@ public class FilterByPropertyRelIterator implements Iterator<Relationship> {
     /// @note: if the tree maps through multiple LICAs, the current behavior will be to return all of these nodes
     public static FilterByPropertyRelIterator getSourceTreeRelIterator(Node startNode, int maxDepthArg, GraphBase gb, Node metadataNode) {
         String sourceName = (String)metadataNode.getProperty("source");
-        return new FilterByPropertyRelIterator(startNode, maxDepthArg, RelTypes.STREECHILDOF, Direction.INCOMING, "source", sourceName, gb, metadataNode);
+        return new FilterByPropertyRelIterator(startNode, maxDepthArg, RelType.STREECHILDOF, Direction.INCOMING, "source", sourceName, gb, metadataNode);
     }
     /**
      * FilterByPropertyRelIterator(startNode, 4, STREECHILDOF, INCOMING, "source", "bogus") would create an iterator for the relationships
@@ -62,10 +64,10 @@ public class FilterByPropertyRelIterator implements Iterator<Relationship> {
         // If each set of "tied" LICA rels was tagged with a ordinal property (relset=0, relset=1,...) then we could
         // avoid these big, slow set operations....
         long [] leafIDArr = (long[]) metadataNode.getProperty("original_taxa_map"); //@TEMP this is going to be slow on big trees...
-        this.leafSet = gb.idArrayToNodeSet(leafIDArr);
+        this.leafSet = (HashSet<Node>) gb.getNodesForIds(leafIDArr);
         debugnodeset("treeleaves:", this.leafSet);
         long [] nodeMRCAArr = (long[]) startNode.getProperty("mrca"); //@TEMP this is going to be slow deep in the tree...
-        HashSet<Node> rootNodesLeaves = gb.idArrayToNodeSet(nodeMRCAArr);
+        HashSet<Node> rootNodesLeaves = (HashSet<Node>) gb.getNodesForIds(nodeMRCAArr);
         debugnodeset("mrca:", rootNodesLeaves);
         this.graphDB = gb;
         this.leafSet.retainAll(rootNodesLeaves);
@@ -106,7 +108,7 @@ public class FilterByPropertyRelIterator implements Iterator<Relationship> {
                     HashSet<Node> fnNodes;
                     if (furtherNode.hasProperty("mrca")) {
                         long [] nodeMRCAArr = (long[]) furtherNode.getProperty("mrca"); //@TEMP this is going to be slow deep in the tree...
-                        fnNodes = this.graphDB.idArrayToNodeSet(nodeMRCAArr);
+                        fnNodes = (HashSet<Node>) this.graphDB.getNodesForIds(nodeMRCAArr);
                         fnNodes.retainAll(this.leafSet);
                     } else {
                         fnNodes = new HashSet<Node>();

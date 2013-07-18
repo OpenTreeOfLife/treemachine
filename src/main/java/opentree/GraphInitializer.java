@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import opentree.constants.RelType;
 import opentree.exceptions.TaxonNotFoundException;
 
 import org.neo4j.graphdb.Direction;
@@ -194,7 +195,7 @@ public class GraphInitializer extends GraphBase{
 								parents.put(tid, pid);
 							}else{//root node
 								Node mdnode = graphDb.createNode();
-								mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
+								mdnode.createRelationshipTo(tnode, RelType.METADATAFOR);
 								sourceMetaIndex.add(mdnode, "source", "taxonomy");
 								System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());
 							}
@@ -216,7 +217,7 @@ public class GraphInitializer extends GraphBase{
 										}
 										synode.setProperty("nametype",synNameType);
 										synode.setProperty("source",sourcename);
-										synode.createRelationshipTo(tnode, RelTypes.SYNONYMOF);
+										synode.createRelationshipTo(tnode, RelType.SYNONYMOF);
 										synNodeIndex.add(tnode, "name", synName);
 									}
 								}
@@ -258,8 +259,12 @@ public class GraphInitializer extends GraphBase{
 						parents.put(tid, pid);
 					}else{//root node
 						Node mdnode = graphDb.createNode();
-						mdnode.createRelationshipTo(tnode, RelTypes.METADATAFOR);
+						mdnode.createRelationshipTo(tnode, RelType.METADATAFOR);
 						mdnode.setProperty("source", "taxonomy");
+						
+						// set the name of the life node property in the graph
+						setGraphRootNode(tnode);
+						
 						sourceMetaIndex.add(mdnode, "source", "taxonomy");
 						System.err.println("Node " + mdnode.getId() + " holds METADATAFOR Node" + tnode.getId());
 					}
@@ -281,7 +286,7 @@ public class GraphInitializer extends GraphBase{
 								}
 								synode.setProperty("nametype",synNameType);
 								synode.setProperty("source",sourcename);
-								synode.createRelationshipTo(tnode, RelTypes.SYNONYMOF);
+								synode.createRelationshipTo(tnode, RelType.SYNONYMOF);
 								synNodeIndex.add(tnode, "name", synName);
 							}
 						}
@@ -304,7 +309,7 @@ public class GraphInitializer extends GraphBase{
 					try {
 						for (int i = 0; i < temppar.size(); i++) {
 							try {
-								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
+								Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelType.TAXCHILDOF);
 								rel.setProperty("childid",temppar.get(i));
 								rel.setProperty("parentid",parents.get(temppar.get(i)));
 								rel.setProperty("source","ottol");
@@ -324,7 +329,7 @@ public class GraphInitializer extends GraphBase{
 			try {
 				for (int i = 0; i < temppar.size(); i++) {
 					try {
-						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelTypes.TAXCHILDOF);
+						Relationship rel = dbnodes.get(temppar.get(i)).createRelationshipTo(dbnodes.get(parents.get(temppar.get(i))), RelType.TAXCHILDOF);
 						rel.setProperty("childid",temppar.get(i));
 						rel.setProperty("parentid",parents.get(temppar.get(i)));
 						rel.setProperty("source","ottol");
@@ -354,16 +359,16 @@ public class GraphInitializer extends GraphBase{
 		tx = graphDb.beginTx();
 		//start from the node called root
 //		Node startnode = (graphNodeIndex.get("name", "life")).next();
-		Node startnode = getLifeNode();
+		Node startnode = getGraphRootNode();
 		try {
 			//root should be the taxonomy startnode
 //			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
 			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-					.relationships( RelTypes.TAXCHILDOF,Direction.INCOMING );
+					.relationships( RelType.TAXCHILDOF,Direction.INCOMING );
 			for (Node friendnode: CHILDOF_TRAVERSAL.traverse(startnode).nodes()) {
-				Node taxparent = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.OUTGOING, "ottol");
+				Node taxparent = getAdjNodeFromFirstRelationshipBySource(friendnode, RelType.TAXCHILDOF, Direction.OUTGOING, "ottol");
 				if (taxparent != null) {
-					Node firstchild = getAdjNodeFromFirstRelationshipBySource(friendnode, RelTypes.TAXCHILDOF, Direction.INCOMING, "ottol");
+					Node firstchild = getAdjNodeFromFirstRelationshipBySource(friendnode, RelType.TAXCHILDOF, Direction.INCOMING, "ottol");
 					if (firstchild == null) {//leaf
 						long [] tmrcas = {friendnode.getId()};
 						friendnode.setProperty("mrca", tmrcas);
@@ -371,8 +376,8 @@ public class GraphInitializer extends GraphBase{
 						friendnode.setProperty("nested_mrca", ntmrcas);
 					}
 					if (startnode != friendnode) {//not the root
-						friendnode.createRelationshipTo(taxparent, RelTypes.MRCACHILDOF);
-						Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelTypes.STREECHILDOF);
+						friendnode.createRelationshipTo(taxparent, RelType.MRCACHILDOF);
+						Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelType.STREECHILDOF);
 						trel2.setProperty("source", "taxonomy");
 						sourceRelIndex.add(trel2, "source", "taxonomy");
 					}
@@ -414,7 +419,7 @@ public class GraphInitializer extends GraphBase{
 	 */
 	private void postorderAddMRCAsTax(Node dbnode) {
 		//traversal incoming and record all the names
-		for (Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)) {
+		for (Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelType.MRCACHILDOF)) {
 			Node tnode = rel.getStartNode();
 			postorderAddMRCAsTax(tnode);
 		}
@@ -422,7 +427,7 @@ public class GraphInitializer extends GraphBase{
 		TLongArrayList mrcas = new TLongArrayList();
 		TLongArrayList nested_mrcas = new TLongArrayList();
 		if (dbnode.hasProperty("mrca") == false) {
-			for (Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelTypes.MRCACHILDOF)) {
+			for (Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelType.MRCACHILDOF)) {
 				Node tnode = rel.getStartNode();
 				mrcas.addAll((long[])tnode.getProperty("mrca"));
 				nested_mrcas.addAll((long[])tnode.getProperty("nested_mrca"));

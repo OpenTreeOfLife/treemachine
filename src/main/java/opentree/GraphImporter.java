@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
+import opentree.constants.RelType;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
@@ -237,7 +238,7 @@ public class GraphImporter extends GraphBase {
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
 		assumecomplete = taxacompletelyoverlap;
-		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
+		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelType.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 
 		// TODO: could take this out and make it a separate procedure
@@ -451,7 +452,7 @@ public class GraphImporter extends GraphBase {
 				Iterator<Node> itrsl = superlica.iterator();
 				while (itrsl.hasNext()) {
 					Node itrnext = itrsl.next();
-					dbnode.createRelationshipTo(itrnext, RelTypes.MRCACHILDOF);
+					dbnode.createRelationshipTo(itrnext, RelType.MRCACHILDOF);
 					updatedSuperLICAs.add(itrnext);
 				}
 				tx.success();
@@ -621,7 +622,7 @@ public class GraphImporter extends GraphBase {
 				metadatanode.setProperty("original_taxa_map",ret2);
 				//end add source taxa ids
 				// TODO: doesn't account for multiple root nodes
-				metadatanode.createRelationshipTo(currGoLNode, RelTypes.METADATAFOR);
+				metadatanode.createRelationshipTo(currGoLNode, RelType.METADATAFOR);
 			}
 			for (int i = 0; i < inode.getChildCount(); i++) {
 				JadeNode childJadeNode = inode.getChild(i);
@@ -629,7 +630,7 @@ public class GraphImporter extends GraphBase {
 				Node [] allChildGoLNodes = (Node [])(childJadeNode.getObject("dbnodes"));
 				for (int m = 0; m < allChildGoLNodes.length; m++) {
 					Node childGoLNode = allChildGoLNodes[m];
-					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.STREECHILDOF);
+					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelType.STREECHILDOF);
 					sourceRelIndex.add(rel, "source", sourcename);
 					rel.setProperty("exclusive_mrca", inode.getObject("exclusive_mrca"));
 					rel.setProperty("root_exclusive_mrca", inode.getObject("root_exclusive_mrca"));
@@ -661,14 +662,14 @@ public class GraphImporter extends GraphBase {
 						rel.setProperty("branch_length", childJadeNode.getBL());
 					}
 					boolean mrca_rel = false;
-					for (Relationship trel: childGoLNode.getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
+					for (Relationship trel: childGoLNode.getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)) {
 						if (trel.getOtherNode(childGoLNode).getId() == currGoLNode.getId()) {
 							mrca_rel = true;
 							break;
 						}
 					}
 					if (mrca_rel == false) {
-						Relationship rel2 = childGoLNode.createRelationshipTo(currGoLNode, RelTypes.MRCACHILDOF);
+						Relationship rel2 = childGoLNode.createRelationshipTo(currGoLNode, RelType.MRCACHILDOF);
 						// I'm not sure how this assert could ever trip, given that we create a 
 						// childGoLNode -> currGoLNode relationship above and raise an exception
 						// if the endpoints have the same ID.
@@ -756,7 +757,7 @@ public class GraphImporter extends GraphBase {
 		try {
 			for (Node itrel : shits) {
 				sourceMetaIndex.remove(itrel, "source", source);
-				itrel.getRelationships(RelTypes.METADATAFOR).iterator().next().delete();
+				itrel.getRelationships(RelType.METADATAFOR).iterator().next().delete();
 				itrel.delete();
 			}
 			tx.success();

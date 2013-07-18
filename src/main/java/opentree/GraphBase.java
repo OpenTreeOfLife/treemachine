@@ -1,8 +1,13 @@
 package opentree;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
+import opentree.constants.GeneralConstants;
+import opentree.constants.NodeProperty;
+import opentree.constants.RelProperty;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.TaxonNotFoundException;
 
@@ -50,7 +55,7 @@ public abstract class GraphBase {
 	protected static Index<Node> graphTaxNewNodes;
 
 	// this is clunky, might be a better way to do this
-	public static final String DRAFTTREENAME = (String) Constants.DRAFT_TREE_NAME.value;
+	public static final String DRAFTTREENAME = (String) GeneralConstants.DRAFT_TREE_NAME.value;
 	
 	// all constructor methods require a graph database to be provided
 	public GraphBase(String graphName) {
@@ -77,7 +82,7 @@ public abstract class GraphBase {
      * Just initialize the indexes.
      */
 	public void initNodeIndexes() {
-		// TODO: should move this to an enum to make management/naming easier to deal with
+		// TODO: should move this to an enum to make management/index access easier to deal with
         graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
 		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
         sourceRelIndex = graphDb.getRelIndex("sourceRels");
@@ -85,7 +90,7 @@ public abstract class GraphBase {
         sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
     	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes");
     	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
-    	graphTaxNewNodes = graphDb.getNodeIndex("");	
+    	graphTaxNewNodes = graphDb.getNodeIndex(""); // not sure what the name of this one is in the graphdb. it doesn't seem to be used (for now)
 	}
 	
 	public void shutdownDB(){
@@ -123,7 +128,7 @@ public abstract class GraphBase {
 	 * @throws MultipleHitsException, TaxonNotFoundException
 	 */
     public Node findGraphTaxNodeByUID(final String taxUID) throws MultipleHitsException, TaxonNotFoundException {
-        IndexHits<Node> hits = GraphBase.graphTaxUIDNodeIndex.get("tax_uid", taxUID);
+        IndexHits<Node> hits = GraphBase.graphTaxUIDNodeIndex.get(NodeProperty.TAX_UID.propertyName, taxUID);
         Node firstNode = null;
         try {
         	firstNode = hits.getSingle();
@@ -133,7 +138,7 @@ public abstract class GraphBase {
         	hits.close();
         }
 		if (firstNode == null) {
-			throw new TaxonNotFoundException("uid = " + String.valueOf(taxUID));
+			throw new TaxonNotFoundException(NodeProperty.TAX_UID.propertyName + " = " + String.valueOf(taxUID));
 		}
 		return firstNode;
 	}
@@ -145,7 +150,7 @@ public abstract class GraphBase {
 	 * @throws MultipleHitsException, TaxonNotFoundException
 	 */
     public Node findTaxNodeByName(final String name) throws TaxonNotFoundException, MultipleHitsException {
-        IndexHits<Node> hits = GraphBase.graphNodeIndex.get("name", name);
+        IndexHits<Node> hits = GraphBase.graphNodeIndex.get(NodeProperty.NAME.propertyName, name);
         Node firstNode = null;
         try {
         	firstNode = hits.getSingle();
@@ -165,18 +170,42 @@ public abstract class GraphBase {
      * @return lifenode
      * @throws TaxonNotFoundException
      */
-    public Node getLifeNode() throws TaxonNotFoundException {
-    	try {
-    		return (graphNodeIndex.get("name", Constants.GRAPH_ROOT_NODE_NAME.value)).next();
-    	} catch (NoSuchElementException ex) {
-    		throw new TaxonNotFoundException((String) Constants.GRAPH_ROOT_NODE_NAME.value);
-    	}
+    public Node getGraphRootNode() {
+    	return graphDb.getNodeById((Long) graphDb.getGraphProperty(NodeProperty.GRAPH_ROOT_NODE_ID.propertyName));
     }
     
-	public HashSet<Node> idArrayToNodeSet(long [] nodeIDArr) {
+    /**
+     * Used to set a graph property containing the name of the root node so that future calls to
+     * getGraphRootNode() work no matter what the name of the root node is.
+     */
+    public void setGraphRootNode(Node rootNode) {
+    	graphDb.setGraphProperty(NodeProperty.GRAPH_ROOT_NODE_NAME.propertyName, rootNode.getProperty(NodeProperty.NAME.propertyName));
+    	graphDb.setGraphProperty(NodeProperty.GRAPH_ROOT_NODE_ID.propertyName, rootNode.getId());
+    }
+    
+    /**
+     * Look up and return a Set containing the nodes corresponding to the passed long array nodeIDArray.
+     * @param nodeIDArr
+     * @return nodes
+     */
+	public Set<Node> getNodesForIds(long [] nodeIDArr) {
 		HashSet<Node> s = new HashSet<Node>();
 		for (int i = 0; i < nodeIDArr.length; i++) {
 			Node n = graphDb.getNodeById(nodeIDArr[i]);
+			s.add(n);
+		}
+		return s;
+	}
+
+    /**
+     * Look up and return a Set containing the nodes corresponding to the passed Iterable<Long> nodeIDIter.
+     * @param nodeIDIter
+     * @return nodes
+     */
+	public Set<Node> getNodesForIds(Iterable<Long> nodeIDIter) {
+		HashSet<Node> s = new HashSet<Node>();
+		for (Long nid : nodeIDIter) {
+			Node n = graphDb.getNodeById(nid);
 			s.add(n);
 		}
 		return s;
@@ -194,7 +223,7 @@ public abstract class GraphBase {
 	 */
 	static public Node getAdjNodeFromFirstRelationshipBySource(Node nd, RelationshipType relType, Direction dir,  String src) {
 		for (Relationship rel: nd.getRelationships(relType, dir)) {
-			if (((String)rel.getProperty("source")).equals(src)) {
+			if (((String)rel.getProperty(RelProperty.SOURCE.propertyName)).equals(src)) {
 				if (dir == Direction.OUTGOING) {
 					return rel.getEndNode();
 				} else {

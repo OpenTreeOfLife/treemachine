@@ -23,10 +23,10 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.Traversal;
 
 // the opentree needed by the test
-import opentree.RelTypes;
 
 // the opentree package to be tested
 import opentree.AncestorUtil;
+import opentree.constants.RelType;
 
 public class AncestorUtilTest {
 
@@ -63,16 +63,16 @@ public class AncestorUtilTest {
             orang.setProperty("name", "orang");
 			hc_anc = graphDb.createNode();
             hc_anc.setProperty("name", "hc_anc");
-            human.createRelationshipTo(hc_anc, RelTypes.MRCACHILDOF);
-            chimp.createRelationshipTo(hc_anc, RelTypes.MRCACHILDOF);
+            human.createRelationshipTo(hc_anc, RelType.MRCACHILDOF);
+            chimp.createRelationshipTo(hc_anc, RelType.MRCACHILDOF);
 			hcg_anc = graphDb.createNode();
             hcg_anc.setProperty("name", "hcg_anc");
-            hc_anc.createRelationshipTo(hcg_anc, RelTypes.MRCACHILDOF);
-            gorilla.createRelationshipTo(hcg_anc, RelTypes.MRCACHILDOF);
+            hc_anc.createRelationshipTo(hcg_anc, RelType.MRCACHILDOF);
+            gorilla.createRelationshipTo(hcg_anc, RelType.MRCACHILDOF);
 			hcgo_anc = graphDb.createNode();
             hcgo_anc.setProperty("name", "hcgo_anc");
-            hcg_anc.createRelationshipTo(hcgo_anc, RelTypes.MRCACHILDOF);
-            orang.createRelationshipTo(hcgo_anc, RelTypes.MRCACHILDOF);
+            hcg_anc.createRelationshipTo(hcgo_anc, RelType.MRCACHILDOF);
+            orang.createRelationshipTo(hcgo_anc, RelType.MRCACHILDOF);
             bogus = graphDb.createNode();
             bogus.setProperty("name", "bogus");
             tx.success();
@@ -102,7 +102,7 @@ public class AncestorUtilTest {
 		LinkedList<Node> leaf_list = new LinkedList<Node>();
 		leaf_list.add(human);
 		leaf_list.add(chimp);
-		RelationshipExpander expander = Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING);
+		RelationshipExpander expander = Traversal.expanderForTypes(RelType.MRCACHILDOF, Direction.OUTGOING);
 		Node anc = AncestorUtil.lowestCommonAncestor( leaf_list, expander);
 		assertNotNull(anc);
 		assertEquals(anc.getProperty("name"), "hc_anc");
@@ -142,7 +142,7 @@ public class AncestorUtilTest {
 		LinkedList<Node> leaf_list = new LinkedList<Node>();
 		leaf_list.add(human);
 		leaf_list.add(bogus);
-		RelationshipExpander expander = Traversal.expanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING);
+		RelationshipExpander expander = Traversal.expanderForTypes(RelType.MRCACHILDOF, Direction.OUTGOING);
 		Node anc = AncestorUtil.lowestCommonAncestor( leaf_list, expander);
 		assertNull(anc);
 	}

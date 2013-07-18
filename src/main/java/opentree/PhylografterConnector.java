@@ -19,7 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import javax.ws.rs.core.MediaType;
 
-import opentree.RelTypes;
+import opentree.constants.RelType;
 import jade.MessageLogger;
 
 import org.json.simple.JSONValue;
@@ -417,8 +417,8 @@ public class PhylografterConnector {
 					String cnodeName = (String) cnode.getProperty("name");
 					StringBuffer sb = new StringBuffer();
 					sb.append(cnodeName == null ? "{null name}" : cnodeName);
-					while(cnode.hasRelationship(Direction.OUTGOING, RelTypes.TAXCHILDOF)){
-						cnode = cnode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+					while(cnode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)){
+						cnode = cnode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 						cnodeName = (String) cnode.getProperty("name");
 						sb.append("->");
 						sb.append(cnodeName == null ? "{null name}" : cnodeName);

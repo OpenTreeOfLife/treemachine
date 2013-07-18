@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Stack;
 
+import opentree.constants.RelType;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttolIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
@@ -322,7 +323,7 @@ public class GraphExplorer extends GraphBase {
         }
         // System.out.println(firstNode.getProperty("name"));
         TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-                .relationships(RelTypes.MRCACHILDOF, Direction.INCOMING);
+                .relationships(RelType.MRCACHILDOF, Direction.INCOMING);
         HashMap<Node, Integer> nodenumbers = new HashMap<Node, Integer>();
         HashMap<Integer, Node> numbernodes = new HashMap<Integer, Node>();
         int count = 0;
@@ -351,7 +352,7 @@ public class GraphExplorer extends GraphBase {
             outFile.write("],\"links\":[");
             String outs = "";
             for (Node tnode : nodenumbers.keySet()) {
-                Iterable<Relationship> it = tnode.getRelationships(RelTypes.MRCACHILDOF, Direction.OUTGOING);
+                Iterable<Relationship> it = tnode.getRelationships(RelType.MRCACHILDOF, Direction.OUTGOING);
                 for (Relationship trel : it) {
                     if (nodenumbers.get(trel.getStartNode()) != null && nodenumbers.get(trel.getEndNode()) != null) {
                         outs += "{\"source\":" + nodenumbers.get(trel.getStartNode()) + "";
@@ -378,7 +379,7 @@ public class GraphExplorer extends GraphBase {
     public void getBipartSupport(String starttaxon) {
         Node startnode = (graphNodeIndex.get("name", starttaxon)).next();
         TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
-                .relationships(RelTypes.MRCACHILDOF, Direction.INCOMING);
+                .relationships(RelType.MRCACHILDOF, Direction.INCOMING);
         HashMap<Long, String> id_to_name = new HashMap<Long, String>();
         HashSet<Node> tips = new HashSet<Node>();
         HashMap<Node, HashMap<Node, Integer>> childs_scores = new HashMap<Node, HashMap<Node, Integer>>();
@@ -387,12 +388,12 @@ public class GraphExplorer extends GraphBase {
         HashMap<Node, Integer> node_score = new HashMap<Node, Integer>();
         HashSet<Node> allnodes = new HashSet<Node>();
         for (Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(startnode).nodes()) {
-            if (friendnode.hasRelationship(Direction.INCOMING, RelTypes.MRCACHILDOF) == false)
+            if (friendnode.hasRelationship(Direction.INCOMING, RelType.MRCACHILDOF) == false)
                 tips.add(friendnode);
             HashMap<Node, Integer> conflicts_count = new HashMap<Node, Integer>();
             child_parents_map.put(friendnode, new HashSet<Node>());
             int count = 0;
-            for (Relationship rel : friendnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)) {
+            for (Relationship rel : friendnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
                 if (rel.getProperty("source").equals("taxonomy") == true || rel.getProperty("source").equals("ottol") == true)
                     continue;
                 if (conflicts_count.containsKey(rel.getEndNode()) == false) {
@@ -468,7 +469,7 @@ public class GraphExplorer extends GraphBase {
      * @throws MultipleHitsException 
      */
     public void getMapTreeSupport(String infile, String outfile) throws TaxonNotFoundException, MultipleHitsException {
-        PathFinder<Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.TAXCHILDOF, Direction.OUTGOING), 1000);
+        PathFinder<Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelType.TAXCHILDOF, Direction.OUTGOING), 1000);
         Node focalnode = findTaxNodeByName("life");
         String ts = "";
         JadeTree jt = null;
@@ -612,7 +613,7 @@ public class GraphExplorer extends GraphBase {
                 int count = 0;
                 for (Node tnode : ancestors) {
                     // calculate the number of supported branches
-                    for (Relationship rel : tnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)) {
+                    for (Relationship rel : tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
                         count += 1;
                     }
                 }
@@ -822,12 +823,12 @@ public class GraphExplorer extends GraphBase {
         		Node curNode = rel.getStartNode();
         		
             	if (parentNode != null && test == false) {
-            		Relationship newRel = curNode.createRelationshipTo(parentNode, RelTypes.SYNTHCHILDOF);
+            		Relationship newRel = curNode.createRelationshipTo(parentNode, RelType.SYNTHCHILDOF);
             		newRel.setProperty("name", synthTreeName);
 
             		// get all the sources supporting this relationship
             		HashSet<String> sources = new HashSet<String>();
-            		for (Relationship rel2 : curNode.getRelationships(RelTypes.STREECHILDOF)) {
+            		for (Relationship rel2 : curNode.getRelationships(RelType.STREECHILDOF)) {
             			if (rel2.hasProperty("source")) {
             				sources.add(String.valueOf(rel2.getProperty("source")));
             			}
@@ -883,7 +884,7 @@ public class GraphExplorer extends GraphBase {
         return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
     }
 
-    private List<Node> getPathToRoot(Node startNode, RelTypes relType, String nameToFilterBy) {
+    private List<Node> getPathToRoot(Node startNode, RelType relType, String nameToFilterBy) {
         ArrayList<Node> path = new ArrayList<Node>();
         Node curNode = startNode;
         while (true) {
@@ -925,7 +926,7 @@ public class GraphExplorer extends GraphBase {
 	    	// testing
 //	    	System.out.println("looking for parents of " + curParent.toString());
 
-	    	Iterable<Relationship> parentRels = curParent.getRelationships(RelTypes.SYNTHCHILDOF, Direction.OUTGOING);
+	    	Iterable<Relationship> parentRels = curParent.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING);
         	atRoot = true; // assume we have hit the root until proven otherwise
         	for (Relationship m : parentRels) {
         		
@@ -1024,14 +1025,14 @@ public class GraphExplorer extends GraphBase {
         supportingSources[0] = "taxonomy";
         
         // walk taxonomy and save nodes in postorder
-        TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.TAXCHILDOF, Direction.INCOMING);
+        TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
         for (Node taxChild : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRootNode).nodes()) {
             taxNodes.add(0, taxChild);
         }
 
         // walk taxa from tips down
         for (Node taxNode : taxNodes) {
-            if (taxNode.hasRelationship(Direction.INCOMING, RelTypes.TAXCHILDOF) == false) {
+            if (taxNode.hasRelationship(Direction.INCOMING, RelType.TAXCHILDOF) == false) {
                 // only consider taxa that are not tips
                 continue;
             }
@@ -1084,7 +1085,7 @@ public class GraphExplorer extends GraphBase {
 
 //                System.out.println("attempting to add child: " + taxName + " to " + mrca.getName());
 
-                Relationship newRel = childNode.createRelationshipTo(mrca, RelTypes.SYNTHCHILDOF);
+                Relationship newRel = childNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
                 newRel.setProperty("name", DRAFTTREENAME);
                 newRel.setProperty("supporting_sources", supportingSources);
 
@@ -1135,7 +1136,7 @@ public class GraphExplorer extends GraphBase {
         
         // get the immediate synth children of the current node
         LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
-        for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)) {
+        for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
         	        	
         	// TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
         	if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name"))))	{
@@ -1235,7 +1236,7 @@ public class GraphExplorer extends GraphBase {
         HashSet<Long> candidateNodeIds = new HashSet<Long>();
 
         // for every candidate (incoming childof) relationship
-        for (Relationship candRel : curGraphNode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+        for (Relationship candRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 
             if (useTaxonomy == false) {
                 // skip taxonomy relationships if specified
@@ -1457,7 +1458,7 @@ public class GraphExplorer extends GraphBase {
     		if (synthTreeName == null) {
     			throw new java.lang.IllegalStateException("Attempt to store synthetic tree relationships in the graph without a name for the synthetic tree.");
     		} else {
-    			curGraphNode.createRelationshipTo(parentGraphNode, RelTypes.SYNTHCHILDOF).setProperty("name", synthTreeName);
+    			curGraphNode.createRelationshipTo(parentGraphNode, RelType.SYNTHCHILDOF).setProperty("name", synthTreeName);
     		}
     	}
     	
@@ -1490,7 +1491,7 @@ public class GraphExplorer extends GraphBase {
         HashMap<Long, HashSet<Long>> storedmrcas = new HashMap<Long, HashSet<Long>>();
         HashMap<Long, Relationship> bestrelrel = new HashMap<Long, Relationship>();
 
-        for (Relationship rel : curGraphNode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+        for (Relationship rel : curGraphNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 
             if (useTaxonomy == false) {
                 if (rel.getProperty("source").equals("taxonomy"))
@@ -1646,14 +1647,14 @@ public class GraphExplorer extends GraphBase {
 
         // walk taxonomy and save nodes in postorder
         Node taxRoot = findTaxNodeByName(taxRootName);
-        TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelTypes.TAXCHILDOF, Direction.INCOMING);
+        TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
         for (Node taxChild : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRoot).nodes()) {
             taxNodes.add(0, taxChild);
         }
 
         // walk taxa from tips down
         for (Node taxNode : taxNodes) {
-            if (taxNode.hasRelationship(Direction.INCOMING, RelTypes.TAXCHILDOF) == false) {
+            if (taxNode.hasRelationship(Direction.INCOMING, RelType.TAXCHILDOF) == false) {
                 // only consider taxa that are not tips
                 continue;
             }
@@ -1805,7 +1806,7 @@ public class GraphExplorer extends GraphBase {
     // TODO: we should store an index of synthesis "name" -> root node. Here we'll just rely on the fact that
     //      the root of the synthesis tree will be "life"...
     private Node getSynthesisRoot(String treeID) throws TaxonNotFoundException {
-        return getLifeNode();
+        return getGraphRootNode();
     }
     /**
      * @returns a JadeTree representation of the synthesis tree with the specified treeID
@@ -1853,7 +1854,7 @@ public class GraphExplorer extends GraphBase {
     public Node findTreeMetadataNodeFromTreeID(String treeID) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeID(treeID);
         Node metadataNode = null;
-        Iterable<Relationship> it = rootnode.getRelationships(RelTypes.METADATAFOR, Direction.INCOMING);
+        Iterable<Relationship> it = rootnode.getRelationships(RelType.METADATAFOR, Direction.INCOMING);
         for (Relationship rel : it) {
             Node m = rel.getStartNode();
             String mtid = (String) m.getProperty("treeID");
@@ -1868,7 +1869,7 @@ public class GraphExplorer extends GraphBase {
     public Node findTreeMetadataNodeFromTreeSourceName (String sourcename) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeSourceName(sourcename);
         Node metadataNode = null;
-        Iterable<Relationship> it = rootnode.getRelationships(RelTypes.METADATAFOR, Direction.INCOMING);
+        Iterable<Relationship> it = rootnode.getRelationships(RelType.METADATAFOR, Direction.INCOMING);
         for (Relationship rel : it) {
             Node m = rel.getStartNode();
             String mtid = (String) m.getProperty("source");
@@ -2050,7 +2051,7 @@ public class GraphExplorer extends GraphBase {
         return tree;
     }
 
-    public static boolean hasIncomingRel(Node subtreeRoot, RelTypes relType, String treeID) {
+    public static boolean hasIncomingRel(Node subtreeRoot, RelType relType, String treeID) {
         for (Relationship rel : subtreeRoot.getRelationships(Direction.INCOMING, relType)) {
             boolean matches = false;
             if (treeID == null || treeID.length() == 0) {
@@ -2063,7 +2064,7 @@ public class GraphExplorer extends GraphBase {
     }
 
     ///@TODO @TEMP inefficient recursive impl as a placeholder...
-    public static ArrayList<String> getNamesOfRepresentativeDescendants(Node subtreeRoot, RelTypes relType, String treeID) {
+    public static ArrayList<String> getNamesOfRepresentativeDescendants(Node subtreeRoot, RelType relType, String treeID) {
         ArrayList<String> toReturn = new ArrayList<String>();
         Node firstChild = null;
         Node lastChild = null;
@@ -2133,11 +2134,11 @@ public class GraphExplorer extends GraphBase {
     private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
         JadeNode root = new JadeNode();
         decorateJadeNodeWithCoreProperties(root, rootnode);
-        root.assocObject("pathToRoot", getPathToRoot(rootnode, RelTypes.SYNTHCHILDOF, treeID));
+        root.assocObject("pathToRoot", getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID));
         boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
         node2JadeNode.put(rootnode, root);
-        TraversalDescription synthEdgeTraversal = Traversal.description().relationships(RelTypes.SYNTHCHILDOF, Direction.INCOMING);
+        TraversalDescription synthEdgeTraversal = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
         //@TEMP should create an evaluator to check the name of the SYNTHCHILDOF rel and not follow paths with the wrong name...
         synthEdgeTraversal = synthEdgeTraversal.depthFirst();
         if (maxDepth >= 0) {
@@ -2195,18 +2196,18 @@ public class GraphExplorer extends GraphBase {
         }
         for (Node ucn : unnamedChildNodes) {
             if (!internalNodes.contains(ucn)) {
-                ArrayList<String> subNameList = getNamesOfRepresentativeDescendants(ucn, RelTypes.SYNTHCHILDOF, treeID);
+                ArrayList<String> subNameList = getNamesOfRepresentativeDescendants(ucn, RelType.SYNTHCHILDOF, treeID);
                 String [] dnA = subNameList.toArray(new String[subNameList.size()]);
                 JadeNode cjn = node2JadeNode.get(ucn);
                 cjn.assocObject("descendantNameList", dnA);
-                Boolean hc = new Boolean(hasIncomingRel(ucn, RelTypes.SYNTHCHILDOF, treeID));
+                Boolean hc = new Boolean(hasIncomingRel(ucn, RelType.SYNTHCHILDOF, treeID));
                 cjn.assocObject("hasChildren", hc);
             }
         }
         for (Node ncn : namedChildNodes) {
             if (!internalNodes.contains(ncn)) {
                 JadeNode cjn = node2JadeNode.get(ncn);
-                Boolean hc = new Boolean(hasIncomingRel(ncn, RelTypes.SYNTHCHILDOF, treeID));
+                Boolean hc = new Boolean(hasIncomingRel(ncn, RelType.SYNTHCHILDOF, treeID));
                 cjn.assocObject("hasChildren", hc);
             }
         }
@@ -2290,7 +2291,7 @@ public class GraphExplorer extends GraphBase {
 	    }
 	    tle.setTaxaList(innodes);
 	    TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
-	            .relationships(RelTypes.MRCACHILDOF, Direction.INCOMING);
+	            .relationships(RelType.MRCACHILDOF, Direction.INCOMING);
 	    HashSet<Long> visited = new HashSet<Long>();
 	    Long firstparent = null;
 	    HashMap<Long, JadeNode> nodejademap = new HashMap<Long, JadeNode>();
@@ -2298,7 +2299,7 @@ public class GraphExplorer extends GraphBase {
 	    System.out.println("traversing");
 	    for (Node friendnode : MRCACHILDOF_TRAVERSAL.breadthFirst().evaluator(tle).traverse(lifeNode).nodes()) {
 	        Long parent = null;
-	        for (Relationship tn : friendnode.getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
+	        for (Relationship tn : friendnode.getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)) {
 	            if (visited.contains(tn.getEndNode().getId())) {
 	                parent = tn.getEndNode().getId();
 	                break;

@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Iterator;
 
 import gnu.trove.list.array.TLongArrayList;
-import opentree.RelTypes;
+import opentree.constants.GeneralConstants;
+import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -44,7 +45,7 @@ public class LicaUtil {
 		for (int i = 0; i < nodeSet.size(); i++) {
 			int num = 0;
 			// only way to get number of relationships.
-			for (Relationship rel : nodeSet.get(i).getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
+			for (Relationship rel : nodeSet.get(i).getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)) {
 				num++;
 			}
 			// exit on first node (if any) with only one relationship; same result, potentially fewer iterations
@@ -65,7 +66,7 @@ public class LicaUtil {
 		Node innode = firstNode;
 		TLongArrayList visited = new TLongArrayList();
 		ca.setVisitedSet(visited);
-		for (Node tnode : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+		for (Node tnode : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelType.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
 //			System.out.println("adding "+tnode);
 			ca.setVisitedSet(visited);
 			retaln.add(tnode);
@@ -106,7 +107,7 @@ public class LicaUtil {
 //			System.out.println("inIdSet "+inIdSet.size());
 //			System.out.println("outIdSet "+outIdSet.size());
 			le.setVisitedSet(testnodes);
-			for (Node tnode : Traversal.description().breadthFirst().evaluator(le).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+			for (Node tnode : Traversal.description().breadthFirst().evaluator(le).relationships(RelType.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
 //				System.out.println("\tadding "+tnode);
 				retaln.add(tnode);
 			}
@@ -135,7 +136,7 @@ public class LicaUtil {
 		for (int i = 0; i < nodeSet.size(); i++) {
 			int num = 0;
 			// only way to get number of relationships
-			for (Relationship rel : nodeSet.get(i).getRelationships(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
+			for (Relationship rel : nodeSet.get(i).getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)) {
 				num++;
 			}
 			// exit on first node (if any) with only one relationship; same result, potentially fewer iterations
@@ -149,7 +150,7 @@ public class LicaUtil {
 			}
 		}
 		Node innode = firstNode;
-		for (Path pa : Traversal.description().depthFirst().relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {
+		for (Path pa : Traversal.description().depthFirst().relationships(RelType.MRCACHILDOF, Direction.OUTGOING).traverse(innode)) {
 			boolean going = true;
 			for (Node tnode : pa.nodes()) {
 				long[] dbnodei = (long[]) tnode.getProperty("mrca");
@@ -208,7 +209,7 @@ public class LicaUtil {
 		for(Node innode: nodeSetsm){
 			ca.setVisitedSet(testnodes);
 //			System.out.println("superlica inidset: "+inIdSet.size());
-			for (Node tnode : Traversal.description().depthFirst().evaluator(ca).relationships(RelTypes.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+			for (Node tnode : Traversal.description().depthFirst().evaluator(ca).relationships(RelType.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
 				retaln.add(tnode);
 			}
 			testnodes = ca.getVisitedSet();
@@ -235,7 +236,7 @@ public class LicaUtil {
 		while (going) {
 			// get parent
 			try{
-				innode = innode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+				innode = innode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 			}catch(Exception e){
 				e.printStackTrace();
 				break;
@@ -261,7 +262,7 @@ public class LicaUtil {
 	 * @return
 	 */
 	public static Node getDraftTreeLICA(Iterable<Node> inNodes) {
-		return getSynthTreeLICA(inNodes, (String) Constants.DRAFT_TREE_NAME.value);
+		return getSynthTreeLICA(inNodes, (String) GeneralConstants.DRAFT_TREE_NAME.value);
 	}
 
 	protected static void checkNodeId(Node n) {
@@ -321,7 +322,7 @@ public class LicaUtil {
 			// get parent
 			try {
 				boolean found = false;
-				for (Relationship rel : innode.getRelationships(RelTypes.SYNTHCHILDOF, Direction.OUTGOING)) {
+				for (Relationship rel : innode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
 					if (String.valueOf(rel.getProperty("name")).compareTo(treeName) == 0) {
 						found = true;
 						innode = rel.getEndNode();
@@ -391,7 +392,7 @@ public class LicaUtil {
 		while (going) {
 			// get parent
 			try{
-				innode = innode.getSingleRelationship(RelTypes.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+				innode = innode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 			}catch(Exception e){
 				break;
 			}

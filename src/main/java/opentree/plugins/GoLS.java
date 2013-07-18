@@ -19,7 +19,7 @@ import opentree.GraphBase;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.MainRunner;
-import opentree.RelTypes;
+import opentree.constants.RelType;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttolIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
@@ -311,7 +311,7 @@ public class GoLS extends ServerPlugin {
 		
 		HashSet<Long> childIds = new HashSet<Long>();
 		
-        for (Relationship synthChildRel : startNode.getRelationships(Direction.INCOMING, RelTypes.SYNTHCHILDOF)) {
+        for (Relationship synthChildRel : startNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
         	if (GraphBase.DRAFTTREENAME.equals(String.valueOf(synthChildRel.getProperty("name"))))	{
         		childIds.add(synthChildRel.getStartNode().getId());
         	}

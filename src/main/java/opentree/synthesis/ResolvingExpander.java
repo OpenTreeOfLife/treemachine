@@ -2,7 +2,7 @@ package opentree.synthesis;
 
 import java.util.LinkedList;
 
-import opentree.RelTypes;
+import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -120,7 +120,7 @@ public class ResolvingExpander implements PathExpander {
 		//TODO: why aren't these filtered at this stage
 		//TODO: we should rank at this stage as well
 		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
-		for (Relationship rel : node.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+		for (Relationship rel : node.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 			if (filter != null){
 				boolean t = filter.filterRelationship(rel);
 				if (t == true)
@@ -144,7 +144,7 @@ public class ResolvingExpander implements PathExpander {
 	@Override
 	public Iterable<Relationship> expand(Path arg0, BranchState arg1) {
 		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
-		for (Relationship rel : arg0.endNode().getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+		for (Relationship rel : arg0.endNode().getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 			if (filter != null){
 				boolean t = filter.filterRelationship(rel);
 				if (t == true)

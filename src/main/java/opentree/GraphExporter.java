@@ -24,6 +24,7 @@ import java.util.Stack;
 
 //import opentree.RelTypes;
 
+import opentree.constants.RelType;
 import opentree.exceptions.TaxonNotFoundException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -135,7 +136,7 @@ public class GraphExporter extends GraphBase {
 		retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
 		// get the list of nodes
 		HashSet<Node> nodes = new HashSet<Node>();
-		for (Node tnode : Traversal.description().relationships(RelTypes.STREECHILDOF, Direction.INCOMING)
+		for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
 				.traverse(startnode).nodes()) {
 			nodes.add(tnode);
 		}
@@ -155,7 +156,7 @@ public class GraphExporter extends GraphBase {
 			HashMap<Long, Integer> parcount = new HashMap<Long, Integer>();
 			ArrayList<String> slist = new ArrayList<String>();
 			int relcount = 0;
-			for (Relationship rel : tnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)) {
+			for (Relationship rel : tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
 				if (taxonomy == true || ((String) rel.getProperty("source")).compareTo("taxonomy") != 0) {
 					if (parcount.containsKey(rel.getEndNode().getId()) == false) {
 						parcount.put(rel.getEndNode().getId(), 0);
@@ -179,7 +180,7 @@ public class GraphExporter extends GraphBase {
 			// calculate the inverse Simpson effective number of children
 			HashMap<Long, Integer> chcount = new HashMap<Long, Integer>();
 			relcount = 0;
-			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelTypes.STREECHILDOF)) {
+			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 				if (taxonomy == true || ((String) rel.getProperty("source")).compareTo("taxonomy") != 0) {
 					if (chcount.containsKey(rel.getStartNode().getId()) == false) {
 						chcount.put(rel.getStartNode().getId(), 0);
@@ -214,7 +215,7 @@ public class GraphExporter extends GraphBase {
 			}
 			double supp = (double) sourcelists.get(tnode.getId()).size() / (double) sources.size();
 			// give tips no support so they don't give weird looking
-			if (tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF) == false) {
+			if (tnode.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF) == false) {
 				nodesupport.put(tnode.getId(), 1.);
 			} else {
 				nodesupport.put(tnode.getId(), supp);
@@ -291,7 +292,7 @@ public class GraphExporter extends GraphBase {
 				//			else
 				//				retstring.append("<data key=\"d0\">"+tnode.getId()+"</data>\n");
 				//skip tips
-				if(tnode.hasRelationship(Direction.INCOMING, RelTypes.STREECHILDOF)){
+				if(tnode.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF)){
 					retstring.append("<data key=\"d2\">"+nodesupport.get(tnode.getId())+"</data>\n");
 					tnode.setProperty("nodesupport", nodesupport.get(tnode.getId()));
 				}
@@ -343,9 +344,9 @@ public class GraphExporter extends GraphBase {
 		}
 		try {
 			PrintWriter outFile = new PrintWriter(new FileWriter(outfile));
-			for (Node tnode : Traversal.description().relationships(RelTypes.MRCACHILDOF, Direction.INCOMING)
+			for (Node tnode : Traversal.description().relationships(RelType.MRCACHILDOF, Direction.INCOMING)
 					.traverse(startnode).nodes()) {
-				for (Relationship trel : tnode.getRelationships(RelTypes.STREECHILDOF)) {
+				for (Relationship trel : tnode.getRelationships(RelType.STREECHILDOF)) {
 					if (taxonomy == false) {
 						if (((String) trel.getProperty("source")).equals("taxonomy"))
 							continue;
@@ -399,7 +400,7 @@ public class GraphExporter extends GraphBase {
 			mrpmap.put(temp, new HashSet<Long>());
 		}
 		TraversalDescription STREECHILDOF_TRAVERSAL = Traversal.description()
-				.relationships(RelTypes.STREECHILDOF, Direction.INCOMING);
+				.relationships(RelType.STREECHILDOF, Direction.INCOMING);
 		for (Node tnd : STREECHILDOF_TRAVERSAL.traverse(startnode).nodes()) {
 			long[] dbnodet = (long[]) tnd.getProperty("mrca");
 			if (dbnodet.length == 1)
@@ -459,11 +460,11 @@ public class GraphExporter extends GraphBase {
 	public String constructJSONAltParents(Node firstNode) {
 		String sourcename = "ATOL_III_ML_CP";
 		// sourcename = "dipsacales_matK";
-		PathFinder<Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelTypes.MRCACHILDOF, Direction.OUTGOING), 100);
+		PathFinder<Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelType.MRCACHILDOF, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
 		root.setName((String) firstNode.getProperty("name"));
 		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
-				.relationships(RelTypes.MRCACHILDOF, Direction.INCOMING);
+				.relationships(RelType.MRCACHILDOF, Direction.INCOMING);
 		ArrayList<Node> visited = new ArrayList<Node>();
 		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
 		HashMap<Node, JadeNode> nodejademap = new HashMap<Node, JadeNode>();
@@ -473,11 +474,11 @@ public class GraphExporter extends GraphBase {
 		root.assocObject("nodeid", firstNode.getId());
 		for (Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(firstNode).nodes()) {
 			// if it is a tip, move back,
-			if (friendnode.hasRelationship(Direction.INCOMING, RelTypes.MRCACHILDOF)) {
+			if (friendnode.hasRelationship(Direction.INCOMING, RelType.MRCACHILDOF)) {
 				continue;
 			} else {
 				Node curnode = friendnode;
-				while (curnode.hasRelationship(Direction.OUTGOING, RelTypes.MRCACHILDOF)) {
+				while (curnode.hasRelationship(Direction.OUTGOING, RelType.MRCACHILDOF)) {
 					// if it is visited continue
 					if (visited.contains(curnode)) {
 						break;
@@ -488,7 +489,7 @@ public class GraphExporter extends GraphBase {
 							newnode.setName(newnode.getName().replace("(", "_").replace(")", "_").replace(" ", "_").replace(":", "_"));
 						}
 						Relationship keep = null;
-						for (Relationship rel : curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)) {
+						for (Relationship rel : curnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
 							if (keep == null) {
 								keep = rel;
 							}
@@ -502,7 +503,7 @@ public class GraphExporter extends GraphBase {
 						}
 						newnode.assocObject("nodeid", curnode.getId());
 						ArrayList<Node> conflictnodes = new ArrayList<Node>();
-						for (Relationship rel : curnode.getRelationships(Direction.OUTGOING, RelTypes.STREECHILDOF)) {
+						for (Relationship rel : curnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
 							if (rel.getEndNode().getId() != keep.getEndNode().getId() && conflictnodes.contains(rel.getEndNode()) == false) {
 								// check for nested conflicts
 								// if(pf.findSinglePath(keep.getEndNode(), rel.getEndNode())==null)
@@ -573,13 +574,13 @@ public class GraphExporter extends GraphBase {
 		cne.setChildThreshold(200);
 		se.setStartNode(firstNode);
 		boolean taxonomy = true;
-		RelationshipType defaultchildtype = RelTypes.TAXCHILDOF;
-		RelationshipType defaultsourcetype = RelTypes.TAXCHILDOF;
+		RelationshipType defaultchildtype = RelType.TAXCHILDOF;
+		RelationshipType defaultsourcetype = RelType.TAXCHILDOF;
 		String sourcename = "ncbi";
-		if (firstNode.hasRelationship(RelTypes.MRCACHILDOF)) {
+		if (firstNode.hasRelationship(RelType.MRCACHILDOF)) {
 			taxonomy = false;
-			defaultchildtype = RelTypes.MRCACHILDOF;
-			defaultsourcetype = RelTypes.STREECHILDOF;
+			defaultchildtype = RelType.MRCACHILDOF;
+			defaultsourcetype = RelType.STREECHILDOF;
 			sourcename = "ATOL_III_ML_CP";
 		}
 		if (domsource != null) {

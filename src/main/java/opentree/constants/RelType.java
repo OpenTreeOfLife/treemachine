@@ -1,8 +1,8 @@
-package opentree;
+package opentree.constants;
 
 import org.neo4j.graphdb.RelationshipType;
 
-public enum RelTypes implements RelationshipType{
+public enum RelType implements RelationshipType {
 	MRCACHILDOF, //standard rel for graph db, from node to parent
 	TAXCHILDOF, //standard rel for tax db, from node to parent
 	SYNONYMOF,

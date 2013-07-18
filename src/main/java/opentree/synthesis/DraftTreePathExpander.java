@@ -2,8 +2,8 @@ package opentree.synthesis;
 
 import java.util.ArrayList;
 
-import opentree.Constants;
-import opentree.RelTypes;
+import opentree.constants.GeneralConstants;
+import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Path;
@@ -28,9 +28,9 @@ public class DraftTreePathExpander implements PathExpander {
 	@Override
 	public Iterable<Relationship> expand(Path arg0, BranchState arg1) {
 		ArrayList<Relationship> rels = new ArrayList<Relationship>();
-		for (Relationship rel : arg0.endNode().getRelationships(direction, RelTypes.SYNTHCHILDOF)) {
+		for (Relationship rel : arg0.endNode().getRelationships(direction, RelType.SYNTHCHILDOF)) {
 			if (rel.hasProperty("name")) {
-				if (String.valueOf(rel.getProperty("name")).equals(Constants.DRAFT_TREE_NAME.value)) {
+				if (String.valueOf(rel.getProperty("name")).equals(GeneralConstants.DRAFT_TREE_NAME.value)) {
 					rels.add(rel);
 				}
 			}
