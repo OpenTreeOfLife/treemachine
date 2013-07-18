@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import org.neo4j.graphdb.Node;
 
-import opentree.synthesis.SourceProperty;
+import opentree.constants.SourceProperty;
 
 public class ArgusonRepresentationConverter extends MappingRepresentation {
 

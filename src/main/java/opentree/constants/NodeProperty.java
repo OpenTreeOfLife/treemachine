@@ -1,15 +1,24 @@
 package opentree.constants;
 
+/**
+ * Node properties as defined within the graph itself. These are used whenever node properties are accessed
+ * within the graph.
+ * 
+ * @author cody hinchliff
+ *
+ */
 public enum NodeProperty {
 
-	GRAPH_ROOT_NODE_NAME ("graphRootNodeName"),
-	GRAPH_ROOT_NODE_ID ("graphRootNodeId"),
-	NAME ("name"),
-	TAX_UID ("tax_uid");
+	GRAPH_ROOT_NODE_NAME ("graphRootNodeName", String.class),
+	GRAPH_ROOT_NODE_ID ("graphRootNodeId", String.class),
+	NAME ("name", String.class),
+	TAX_UID ("tax_uid", String.class);
 	
 	public String propertyName;
-	
-	NodeProperty(String propertyName) {
-		this.propertyName = propertyName;
-	}
+	public final Class<?> type;
+    
+    NodeProperty(String propertyName, Class<?> T) {
+        this.propertyName = propertyName;
+        this.type = T;
+    }
 }

@@ -2,13 +2,13 @@ package opentree.constants;
 
 public enum RelProperty {
 
-//	NAME ("name"),
-	SOURCE ("source");
+	SOURCE ("source", String.class);
 	
 	public String propertyName;
-	
-	RelProperty(String propertyName) {
-		this.propertyName = propertyName;
-	}
-	
+	public final Class<?> type;
+    
+    RelProperty(String propertyName, Class<?> T) {
+        this.propertyName = propertyName;
+        this.type = T;
+    }	
 }

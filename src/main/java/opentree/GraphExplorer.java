@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.Stack;
 
 import opentree.constants.RelType;
+import opentree.constants.SourceProperty;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttolIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
@@ -32,7 +33,6 @@ import opentree.synthesis.RelationshipConflictResolver;
 import opentree.synthesis.RelationshipFilter;
 import opentree.synthesis.RelationshipRanker;
 import opentree.synthesis.ResolvingExpander;
-import opentree.synthesis.SourceProperty;
 import opentree.synthesis.SourcePropertyFilterCriterion;
 import opentree.synthesis.SourcePropertyPrioritizedRankingCriterion;
 import opentree.synthesis.SourcePropertyRankingCriterion;

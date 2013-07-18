@@ -1,9 +1,8 @@
-package opentree.synthesis;
+package opentree.constants;
 
 /**
- * Source properties as defined by the ottol controlled vocabulary. These are required by the SourcePropertyFilterCriterion and
- * SourcePropertySelectCriterion to filter and select relationships, respectively. This enum is also used by the
- * ArgusRepresentationConverter (and elsewhere?)
+ * Source properties as defined by the ottol controlled vocabulary. These are used whenever source properties are accessed, e.g. synthesis
+ * (SourcePropertyFilterCriterion.class and SourcePropertySelectCriterion.class), export (ArgusRepresentationConverter.class).
  * 
  * @author cody hinchliff
  *

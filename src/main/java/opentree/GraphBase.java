@@ -22,7 +22,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 /**
  * 
- * @author Stephen Smith
+ * @author Stephen Smith, cody hinchliff
  *
  *
  * Node properties
@@ -57,7 +57,7 @@ public abstract class GraphBase {
 	// this is clunky, might be a better way to do this
 	public static final String DRAFTTREENAME = (String) GeneralConstants.DRAFT_TREE_NAME.value;
 	
-	// all constructor methods require a graph database to be provided
+	// all constructor methods require a graph database
 	public GraphBase(String graphName) {
 		graphDb = new GraphDatabaseAgent(graphName);
 		initNodeIndexes();
@@ -96,30 +96,6 @@ public abstract class GraphBase {
 	public void shutdownDB(){
 		graphDb.shutdownDb();
 	}
-	
-	/* DEPRECATED, identical functionality to findTaxNodeByName
-	 * @return Checks graphNodeIndex for `name` and returns null (if the name is not found) or 
-	 *  the node using IndexHits<Node>.getSingle()
-	 * helper function primarily written to avoid forgetting to call hits.close();
-	 *
-    public Node findGraphNodeByName(final String name) {
-        IndexHits<Node> hits = GraphBase.graphNodeIndex.get("name", name);
-		Node firstNode = hits.getSingle();
-		
-		
-        Node firstNode = null;
-        try {
-        	firstNode = hits.getSingle();
-        } catch (NoSuchElementException ex) {
-        	throw new MultipleHitsWhenOneExpectedException(taxUID);
-        } finally {
-        	hits.close();
-        }
-		
-		
-		hits.close();
-		return firstNode;
-	} */
     
 	/**
 	 * Wrapper function for taxUID searches on the graphTaxUIDNodes index. Throws TaxonNotFoundException if the search fails,

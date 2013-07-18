@@ -1,5 +1,7 @@
 package opentree.synthesis;
 
+import opentree.constants.SourceProperty;
+
 public class SourcePropertyValue implements Comparable<SourcePropertyValue> {
 	
 	private String s;
