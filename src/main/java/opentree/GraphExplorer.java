@@ -855,7 +855,7 @@ public class GraphExplorer extends GraphBase {
         }
         tx = graphDb.beginTx();
         try {
-            //addMissingChildrenToDraftTree(startNode,startNode);
+            addMissingChildrenToDraftTree(startNode,startNode);
         	tx.success();
         } catch (Exception ex) {
         	tx.failure();
