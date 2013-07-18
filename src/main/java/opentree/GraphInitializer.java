@@ -18,9 +18,9 @@ import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
 import opentree.exceptions.TaxonNotFoundException;
 
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -33,37 +33,31 @@ public class GraphInitializer extends GraphBase{
 
 	private int transactionFrequency = 100000;
 	private int cur_tran_iter = 0;
-	private JadeTree jt;
-	private String treestring; // original newick string for the jt
-	private ArrayList<Node> updatedNodes;
-	private HashSet<Node> updatedSuperLICAs;
+//	private JadeTree jt;
+//	private String treestring; // original newick string for the jt
+//	private ArrayList<Node> updatedNodes;
+//	private HashSet<Node> updatedSuperLICAs;
 	private Transaction	tx;
 	//THIS IS FOR PERFORMANCE
-	private TLongArrayList root_ndids;
-	boolean assumecomplete = false;//this will trigger getalllica if true (getbipart otherwise)
+//	private TLongArrayList root_ndids;
+	boolean assumecomplete = false; // this will trigger getalllica if true (getbipart otherwise)
 	
 	// containers used during import
-	HashMap<String,ArrayList<ArrayList<String>>> synonymHash;
-	HashMap<String, Node> taxUIDToNodeMap;
-	HashMap<String, String> childNodeIDToParentNodeIDMap;
-	boolean synFileExists;
+	private HashMap<String,ArrayList<ArrayList<String>>> synonymHash;
+	private HashMap<String, Node> taxUIDToNodeMap;
+	private HashMap<String, String> childNodeIDToParentNodeIDMap;
+	private boolean synFileExists;
 	
 	public GraphInitializer(String graphname) {
 		super(graphname);
-//		graphDb = new GraphDatabaseAgent(graphname);
-//		this.initializeIndices();
 	}
 
 	public GraphInitializer(EmbeddedGraphDatabase eg) {
 		super(eg);
-//		graphDb = new GraphDatabaseAgent(graphn);
-//		this.initializeIndices();
 	}
 	
 	public GraphInitializer(GraphDatabaseAgent gdb) {
 		super(gdb);
-//		graphDb = graphn;
-//		this.initializeIndices();
 	}
 	
 	public GraphInitializer(GraphDatabaseService gs) {
@@ -76,19 +70,6 @@ public class GraphInitializer extends GraphBase{
 		childNodeIDToParentNodeIDMap = new HashMap<String, String>();
 		synFileExists = false;
 	}
-	
-	/*
-	 * Helper function called by constructors so that we can update the list of indices in one place.
-	 *
-	private void initializeIndices() {
-		graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
-		graphTaxUIDNodeIndex = graphDb.getNodeIndex( "graphTaxUIDNodes" ); // tax_uid is the key
-		synTaxUIDNodeIndex = graphDb.getNodeIndex("synTaxUIDNodes");
-		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
-		sourceRelIndex = graphDb.getRelIndex("sourceRels");
-		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
-		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-	} */
 	
 	/**
 	 * Reads a taxonomy file with rows formatted as:
@@ -177,12 +158,12 @@ public class GraphInitializer extends GraphBase{
 				
 				// process lines in sets of N = transactionFrequency
 				if (count % transactionFrequency == 0) {
-					System.out.print(count);
+					System.out.print("cur transaction: " + count);
 					System.out.print("\n");
 					tx = graphDb.beginTx();
 					try {
 						for (int i = 0; i < templines.size(); i++) {
-							processTaxInputLine(templines.get(i));
+							processTaxInputLine(templines.get(i)); // replaced repeated code with function call
 						}
 						tx.success();
 					} finally {
@@ -255,7 +236,7 @@ public class GraphInitializer extends GraphBase{
 			
 		} catch(IOException ioe) {}
 
-		// taxonomy structure is done. now add the MRCA and STREE_CHILDOF relationships
+		// taxonomy structure is done. now add the MRCA_CHILDOFgit and STREE_CHILDOF relationships
 		initMrcaAndStreeRelsTax();
 	}
 	
@@ -278,8 +259,6 @@ public class GraphInitializer extends GraphBase{
 		String name = st.nextToken().trim();
 		String rank = st.nextToken().trim();
 		String srce = st.nextToken().trim();
-		//String srce_id = st.nextToken().trim();
-		//String srce_pid = st.nextToken().trim();
 		String uniqname = st.nextToken().trim();
 
 		Node tnode = graphDb.createNode();
@@ -288,11 +267,11 @@ public class GraphInitializer extends GraphBase{
 		tnode.setProperty(NodeProperty.TAX_PARENT_UID.propertyName, pid);
 		tnode.setProperty(NodeProperty.TAX_RANK.propertyName, rank);
 		tnode.setProperty(NodeProperty.TAX_SOURCE.propertyName, srce);
-		//tnode.setProperty("tax_sourceid",srce_id);
-		//tnode.setProperty("tax_sourcepid",srce_pid);
 		tnode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uniqname);
+		
+		// add index entries
 		graphNodeIndex.add( tnode, NodeProperty.NAME.propertyName, name );
-		graphTaxUIDNodeIndex.add(tnode, NodeProperty.NAME.propertyName, tid);
+		graphTaxUIDNodeIndex.add(tnode, NodeProperty.TAX_UID.propertyName, tid);
 		
 		if (pid.length() > 0) {
 			childNodeIDToParentNodeIDMap.put(tid, pid);
@@ -348,15 +327,14 @@ public class GraphInitializer extends GraphBase{
 	 * @throws TaxonNotFoundException 
 	 */
 	private void initMrcaAndStreeRelsTax() throws TaxonNotFoundException {
-		tx = graphDb.beginTx();
-		//start from the node called root
-//		Node startnode = (graphNodeIndex.get("name", "life")).next();
 		Node startnode = getGraphRootNode();
+
+		tx = graphDb.beginTx();
 		try {
-			//root should be the taxonomy startnode
+			// root should be the taxonomy startnode
 //			_LOG.debug("startnode name = " + (String)startnode.getProperty("name"));
 			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-					.relationships( RelType.TAXCHILDOF,Direction.INCOMING );
+					.relationships(RelType.TAXCHILDOF,Direction.INCOMING);
 			for (Node friendnode: CHILDOF_TRAVERSAL.traverse(startnode).nodes()) {
 				Node taxparent = getAdjNodeFromFirstRelationshipBySource(friendnode, RelType.TAXCHILDOF, Direction.OUTGOING, "ottol");
 				if (taxparent != null) {
@@ -378,7 +356,7 @@ public class GraphInitializer extends GraphBase{
 						tx.success();
 						tx.finish();
 						tx = graphDb.beginTx();
-						System.out.println("cur transaction: "+cur_tran_iter);
+						System.out.println("cur transaction: " + cur_tran_iter);
 					}
 				} else {
 					System.out.println(friendnode+"\t"+friendnode.getProperty(NodeProperty.NAME.propertyName));
@@ -388,7 +366,7 @@ public class GraphInitializer extends GraphBase{
 		} finally {
 			tx.finish();
 		}
-		//start the mrcas
+		// start the mrcas
 		System.out.println("calculating mrcas");
 		try {
 			tx = graphDb.beginTx();
@@ -430,5 +408,4 @@ public class GraphInitializer extends GraphBase{
 			dbnode.setProperty(NodeProperty.NESTED_MRCA.propertyName, nested_mrcas.toArray());
 		}
 	}
-	
 }
