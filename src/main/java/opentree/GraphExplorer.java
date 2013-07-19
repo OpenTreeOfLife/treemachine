@@ -956,59 +956,60 @@ public class GraphExplorer extends GraphBase {
      * @param descNodes
      * @return licaNode
      */
-    private Node getLICAForDraftTreeNodes(Iterable<Node> descNodes) {
-        
-        if (!descNodes.iterator().hasNext()) {
-            throw new java.lang.NullPointerException("Attempt to find the MRCA of zero taxa");
-        }
-
-        Iterator<Node> descNodesIter = descNodes.iterator();
-	    Node firstNode = descNodesIter.next();
-
-	    if (!descNodesIter.hasNext()) {
-	    	// there is only one descendant in the set; it is its own mrca
-	    	return firstNode;
-	    }
-	    
-        // first get the full path to root from an arbitrary taxon in the set
-	    List<Long> pathNodeIds = getDraftTreePathToRoot(firstNode);
-	    
-	    // testing
-//	    System.out.println("first path");
-//	    for (long nid : pathNodeIds) {
-//	    	System.out.println(nid);
-//	    }
-	    
-        // compare paths from all other taxa to find the mrca
-        int i = 0;
-        while (descNodesIter.hasNext()) {
-        	Node descNode = descNodesIter.next();
-        	
-    	    // testing
-//    	    System.out.println("next path");
-
-            for (long pid : getDraftTreePathToRoot(descNode)) {
-
-            	// testing
-//            	System.out.println("looking for " + pid + " in first path");
-            	
-                if (pathNodeIds.contains(pid)) {
-                	int j = pathNodeIds.indexOf(pid);
-
-                	// testing
- //               	System.out.println("found parent in first path, position " + j);
-
-                    if (i < j)
-                        i = j;
-                    break;
-                }
-            }
-        }
-        
-        // return the lica
-        return graphDb.getNodeById(pathNodeIds.get(i));
-
-    }
+	private Node getLICAForDraftTreeNodes(Iterable<Node> descNodes) {
+		
+		if (!descNodes.iterator().hasNext()) {
+			throw new java.lang.NullPointerException("Attempt to find the MRCA of zero taxa");
+		}
+		
+		Iterator<Node> descNodesIter = descNodes.iterator();
+		Node firstNode = descNodesIter.next();
+		
+		if (!descNodesIter.hasNext()) {
+			// there is only one descendant in the set; it is its own mrca
+			return firstNode;
+		}
+		
+		// first get the full path to root from an arbitrary taxon in the set
+		List<Long> referencePathNodeIds = getDraftTreePathToRoot(firstNode);
+		
+		// testing
+//		 System.out.println("first path");
+//		 	for (long nid : referencePathNodeIds) {
+//		 	System.out.println(nid);
+//		 }
+		
+		// compare paths from all other taxa to find the mrca
+		int i = 0;
+		while (descNodesIter.hasNext()) {
+			Node descNode = descNodesIter.next();
+			
+			// testing
+			// System.out.println("next path");
+			
+			for (long pid : getDraftTreePathToRoot(descNode)) {
+				
+				// testing
+				// System.out.println("looking for " + pid + " in first path");
+				
+				if (referencePathNodeIds.contains(pid)) {
+					int j = referencePathNodeIds.indexOf(pid);
+					
+					// testing
+					// System.out.println("found parent in first path, position " + j);
+					if (i < j) {
+						i = j;
+					}
+					break;
+				}
+			}
+		}
+		
+		//System.out.println("i currently equals: " + i);
+		// return the lica
+		return graphDb.getNodeById(referencePathNodeIds.get(i));
+		
+	}
     
     /**
      * Used to add missing external nodes to the draft tree stored in the graph.
