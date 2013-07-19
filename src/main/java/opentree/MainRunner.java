@@ -1013,7 +1013,7 @@ public class MainRunner {
 			// build the list of preferred sources, this should probably be done externally
 			LinkedList<String> preferredSources = new LinkedList<String>();
 			String [] tsl = slist.split(",");
-			for(int i=0;i<tsl.length;i++){preferredSources.add(tsl[i]);}
+			for (int i = 0; i < tsl.length; i++){preferredSources.add(tsl[i]);}
 			System.out.println(preferredSources);
 			//preferredSources.add("taxonomy");, need to add taxonomy 
 
@@ -1023,7 +1023,7 @@ public class MainRunner {
 				throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
 			}
 
-			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
+			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources, test);
 			System.out.println("done with synthesis");
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();

@@ -781,16 +781,18 @@ public class GraphExplorer extends GraphBase {
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         while (hits.hasNext()) {
             Node n = hits.next();
-            if(n.hasProperty("ot:studyId")){
-            	if(justSourcePriorityList.contains(n.getProperty("ot:studyId"))==false)
+            if (n.hasProperty("ot:studyId")){
+            	if (justSourcePriorityList.contains(n.getProperty("ot:studyId")) == false) {
             		filteredsources.add((String)n.getProperty("ot:studyId"));
-            }else{
-            	if(justSourcePriorityList.contains(n.getProperty("source"))==false)
+            	}
+            } else {
+            	if (justSourcePriorityList.contains(n.getProperty("source")) == false) {
             		filteredsources.add((String) n.getProperty("source"));
+            	}
             }
         }
         System.out.println("filtered: "+filteredsources);
-        if(filteredsources.size() > 0){
+        if (filteredsources.size() > 0) {
         	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
         	draftSynthesisMethod.setFilter(rf);
         }
@@ -807,17 +809,17 @@ public class GraphExplorer extends GraphBase {
         draftSynthesisMethod.setConflictResolver(rcr);
         
         // user feedback
-        System.out.println("\n"+draftSynthesisMethod.getDescription());
+        System.out.println("\n" + draftSynthesisMethod.getDescription());
         
         // set empty parameters for initial recursion
-        Node originalParent = null;
+        Node originalParent = null; // hmm. not used.
 
-        // recusively build the tree structure
+        // recursively build the tree structure
         knownIdsInTree = new HashSet<Long>();
         Transaction tx = graphDb.beginTx();
         String synthTreeName = DRAFTTREENAME;
         try {
-        	for(Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()){
+        	for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
                 // store the relationship
         		Node parentNode = rel.getEndNode();
         		Node curNode = rel.getStartNode();
@@ -854,15 +856,17 @@ public class GraphExplorer extends GraphBase {
         } finally {
         	tx.finish();
         }
-        tx = graphDb.beginTx();
-        try {
-            addMissingChildrenToDraftTree(startNode,startNode);
-        	tx.success();
-        } catch (Exception ex) {
-        	tx.failure();
-        	ex.printStackTrace();
-        } finally {
-        	tx.finish();
+        if (!test) {
+	        tx = graphDb.beginTx();
+	        try {
+	            addMissingChildrenToDraftTree(startNode,startNode);
+	        	tx.success();
+	        } catch (Exception ex) {
+	        	tx.failure();
+	        	ex.printStackTrace();
+	        } finally {
+	        	tx.finish();
+	        }
         }
         System.out.println("exiting the sythesis");
         return true;
