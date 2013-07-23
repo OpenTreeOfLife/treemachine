@@ -51,7 +51,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 			} else {
 				name = rel.getStartNode().toString();
 			}
-			System.out.println(name + " has " + descendantIds.size() + " mrcas");
+			System.out.println(name + " has " + descendantIds.size() + " terminal descendants");
 		}
 	}
 	
