@@ -55,7 +55,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 
 		// just user feedback for non-terminal nodes
 		if (descendantIds.size() > 1) {
-			System.out.println("\tobserving node " + getIdString(rel.getStartNode()) + " (" + descendantIds.size() + " descendants) for the first time");
+			System.out.println("\tobserving internal node " + getIdString(rel.getStartNode()) + " (" + descendantIds.size() + " descendants) for the first time");
 		}
 	}
 	
