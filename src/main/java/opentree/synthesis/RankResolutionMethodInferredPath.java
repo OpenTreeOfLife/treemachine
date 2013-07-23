@@ -8,7 +8,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 import opentree.LicaUtil;
+import opentree.constants.RelType;
 
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
 /**
@@ -32,7 +35,14 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	public RankResolutionMethodInferredPath() {
 		initialize();
 	}
-	
+
+	public enum ConflictType {
+		NO_CONFLICT, 			// indicates no overlap
+		FIRST_SUBSETOF_SECOND,	// indicates that the second element compared contains all the descendants of the first
+		SECOND_SUBSETOF_FIRST,	// indicates that the first element compared contains all the descendants of the second
+		INCOMPATIBLE			// indicates that neither element is a subset of the other, but they have overalpping descendent sets
+	}
+
 	private void initialize() {
 		candRelDescendantIdsMap = new HashMap<Relationship, TLongArrayList>();
 		bestRels = new LinkedList<Relationship>();
@@ -45,44 +55,56 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 
 		// just user feedback for non-terminal nodes
 		if (descendantIds.size() > 1) {
-			String name = null;
-			if (rel.getStartNode().hasProperty("name")) {
-				name = String.valueOf(rel.getStartNode().getProperty("name"));
-			} else {
-				name = rel.getStartNode().toString();
-			}
-			System.out.println(name + " has " + descendantIds.size() + " mrcas");
+			System.out.println("\tobserving node " + getIdString(rel.getStartNode()) + " (" + descendantIds.size() + " descendants) for the first time");
 		}
 	}
 	
 	/**
-	 * the return codes are
-	 * 0 - no conflict
-	 * 1 - regular conflict
-	 * 2 - candidate contains saved and is compatible
+	 * tests for conflict and returns a ConflictType from the enum above
 	 * @param candidate
 	 * @param saved
 	 * @return 
 	 */
-	private int testForConflict(Relationship candidate, Relationship saved) {
+	private ConflictType testForConflict(Relationship rel1, Relationship rel2) {
 
-		if (!candRelDescendantIdsMap.containsKey(candidate)) {
-			storeDescendants(candidate);
+		if (!candRelDescendantIdsMap.containsKey(rel1)) {
+			storeDescendants(rel1);
 		}
 		
-		if (!candRelDescendantIdsMap.containsKey(saved)) {
-			storeDescendants(saved);
+		if (!candRelDescendantIdsMap.containsKey(rel2)) {
+			storeDescendants(rel2);
 		}
 
-		// if the relationships share any descendant leaves, then they are in conflict
-		if (LicaUtil.containsAnyt4jUnsorted(candRelDescendantIdsMap.get(saved), candRelDescendantIdsMap.get(candidate))) {
-			if (candRelDescendantIdsMap.get(candidate).containsAll(candRelDescendantIdsMap.get(saved))) {
-				return 2;
+		// if the relationships share any descendant leaves, then there is some kind of conflict
+		if (LicaUtil.containsAnyt4jUnsorted(candRelDescendantIdsMap.get(rel2), candRelDescendantIdsMap.get(rel1))) {
+			
+			// but if one contains all the descendants of the other, then we will indicate that
+			if (candRelDescendantIdsMap.get(rel1).containsAll(candRelDescendantIdsMap.get(rel2))) {
+				return ConflictType.SECOND_SUBSETOF_FIRST;
+			} else if (candRelDescendantIdsMap.get(rel2).containsAll(candRelDescendantIdsMap.get(rel1))) { 
+				return ConflictType.FIRST_SUBSETOF_SECOND;
 			}
-			return 1;
-		} else {
-			return 0;
+			
+			// otherwise they are incompatible
+			return ConflictType.INCOMPATIBLE;
+			
+		} else { // no conflict
+			return ConflictType.NO_CONFLICT;
 		}
+	}
+
+	/** just used for formatting node info for nice output */
+	private String getIdString(Node n) {
+		String idStr = "'";
+		if (n.hasProperty("name")) {
+			idStr = idStr.concat((String) n.getProperty("name"));
+		}
+		return idStr.concat("' (id=").concat(String.valueOf(n.getId())).concat(")");
+	}
+
+	/** just used for formatting rel info for nice output */
+	private String getIdString(Relationship rel) {		
+		return "[relid=".concat(String.valueOf(rel.getId())).concat(" : ").concat(getIdString(rel.getStartNode())).concat(" child of node ").concat(getIdString(rel.getEndNode())).concat("]");
 	}
 	
 	@Override
@@ -90,43 +112,94 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 
 		initialize();
 		Iterator<Relationship> relsIter = rels.iterator();
-		HashSet <Relationship> removeSaved = new HashSet<Relationship> ();
-	    // for every candidate relationship
+		
+		// this keeps track of rels we've added that we subsequently want to remove, which we do
+		// when we find a relationship that is more inclusive than a previously saved conflicting rel,
+		// but which does not represent a biologically incompatible mapping of taxa. see testForConflict()
+		HashSet <Relationship> savedRelsToRemove = new HashSet<Relationship> ();
+
+		// for every candidate relationship
 	    while (relsIter.hasNext()) {
 	    	
 	    	Relationship candidate = relsIter.next();
-	    	System.out.println("\ttesting rel " + candidate.getId() + " for conflicts");
+	    	System.out.println("testing rel " + getIdString(candidate) + " for conflicts");
 
-	    	boolean saveRel = true;
-	    	// test for conflict between candidate against all saved
-	    	HashSet <Relationship> tremoveSaved = new HashSet<Relationship> ();	
+	    	// will record any previously saved rels that are conflicting/compatible but less inclusive
+//	    	HashSet <Relationship> tempSavedRelsToRemove = new HashSet<Relationship> ();
+
+	    	// test candidate against all saved
+	    	boolean candidatePassed = true;
 	    	for (Relationship saved : bestRels) {
-		    	//System.out.println("\t\tagainst rel " + saved.getId());
-	    		int tfc = testForConflict(candidate, saved);
-	    		if (tfc == 1) {
-			    	
-	    			// testing
-	    			//System.out.println("\t\tconflict found! offending rel=" + saved.getId());
-	    			
-			    	saveRel = false;
+
+	    		ConflictType tfc = testForConflict(candidate, saved);
+
+	    		// skip this candidate if it is incompatible with any saved rel
+	    		if (tfc == ConflictType.INCOMPATIBLE) {
+	    			System.out.println("\tconflict found! offending rel " + getIdString(saved));
+		    		System.out.println("\t-- rel " + candidate.getId() + " will NOT be added");
+			    	candidatePassed = false;
 	    			break;
-	    		}else if(tfc == 2){
-	    			System.out.println("remove saved relationship "+saved+" because it is contained within "+candidate);
-	    			tremoveSaved.add(saved);
+
+	    		// candidate is in conflict with a saved rel that is more inclusive than the candidate. we will not add it
+	    		} else if (tfc == ConflictType.FIRST_SUBSETOF_SECOND) {
+
+	    			System.out.println("\t-- rel" + candidate.getId() + " will NOT be added, it is included in rel " + getIdString(saved) + ". This might leave node " + getIdString(candidate.getEndNode()) + " as an empty tip...?");
+	    			candidatePassed = false;
+	    			break;
+	    			
+	    			/* 
+	    			 * this is all very hacky and doesn't seem to be working....
+	    			 */
+
+/*	    			// check this candidate's parent node to be sure it isn't an empty tip
+	    			Node curNode = candidate.getEndNode();
+	    			boolean curNodeIsEmpty = true;
+	    			while (true) {
+	    				
+	    				// if this node doesn't have any SYNTHCHILDOF children
+	    				for (Relationship siblingRel : curNode.getRelationships(Direction.INCOMING)) {
+	    					if (siblingRel.isType(RelType.SYNTHCHILDOF)) {
+	    						System.out.println("\t\tparent node " + getIdString(curNode) + " has SYNTHCHILDOF children. stopping search.");
+	    						curNodeIsEmpty = false;
+	    						break;
+	    					}
+	    				}
+	    				
+	    				// remove it and continue checking parents until we find one that does
+	    				if (curNodeIsEmpty) {
+	    					for (Relationship parentRel : curNode.getRelationships(Direction.OUTGOING)) {
+	    						if (parentRel.isType(RelType.SYNTHCHILDOF)) {
+		    						System.out.println("\t\tnode " + getIdString(curNode) + " is an empty tip. its outgoing SYNTHCHILDOF rel " + getIdString(parentRel) + " will be removed.");
+	    							curNode = parentRel.getEndNode();
+	    							savedRelsToRemove.add(parentRel);
+	    						}
+	    					}
+	    				}
+	    			} */
+	    			
+	    		// candidate is in conflict with a saved rel but is compatible and more inclusive.
+	    		} else if (tfc == ConflictType.SECOND_SUBSETOF_FIRST) {
+	    			
+	    			// replace the saved with the candidate and keep checking to see if there are other saved rels that conflict
+	    			System.out.println("\twill remove saved relationship " + getIdString(saved) + " because it is contained within " + getIdString(candidate));
+	    			savedRelsToRemove.add(saved);
 	    		}
 	    	}
 	    	
-	    	// if no conflict was found, add this rel to the saved set
-	    	if (saveRel) {
-		    	System.out.println("\t\t++rel " + candidate.getId() + " passed, it will be added");
+	    	if (candidatePassed) {
+		    	System.out.println("\t++ rel " + candidate.getId() + " passed, it will be added");
 	    		bestRels.add(candidate);
-	    		removeSaved.addAll(tremoveSaved);
-	    	}else{
-	    		System.out.println("\t\t--rel " + candidate.getId() + " failed, it will NOT be added");
+//	    		savedRelsToRemove.addAll(tempSavedRelsToRemove);
 	    	}
+	    	
+//	    	} else { // candidate failed
+//	    		System.out.println("\t--rel " + candidate.getId() + " failed, it will NOT be added");
+//	    	}
+	    	System.out.println("");
 	    }
-	    for(Relationship rel: removeSaved){
-	    	System.out.println("removing "+rel);
+	    
+	    for(Relationship rel: savedRelsToRemove){
+	    	System.out.println("removing "+ getIdString(rel));
 	    	bestRels.remove(rel);
 	    }
 		return bestRels;
@@ -134,6 +207,6 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	
 	@Override
 	public String getDescription() {
-		return "prefer relationships with higher ranking, and guarantee a fully acyclic result";
+		return "prefer relationships with higher ranking, but take paths with more descendants as long as they don't indicate relationships incompatible with preferred rels. Result will be fully acyclic.";
 	}
 }

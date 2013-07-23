@@ -772,9 +772,8 @@ public class GraphExplorer extends GraphBase {
         ResolvingExpander draftSynthesisMethod = new ResolvingExpander();
 
         // set filtering criteria
-        //RelationshipFilter rf = new RelationshipFilter();
-        //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         RelationshipFilter rf = new RelationshipFilter();
+        rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         HashSet<String> filteredsources = new HashSet<String>();
         //filteredsources.add("26");
         //ignore any source that isn't in our preferred list
@@ -793,7 +792,7 @@ public class GraphExplorer extends GraphBase {
         }
         System.out.println("filtered: "+filteredsources);
         if (filteredsources.size() > 0) {
-//        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
+        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
         	draftSynthesisMethod.setFilter(rf);
         }
         //if(true == true)
