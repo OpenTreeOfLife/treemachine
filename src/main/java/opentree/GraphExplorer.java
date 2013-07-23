@@ -793,7 +793,7 @@ public class GraphExplorer extends GraphBase {
         }
         System.out.println("filtered: "+filteredsources);
         if (filteredsources.size() > 0) {
-        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
+//        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
         	draftSynthesisMethod.setFilter(rf);
         }
         //if(true == true)
