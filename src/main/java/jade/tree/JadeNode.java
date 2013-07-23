@@ -2,6 +2,8 @@ package jade.tree;
 
 import java.util.*;
 
+import opentree.GeneralUtils;
+
 public class JadeNode {
     
     public static final double MIN_BRANCHLENGTH = 0.0000000000000000000001;
@@ -168,7 +170,7 @@ public class JadeNode {
 			}
 		}
 		if (this.name != null) {
-			ret.append(this.name);
+			ret.append(GeneralUtils.cleanName(this.name));
 		}
 		return ret.toString();
 	}
