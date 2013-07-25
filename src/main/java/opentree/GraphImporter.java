@@ -54,7 +54,27 @@ public class GraphImporter extends GraphBase {
 	private Transaction	tx;
 	//THIS IS FOR PERFORMANCE
 	private TLongArrayList root_ndids;
-	boolean assumecomplete = false;//this will trigger getalllica if true (getbipart otherwise)
+	boolean allTreesHaveAllTaxa = false;//this will trigger getalllica if true (getbipart otherwise)
+	
+	
+
+	// MOVED TO INSTANCE VARIABLES FROM addSetTreeToGraphWithIdsSet
+	private ArrayList<JadeNode> nds; // = jt.getRoot().getTips();
+	/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
+	  would make the look ups faster. See comment in testIsMRCA */
+	private TLongArrayList ndids; // = new TLongArrayList(); 
+	// We'll map each Jade node to the internal ID of its taxonomic node.
+	private HashMap<JadeNode,Long> hashnodeids; // = new HashMap<JadeNode,Long>();
+	// same as above but added for nested nodes, so more comprehensive and 
+	//		used just for searching. the others are used for storage
+	//HashSet<Long> ndidssearch = new HashSet<Long>();
+	private TLongArrayList ndidssearch; // = new TLongArrayList();
+	private HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch; // = new HashMap<JadeNode,ArrayList<Long>>();
+	// this loop fills ndids and hashnodeids or throws an Exception (for 
+	//		errors in matching leaves to the taxonomy). No other side effects.
+	// END MOVING TO INSTANCE VARIABLES
+
+	
 	
 	public GraphImporter(String graphName) {
 		super(graphName);
@@ -152,11 +172,20 @@ public class GraphImporter extends GraphBase {
 										 MessageLogger msgLogger) throws TaxonNotFoundException,TreeIngestException {
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
-		assumecomplete = taxacompletelyoverlap;
-		ArrayList<JadeNode> nds = jt.getRoot().getTips();
+		allTreesHaveAllTaxa = taxacompletelyoverlap;
 
+		// newly added, just initializing instance variables
+		nds = jt.getRoot().getTips();
+		ndids = new TLongArrayList(); 
+		hashnodeids = new HashMap<JadeNode,Long>();
+		ndidssearch = new TLongArrayList();
+		hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
+		// end newly added instance var init
+		
+		/* MOVING THESE TO INSTANCE VARIABLES
+		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 		/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
-		  would make the look ups faster. See comment in testIsMRCA */
+		  would make the look ups faster. See comment in testIsMRCA *
 		TLongArrayList ndids = new TLongArrayList(); 
 		// We'll map each Jade node to the internal ID of its taxonomic node.
 		HashMap<JadeNode,Long> hashnodeids = new HashMap<JadeNode,Long>();
@@ -165,6 +194,9 @@ public class GraphImporter extends GraphBase {
 		//HashSet<Long> ndidssearch = new HashSet<Long>();
 		TLongArrayList ndidssearch = new TLongArrayList();
 		HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
+		// END MOVING TO INSTANCE VARIABLES
+		 */
+
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
 		// TODO: this could be modified to account for internal node name mapping
@@ -237,7 +269,7 @@ public class GraphImporter extends GraphBase {
 		Node focalnode = findTaxNodeByName(focalgroup);
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
-		assumecomplete = taxacompletelyoverlap;
+		allTreesHaveAllTaxa = taxacompletelyoverlap;
 		PathFinder <Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelType.TAXCHILDOF, Direction.OUTGOING), 1000);
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
 
@@ -402,7 +434,7 @@ public class GraphImporter extends GraphBase {
 			 * we can use a simpler calculation if we can assume that the 'trees that come in 
 			 * are complete in their taxa
 			 */
-			if(assumecomplete == true){
+			if(allTreesHaveAllTaxa == true){
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
 			}else{
 				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
@@ -536,7 +568,7 @@ public class GraphImporter extends GraphBase {
 			 * we can use a simpler calculation if we can assume that the 'trees that come in 
 			 * are complete in their taxa
 			 */
-			if (assumecomplete == true) {
+			if (allTreesHaveAllTaxa == true) {
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
 			} else {
 				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);

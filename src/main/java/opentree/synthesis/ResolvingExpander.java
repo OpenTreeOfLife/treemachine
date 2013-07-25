@@ -1,7 +1,5 @@
 package opentree.synthesis;
 
-import java.util.LinkedList;
-
 import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
@@ -12,9 +10,17 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.BranchState;
 
 /**
- * Filters and selects relationships based on the provided RelationshipFilter and RelationshipSelector objects.
+ * A PathExpander class that performs all the steps to make decisions about which relationships to
+ * include in synthesis. These decisions involve three steps: filtering relationships using
+ * RelationshipFilter, ranking the remaining relationships using RelationshipRanker, and finally
+ * resolving conflicts among the ranked, filtered relationships using various ResolutionMethods (which
+ * need some work).
  * 
- * @author cody hinchliff
+ * All the logic for these decisions is farmed out to the individual classes that do the filtering,
+ * ranking, and conflict resolution. This keeps the high level logic clean and should also help
+ * isolate problems.
+ * 
+ * @author cody hinchliff and stephen smith
  *
  */
 public class ResolvingExpander implements PathExpander {
@@ -42,10 +48,10 @@ public class ResolvingExpander implements PathExpander {
 	}
 
 	/**
-	 * Set the conflict resolution method. For now there is only one method of resolving conflicts:
-	 * AcyclicRankPriorityResolution. Other methods could be implemented, e.g. branch and bound method
-	 * (which could possibly find better relationships than rank priority), or methods allowing the 
-	 * creation of cyclic synthetic graphs.
+	 * Set the conflict resolution method. The resolvers need some thought/work. Need to think about
+	 * how we would add multiple resolvers. E.g if there is no source preference, can there be branch and
+	 * bound? Can there be size preference? Methods allowing the creation of cyclic synthetis graphs could
+	 * also be implemented.
 	 * 
 	 * @param resolver
 	 * @return RelationshipEvaluator
@@ -55,12 +61,26 @@ public class ResolvingExpander implements PathExpander {
 		return this;
 	}
 
-	private void filter() {
+	/**
+	 * Filter the incoming STREECHILDOF relationships from the end node of the path (i.e. first node in the path),
+	 * and record the ones that pass in candidateRels so we can perform ranking and resolving on them.
+	 * 
+	 * @param inNode
+	 */
+	private void filter(Node inNode) {
+		
+		Iterable<Relationship> allRels = inNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF);
+		
 		if (filter != null) {
-			candidateRels = filter.filterRelationships(candidateRels);
+			candidateRels = filter.filterRelationships(allRels);
+		} else {
+			candidateRels = allRels;
 		}
 	}
 
+	/**
+	 * Rank the relationships saved in the candidateRels using the applied ranking methods.
+	 */
 	private void rank() {
 		if (ranker != null) {
 			candidateRels = ranker.rankRelationships(candidateRels);
@@ -68,9 +88,10 @@ public class ResolvingExpander implements PathExpander {
 	}
 	
 	/**
-	 * TODO: this needs to include the branch and bound
-	 * TODO: can there be multiple resolvers? If there is no source preference
-	 * 			can there be branch and bound? can there be size preference
+	 * Resolve conflicts among the relationships stored in candidateRels. For more info, see description
+	 * above for setConflictResolver, and also the ResolutionMethod classes.
+	 * 
+	 * TODO: include the branch and bound option (new resolver?), size option (new resolver?), others?
 	 */
 	private void resolveConflicts() {
 		if (resolver != null) {
@@ -108,13 +129,15 @@ public class ResolvingExpander implements PathExpander {
 		return desc;
 	}
 	
-	/**
+	/*
+	 * DEAD CODE, replaced by the expand() method when refactored into a PathExpander class
+	 * 
 	 * Filters and ranks the candidate relationships according to the relationship filter and ranker assigned to this
 	 * evaluator, and then picks the best set that do not conflict according to the assigned conflict resolver.
 	 * 
 	 * @param node
 	 * @return best relationship
-	 */
+	 *
 	public Iterable<Relationship> evaluateBestPaths(Node node) {
 		
 		//TODO: why aren't these filtered at this stage
@@ -138,26 +161,44 @@ public class ResolvingExpander implements PathExpander {
 		resolveConflicts();
 		
 		return bestRels;
-	}
+	} */
 	
 
+	/**
+	 * The essential PathExpander method that performs all the steps to make decisions about
+	 * which relationships to traverse, which in this case means deciding which rels to include in
+	 * synthesis. All the logic for these decisions is farmed out to the individual classes that do the
+	 * filtering, ranking, and conflict resolution. This keeps the high level logic clean and should
+	 * also help isolate problems.
+	 * 
+	 * @params inPath
+	 */
 	@Override
-	public Iterable<Relationship> expand(Path arg0, BranchState arg1) {
-		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
-		for (Relationship rel : arg0.endNode().getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
-			if (filter != null){
+	public Iterable<Relationship> expand(Path inPath, BranchState arg1) {
+		
+//		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
+
+		/*		// first filter the set of incoming rels (if we have a filter)
+		for (Relationship rel : inPath.endNode().getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
+			if (filter != null) {
 				boolean t = filter.filterRelationship(rel);
 				if (t == true)
-					allRels.add(rel);
-			}else
-				allRels.add(rel);
-		}
-
-		candidateRels = allRels;
+//					allRels.add(rel);
+					candidateRels.add(rel);
+			} else {
+				candidateRels.add(rel);
+			}
+		} */
+		
+//		candidateRels = allRels;
 				
 		//filter();
 		//TODO: this is likely to be very slow unless we only rank the relationships that we care about
 		//		in other words, we shouldn't rank all of them, just the ones we care about
+		
+		// perform the steps to determine which relationships to include in synthesis.
+		// logic for these steps
+		filter(inPath.endNode());
 		rank();
 		resolveConflicts();
 		
