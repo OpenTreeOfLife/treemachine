@@ -1140,6 +1140,8 @@ public class GraphExplorer extends GraphBase {
             if (nodesInTree.size() > 1) {
             	Node mrca = null;
                 mrca = getLICAForDraftTreeNodes(nodesInTree);
+                if (mrca.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)==true)
+                	mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
                 System.out.println("1) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
                 Relationship newRel = taxNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
                 newRel.setProperty("name", DRAFTTREENAME);
@@ -1152,8 +1154,7 @@ public class GraphExplorer extends GraphBase {
             	newRel.setProperty("name", DRAFTTREENAME);
             	newRel.setProperty("supporting_sources", supportingSources);
             	//knownIdsInTree.add(taxNode.getId());
-            	Node taxNode2 = taxNode.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
-            	taxaleft.add(taxNode2.getId());
+            	taxaleft.add(ptaxNode.getId());
             }            
         }
     }
