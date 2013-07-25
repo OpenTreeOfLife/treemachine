@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import opentree.constants.RelType;
+import opentree.exceptions.AmbiguousTaxonException;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
@@ -59,17 +60,17 @@ public class GraphImporter extends GraphBase {
 	
 
 	// MOVED TO INSTANCE VARIABLES FROM addSetTreeToGraphWithIdsSet
-	private ArrayList<JadeNode> nds; // = jt.getRoot().getTips();
+	private ArrayList<JadeNode> inputJadeTreeLeaves; // = jt.getRoot().getTips();
 	/* TODO making the ndids a Set<Long>, sorted ArrayList<Long> or HashSet<Long>
 	  would make the look ups faster. See comment in testIsMRCA */
-	private TLongArrayList ndids; // = new TLongArrayList(); 
+	private TLongArrayList idsForGraphNodesMatchedToInputLeaves; // = new TLongArrayList(); 
 	// We'll map each Jade node to the internal ID of its taxonomic node.
-	private HashMap<JadeNode,Long> hashnodeids; // = new HashMap<JadeNode,Long>();
+	private HashMap<JadeNode,Long> jadeNodeToMatchedGraphNodeIdMap; // = new HashMap<JadeNode,Long>();
 	// same as above but added for nested nodes, so more comprehensive and 
 	//		used just for searching. the others are used for storage
 	//HashSet<Long> ndidssearch = new HashSet<Long>();
-	private TLongArrayList ndidssearch; // = new TLongArrayList();
-	private HashMap<JadeNode,ArrayList<Long>> hashnodeidssearch; // = new HashMap<JadeNode,ArrayList<Long>>();
+	private TLongArrayList descendantIdsForAllTreeLeaves; // = new TLongArrayList();
+	private HashMap<JadeNode,ArrayList<Long>> jadeNodeToDescendantGraphNodeIdsMap; // = new HashMap<JadeNode,ArrayList<Long>>();
 	// this loop fills ndids and hashnodeids or throws an Exception (for 
 	//		errors in matching leaves to the taxonomy). No other side effects.
 	// END MOVING TO INSTANCE VARIABLES
@@ -147,12 +148,31 @@ public class GraphImporter extends GraphBase {
 		jt = tree;
 		treestring = jt.getRoot().getNewick(true) + ";";
 		System.out.println("tree set");
+		initialize();
 	}
 	
 	public void setTree(JadeTree tree, String ts) {
 		jt = tree;
 		treestring = ts;
 		System.out.println("tree set");
+		initialize();
+	}
+
+	/**
+	 * Resets instance variables used to contain information about the input tree that is used during import.
+	 */
+	private void initialize() {
+		updatedNodes = new ArrayList<Node>();
+		updatedSuperLICAs = new HashSet<Node>();
+
+		// newly added, just initializing instance variables
+		inputJadeTreeLeaves = jt.getRoot().getTips();
+		idsForGraphNodesMatchedToInputLeaves = new TLongArrayList(); 
+		jadeNodeToMatchedGraphNodeIdMap = new HashMap<JadeNode,Long>();
+		descendantIdsForAllTreeLeaves = new TLongArrayList();
+		jadeNodeToDescendantGraphNodeIdsMap = new HashMap<JadeNode,ArrayList<Long>>();
+		// end newly added instance var init
+		
 	}
 	
 	/**
@@ -166,21 +186,22 @@ public class GraphImporter extends GraphBase {
 	 *		every edge in this tree.
 	 * @param test don't add to the database
 	 */
-	public void addSetTreeToGraphWIdsSet(String sourcename,
-										 boolean taxacompletelyoverlap,
-										 boolean test,
-										 MessageLogger msgLogger) throws TaxonNotFoundException,TreeIngestException {
+	public void addSetTreeToGraphWIdsSet(String sourcename, boolean allTreesHaveAllTaxa, boolean test, MessageLogger msgLogger) throws TaxonNotFoundException, TreeIngestException {
+
+		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
+
+		/* MOVED TO INITIALIZE FUNCTION
 		updatedNodes = new ArrayList<Node>();
 		updatedSuperLICAs = new HashSet<Node>();
-		allTreesHaveAllTaxa = taxacompletelyoverlap;
 
 		// newly added, just initializing instance variables
-		nds = jt.getRoot().getTips();
+		inputJadeTreeLeaves = jt.getRoot().getTips();
 		ndids = new TLongArrayList(); 
 		hashnodeids = new HashMap<JadeNode,Long>();
 		ndidssearch = new TLongArrayList();
 		hashnodeidssearch = new HashMap<JadeNode,ArrayList<Long>>();
 		// end newly added instance var init
+		 END MOVED TO INITIALIZE FUNCTION */
 		
 		/* MOVING THESE TO INSTANCE VARIABLES
 		ArrayList<JadeNode> nds = jt.getRoot().getTips();
@@ -200,37 +221,52 @@ public class GraphImporter extends GraphBase {
 		// this loop fills ndids and hashnodeids or throws an Exception (for 
 		//		errors in matching leaves to the taxonomy). No other side effects.
 		// TODO: this could be modified to account for internal node name mapping
-		for (int j = 0; j < nds.size(); j++) {
-			//use the internal node id to get the nodes mapped 
-			Node hitnode = null;
-			Long ottolid = (Long)nds.get(j).getObject("ot:ottolid");
-			IndexHits<Node> hits = graphTaxUIDNodeIndex.get("tax_uid", ottolid);
-			int numh = hits.size();
-			if (numh == 0) {
-				throw new TaxonNotFoundException(String.valueOf(ottolid));
+//		for (int j = 0; j < inputJadeTreeLeaves.size(); j++) {
+		for (JadeNode curLeaf : inputJadeTreeLeaves) {
+			
+//			Long ottolid = (Long) inputJadeTreeLeaves.get(j).getObject("ot:ottolid");
+			Long ottolid = (Long) curLeaf.getObject("ot:ottolid");
+
+			// use the ottolid to match to a graph node, or throw an exception if we can't
+			Node matchedGraphNode = null;
+			IndexHits<Node> hits = null;
+			try {
+				hits = graphTaxUIDNodeIndex.get("tax_uid", ottolid);
+				int numh = hits.size();
+				if (numh < 1) {
+					throw new TaxonNotFoundException(String.valueOf(ottolid));
+				} else if (numh > 1) {
+					throw new AmbiguousTaxonException("tax_uid=" + ottolid);
+				} else {
+					matchedGraphNode = hits.getSingle();
+				}
+			} finally {
+				hits.close();
 			}
-			assert numh == 1;
-			hitnode = hits.getSingle();
-			hits.close();
+
+			// add all the descendant Ids to containers for easy access during import
 			// added for nested nodes 
-			long [] mrcas = (long[])hitnode.getProperty("mrca");
-			ArrayList<Long> tset = new ArrayList<Long>(); 
-			for (int k = 0; k < mrcas.length; k++) {
-				ndidssearch.add(mrcas[k]);
-				tset.add(mrcas[k]);
+			long [] mrcaArray = (long[]) matchedGraphNode.getProperty("mrca");
+			ArrayList<Long> descendantIdsForCurMatchedGraphNode = new ArrayList<Long>(); 
+			for (int k = 0; k < mrcaArray.length; k++) {
+				descendantIdsForAllTreeLeaves.add(mrcaArray[k]);
+				descendantIdsForCurMatchedGraphNode.add(mrcaArray[k]);
 			}
-			hashnodeidssearch.put(nds.get(j), tset);
-			ndids.add(hitnode.getId());
-			hashnodeids.put(nds.get(j), hitnode.getId());
+//			jadeNodeToDescendantGraphNodeIdsMap.put(inputJadeTreeLeaves.get(j), descendantIdsForCurMatchedGraphNode);
+			jadeNodeToDescendantGraphNodeIdsMap.put(curLeaf, descendantIdsForCurMatchedGraphNode);
+			idsForGraphNodesMatchedToInputLeaves.add(matchedGraphNode.getId());
+//			jadeNodeToMatchedGraphNodeIdMap.put(inputJadeTreeLeaves.get(j), matchedGraphNode.getId());
+			jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, matchedGraphNode.getId());
 		}
+		
 		// Store the list of taxonomic IDs and the map of JadeNode to ID in the root.
 		//jt.getRoot().assocObject("ndids", ndids);
-		jt.getRoot().assocObject("hashnodeids", hashnodeids);
-		ndidssearch.sort();
-		jt.getRoot().assocObject("ndidssearch", ndidssearch);
-		jt.getRoot().assocObject("hashnodeidssearch", hashnodeidssearch);
-		ndids.sort();
-		root_ndids = ndids;
+		jt.getRoot().assocObject("hashnodeids", jadeNodeToMatchedGraphNodeIdMap);
+		descendantIdsForAllTreeLeaves.sort();
+		jt.getRoot().assocObject("ndidssearch", descendantIdsForAllTreeLeaves);
+		jt.getRoot().assocObject("hashnodeidssearch", jadeNodeToDescendantGraphNodeIdsMap);
+		idsForGraphNodesMatchedToInputLeaves.sort();
+		root_ndids = idsForGraphNodesMatchedToInputLeaves;
 		try {
 			tx = graphDb.beginTx();
 			if(test == false) {
@@ -438,6 +474,10 @@ public class GraphImporter extends GraphBase {
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
 			}else{
 				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
+				
+				// update the ancestors with the full lica information
+				
+				// check short first
 			}
 						
 			//			_LOG.trace("ancestor "+ancestor);
