@@ -858,7 +858,7 @@ public class GraphExplorer extends GraphBase {
         if (!test) {
 	        tx = graphDb.beginTx();
 	        try {
-	            addMissingChildrenToDraftTree(startNode,startNode);
+	            addMissingChildrenToDraftTreeWhile(startNode,startNode);
 	        	tx.success();
 	        } catch (Exception ex) {
 	        	tx.failure();
@@ -1022,20 +1022,20 @@ public class GraphExplorer extends GraphBase {
     private void addMissingChildrenToDraftTree(Node startNode, Node taxRootNode) {
     	
     	// will hold nodes from the taxonomy to check
-        LinkedList<Node> taxNodes = new LinkedList<Node>();
+//        LinkedList<Node> taxNodes = new LinkedList<Node>();
 
         // to be stored as the 'supporting_sources' property of newly created rels
         String[] supportingSources = new String[1];
         supportingSources[0] = "taxonomy";
         
-        // walk taxonomy and save nodes in postorder
+        // walk taxonomy and save nodes in postorder, WHY? just going to traverse like normal without saving
         TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
-        for (Node taxChild : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRootNode).nodes()) {
-            taxNodes.add(0, taxChild);
-        }
+       // for (Node taxChild : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRootNode).nodes()) {
+         //   taxNodes.add(0, taxChild);
+        //}
 
         // walk taxa from tips down
-        for (Node taxNode : taxNodes) {
+        for (Node taxNode :  TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRootNode).nodes()) {
             if (taxNode.hasRelationship(Direction.INCOMING, RelType.TAXCHILDOF) == false) {
                 // only consider taxa that are not tips
                 continue;
@@ -1043,8 +1043,6 @@ public class GraphExplorer extends GraphBase {
 
             System.out.println(taxNode.getProperty("name"));
             
-//            HashMap<String, Node> taxaToAddNamesNodesMap = new HashMap<String, Node>();
-//            ArrayList<String> namesInTree = new ArrayList<String>();
             LinkedList<Node> nodesToAdd = new LinkedList<Node>();
             ArrayList<Node> nodesInTree = new ArrayList<Node>();
             
@@ -1053,7 +1051,7 @@ public class GraphExplorer extends GraphBase {
             	Node childNode = graphDb.getNodeById(cid);
 //                String childName = GeneralUtils.cleanName((String) childNode.getProperty("name"));
 
-                // `knownIdsInTree` should already have been started during synthesis
+                // `knownIdsInTree` should be populated during synthesis
                 if (knownIdsInTree.contains(cid)) {
 //                    namesInTree.add(childName);
                     nodesInTree.add(childNode);
@@ -1081,28 +1079,81 @@ public class GraphExplorer extends GraphBase {
             // FAMILIES. NEED TO FIX!
             
             // add any children that are not already in tree
-//            for (Entry<String, Node> entry: taxaToAddNamesNodesMap.entrySet()) {
             for (Node childNode : nodesToAdd) {
 
-//                String taxonName = entry.getKey();
-//                Node nodeToAdd = entry.getValue();
-
-//                System.out.println("attempting to add child: " + taxName + " to " + mrca.getName());
+                System.out.println("attempting to add child: " + childNode.getProperty("name")+" "+childNode);
 
                 Relationship newRel = childNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
                 newRel.setProperty("name", DRAFTTREENAME);
                 newRel.setProperty("supporting_sources", supportingSources);
-
-//                JadeNode newChild = new JadeNode();
-//                newChild.setName(taxonName);
-
-//                mrca.addChild(newChild);
-                
                 knownIdsInTree.add(childNode.getId());
-            }
+            }            
+        }
+    }
+    
+    /**
+     * Used to add missing external nodes to the draft tree stored in the graph.
+     * @param startNode
+     * @param taxRootNode
+     */
+    private void addMissingChildrenToDraftTreeWhile(Node startNode, Node taxRootNode) {
+    	
+    	// will hold nodes from the taxonomy to check
+//        LinkedList<Node> taxNodes = new LinkedList<Node>();
+
+        // to be stored as the 'supporting_sources' property of newly created rels
+        String[] supportingSources = new String[1];
+        supportingSources[0] = "taxonomy";
+        TLongArrayList taxaleft = new TLongArrayList ((long [])startNode.getProperty("mrca"));
+        taxaleft.removeAll(knownIdsInTree);
+        
+        System.out.println("have to add "+taxaleft.size());
+        
+        while(taxaleft.size() > 0){
+        	System.out.println("taxaleft: "+taxaleft.size());
+        	long tid = taxaleft.removeAt(0);
+        	Node taxNode = graphDb.getNodeById(tid);
+        	if(taxNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF))
+        		continue;
+        	//if it is a tip, get the parent
+        	//if(taxNode.hasRelationship(Direction.INCOMING, RelType.TAXCHILDOF)==false){
+        	Node ptaxNode = taxNode.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
+        	//}
+        	 
+            LinkedList<Node> nodesToAdd = new LinkedList<Node>();
+            TLongArrayList removeLongs = new TLongArrayList();
+            ArrayList<Node> nodesInTree = new ArrayList<Node>();
+            System.out.println(taxNode.getProperty("name"));
             
-            // update the JadeTree, otherwise we won't always find newly added taxa when we look for mrcas
-//            tree.processRoot();
+        	for (long cid : (long[]) ptaxNode.getProperty("mrca")) {
+            	Node childNode = graphDb.getNodeById(cid);
+            	// `knownIdsInTree` should be populated during synthesis
+                if (knownIdsInTree.contains(cid)) {
+                    nodesInTree.add(childNode);
+                } /*else {
+                	nodesToAdd.add(childNode);
+                	removeLongs.add(childNode.getId());
+                }*/
+            }
+        	// find the mrca of the names in the tree
+            if (nodesInTree.size() > 1) {
+            	Node mrca = null;
+                mrca = getLICAForDraftTreeNodes(nodesInTree);
+                System.out.println("1) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
+                Relationship newRel = taxNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
+                newRel.setProperty("name", DRAFTTREENAME);
+                newRel.setProperty("supporting_sources", supportingSources);
+                knownIdsInTree.add(taxNode.getId());
+                taxaleft.removeAll(removeLongs);
+            } else {
+            	System.out.println("2) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
+            	Relationship newRel = taxNode.createRelationshipTo(ptaxNode, RelType.SYNTHCHILDOF);
+            	newRel.setProperty("name", DRAFTTREENAME);
+            	newRel.setProperty("supporting_sources", supportingSources);
+            	//knownIdsInTree.add(taxNode.getId());
+            	Node taxNode2 = taxNode.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
+            	taxaleft.add(taxNode2.getId());
+            }            
         }
     }
     

@@ -8,10 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 import opentree.LicaUtil;
-import opentree.constants.RelType;
 
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
 /**
@@ -50,7 +47,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	private void reset() {
 		bestRels = new LinkedList<Relationship>();
 	}
-	
+
 	private void storeDescendants(Relationship rel) {
 
 		TLongArrayList descendantIds = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
