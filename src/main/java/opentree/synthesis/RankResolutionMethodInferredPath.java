@@ -9,6 +9,7 @@ import java.util.LinkedList;
 
 import opentree.LicaUtil;
 
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
 /**
@@ -205,7 +206,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	    		} else if (tfc == ConflictType.SECOND_SUBSETOF_FIRST) {
 	    			
 	    			// replace the saved with the candidate and keep checking to see if there are other saved rels that conflict
-	    			System.out.println("\twill remove saved relationship " + getIdString(saved) + " because it is contained within " + getIdString(candidate));
+	    			System.out.println("\twill remove saved relationship " + getIdString(saved) + " because it is contained within candidate " + candidate.getId());
 	    			savedRelsToRemove.add(saved);
 	    		}
 	    	}
