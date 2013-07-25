@@ -17,10 +17,10 @@ public enum RelProperty {
 	
 	// STREECHILDOF relationships
 	SOURCE ("source", String.class, "The name of the source supporting this relationship"),
-	LICAS ("licas", long[].class, "?"),
-	INCLUSIVE_RELIDS ("inclusive_relids", long[].class, "?"),
-	EXCLUSIVE_MRCA ("exclusive_mrca", long[].class, "?"),
-	ROOT_EXCLUSIVE_MRCA ("root_exclusive_mrca", long[].class, "?"),
+	LICAS ("licas", long[].class, "A reference to alternate LICA mappings that are associated with this LICA mapping. There can be at least 1 and as many as there are ambiguous mappings."),
+	INCLUSIVE_RELIDS ("inclusive_relids", long[].class, "The list of STREECHILDOF relationships that are involved with this mapping."),
+	EXCLUSIVE_MRCA ("exclusive_mrca", long[].class, "The list of mrca descendants that are exclusive to this node."),
+	ROOT_EXCLUSIVE_MRCA ("root_exclusive_mrca", long[].class, "The list of the taxa (with the list being the original mapping to the Long ids of the nodes in the graph). This is currently the same as the metadata node original_taxa_map and can be deleted once the references are corrected in the code"),
 
 	// SYNTHCHILDOF relationships
 	NAME ("name", String.class, "The name used to identify this synthetic tree"),

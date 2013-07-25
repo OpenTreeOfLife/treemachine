@@ -17,7 +17,7 @@ public class MultipleHitsException extends java.lang.IllegalStateException {
     
     public MultipleHitsException(Object searchTerm) {
         super();
-        error = "The search for '" + String.valueOf(searchTerm) + "' produced more than one result, but there should only be one";
+        error = "The search for '" + String.valueOf(searchTerm) + "' produced multiple hits, but only one one hit was expected.";
     }
     
     @Override

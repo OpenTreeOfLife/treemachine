@@ -30,6 +30,6 @@ public class RelationshipConflictResolver {
 	}
 	
 	public String getDescription() {
-		return "Conflicts resolution will " + method.getDescription();
+		return "Conflict resolution will " + method.getDescription();
 	}
 }
