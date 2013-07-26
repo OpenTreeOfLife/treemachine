@@ -416,14 +416,14 @@ public class GraphImporter extends GraphBase {
 	 *		
 	 */
 	@SuppressWarnings("unchecked")
-	private void postOrderAddProcessedTreeToGraph(JadeNode inode,
+	private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode,
 												  JadeNode root,
 												  String sourcename,
 												  String treeID,
 												  MessageLogger msgLogger) throws TreeIngestException {
 		// postorder traversal via recursion
-		for (int i = 0; i < inode.getChildCount(); i++) {
-			postOrderAddProcessedTreeToGraph(inode.getChild(i), root, sourcename, treeID, msgLogger);
+		for (int i = 0; i < curJadeNode.getChildCount(); i++) {
+			postOrderAddProcessedTreeToGraph(curJadeNode.getChild(i), root, sourcename, treeID, msgLogger);
 		}
 		//		_LOG.trace("children: "+inode.getChildCount());
 		// roothash are the actual ids with the nested names -- used for storing
@@ -431,7 +431,7 @@ public class GraphImporter extends GraphBase {
 //		HashMap<JadeNode, Long> roothash = ((HashMap<JadeNode, Long>)root.getObject("hashnodeids"));
 //		HashMap<JadeNode, ArrayList<Long>> roothashsearch = ((HashMap<JadeNode, ArrayList<Long>>)root.getObject("hashnodeidssearch"));
 
-		if (inode.getChildCount() > 0) {
+		if (curJadeNode.getChildCount() > 0) {
 //			System.out.println(inode.getNewick(false));
 //			ArrayList<JadeNode> nds = inode.getTips();
 			
@@ -442,104 +442,138 @@ public class GraphImporter extends GraphBase {
 			// to which they are related. An underscore in the name indicates that what follows is a direct
 			// reference to another variable (using the exact name of the referenced variable.
 			
-			// ***** the nodes mapped to the descendant tips of the current node in the input tree
+			// the nodes mapped to the descendant tips of the current node in the input tree
 			ArrayList<Node> graphNodesMappedToDescendantLeavesOfThisJadeNode = new ArrayList<Node>();
 
-			// ***** the nodes corresponding to the node ids in all the mrca descendants of the nodes mapped to all the tips descended from the current node in the input tree
+			// the nodes corresponding to the node ids in all the mrca descendants of the nodes mapped to all the tips descended from the current node in the input tree
 			ArrayList<Node> graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode = new ArrayList<Node>();
 
-			// ***** the node ids of the nodes in all_graph_nodes_descendant_from_this_jade_nodes_descendant_leaves
+			// the node ids of the nodes in all_graph_nodes_descendant_from_this_jade_nodes_descendant_leaves
 			TLongArrayList nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode = new TLongArrayList();
 
 			// store the hits for each of the leaves in the input tree
 //			for (int j = 0; j < nds.size(); j++) {
 			for (JadeNode curLeaf : inputJadeTreeLeaves) {
 
-//				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j))));
+				// get all the graph nodes for the jade tree leaves of this jade node
 				graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphDb.getNodeById(jadeNodeToMatchedGraphNodeIdMap.get(curLeaf))); // attempt to use instance var directly instead of re-accessing stored object
-				
-//				ArrayList<Long> tlist = roothashsearch.get(nds.get(j));
+//				hit_nodes.add(graphDb.getNodeById(roothash.get(nds.get(j)))); // was
+
+				// get the node ids for all the mrca descendants of the current graph node (essentially the mrca field from the graph ndoe we matched to this jadenode)
 				ArrayList<Long> descendantGraphNodeIdsForCurLeaf = jadeNodeToDescendantGraphNodeIdsMap.get(curLeaf); // attempt to use instance var directly instead of re-accessing stored object
-				
+//				ArrayList<Long> tlist = roothashsearch.get(nds.get(j)); // was
+
+				// get all the ids from the mrca fields of the graph nodes mapped to all the jade tree leaves descended from this jade node in the input tree
 				nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.addAll(descendantGraphNodeIdsForCurLeaf);
-//				for (int k = 0; k < descendantGraphNodeIdsForCurLeaf.size(); k++) {
 				for (Long descId : descendantGraphNodeIdsForCurLeaf) {
-//					all_graph_nodes_descendant_from_this_jade_nodes_descendant_leaves.add(graphDb.getNodeById(descendantGraphNodeIdsForCurLeaf.get(k)));
+//				for (int k = 0; k < descendantGraphNodeIdsForCurLeaf.size(); k++) { // was
+					
+					// also remember all the nodes themselves for for mrca descendant ids that we encounter
 					graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphDb.getNodeById(descId));
+//					all_graph_nodes_descendant_from_this_jade_nodes_descendant_leaves.add(graphDb.getNodeById(descendantGraphNodeIdsForCurLeaf.get(k))); // was
 				}
 			}
 			nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.sort();
 
 			// get all the childids even if they aren't in the tree, this is the postorder part
-			TLongHashSet childndidsh = new TLongHashSet();
-			for (int i = 0; i < inode.getChildCount(); i++) {
-				Node [] dbnodesob = (Node [])inode.getChild(i).getObject("dbnodes"); 
-				for (int k = 0; k < dbnodesob.length; k++) {
-					childndidsh.addAll((long[])dbnodesob[k].getProperty("mrca"));
+
+			// Get the union of all node ids from the mrca properties (i.e. descendant node ids) for every graph node mapped as a lica to every jade node
+			// child of the current jade node. This accumulates descendant node ids as the postorder traversal moves down the input tree toward the root.
+			TLongHashSet licaDescendantIdsForCurrentJadeNode_Hash = new TLongHashSet(); // use a hashset to avoid duplicate entries
+			for (JadeNode childNode : curJadeNode.getChildren()) {
+//			for (int i = 0; i < curJadeNode.getChildCount(); i++) { // was
+				// TODO: question: why is dbnodes an array instead of a collection? it is originally a hashset of the ancestors, we could just store that
+				Node [] childNodeLicaMappings = (Node []) childNode.getObject("dbnodes"); // the graph nodes for the mrca mappings for this child node
+//				Node [] dbnodesob = (Node [])curJadeNode.getChild(i).getObject("dbnodes"); // was
+				for (int k = 0; k < childNodeLicaMappings.length; k++) {
+					// TODO: question: again with the array vs. hashset, just a ref here in case it is changed
+					licaDescendantIdsForCurrentJadeNode_Hash.addAll((long[]) childNodeLicaMappings[k].getProperty("mrca"));
 				}
 			}
 
+			// convert hashset to arraylist so we can sort it
+			TLongArrayList licaDescendantIdsForCurrentJadeNode = new TLongArrayList(licaDescendantIdsForCurrentJadeNode_Hash);
+			licaDescendantIdsForCurrentJadeNode.sort();		// replacing this duplicate variable
+			
 			// ***** all of the node ids from the mrca 
-			TLongArrayList childndids = new TLongArrayList(childndidsh);
-			childndids.sort();			
 			//			_LOG.trace("finished names");
-			TLongArrayList rootids = new TLongArrayList((TLongArrayList) root.getObject("ndidssearch"));
-			TLongArrayList outndids = new TLongArrayList();
+//			TLongArrayList rootids = new TLongArrayList((TLongArrayList) root.getObject("ndidssearch")); // unused, unclear what it is for
+
+			// put together the outgroup ids, which are the set of 
+			TLongArrayList licaOutgroupDescendantIdsForCurrentJadeNode = new TLongArrayList();
 			//add all the children of the mapped nodes to the outgroup as well
 			for (int i = 0; i < root_ndids.size(); i++) {
-				if(childndids.contains(root_ndids.getQuick(i))==false)
-					outndids.addAll((long[])graphDb.getNodeById(root_ndids.get(i)).getProperty("mrca"));
+				if(licaDescendantIdsForCurrentJadeNode.contains(root_ndids.getQuick(i))==false)
+					licaOutgroupDescendantIdsForCurrentJadeNode.addAll((long[])graphDb.getNodeById(root_ndids.get(i)).getProperty("mrca"));
 			}
-			childndids.sort();
-			outndids.removeAll(childndids);
-			outndids.sort();
+			licaDescendantIdsForCurrentJadeNode.sort();
+			licaOutgroupDescendantIdsForCurrentJadeNode.removeAll(licaDescendantIdsForCurrentJadeNode);
+			licaOutgroupDescendantIdsForCurrentJadeNode.sort();
 
+			// find all the compatible lica mappings for this jade node to existing graph nodes
 			HashSet<Node> ancestors = null;
-			/*
-			 * we can use a simpler calculation if we can assume that the 'trees that come in 
-			 * are complete in their taxa
-			 */
-			if(allTreesHaveAllTaxa == true){
-				ancestors = LicaUtil.getAllLICAt4j(graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode, childndids, outndids);
-			}else{
-				ancestors = LicaUtil.getBipart4j(graphNodesMappedToDescendantLeavesOfThisJadeNode,graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode, nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,childndids, outndids,graphDb);
-				
-				// update the ancestors with the full lica information
-				
-				// check short first
+			if(allTreesHaveAllTaxa == true) { // use a simpler calculation if we can assume that all trees have completely overlapping taxon sampling (including taxonomy)
+				ancestors = LicaUtil.getAllLICAt4j(graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode, licaDescendantIdsForCurrentJadeNode, licaOutgroupDescendantIdsForCurrentJadeNode);
+
+			} else { // when taxon sets don't completely overlap, the lica calculator needs more info
+				ancestors = LicaUtil.getBipart4j(graphNodesMappedToDescendantLeavesOfThisJadeNode, graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
+												 nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode, licaDescendantIdsForCurrentJadeNode, licaOutgroupDescendantIdsForCurrentJadeNode, graphDb);
+				// QUESTION:
+				// is this where we update the ancestors with the full lica information? (make sure to check short first)
 			}
 						
 			//			_LOG.trace("ancestor "+ancestor);
 			// _LOG.trace(ancestor.getProperty("name"));
-			if (ancestors.size() > 0) {
-				inode.assocObject("dbnodes", ancestors.toArray(new Node[ancestors.size()]));
+
+			if (ancestors.size() > 0) { // if we found any compatible mrca mappings to nodes already in the graph
+
+				// remember all the lica mappings
+				// TODO: question: why is dbnodes an array instead of just storing the hashset
+				curJadeNode.assocObject("dbnodes", ancestors.toArray(new Node[ancestors.size()])); // use preset size to avoid reflection call when converting to array
+
+				// get all the ids of the graph nodes mapped to the jade tree leaves descended from this jade node
 				long[] ret = new long[graphNodesMappedToDescendantLeavesOfThisJadeNode.size()];
 				for (int i = 0; i < graphNodesMappedToDescendantLeavesOfThisJadeNode.size(); i++) {
 					ret[i] = graphNodesMappedToDescendantLeavesOfThisJadeNode.get(i).getId();
 				}
+
 				Arrays.sort(ret);
-				inode.assocObject("exclusive_mrca", ret);
-				inode.assocObject("root_exclusive_mrca", root_ndids.toArray());
-			} else {
-				//				_LOG.trace("need to make a new node");
-				// make a node
-				// get the super lica, or what would be the licas if we didn't have the other taxa in the tree
-				// this is used to connect the new nodes to their licas for easier traversals
-				//HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids);
-				HashSet<Node> superlica = LicaUtil.getSuperLICAt4j(graphNodesMappedToDescendantLeavesOfThisJadeNode,graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode, nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode, childndids);
+				
+				// contains the ids of just the graph nodes mapped to leaves in the jade tree descended from this jade node
+				curJadeNode.assocObject("exclusive_mrca", ret);
+				
+				// contains the ids of the graph nodes mapped to all the leaves in the jade tree
+				// QUESTION: this is the same for every node? should we just reference this from the instance variable every time we need it instead of storing duplicate copies in each node?
+				curJadeNode.assocObject("root_exclusive_mrca", root_ndids.toArray());
+
+			} else { // if there were no compatible lica mappings found for this jade node, then we need to make a new one
+
+				// steps for making a new graph node to map this jade node onto
+				// 1. create an new node in the graph
+				// 2. store the mrca information in the graph node properties
+				// 3. assoc the jade node with the new graph node
+
+				// first get the super licas, which is what would be the licas if we didn't have the other taxa in the tree
+				// this will be used to connect the new nodes to their licas for easier traversals
+				HashSet<Node> superlicas = LicaUtil.getSuperLICAt4j(graphNodesMappedToDescendantLeavesOfThisJadeNode,
+						graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode, nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode, licaDescendantIdsForCurrentJadeNode);
+				//HashSet<Node> superlica = LicaUtil.getSuperLICA(hit_nodes_search, childndids); // much earlier version of this
 				//System.out.println("\t\tsuperlica: "+superlica);
-				// steps
-				// 1. create a node
-				// 2. store the mrcas
-				// 3. assoc with the node
-				Node dbnode = graphDb.createNode();
+
+				// step 1
+				Node newLicaNode = graphDb.createNode();
 				//System.out.println("\t\tnewnode: "+dbnode);
-				Node [] nar = {dbnode};
-				inode.assocObject("dbnodes",nar);
-				dbnode.setProperty("mrca", childndids.toArray());
+
+				// the dbnodes array contains compatible lica mappings. there is the only here (the node we are making)
+				// TODO: question: why is dbnodes an array instead of just storing the hashset?
+				Node [] nar = {newLicaNode};
+				curJadeNode.assocObject("dbnodes", nar);
+
+				newLicaNode.setProperty("mrca", licaDescendantIdsForCurrentJadeNode.toArray());
+
 				//System.out.println("\t\tmrca: "+childndids);
 				//set outmrcas
-				dbnode.setProperty("outmrca",outndids.toArray());
+				newLicaNode.setProperty("outmrca",licaOutgroupDescendantIdsForCurrentJadeNode.toArray());
 				//System.out.println("\t\toutmrca: "+outndids);
 				//set exclusive relationships
 				long[] rete = new long[graphNodesMappedToDescendantLeavesOfThisJadeNode.size()];
@@ -547,27 +581,27 @@ public class GraphImporter extends GraphBase {
 					rete[j] = graphNodesMappedToDescendantLeavesOfThisJadeNode.get(j).getId();
 				}
 				Arrays.sort(rete);
-				inode.assocObject("exclusive_mrca",rete);
+				curJadeNode.assocObject("exclusive_mrca",rete);
 				root_ndids.sort();
-				inode.assocObject("root_exclusive_mrca",root_ndids.toArray());
-				Iterator<Node> itrsl = superlica.iterator();
+				curJadeNode.assocObject("root_exclusive_mrca",root_ndids.toArray());
+				Iterator<Node> itrsl = superlicas.iterator();
 				while (itrsl.hasNext()) {
 					Node itrnext = itrsl.next();
-					dbnode.createRelationshipTo(itrnext, RelType.MRCACHILDOF);
+					newLicaNode.createRelationshipTo(itrnext, RelType.MRCACHILDOF);
 					updatedSuperLICAs.add(itrnext);
 				}
 				tx.success();
 				// add new nodes so they can be used for updating after tree ingest
-				updatedNodes.add(dbnode);
+				updatedNodes.add(newLicaNode);
 			}
-			addProcessedNodeRelationships(inode, sourcename, treeID);
+			addProcessedNodeRelationships(curJadeNode, sourcename, treeID);
 		} else {
 //			inode.assocObject("dbnode", graphDb.getNodeById(roothash.get(inode)));
 //			Node [] nar = {graphDb.getNodeById(roothash.get(inode))};
 
-			Node [] nar = {graphDb.getNodeById(jadeNodeToMatchedGraphNodeIdMap.get(inode))};
+			Node [] nar = {graphDb.getNodeById(jadeNodeToMatchedGraphNodeIdMap.get(curJadeNode))};
 			
-			inode.assocObject("dbnodes", nar);
+			curJadeNode.assocObject("dbnodes", nar);
 		}
 	}
 
