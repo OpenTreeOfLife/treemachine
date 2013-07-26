@@ -1097,7 +1097,7 @@ public class GraphExplorer extends GraphBase {
      * @param startNode
      * @param taxRootNode
      */
-        private void addMissingChildrenToDraftTreeWhile(Node startNode, Node taxRootNode) {
+    private void addMissingChildrenToDraftTreeWhile(Node startNode, Node taxRootNode) {
     	
     	// will hold nodes from the taxonomy to check
 //        LinkedList<Node> taxNodes = new LinkedList<Node>();
@@ -1141,11 +1141,11 @@ public class GraphExplorer extends GraphBase {
              if (nodesInTree.size() > 1) {
             	Node mrca = null;
                 mrca = getLICAForDraftTreeNodes(nodesInTree);
-                TLongArrayList tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
-                while(tmrca.containsAll(ttmrca) == false){
-                	mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
-                	tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
-                }
+               // TLongArrayList tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
+                //while(tmrca.containsAll(ttmrca) == false){
+                //	mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+                //	tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
+                //}
                 System.out.println("1) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
                 Relationship newRel = taxNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
                 newRel.setProperty("name", DRAFTTREENAME);
