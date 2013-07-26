@@ -1097,10 +1097,6 @@ public class GraphExplorer extends GraphBase {
      * @param taxRootNode
      */
     private void addMissingChildrenToDraftTreeWhile(Node startNode, Node taxRootNode) {
-    	
-    	// will hold nodes from the taxonomy to check
-//        LinkedList<Node> taxNodes = new LinkedList<Node>();
-
         // to be stored as the 'supporting_sources' property of newly created rels
         String[] supportingSources = new String[1];
         supportingSources[0] = "taxonomy";
@@ -1117,12 +1113,7 @@ public class GraphExplorer extends GraphBase {
         	if(taxNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF))
         		continue;
         	//if it is a tip, get the parent
-        	//if(taxNode.hasRelationship(Direction.INCOMING, RelType.TAXCHILDOF)==false){
         	Node ptaxNode = taxNode.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
-        	//}
-        	 
-            LinkedList<Node> nodesToAdd = new LinkedList<Node>();
-            TLongArrayList removeLongs = new TLongArrayList();
             ArrayList<Node> nodesInTree = new ArrayList<Node>();
             System.out.println(taxNode.getProperty("name"));
             
@@ -1131,10 +1122,7 @@ public class GraphExplorer extends GraphBase {
             	// `knownIdsInTree` should be populated during synthesis
                 if (knownIdsInTree.contains(cid)) {
                     nodesInTree.add(childNode);
-                } /*else {
-                	nodesToAdd.add(childNode);
-                	removeLongs.add(childNode.getId());
-                }*/
+                } 
             }
         	// find the mrca of the names in the tree
              if (nodesInTree.size() > 1) {
@@ -1150,7 +1138,6 @@ public class GraphExplorer extends GraphBase {
                 newRel.setProperty("name", DRAFTTREENAME);
                 newRel.setProperty("supporting_sources", supportingSources);
                 knownIdsInTree.add(taxNode.getId());
-                taxaleft.removeAll(removeLongs);
             } else {
             	System.out.println("2) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
             	Relationship newRel = taxNode.createRelationshipTo(ptaxNode, RelType.SYNTHCHILDOF);
