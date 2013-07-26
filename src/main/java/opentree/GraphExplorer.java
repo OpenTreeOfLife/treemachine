@@ -773,11 +773,9 @@ public class GraphExplorer extends GraphBase {
 
         // set filtering criteria
         //RelationshipFilter rf = new RelationshipFilter();
-        //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         RelationshipFilter rf = new RelationshipFilter();
-        rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
+        //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         HashSet<String> filteredsources = new HashSet<String>();
-        //filteredsources.add("26");
         //ignore any source that isn't in our preferred list
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         while (hits.hasNext()) {
