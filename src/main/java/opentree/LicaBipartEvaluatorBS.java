@@ -132,9 +132,10 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						// we need to make sure that parents of this node get updated now with the new mrca and outmrca information
 						if (checkParents) {
 							for (Node pNode : Traversal.description().breadthFirst().evaluator(new MRCAValidatingEvaluator(ttm, tto)).
-									relationships(RelType.STREECHILDOF, Direction.INCOMING).traverse(tn).nodes()) {
-								pNode.setProperty("mrca", ttm);
-								pNode.setProperty("outmrca", tto);
+									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(tn).nodes()) {
+								System.out.println("Updating parent node " + pNode + " with new lica mappings");
+								pNode.setProperty("mrca", ttm.toArray());
+								pNode.setProperty("outmrca", tto.toArray());
 							}
 						}
 							
