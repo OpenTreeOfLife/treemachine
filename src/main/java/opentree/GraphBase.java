@@ -19,6 +19,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.index.impl.lucene.Hits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 /**
@@ -98,6 +99,27 @@ public abstract class GraphBase {
 		graphDb.shutdownDb();
 	}
     
+	/**
+	 * Just checks if the named source tree is in the graph
+	 * @param sourcename
+	 * @return
+	 */
+	public boolean hasSourceTreeName(String sourcename) {
+
+		IndexHits<Node> hits = null;
+		boolean hasSTree = false;
+		try {
+			hits = sourceRootIndex.get("rootnode", sourcename);
+			if (hits != null && hits.size() > 0) {
+				hasSTree = true;
+			}
+		} finally {
+			hits.close();
+		}
+
+		return hasSTree;
+	}
+	
 	/**
 	 * Wrapper function for taxUID searches on the graphTaxUIDNodes index. Throws TaxonNotFoundException if the search fails,
 	 * or a MultipleHitsWhenOneExpectedException if the uid matches multiple taxa.

@@ -170,7 +170,7 @@ public class MainRunner {
 		GraphImporter gi = new GraphImporter(graphname);
 		MessageLogger messageLogger = new MessageLogger(args[0] + ":");
 		try {
-			if (gi.hasSoureTreeName(sourcename)) {
+			if (gi.hasSourceTreeName(sourcename)) {
 				String emsg = "Tree with the name \"" + sourcename + "\" already exists in this db.";
 				throw new TreeIngestException(emsg);
 			}
