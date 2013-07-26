@@ -772,6 +772,8 @@ public class GraphExplorer extends GraphBase {
         ResolvingExpander draftSynthesisMethod = new ResolvingExpander();
 
         // set filtering criteria
+        //RelationshipFilter rf = new RelationshipFilter();
+        //rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         RelationshipFilter rf = new RelationshipFilter();
         rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.YEAR, FilterComparisonType.GREATEROREQUAL, new TestValue(2000), sourceMetaIndex));
         HashSet<String> filteredsources = new HashSet<String>();
@@ -1113,7 +1115,7 @@ public class GraphExplorer extends GraphBase {
         	System.out.println("taxaleft: "+taxaleft.size());
         	long tid = taxaleft.removeAt(0);
         	Node taxNode = graphDb.getNodeById(tid);
-        	TLongArrayList ttmrca = new TLongArrayList((long [])taxNode.getProperty("mrca"));
+            TLongArrayList ttmrca = new TLongArrayList((long [])taxNode.getProperty("mrca"));
         	if(taxNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF))
         		continue;
         	//if it is a tip, get the parent
@@ -1137,14 +1139,14 @@ public class GraphExplorer extends GraphBase {
                 }*/
             }
         	// find the mrca of the names in the tree
-            if (nodesInTree.size() > 1) {
+             if (nodesInTree.size() > 1) {
             	Node mrca = null;
                 mrca = getLICAForDraftTreeNodes(nodesInTree);
-                TLongArrayList tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
-                while(tmrca.containsAll(ttmrca) == false){
-                	mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
-                	tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
-                }
+               // TLongArrayList tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
+                //while(tmrca.containsAll(ttmrca) == false){
+                //	mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+                //	tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
+                //}
                 System.out.println("1) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
                 Relationship newRel = taxNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
                 newRel.setProperty("name", DRAFTTREENAME);
@@ -1158,7 +1160,7 @@ public class GraphExplorer extends GraphBase {
             	newRel.setProperty("supporting_sources", supportingSources);
             	//knownIdsInTree.add(taxNode.getId());
             	taxaleft.add(ptaxNode.getId());
-            }            
+            }   
         }
     }
     
