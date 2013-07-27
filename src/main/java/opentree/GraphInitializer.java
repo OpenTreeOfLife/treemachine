@@ -236,7 +236,7 @@ public class GraphInitializer extends GraphBase{
 			
 		} catch(IOException ioe) {}
 
-		// taxonomy structure is done. now add the MRCA_CHILDOFgit and STREE_CHILDOF relationships
+		// taxonomy structure is done. now add the MRCA_CHILDOF and STREE_CHILDOF relationships
 		initMrcaAndStreeRelsTax();
 	}
 	
