@@ -170,7 +170,7 @@ public class MainRunner {
 		GraphImporter gi = new GraphImporter(graphname);
 		MessageLogger messageLogger = new MessageLogger(args[0] + ":");
 		try {
-			if (gi.hasSoureTreeName(sourcename)) {
+			if (gi.hasSourceTreeName(sourcename)) {
 				String emsg = "Tree with the name \"" + sourcename + "\" already exists in this db.";
 				throw new TreeIngestException(emsg);
 			}
@@ -560,7 +560,7 @@ public class MainRunner {
 				//             tid  pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
 			}
 			//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
-			outFile.write("1|0|life| | | | | | |\n");
+			outFile.write("1| |"+rootnodename+"| | | | | | |\n");
 			outFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
