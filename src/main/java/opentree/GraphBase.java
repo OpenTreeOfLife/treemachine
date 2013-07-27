@@ -1,14 +1,13 @@
 package opentree;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Set;
 
 import opentree.constants.GeneralConstants;
 import opentree.constants.GraphProperty;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
+import opentree.constants.RelType;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.TaxonNotFoundException;
 
@@ -17,9 +16,9 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.index.impl.lucene.Hits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 /**
@@ -60,66 +59,49 @@ public abstract class GraphBase {
 	public static final String DRAFTTREENAME = (String) GeneralConstants.DRAFT_TREE_NAME.value;
 	
 	// all constructor methods require a graph database
+	/**
+	 * Access the graph db at the given filename path.
+	 * @param graphName
+	 */
 	public GraphBase(String graphName) {
 		graphDb = new GraphDatabaseAgent(graphName);
 		initNodeIndexes();
 	}
-	
+
+	/**
+	 * Access the graph db through the given service object. 
+	 * @param graphService
+	 */
     public GraphBase(GraphDatabaseService graphService) {
 		graphDb = new GraphDatabaseAgent(graphService);
 		initNodeIndexes();
     }
-    
+
+    /**
+     * Access the graph db through the given embedded db object.
+     * @param embeddedGraph
+     */
     public GraphBase(EmbeddedGraphDatabase embeddedGraph) {
     	graphDb = new GraphDatabaseAgent(embeddedGraph);
     	initNodeIndexes();
     }
-    
+
+    /**
+     * Open the graph db through the given agent object.
+     * @param gdb
+     */
     public GraphBase(GraphDatabaseAgent gdb) {
     	graphDb = gdb;
     	initNodeIndexes();
     }
     
-    /**
-     * Just initialize the indexes.
-     */
-	public void initNodeIndexes() {
-		// TODO: should move this to an enum to make management/index access easier to deal with
-        graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
-		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
-        sourceRelIndex = graphDb.getRelIndex("sourceRels");
-        sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
-        sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-    	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes");
-    	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
-    	graphTaxNewNodes = graphDb.getNodeIndex(""); // not sure what the name of this one is in the graphdb. it doesn't seem to be used (for now)
-	}
-	
+	/**
+	 * Just close the db.
+	 */
 	public void shutdownDB(){
 		graphDb.shutdownDb();
 	}
     
-	/**
-	 * Just checks if the named source tree is in the graph
-	 * @param sourcename
-	 * @return
-	 */
-	public boolean hasSourceTreeName(String sourcename) {
-
-		IndexHits<Node> hits = null;
-		boolean hasSTree = false;
-		try {
-			hits = sourceRootIndex.get("rootnode", sourcename);
-			if (hits != null && hits.size() > 0) {
-				hasSTree = true;
-			}
-		} finally {
-			hits.close();
-		}
-
-		return hasSTree;
-	}
-	
 	/**
 	 * Wrapper function for taxUID searches on the graphTaxUIDNodes index. Throws TaxonNotFoundException if the search fails,
 	 * or a MultipleHitsWhenOneExpectedException if the uid matches multiple taxa.
@@ -236,4 +218,115 @@ public abstract class GraphBase {
 		return null;
 	}
 	
+	/**
+	 * Just checks if the named source tree is in the graph
+	 * @param sourcename
+	 * @return
+	 */
+	public boolean hasSourceTreeName(String sourcename) {
+
+		IndexHits<Node> hits = null;
+		boolean hasSTree = false;
+		try {
+			hits = sourceRootIndex.get("rootnode", sourcename);
+			if (hits != null && hits.size() > 0) {
+				hasSTree = true;
+			}
+		} finally {
+			hits.close();
+		}
+
+		return hasSTree;
+	}
+	
+	/**
+	 * Remove all the loaded trees from the graph.
+	 */
+	public void deleteAllTrees() {
+		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
+		System.out.println(hits.size());
+		for (Node itrel : hits) {
+			String source = (String)itrel.getProperty("source");
+			deleteTreeBySource(source);
+		}
+	}
+	
+	/**
+	 * Removes the indicated source tree from the graph.
+	 * @param source
+	 */
+	public void deleteTreeBySource(String source) {
+		System.out.println("deleting tree: " + source);
+
+		// initialize db access variables
+		Transaction tx = null;
+		IndexHits <Relationship> relsToRemove = null;
+		IndexHits <Node> nodesToRemove = null;
+
+		// first remove the relationships
+		try {
+			relsToRemove = sourceRelIndex.get("source", source);
+			tx = graphDb.beginTx();
+			try {
+				for (Relationship itrel : relsToRemove) {
+					itrel.delete();
+					sourceRelIndex.remove(itrel, "source", source);
+				}
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		} finally {
+			relsToRemove.close();
+		}
+
+		// then remove the root nodes
+		try {
+			nodesToRemove = sourceRootIndex.get("rootnode", source);
+			tx = graphDb.beginTx();
+			try {
+				for (Node itnode : nodesToRemove) {
+					sourceRootIndex.remove(itnode, "rootnode", source);
+				}
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		} finally {
+			nodesToRemove.close();
+		}
+
+		// then remove the metadata nodes
+		try {
+			nodesToRemove = sourceMetaIndex.get("source", source);
+			tx = graphDb.beginTx();
+			try {
+				for (Node itnode : nodesToRemove) {
+					sourceMetaIndex.remove(itnode, "source", source);
+					itnode.getRelationships(RelType.METADATAFOR).iterator().next().delete();
+					itnode.delete();
+				}
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		} finally {
+			nodesToRemove.close();
+		}
+	}	
+	
+    /**
+     * Just initialize the standard GoL indexes used for searching.
+     */
+	private void initNodeIndexes() {
+		// TODO: should move this to an enum to make management/index access easier to deal with
+        graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
+		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
+        sourceRelIndex = graphDb.getRelIndex("sourceRels");
+        sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
+        sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
+    	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes");
+    	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
+    	graphTaxNewNodes = graphDb.getNodeIndex(""); // not sure what the name of this one is in the graphdb. it doesn't seem to be used (for now)
+	}
 }
