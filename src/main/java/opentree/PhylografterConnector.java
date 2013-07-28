@@ -306,14 +306,6 @@ public class PhylografterConnector {
 				for(String name: removenames){
 					namenodemap.remove(name);
 				}
-				//prune the ones that didn't map
-				/*
-				 * The process is to use the id for the context that is obtained above
-				 * 0. we assign a new temporary ottolid -- need to know how to autoincrement
-				 * 1. for each name we add a taxon name in the taxonomy in treemachine
-				 * 2. we add this to the taxonomy index
-				 * 3. we add this to the index of new names to add
-				 */
 
 				if (namenodemap.size() > 0){
 					if(prune){
@@ -332,7 +324,7 @@ public class PhylografterConnector {
 					}
 				}
 			}
-			//now checking for duplicate names or names to point to parents
+			//now checking for duplicate names or names to point to parents or dubious names
 			if(prune){
 				//for each tip in the tree, see if there are duplicates
 				TLongHashSet tipottols = new TLongHashSet();
@@ -351,7 +343,15 @@ public class PhylografterConnector {
 						logger.indentMessageLong(3, "duplicate", "OTT ID", tid);
 						pru.add(currNd);
 					}else{
-						tipottols.add(tid);
+						IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+						if(hits.size()==0){
+							logger.indentMessage(2, "OTT ID not in database (probably dubious)");
+							logger.indentMessageStrStr(3, "dubious", "name", currNd.getName(), "nexsonid", (String)currNd.getObject("nexsonid"));
+							logger.indentMessageLong(3, "dubious", "OTT ID", tid);
+							pru.add(currNd);
+						}else{
+							tipottols.add(tid);
+						}
 					}
 				}
 				//for each tip see if there are tips that map to parents of other tips

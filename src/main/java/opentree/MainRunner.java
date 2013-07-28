@@ -544,8 +544,6 @@ public class MainRunner {
 			  String name = st.nextToken().trim();
 			  String rank = st.nextToken().trim();
 			  String srce = st.nextToken().trim();
-			  String srce_id = st.nextToken().trim();
-			  String srce_pid = st.nextToken().trim();
 			  String uniqname = st.nextToken().trim();
 			 "tax.temp" is updated below. Note use of " " vs. original "\t" for easier reading
 		 */	
@@ -556,11 +554,11 @@ public class MainRunner {
 			namesal.addAll(names);
 			for (int i = 0; i < namesal.size(); i++) {
 				//outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
-				outFile.write((i+2)+"|1|"+namesal.get(i)+"| | | | | | |\n");
+				outFile.write((i+2)+"|1|"+namesal.get(i)+"| | | | | | | |\n");
 				//             tid  pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
 			}
 			//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
-			outFile.write("1| |"+rootnodename+"| | | | | | |\n");
+			outFile.write("1| |"+rootnodename+"| | | | | | | |\n");
 			outFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
