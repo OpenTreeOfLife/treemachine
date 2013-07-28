@@ -352,6 +352,7 @@ public class PhylografterConnector {
 						}else{
 							tipottols.add(tid);
 						}
+						hits.close();
 					}
 				}
 				//for each tip see if there are tips that map to parents of other tips

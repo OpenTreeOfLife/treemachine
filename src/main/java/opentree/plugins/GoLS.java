@@ -75,7 +75,7 @@ public class GoLS extends ServerPlugin {
 		messageLogger.setPrintStream(outputPrintStream);
 		try {
 			boolean onlyTestTheInput = true;
-			MainRunner.loadPhylografterStudy(graphDb, nexsonContentBR, messageLogger, onlyTestTheInput);
+			MainRunner.loadPhylografterStudy(graphDb, nexsonContentBR, null,messageLogger, onlyTestTheInput);
 		} finally {
 			messageLogger.close();
 			outputPrintStream.close();

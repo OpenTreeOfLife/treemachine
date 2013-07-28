@@ -1360,13 +1360,16 @@ public class MainRunner {
 	}
 	
 	public static int loadPhylografterStudy(GraphDatabaseAgent graphDb, 
-											BufferedReader nexsonContentBR,
+											BufferedReader nexsonContentBR, String treeid,
 											MessageLogger messageLogger,
 											boolean onlyTestTheInput) 
 											throws IOException, TaxonNotFoundException, TreeIngestException {
 		List<JadeTree> rawTreeList = null;
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
 		rawTreeList = NexsonReader.readNexson(nexsonContentBR, true, messageLogger);
+		if(treeid != null){
+			System.out.println("loading a specific tree: "+treeid);
+		}
 		int count = 0;
 		for (JadeTree j : rawTreeList) {
 			if (j == null) {
@@ -1413,6 +1416,12 @@ public class MainRunner {
 			GraphImporter gi = new GraphImporter(graphDb);
 			boolean doubname = false;
 			String treeJId = (String)j.getObject("id");
+			if(treeid != null){
+				if(treeJId.equals(treeid) == false){
+					System.out.println("skipping tree: "+treeJId);
+					continue;
+				}
+			}
 			HashSet<Long> ottols = new HashSet<Long>();
 			messageLogger.indentMessageStr(1, "Checking for uniqueness of OTT IDs", "tree id", treeJId);
 			for (int m = 0; m < j.getExternalNodeCount(); m++) {
@@ -1456,21 +1465,24 @@ public class MainRunner {
 		return 0;
 	}
 
+	
 	/*
 	 * Use this to load trees from nexson into the graph from a file
 	 * not from the server
+	 * 
+	 * changed to loading individual trees
 	 */
 	public int pg_loading_ind_studies(String [] args) {
 		boolean test = false;
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 		PrintStream jsonOutputPrintStream = null;
-		if (args.length != 3 && args.length != 4) {
+		if (args.length != 4 && args.length != 5) {
 			graphDb.shutdownDb();
-			System.out.println("the argument has to be graphdb filen (test)");
+			System.out.println("the argument has to be graphdb filen treeid (test)");
 			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
 		}
-		if (args.length == 4) {
+		if (args.length == 5) {
 			System.err.println("not entering into the database, just testing");
 			test = true;
 			if (args[3].endsWith(".json")) {
@@ -1485,6 +1497,7 @@ public class MainRunner {
 		String filen = args[2];
 		File file = new File(filen);
 		System.err.println("file " + file);
+		String treeid = args[3];
 		BufferedReader br= null;
 		MessageLogger messageLogger;
 		if (jsonOutputPrintStream == null) {
@@ -1503,7 +1516,8 @@ public class MainRunner {
 		}
 		int rc = 0;
 		try {
-			if (loadPhylografterStudy(graphDb, br, messageLogger, test) != 0) {
+			//set treeid == null if you want to load all of them
+			if (loadPhylografterStudy(graphDb, br, treeid,messageLogger, test) != 0) {
 				rc = -1;
 			}
 		} catch (IOException e) {
@@ -1541,7 +1555,6 @@ public class MainRunner {
 				break;
 			}
 			try {
-				
 				//List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
 				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k, messageLogger);
 				for (JadeTree j : jt) {
