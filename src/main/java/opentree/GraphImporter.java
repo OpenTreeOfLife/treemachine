@@ -309,6 +309,8 @@ public class GraphImporter extends GraphBase {
 	 * @throws Exception 
 	 */
 	private void remapTipsToDeepestExemplifiedTaxa() throws Exception {
+		
+		// preserve the original taxon mappings so we can use these to generate sets of outgroup ids for each tip
 		HashMap<JadeNode, Long> shallowTaxonMappings = new HashMap<JadeNode, Long>(jadeNodeToMatchedGraphNodeIdMap);
 
 		tx = graphDb.beginTx();
@@ -319,7 +321,8 @@ public class GraphImporter extends GraphBase {
 				Node originalMatchedNode = graphDb.getNodeById(originalMatchedNodeId);
 				System.out.println("attempting to remap tip " + curLeaf.getName() + " (was mapped to " + getIdString(originalMatchedNode) +")");
 				
-				// get the outgroup set for this node, which is *all* the mrca descendendants of all the nodes mapped to all the input tips except this one
+				// get the outgroup set for this node, which is *all* the mrca descendendants of all the nodes mapped to all the input tips except this one.
+				// we do this here because we get the mrca properties from the original taxon mappings.
 				TLongArrayList outgroupIds = new TLongArrayList();
 				for (Long tid : shallowTaxonMappings.values()) {
 					if (tid.equals(originalMatchedNodeId) == false) {
