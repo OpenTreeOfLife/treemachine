@@ -62,10 +62,7 @@ public class GoLS extends ServerPlugin {
 				@Source GraphDatabaseService graphDbs,
 				@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
 				@Parameter(name = "nexsonBlob", optional = true) String nexsonBlob)
-				throws UnsupportedEncodingException, 
-					   IOException,
-					   TaxonNotFoundException,
-					   TreeIngestException {
+				throws Exception {
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
 		ByteArrayInputStream inpStream = new ByteArrayInputStream(nexsonBlob.getBytes("UTF-8"));
 		BufferedReader nexsonContentBR = new BufferedReader(new InputStreamReader(inpStream));

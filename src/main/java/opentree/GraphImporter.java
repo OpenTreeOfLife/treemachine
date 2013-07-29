@@ -133,8 +133,9 @@ public class GraphImporter extends GraphBase {
 	 *
 	 * @param sourcename the name to be registered as the "source" property for every edge in this tree.
 	 * @param test don't add to the database
+	 * @throws Exception 
 	 */
-	public void addSetTreeToGraphWIdsSet(String sourceName, boolean allTreesHaveAllTaxa, boolean runTestOnly, MessageLogger msgLogger) throws TaxonNotFoundException, TreeIngestException {
+	public void addSetTreeToGraphWIdsSet(String sourceName, boolean allTreesHaveAllTaxa, boolean runTestOnly, MessageLogger msgLogger) throws Exception {
 
 		this.runTestOnly = runTestOnly;
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
@@ -160,8 +161,7 @@ public class GraphImporter extends GraphBase {
 	 *		for a leaf's taxonomic name
 	 * @param sourcename the name to be registered as the "source" property for
 	 *		every edge in this tree.
-	 * @throws TaxonNotFoundException 
-	 * @throws MultipleHitsException 
+	 * @throws Exception 
 	 * @todo we probably want a node in the graph representing the tree with an 
 	 *		ISROOTOF edge from its root to the tree. We could attach annotations
 	 *		about the tree to this node. We have the index of the root node, but
@@ -169,7 +169,7 @@ public class GraphImporter extends GraphBase {
 	 *		this we could just randomly choose one of the edges that is connected
 	 *		to the root node that is in the index
 	 */
-	public void addSetTreeToGraph(String focalgroup, String sourceName, boolean allTreesHaveAllTaxa, MessageLogger msgLogger) throws TreeIngestException, MultipleHitsException, TaxonNotFoundException {
+	public void addSetTreeToGraph(String focalgroup, String sourceName, boolean allTreesHaveAllTaxa, MessageLogger msgLogger) throws Exception {
 
 		this.runTestOnly = false;
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
@@ -306,30 +306,53 @@ public class GraphImporter extends GraphBase {
 	 * Uses the exact taxon mappings to find the deepest exemplified taxonomic ancestors that each tip could
 	 * represent, and remaps the tip taxa. This implements the assumption that input trees cannot inform
 	 * relationships among taxa which they do not contain. This should improve the results of synthesis methods.
+	 * @throws Exception 
 	 */
-	private void remapTipsToDeepestExemplifiedTaxa() {
+	private void remapTipsToDeepestExemplifiedTaxa() throws Exception {
 		HashMap<JadeNode, Long> shallowTaxonMappings = new HashMap<JadeNode, Long>(jadeNodeToMatchedGraphNodeIdMap);
-		for (JadeNode curLeaf : shallowTaxonMappings.keySet()) {
-			
-			Long curLeafMatchedGraphNodeId = shallowTaxonMappings.get(curLeaf);
-			System.out.println("attempting to remap tip " + curLeaf.getName() + " (was mapped to " + getIdString(graphDb.getNodeById(curLeafMatchedGraphNodeId)) +")");
-			
-			// get the outgroup set for this node, which is *all* the mrca descendendants of all the nodes mapped to all the input tips except this one
-			TLongArrayList outgroupIds = new TLongArrayList();
-			for (Long tid : shallowTaxonMappings.values()) {
-				if (tid.equals(curLeafMatchedGraphNodeId) == false) {
-					outgroupIds.addAll((long[]) graphDb.getNodeById(tid).getProperty("mrca"));
+
+		tx = graphDb.beginTx();
+		try {
+			for (JadeNode curLeaf : shallowTaxonMappings.keySet()) {
+				
+				Long originalMatchedNodeId = shallowTaxonMappings.get(curLeaf);
+				Node originalMatchedNode = graphDb.getNodeById(originalMatchedNodeId);
+				System.out.println("attempting to remap tip " + curLeaf.getName() + " (was mapped to " + getIdString(originalMatchedNode) +")");
+				
+				// get the outgroup set for this node, which is *all* the mrca descendendants of all the nodes mapped to all the input tips except this one
+				TLongArrayList outgroupIds = new TLongArrayList();
+				for (Long tid : shallowTaxonMappings.values()) {
+					if (tid.equals(originalMatchedNodeId) == false) {
+						outgroupIds.addAll((long[]) graphDb.getNodeById(tid).getProperty("mrca"));
+					}
+				}
+				
+				Node newMatch = getDeepestExemplifiedTaxon(graphDb.getNodeById(originalMatchedNodeId), outgroupIds);
+				
+				if (originalMatchedNodeId.equals(newMatch.getId())) {
+					System.out.println("\t" + curLeaf.getName() + " was not remapped");
+	
+				} else { // we remapped the leaf to a deeper taxon
+					
+					// update the map
+					jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, newMatch.getId());
+	
+					// add a relationship that records the mapping
+					Relationship exemplarRel = originalMatchedNode.createRelationshipTo(newMatch, RelType.STREEEXEMPLAROF);
+					sourceRelIndex.add(exemplarRel, "source", sourceName);
+					exemplarRel.setProperty("source", sourceName);
+	
+					System.out.println("\t" + curLeaf.getName() + " was remapped to " + getIdString(newMatch));
 				}
 			}
 			
-			Node newMatch = getDeepestExemplifiedTaxon(graphDb.getNodeById(curLeafMatchedGraphNodeId), outgroupIds);
-
-			if (curLeafMatchedGraphNodeId.equals(newMatch.getId())) {
-				System.out.println("\t" + curLeaf.getName() + " was not remapped");
-			} else {
-				jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, newMatch.getId());
-				System.out.println("\t" + curLeaf.getName() + " was remapped to " + getIdString(newMatch));
-			}
+		} catch (Exception ex) { // dump the transaction if tree import fails
+			tx.failure();
+			tx.finish();
+			throw ex;
+		} finally {
+			tx.success();
+			tx.finish();
 		}
 	}
 	
@@ -453,6 +476,7 @@ public class GraphImporter extends GraphBase {
 	 */
 	@SuppressWarnings("unchecked")
 	private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode) throws TreeIngestException {
+
 		// postorder traversal via recursion
 		for (int i = 0; i < curJadeNode.getChildCount(); i++) {
 			postOrderAddProcessedTreeToGraph(curJadeNode.getChild(i));
@@ -827,9 +851,10 @@ public class GraphImporter extends GraphBase {
 	
 	/**
 	 * TODO: update this for the new method
+	 * @throws Exception 
 	 * @throws MultipleHitsException 
 	 */
-	public void deleteAllTreesAndReprocess() {
+	public void deleteAllTreesAndReprocess() throws Exception {
 		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
 		System.out.println(hits.size());
 		for (Node itrel : hits) {

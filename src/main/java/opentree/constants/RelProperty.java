@@ -15,8 +15,10 @@ public enum RelProperty {
 	CHILD_TAX_UID ("childid", String.class, "The tax_uid of the child of this relationship. Used for taxnonomic rels."),
 	PARENT_TAX_UID ("parentid", String.class, "The tax_uid of the parent of this relationship. Used for taxonomic rels."),
 	
-	// STREECHILDOF relationships
+	// STREECHILDOF and STREEEXEMPLAROF relationships
 	SOURCE ("source", String.class, "The name of the source supporting this relationship"),
+
+	// STREECHILDOF
 	LICAS ("licas", long[].class, "A reference to alternate LICA mappings that are associated with this LICA mapping. There can be at least 1 and as many as there are ambiguous mappings."),
 	INCLUSIVE_RELIDS ("inclusive_relids", long[].class, "The list of STREECHILDOF relationships that are involved with this mapping."),
 	EXCLUSIVE_MRCA ("exclusive_mrca", long[].class, "The list of mrca descendants that are exclusive to this node."),

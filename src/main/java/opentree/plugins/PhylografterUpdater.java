@@ -24,7 +24,7 @@ public class PhylografterUpdater extends ServerPlugin{
 
 	@Description ("Update the graph studies that should be added from phylografter")
 	@PluginTarget (GraphDatabaseService.class)
-	public void updateGraphFromPhylografter(@Source GraphDatabaseService graphDbs){
+	public void updateGraphFromPhylografter(@Source GraphDatabaseService graphDbs) throws Exception{
 //			,
 //			@Description("Last date to check")
 //			@Parameter( date = "date", optional= true ) String date){

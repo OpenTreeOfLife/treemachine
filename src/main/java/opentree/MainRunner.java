@@ -71,7 +71,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int graphReloadTrees(String [] args) throws MultipleHitsException {
+	public int graphReloadTrees(String [] args) throws Exception {
 		GraphImporter gi = null;
 		if (args.length != 2) {
 			System.out.println("arguments should be: graphdbfolder");
@@ -127,10 +127,11 @@ public class MainRunner {
 	}
 	
 	/**
+	 * @throws Exception 
 	 * @returns 0 for success, 1 for error, 2 for error with a request that the generic help be displayed
 	 */
 	public int graphImporterParser(String [] args) 
-					throws TaxonNotFoundException, DataFormatException, TreeIngestException, MultipleHitsException {
+					throws Exception {
 		boolean readingNewick = false;
 		boolean readingNexson = false;
 		if (args[0].compareTo("addnewick") == 0) {
@@ -482,7 +483,7 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int justTreeAnalysis(String [] args)
-				throws DataFormatException, TaxonNotFoundException, TreeIngestException, MultipleHitsException{
+				throws Exception{
 		if (args.length != 5) {
 			System.out.println("arguments should be: filename (taxacompletelyoverlap)T|F rootnodename graphdbfolder");
 			return 1;
@@ -1252,7 +1253,7 @@ public class MainRunner {
 	 * not from the server
 	 * Will load all trees
 	 */
-	public int pg_loading(String [] args){
+	public int pg_loading(String [] args) throws Exception{
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 		if (args.length != 3) {
 			graphDb.shutdownDb();
@@ -1375,7 +1376,7 @@ public class MainRunner {
 											BufferedReader nexsonContentBR, String treeid,
 											MessageLogger messageLogger,
 											boolean onlyTestTheInput) 
-											throws IOException, TaxonNotFoundException, TreeIngestException {
+											throws Exception {
 		List<JadeTree> rawTreeList = null;
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
 		rawTreeList = NexsonReader.readNexson(nexsonContentBR, true, messageLogger);
@@ -1484,7 +1485,7 @@ public class MainRunner {
 	 * 
 	 * changed to loading individual trees
 	 */
-	public int pg_loading_ind_studies(String [] args) {
+	public int pg_loading_ind_studies(String [] args) throws Exception {
 		boolean test = false;
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 		PrintStream jsonOutputPrintStream = null;
@@ -1560,7 +1561,7 @@ public class MainRunner {
 		return rc;
 	}
 	
-	public int pgtesting(String [] args){
+	public int pgtesting(String [] args) throws Exception{
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 		if (args.length != 2) {
 			return 1;
