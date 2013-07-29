@@ -136,18 +136,26 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(tn).nodes()) {
 								System.out.println("Updating parent node " + pNode + " with new lica mappings");
 
-								// update the ingroup ids
-								pNode.setProperty("mrca", ttm.toArray());
+								// add all the new ingroup ids to the parent
+								TLongArrayList mrcaNew = new TLongArrayList((long[]) pNode.getProperty("mrca"));
+								mrcaNew.addAll(tto);
+								pNode.setProperty("mrca", mrcaNew.toArray());
 								
-								// make sure we don't add anything in this node's ingroup to its outmrca field
-								TLongArrayList ingroupIds = new TLongArrayList();
-								for (Relationship childRel : pNode.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
-									ingroupIds.addAll((long[]) childRel.getStartNode().getProperty("mrca"));
-								}
-								tto.removeAll(ingroupIds);
+								// get all the mrca properties of all the other child nodes of this parent
+								// TODO: i think we can just get this from this node's own mrca field...
+//								TLongArrayList ingroupIds = new TLongArrayList();
+//								for (Relationship childRel : pNode.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
+//									ingroupIds.addAll((long[]) childRel.getStartNode().getProperty("mrca"));
+//								}
 								
-								// update the outgroup ids
-								pNode.setProperty("outmrca", tto.toArray());
+								// make sure we don't put anything into this parent's outmrca field that is in the ingroup of one of its children
+//								tto.removeAll(ingroupIds);
+								tto.removeAll(mrcaNew);
+								
+								// add all the new outgroup ids to the parent
+								TLongArrayList outmrcaNew = new TLongArrayList((long[]) pNode.getProperty("outmrca"));
+								outmrcaNew.addAll(tto);
+								pNode.setProperty("outmrca", outmrcaNew.toArray());
 							}
 						}
 							
