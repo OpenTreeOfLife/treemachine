@@ -22,16 +22,13 @@ public class MRCAValidatingEvaluator implements Evaluator {
 
 	/**
 	 * Set the mrca and outmrca properties that we will use to validate nodes in the traversal. Any nodes we
-	 * visit that do not contain all the ids of the passed mrca and outmrca variables in the correspding properties
+	 * visit that do not contain all the ids of the passed mrca variable in the corresponding properties
 	 * will be returned by the traversal.
 	 * @param mrca
 	 * @param outmrca
 	 */
-	public MRCAValidatingEvaluator(TLongArrayList mrca, TLongArrayList outmrca) {
-
+	public MRCAValidatingEvaluator(TLongArrayList mrca) {
 		this.mrcaTest = mrca;
-		this.outmrcaTest = mrca;
-
 	}
 
 	@Override
@@ -49,12 +46,6 @@ public class MRCAValidatingEvaluator implements Evaluator {
 		if (!curNodeDescendantIds.containsAll(mrcaTest)) {
 			return Evaluation.INCLUDE_AND_CONTINUE;
 		}
-
-		// return the node if it is missing any outmrca ids
-//		TLongArrayList curNodeOutgroupIds = new TLongArrayList((long[]) curNode.getProperty("outmrca"));
-//		if (!curNodeOutgroupIds.containsAll(outmrcaTest)) {
-//			return Evaluation.INCLUDE_AND_CONTINUE;
-//		}
 
 		// if we passed the tests, this node has all the right descendant ids, so we won't include it
 		return Evaluation.EXCLUDE_AND_PRUNE;

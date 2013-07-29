@@ -132,7 +132,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						
 						// we need to make sure that parents of this node get updated now with the new mrca and outmrca information
 						if (checkParents) {
-							for (Node pNode : Traversal.description().breadthFirst().evaluator(new MRCAValidatingEvaluator(ttm, tto)).
+							for (Node pNode : Traversal.description().breadthFirst().evaluator(new MRCAValidatingEvaluator(ttm)).
 									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(tn).nodes()) {
 								System.out.println("Updating parent node " + pNode + " with new lica mappings");
 
@@ -152,22 +152,6 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 								TLongArrayList mrcaNew = new TLongArrayList((long[]) pNode.getProperty("mrca"));
 								mrcaNew.addAll(tto);
 								pNode.setProperty("mrca", mrcaNew.toArray());
-								
-								// get all the mrca properties of all the other child nodes of this parent
-								// TODO: i think we can just get this from this node's own mrca field...
-//								TLongArrayList ingroupIds = new TLongArrayList();
-//								for (Relationship childRel : pNode.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
-//									ingroupIds.addAll((long[]) childRel.getStartNode().getProperty("mrca"));
-//								}
-								
-								// make sure we don't put anything into this parent's outmrca field that is already in its ingroup
-//								tto.removeAll(ingroupIds);
-//								tto.removeAll(mrcaNew);
-								
-								// add all the new outgroup ids to the parent
-//								TLongArrayList outmrcaNew = new TLongArrayList((long[]) pNode.getProperty("outmrca"));
-//								outmrcaNew.addAll(tto);
-//								pNode.setProperty("outmrca", outmrcaNew.toArray());
 							}
 						}
 							

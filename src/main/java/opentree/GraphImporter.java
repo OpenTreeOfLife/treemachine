@@ -148,10 +148,6 @@ public class GraphImporter extends GraphBase {
 		remapTipsToDeepestExemplifiedTaxa(); // remove this line to return to the old method of exact taxon mapping
 		
 		loadTree();
-		
-		// now add the deep mappings to facilitate synthesis
-//		remapInputLeavesToDeepestTaxa();
-//		loadTree();
 	}
 	
 	/**
@@ -187,10 +183,6 @@ public class GraphImporter extends GraphBase {
 		remapTipsToDeepestExemplifiedTaxa(); // remove this line to return to the old method of exact taxon mapping
 		
 		loadTree();
-		
-		// now add the deep mappings to facilitate synthesis
-//		remapInputLeavesToDeepestTaxa();
-//		loadTree();
 	}
 	
 	/**
@@ -270,7 +262,6 @@ public class GraphImporter extends GraphBase {
 			} finally {
 				hits.close();
 			}
-			
 			jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, matchedGraphNode.getId());
 		}
 		gatherInfoForLicaSearches();
@@ -321,7 +312,7 @@ public class GraphImporter extends GraphBase {
 		for (JadeNode curLeaf : shallowTaxonMappings.keySet()) {
 			
 			Long curLeafMatchedGraphNodeId = shallowTaxonMappings.get(curLeaf);
-			System.out.println("remapping tip " + curLeaf.getName() + " (was mapped to " + getIdString(graphDb.getNodeById(curLeafMatchedGraphNodeId)) +")");
+			System.out.println("attempting to remap tip " + curLeaf.getName() + " (was mapped to " + getIdString(graphDb.getNodeById(curLeafMatchedGraphNodeId)) +")");
 			
 			// get the outgroup set for this node, which is *all* the mrca descendendants of all the nodes mapped to all the input tips except this one
 			TLongArrayList outgroupIds = new TLongArrayList();
@@ -331,7 +322,14 @@ public class GraphImporter extends GraphBase {
 				}
 			}
 			
-			jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, getDeepestExemplifiedTaxon(graphDb.getNodeById(curLeafMatchedGraphNodeId), outgroupIds).getId());
+			Node newMatch = getDeepestExemplifiedTaxon(graphDb.getNodeById(curLeafMatchedGraphNodeId), outgroupIds);
+
+			if (curLeafMatchedGraphNodeId.equals(newMatch.getId())) {
+				System.out.println("\t" + curLeaf.getName() + " was not remapped");
+			} else {
+				jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, newMatch.getId());
+				System.out.println("\t" + curLeaf.getName() + " was remapped to " + getIdString(newMatch));
+			}
 		}
 	}
 	
@@ -343,15 +341,9 @@ public class GraphImporter extends GraphBase {
 	 */
 	private Node getDeepestExemplifiedTaxon(Node inNode, TLongArrayList outgroupIds) {
 		
-//		DeepestTaxAncestorEvaluator dte = new DeepestTaxAncestorEvaluator();
-//		dte.setOutgroupIds(outgroupIds);
-//		Iterator<Node> deepestTaxAncestorsIter = Traversal.description().evaluator(dte).traverse(inNode).nodes().iterator();
-
 		BitSet exemplarOutgroupIdsBS = new BitSet((int) outgroupIds.max());
 		for (int i = 0; i < outgroupIds.size(); i++) {
 			exemplarOutgroupIdsBS.set((int) outgroupIds.getQuick(i));
-			
-//			System.out.println("adding " + outgroupIds.getQuick(i) + " to outgroup"); 
 		}
 
 		Node taxChild = inNode;
@@ -359,8 +351,7 @@ public class GraphImporter extends GraphBase {
 		boolean stillLookingForDeepest = true;
 		while (stillLookingForDeepest) {
 
-			System.out.println("looking at parent " + getIdString(taxParent) + " of " + getIdString(taxParent));
-//			Node nextParent = taxParent.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+//			System.out.println("looking at parent " + getIdString(taxParent) + " of " + getIdString(taxParent));
 			
 			// get all the mrca descendants of the parent
 			TLongArrayList parentIngroupIds = new TLongArrayList((long[]) taxParent.getProperty("mrca"));
@@ -383,16 +374,6 @@ public class GraphImporter extends GraphBase {
 			}
 		}
 
-/*		if (deepestTaxAncestorsIter.hasNext()) {
-			exemplifiedTaxon = deepestTaxAncestorsIter.next();
-		} else {
-			throw new java.lang.IllegalStateException("found no deepest exemplified taxon for " + inNode + ". this is a bug; there must be one");
-		}
-		
-		if (deepestTaxAncestorsIter.hasNext()) {
-			throw new java.lang.IllegalStateException("returned more than one deepest exemplified taxon for " + inNode + ". this is a bug; there can be only one");
-		} */
-		
 		return taxChild;
 	}
 	
