@@ -135,8 +135,13 @@ public class GraphImporter extends GraphBase {
 		this.logger = msgLogger;
 		this.sourceName = sourceName;
 
+		// first add the mappings to the eaxct taxon nodes
 		matchTaxaUsingTaxUIDs();
 		loadTree();
+		
+		// now add the deep mappings to facilitate synthesis
+		remapInputLeavesToDeepestTaxa();
+//		loadTree();
 	}
 	
 	/**
@@ -164,9 +169,14 @@ public class GraphImporter extends GraphBase {
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
 		this.logger = msgLogger;
 		this.sourceName = sourceName;
-		
+
+		// first add the mappings to the exact taxon nodes
 		matchTaxaUsingNames(focalgroup);
 		loadTree();
+		
+		// now add the deep mappings to facilitate synthesis
+		remapInputLeavesToDeepestTaxa();
+//		loadTree();
 	}
 	
 	/**
@@ -286,6 +296,25 @@ public class GraphImporter extends GraphBase {
 		}
 		gatherInfoForLicaSearches();
 	}
+	
+	/**
+	 * This adds relationships mapping the input tree leaves to the deepest possible taxa that they could represent.
+	 * These relationships allow the tips to be interpreted as exemplars of higher taxa, which can result in more
+	 * complete synthesis trees.
+	 * 
+	 * This should only be called *after* the tree has been added to the graph, because it will use the information
+	 * in the graph nodes to find the deepest mappable taxa.
+	 */
+	private void remapInputLeavesToDeepestTaxa() {
+		
+		for (Entry <JadeNode, Long> leafMapping : jadeNodeToMatchedGraphNodeIdMap.entrySet()) {
+			JadeNode curLeaf = leafMapping.getKey();
+			Long matchedGraphNodeId = leafMapping.getValue();
+			
+			// use a traversal to walk backward down the graph until we hit a node that 
+		}
+	}
+	
 	
 	/**
 	 * Prepopulates several container-class instance variables that will be used during lica searching. Called by the

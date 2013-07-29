@@ -39,7 +39,7 @@ public class MRCAValidatingEvaluator implements Evaluator {
 
 		Node curNode = inPath.endNode();
 
-		// pass over taxonomy nodes, their mrca never changes and they don't have an 'outmrca' field 
+		// pass over taxonomy nodes, their mrca never changes 
 		if (curNode.hasProperty("name")) {
 			return Evaluation.EXCLUDE_AND_CONTINUE;
 		}
@@ -51,10 +51,10 @@ public class MRCAValidatingEvaluator implements Evaluator {
 		}
 
 		// return the node if it is missing any outmrca ids
-		TLongArrayList curNodeOutgroupIds = new TLongArrayList((long[]) curNode.getProperty("outmrca"));
-		if (!curNodeOutgroupIds.containsAll(outmrcaTest)) {
-			return Evaluation.INCLUDE_AND_CONTINUE;
-		}
+//		TLongArrayList curNodeOutgroupIds = new TLongArrayList((long[]) curNode.getProperty("outmrca"));
+//		if (!curNodeOutgroupIds.containsAll(outmrcaTest)) {
+//			return Evaluation.INCLUDE_AND_CONTINUE;
+//		}
 
 		// if we passed the tests, this node has all the right descendant ids, so we won't include it
 		return Evaluation.EXCLUDE_AND_PRUNE;

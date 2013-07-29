@@ -136,6 +136,18 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(tn).nodes()) {
 								System.out.println("Updating parent node " + pNode + " with new lica mappings");
 
+								// test, validate that the child ingroup doesn't contain things that are already in the outgroup
+								// of the parent as this indicates failure on the part of the lica-identification code
+								TLongArrayList outmrcaParent = new TLongArrayList((long[]) pNode.getProperty("outmrca"));
+								BitSet outmrcaParentBS = new BitSet((int) outmrcaParent.max());
+								for (int i = 0; i < outmrcaParent.size(); i++) {
+									outmrcaParentBS.set((int) outmrcaParent.getQuick(i));
+								}
+								if (outmrcaParentBS.intersects(inIdBS2)) {
+									throw new java.lang.IllegalStateException("attempt to add a child containing a descendant to a parent with that descendant in its outgroup");
+									// TODO: put in output about the nodes involved in the failed mapping
+								}
+								
 								// add all the new ingroup ids to the parent
 								TLongArrayList mrcaNew = new TLongArrayList((long[]) pNode.getProperty("mrca"));
 								mrcaNew.addAll(tto);
@@ -148,14 +160,14 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 //									ingroupIds.addAll((long[]) childRel.getStartNode().getProperty("mrca"));
 //								}
 								
-								// make sure we don't put anything into this parent's outmrca field that is in the ingroup of one of its children
+								// make sure we don't put anything into this parent's outmrca field that is already in its ingroup
 //								tto.removeAll(ingroupIds);
-								tto.removeAll(mrcaNew);
+//								tto.removeAll(mrcaNew);
 								
 								// add all the new outgroup ids to the parent
-								TLongArrayList outmrcaNew = new TLongArrayList((long[]) pNode.getProperty("outmrca"));
-								outmrcaNew.addAll(tto);
-								pNode.setProperty("outmrca", outmrcaNew.toArray());
+//								TLongArrayList outmrcaNew = new TLongArrayList((long[]) pNode.getProperty("outmrca"));
+//								outmrcaNew.addAll(tto);
+//								pNode.setProperty("outmrca", outmrcaNew.toArray());
 							}
 						}
 							
