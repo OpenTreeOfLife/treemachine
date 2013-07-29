@@ -210,7 +210,7 @@ public class ResolvingExpander implements PathExpander {
 		//		in other words, we shouldn't rank all of them, just the ones we care about
 		
 		// TESTING
-		System.out.println("synthesis path expander preparing to work with path starting at (end) node: " + inPath.endNode().getId());
+//		System.out.println("synthesis path expander preparing to work with path starting at (end) node: " + inPath.endNode().getId());
 		
 		// perform the steps to determine which relationships to include in synthesis.
 		// logic for these steps
