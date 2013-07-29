@@ -1021,7 +1021,12 @@ public class MainRunner {
 				throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
 			}
 
-			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources, test);
+			try {
+				success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources, test);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			System.out.println("done with synthesis");
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
@@ -1054,7 +1059,12 @@ public class MainRunner {
 			if (firstNode == null) {
 				throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
 			}
-			success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
+			try {
+				success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} catch (OttolIdNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
