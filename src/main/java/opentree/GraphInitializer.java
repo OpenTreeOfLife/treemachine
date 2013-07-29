@@ -260,6 +260,12 @@ public class GraphInitializer extends GraphBase{
 		String rank = st.nextToken().trim();
 		String srce = st.nextToken().trim();
 		String uniqname = st.nextToken().trim();
+		String flag = st.nextToken().trim(); //for dubious
+		//if flag == D
+		if (flag.equals("D")){
+			System.out.println("skipping dubious "+name);	
+			return;
+		}
 
 		Node tnode = graphDb.createNode();
 		tnode.setProperty(NodeProperty.NAME.propertyName, name);
