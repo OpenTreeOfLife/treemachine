@@ -995,7 +995,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int synthesizeDraftTreeWithList(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int synthesizeDraftTreeWithList(String [] args) throws Exception {
 		boolean test = false; 
 		if (args.length != 4 && args.length != 5) {
 			System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder (test)");
@@ -1035,7 +1035,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int synthesizeDraftTree(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int synthesizeDraftTree(String [] args) throws Exception {
 		boolean test = false;
 		if (args.length != 3) {
 			System.out.println("arguments should be rootOTToLid graphdbfolder");
@@ -1774,9 +1774,9 @@ public class MainRunner {
 	
 	/**
 	 * @param args
-	 * @throws MultipleHitsException 
+	 * @throws Exception 
 	 */
-	public static void main(String[] args) throws MultipleHitsException {
+	public static void main(String[] args) throws Exception {
 		//PropertyConfigurator.configure(System.getProperties());
 		//System.err.println("treemachine version alpha.alpha.prealpha");
 		if (args.length < 1) {

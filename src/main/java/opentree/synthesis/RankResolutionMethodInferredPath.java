@@ -78,6 +78,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 			storeDescendants(rel2);
 		}
 
+		/*
 		// == begin testing code
 
 		// setting up a test for case involving Thamnidium elegans
@@ -121,7 +122,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 					}
 				}
 			}
-		}
+		} */
 		
 		// if the relationships share any descendant leaves, then there is some kind of conflict
 		if (LicaUtil.containsAnyt4jUnsorted(candRelDescendantIdsMap.get(rel2), candRelDescendantIdsMap.get(rel1))) {
@@ -140,12 +141,14 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 			rval = ConflictType.NO_CONFLICT;
 		}
 
+		/*
 		// == begin testing code
 		if (testing) {
 			System.out.println(rval.toString());
 			System.out.println("\n\n");
 		}
 		// == end testing code
+		 */
 			
 		return rval;
 	}

@@ -8,6 +8,7 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PathExpander;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.BranchState;
+import org.neo4j.kernel.Traversal;
 
 /**
  * A PathExpander class that performs all the steps to make decisions about which relationships to
@@ -99,6 +100,19 @@ public class ResolvingExpander implements PathExpander {
 		} else {
 			bestRels = candidateRels;
 		}
+		
+		// testing
+		System.out.println("now passing an array containing the following rels to GraphExplorer.");
+		for (Relationship rel : bestRels) {
+    		// testing
+    		System.out.println("\t" + rel.getId());
+    		
+			// print each rel, check this against accepted rels output from the resolution method to
+			// be sure that the rels that are getting accepted are also getting passed. They don't
+			// seem to be getting picked up in GraphExplorer...
+		}
+
+		
 	}
 
 	/**
@@ -195,6 +209,9 @@ public class ResolvingExpander implements PathExpander {
 		//filter();
 		//TODO: this is likely to be very slow unless we only rank the relationships that we care about
 		//		in other words, we shouldn't rank all of them, just the ones we care about
+		
+		// TESTING
+		System.out.println("synthesis path expander preparing to work with path starting at (end) node: " + inPath.endNode().getId());
 		
 		// perform the steps to determine which relationships to include in synthesis.
 		// logic for these steps

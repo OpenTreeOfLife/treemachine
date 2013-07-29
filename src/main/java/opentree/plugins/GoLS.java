@@ -104,7 +104,7 @@ public class GoLS extends ServerPlugin {
 	public String synthesizeSubtree(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
-			@Parameter(name = "rootOttolID", optional = true) String rootOttolID) throws OttolIdNotFoundException, TaxonNotFoundException, MultipleHitsException {
+			@Parameter(name = "rootOttolID", optional = true) String rootOttolID) throws Exception {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		

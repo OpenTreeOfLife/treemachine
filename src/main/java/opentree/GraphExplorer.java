@@ -752,9 +752,9 @@ public class GraphExplorer extends GraphBase {
      * @param startNode this is the beginning node for analysis
      * @param preferredSourceIds this includes the list of preferred sources
      * @param test this will just run through the motions but won't store the synthesis 
-     * @throws OttolIdNotFoundException 
+     * @throws Exception 
      */
-    public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds, boolean test) throws OttolIdNotFoundException {        
+    public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds, boolean test) throws Exception {        
     	
     	// build the list of ids, have to use generic objects
         ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
@@ -766,7 +766,7 @@ public class GraphExplorer extends GraphBase {
         ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
         	justSourcePriorityList.add(sourceId.split("_")[0]);
-        }
+        }		
         
         // define the synthesis protocol
         ResolvingExpander draftSynthesisMethod = new ResolvingExpander();
@@ -792,7 +792,7 @@ public class GraphExplorer extends GraphBase {
         }
         System.out.println("filtered: "+filteredsources);
         if (filteredsources.size() > 0) {
-        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID,FilterComparisonType.CONTAINS,new TestValue(filteredsources),sourceMetaIndex));
+        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
         	draftSynthesisMethod.setFilter(rf);
         }
         //if(true == true)
@@ -819,6 +819,10 @@ public class GraphExplorer extends GraphBase {
         String synthTreeName = DRAFTTREENAME;
         try {
         	for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
+
+        		// testing
+        		System.out.println("now attempting to store rel " + rel.getId());
+        		
                 // store the relationship
         		Node parentNode = rel.getEndNode();
         		Node curNode = rel.getStartNode();
@@ -851,7 +855,7 @@ public class GraphExplorer extends GraphBase {
         	tx.success();
         } catch (Exception ex) {
         	tx.failure();
-        	ex.printStackTrace();
+        	throw ex;
         } finally {
         	tx.finish();
         }
@@ -1106,7 +1110,7 @@ public class GraphExplorer extends GraphBase {
         System.out.println("have to add "+taxaleft.size());
         
         while(taxaleft.size() > 0){
-        	System.out.println("taxaleft: "+taxaleft.size());
+//        	System.out.println("taxaleft: "+taxaleft.size());
         	long tid = taxaleft.removeAt(0);
         	Node taxNode = graphDb.getNodeById(tid);
             TLongArrayList ttmrca = new TLongArrayList((long [])taxNode.getProperty("mrca"));
@@ -1115,7 +1119,7 @@ public class GraphExplorer extends GraphBase {
         	//if it is a tip, get the parent
         	Node ptaxNode = taxNode.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
             ArrayList<Node> nodesInTree = new ArrayList<Node>();
-            System.out.println(taxNode.getProperty("name"));
+//            System.out.println(taxNode.getProperty("name"));
             
         	for (long cid : (long[]) ptaxNode.getProperty("mrca")) {
             	Node childNode = graphDb.getNodeById(cid);
@@ -1133,13 +1137,13 @@ public class GraphExplorer extends GraphBase {
                 //	mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
                 //	tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
                 //}
-                System.out.println("1) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
+//                System.out.println("1) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
                 Relationship newRel = taxNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
                 newRel.setProperty("name", DRAFTTREENAME);
                 newRel.setProperty("supporting_sources", supportingSources);
                 knownIdsInTree.add(taxNode.getId());
             } else {
-            	System.out.println("2) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
+//            	System.out.println("2) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
             	Relationship newRel = taxNode.createRelationshipTo(ptaxNode, RelType.SYNTHCHILDOF);
             	newRel.setProperty("name", DRAFTTREENAME);
             	newRel.setProperty("supporting_sources", supportingSources);
