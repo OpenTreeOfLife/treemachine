@@ -1240,6 +1240,7 @@ public class MainRunner {
 	/*
 	 * Use this to load trees from nexson into the graph from a directory
 	 * not from the server
+	 * Will load all trees
 	 */
 	public int pg_loading(String [] args){
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
@@ -1248,16 +1249,16 @@ public class MainRunner {
 			return 1;
 		}
 		String directory = args[2];
-		System.out.println("loading files from "+directory+" into "+args[1]);
+		System.out.println("loading files from " + directory + " into " + args[1]);
 		File file = new File(directory);
 		File [] files = file.listFiles();
 		MessageLogger messageLogger = new MessageLogger("pg_loading:", " ");
-		for(int i =0;i<files.length;i++){
+		for (int i = 0; i < files.length; i++) {
 			System.out.println("files "+ files[i]);
 			BufferedReader br= null;
 			List<JadeTree> rawTreeList = new ArrayList<JadeTree>();
-			List<JadeTree> jt = new ArrayList<JadeTree>();;
-				try{
+			List<JadeTree> jt = new ArrayList<JadeTree>();
+				try {
 					br = new BufferedReader(new FileReader(files[i]));
 					rawTreeList = NexsonReader.readNexson(br, true, messageLogger);
 					for (JadeTree j : rawTreeList) {
@@ -1274,28 +1275,28 @@ public class MainRunner {
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}catch (java.lang.NullPointerException e){
+				} catch (java.lang.NullPointerException e) {
 					e.printStackTrace();
 				}
-				try{
+				try {
 					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
-				}catch(IOException ioe){
+				} catch(IOException ioe) {
 					ioe.printStackTrace();
 					System.out.println("failed to get the names from server fixNamesFromTrees");
 					continue;
 				}
-				try{
-					for(JadeTree j: jt){
+				try {
+					for (JadeTree j: jt) {
 						GraphImporter gi = new GraphImporter(graphDb);
 						boolean doubname = false;
 						HashSet<Long> ottols = new HashSet<Long>();
-						for(int m=0;m<j.getExternalNodeCount();m++){
-							System.out.println(j.getExternalNode(m).getName()+" "+j.getExternalNode(m).getObject("ot:ottolid"));
-							if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
+						for (int m = 0; m < j.getExternalNodeCount(); m++){
+							System.out.println(j.getExternalNode(m).getName() + " " + j.getExternalNode(m).getObject("ot:ottolid"));
+							if(j.getExternalNode(m).getObject("ot:ottolid") == null) {//use doubname as also 
 								doubname = true;
 								break;
 							}
-							if (ottols.contains(j.getExternalNode(m).getObject("ot:ottolid")) == true){
+							if (ottols.contains(j.getExternalNode(m).getObject("ot:ottolid")) == true) {
 								doubname = true;
 								break;
 							} else {
@@ -1303,7 +1304,7 @@ public class MainRunner {
 							}
 						}
 						//check for any duplicate ottol:id
-						if (doubname == true){
+						if (doubname == true) {
 							System.out.println("there are duplicate names");
 						} else {
 							System.out.println("this is being added");
@@ -1311,21 +1312,22 @@ public class MainRunner {
 							String sourcename = "";
 							if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
 								sourcename = (String)j.getObject("ot:studyId");
-							}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
-								sourcename += "_"+(String)j.getObject("id");
+							}
+							if (j.getObject("id") != null) { // use treeid (if present) as sourcename
+								sourcename += "_" + (String)j.getObject("id");
 							}							
 							//test to see if the tree is already in there
 							Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
 							IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
-							if (hits.size() > 0){
+							if (hits.size() > 0) {
 								System.out.println("source "+sourcename+" already added");
-							}else{
+							} else {
 								gi.addSetTreeToGraphWIdsSet(sourcename, false, false, messageLogger);
 							}
 						}
 					}
-				} catch(java.lang.NullPointerException e){
-					System.out.println("failed to get study "+files[i].getName());
+				} catch(java.lang.NullPointerException e) {
+					System.out.println("failed to get study " + files[i].getName());
 					continue;
 				} catch (TaxonNotFoundException e) {
 					// TODO Auto-generated catch block
@@ -1478,9 +1480,18 @@ public class MainRunner {
 		PrintStream jsonOutputPrintStream = null;
 		if (args.length != 4 && args.length != 5) {
 			graphDb.shutdownDb();
-			System.out.println("the argument has to be graphdb filen treeid (test)");
+			System.out.println("the argument has to be graphdb filename treeid (test)");
 			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
+		}
+		if (args.length == 4) {
+			if (!args[3].matches("\\d+")) { // check for missing treeid
+				graphDb.shutdownDb();
+				System.out.println("Missing treeid argument");
+				System.out.println("the argument has to be graphdb filename treeid (test)");
+				System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
+				return 1;
+			}
 		}
 		if (args.length == 5) {
 			System.err.println("not entering into the database, just testing");
@@ -1737,7 +1748,7 @@ public class MainRunner {
 		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
 		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)");
-		System.out.println("\tpgloadind <graphdbfolder> filepath [test] (add trees from the nexson file \"filepath\" into the db. If third arg is found the tree is just tested, not added).\n");
+		System.out.println("\tpgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
 
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
