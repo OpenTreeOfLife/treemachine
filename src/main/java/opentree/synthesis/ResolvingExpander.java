@@ -102,16 +102,15 @@ public class ResolvingExpander implements PathExpander {
 		}
 		
 		// testing
-		System.out.println("now passing an array containing the following rels to GraphExplorer.");
-		for (Relationship rel : bestRels) {
+//		System.out.println("now passing an array containing the following rels to GraphExplorer.");
+//		for (Relationship rel : bestRels) {
     		// testing
-    		System.out.println("\t" + rel.getId());
+//    		System.out.println("\t" + rel.getId());
     		
 			// print each rel, check this against accepted rels output from the resolution method to
 			// be sure that the rels that are getting accepted are also getting passed. They don't
 			// seem to be getting picked up in GraphExplorer...
-		}
-
+//		}
 		
 	}
 

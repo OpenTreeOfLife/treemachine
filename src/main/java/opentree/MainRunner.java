@@ -1360,7 +1360,8 @@ public class MainRunner {
 	}
 	
 	public static int loadPhylografterStudy(GraphDatabaseAgent graphDb, 
-											BufferedReader nexsonContentBR, String treeid,
+											BufferedReader nexsonContentBR,
+											String treeid,
 											MessageLogger messageLogger,
 											boolean onlyTestTheInput) 
 											throws IOException, TaxonNotFoundException, TreeIngestException {
@@ -1517,7 +1518,7 @@ public class MainRunner {
 		int rc = 0;
 		try {
 			//set treeid == null if you want to load all of them
-			if (loadPhylografterStudy(graphDb, br, treeid,messageLogger, test) != 0) {
+			if (loadPhylografterStudy(graphDb, br, treeid, messageLogger, test) != 0) {
 				rc = -1;
 			}
 		} catch (IOException e) {
@@ -1737,7 +1738,7 @@ public class MainRunner {
 		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
 		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)");
-		System.out.println("\tpgloadind <graphdbfolder> filepath [test] (add trees from the nexson file \"filepath\" into the db. If third arg is found the tree is just tested, not added).\n");
+		System.out.println("\tpgloadind <graphdbfolder> nexsonpath treeid [test] (add the tree with id \"treeid\" from the nexson file \"nexsonpath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
 
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");

@@ -821,7 +821,7 @@ public class GraphExplorer extends GraphBase {
         	for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
 
         		// testing
-        		System.out.println("now attempting to store rel " + rel.getId());
+//        		System.out.println("now attempting to store rel " + rel.getId());
         		
                 // store the relationship
         		Node parentNode = rel.getEndNode();
@@ -1110,7 +1110,7 @@ public class GraphExplorer extends GraphBase {
         System.out.println("have to add "+taxaleft.size());
         
         while(taxaleft.size() > 0){
-//        	System.out.println("taxaleft: "+taxaleft.size());
+        	System.out.println("taxaleft: "+taxaleft.size());
         	long tid = taxaleft.removeAt(0);
         	Node taxNode = graphDb.getNodeById(tid);
             TLongArrayList ttmrca = new TLongArrayList((long [])taxNode.getProperty("mrca"));

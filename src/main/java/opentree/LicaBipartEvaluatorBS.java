@@ -10,6 +10,7 @@ import opentree.constants.RelType;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.kernel.Traversal;
@@ -134,7 +135,18 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 							for (Node pNode : Traversal.description().breadthFirst().evaluator(new MRCAValidatingEvaluator(ttm, tto)).
 									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(tn).nodes()) {
 								System.out.println("Updating parent node " + pNode + " with new lica mappings");
+
+								// update the ingroup ids
 								pNode.setProperty("mrca", ttm.toArray());
+								
+								// make sure we don't add anything in this node's ingroup to its outmrca field
+								TLongArrayList ingroupIds = new TLongArrayList();
+								for (Relationship childRel : pNode.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
+									ingroupIds.addAll((long[]) childRel.getStartNode().getProperty("mrca"));
+								}
+								tto.removeAll(ingroupIds);
+								
+								// update the outgroup ids
 								pNode.setProperty("outmrca", tto.toArray());
 							}
 						}
