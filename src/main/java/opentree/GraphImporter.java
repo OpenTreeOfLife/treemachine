@@ -350,8 +350,6 @@ public class GraphImporter extends GraphBase {
 		Node taxParent = taxChild.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 		boolean stillLookingForDeepest = true;
 		while (stillLookingForDeepest) {
-
-//			System.out.println("looking at parent " + getIdString(taxParent) + " of " + getIdString(taxParent));
 			
 			// get all the mrca descendants of the parent
 			TLongArrayList parentIngroupIds = new TLongArrayList((long[]) taxParent.getProperty("mrca"));
@@ -376,104 +374,6 @@ public class GraphImporter extends GraphBase {
 
 		return taxChild;
 	}
-	
-	/*
-	 * This Evaluator walks down the TAXCHILDOF relationships from the initial node until it finds the deepest taxon that can be
-	 * exemplified by the indicated node. Uses the `outmrca` property of the specified node to find the deepest taxonomic node
-	 * that contains the specified node, but does not contain any of its outgroup.
-	 * 
-	 * @author cody hinchliff
-	 *
-	 *
-//	class DeepestTaxAncestorEvaluator implements Evaluator {
-
-//		BitSet exemplarOutgroupIdsBS;
-//		boolean exemplarIsSet = false;
-		
-		/*
-		 * Records information from the exemplar node that will be used to identify the deepest exemplified parent. Once this is set
-		 * it does not change unless it is reset
-		 * @param exemplar
-		 *
-		public void setOutgroupIds(TLongArrayList outgroupIds) {
-			// gather the outgroup ids from the exemplar tip. we want the deepest taxon that doesn't contain any of these
-			
-//			TLongArrayList exemplarOutgroupIds = new TLongArrayList();
-//			for (Long oid : outgroupIds) {
-//				exemplarOutgroupIds.add(oid);
-//			}
-
-			exemplarOutgroupIdsBS = new BitSet((int) outgroupIds.max());
-			for (int i = 0; i < outgroupIds.size(); i++) {
-				exemplarOutgroupIdsBS.set((int) outgroupIds.getQuick(i));
-				
-//				System.out.println("adding " + outgroupIds.getQuick(i) + " to outgroup"); 
-			}
-			exemplarIsSet = true;
-		} */
-		
-/*		@Override
-		public Evaluation evaluate(Path inPath) {
-
-			if (exemplarIsSet == false) {
-				throw new java.lang.IllegalArgumentException("the exemplar must be specified using setExemplar before attempting to find its deepest exemplified taxon.");
-				// set the exemplar to the first node we observe
-//				setExemplar(inPath.endNode());
-			} 
-			
-			// load all the tax mrca descendant ids for the *parent* of this taxonomy node into a bitset
-			
-			Node taxParent = getTaxParent(inPath.endNode());
-			System.out.println("looking at parent " + getIdString(taxParent) + " of " + getIdString(inPath.endNode()));
-			
-			TLongArrayList parentTaxIngroupIds = new TLongArrayList((long[]) taxParent.getProperty("mrca"));
-			BitSet parentTaxIngroupIdsBS = new BitSet((int) parentTaxIngroupIds.max());
-			for (int i = 0; i < parentTaxIngroupIds.size(); i++) {
-				parentTaxIngroupIdsBS.set((int) parentTaxIngroupIds.getQuick(i));
-			}
-			
-			// if this node's parent taxon node contains anything from the outgroup, then this node is the deepest exemplified taxon
-			if (parentTaxIngroupIdsBS.intersects(exemplarOutgroupIdsBS)) {
-				System.out.println("\tFOUND THE DEEPEST EXEMPLIFIED TAXON!");
-				return Evaluation.INCLUDE_AND_PRUNE;
-			} else {
-				System.out.println("\t(not the deepest exemplified taxon)");
-				return Evaluation.EXCLUDE_AND_CONTINUE;
-			}
-		} */
-
-		/*
-		 * Just gets the taxonomic parent of the passed in node. Throws exceptions if sanity checks are violated.
-		 * @param inNode
-		 * @return
-		 *
-		private Node getTaxParent(Node inNode) {
-	
-/*			// get all the outgoing TAXCHILDOF relationships. throw an exception if there is more than one
-			Iterator<Relationship> parentRels = inNode.getRelationships(RelType.TAXCHILDOF, Direction.OUTGOING).iterator();
-			Relationship pRel = null;
-			if (parentRels.hasNext()) {
-				pRel = parentRels.next(); // there should only be exactly one outgoing taxonomic parent rel
-
-			} else { // there is no taxonomic parent for this node
-				if (graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName).equals(inNode.getId())) { // this is the root of the graph
-					throw new java.lang.UnsupportedOperationException("attempt to map a tip from an input tree to the root of the graph");
-				} else {
-					throw new java.lang.IllegalStateException("node " + inNode + " is not the graph root but has no taxonomic parent");
-				}
-			}
-
-			if (parentRels.hasNext()) { // there is more than one taxonomic parent for this node
-				throw new java.lang.IllegalStateException("there is more than one taxonomic parent of " + inNode);
-			} *
-			
-			Relationship pRel = inNode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING);
-			
-			System.out.println("passing node " + getIdString(pRel.getEndNode()));
-			
-			return pRel.getEndNode();
-		}
-//	} */
 	
 	/** just used for formatting node info for nice output */
 	private String getIdString(Node n) {
@@ -520,11 +420,9 @@ public class GraphImporter extends GraphBase {
 		tx = graphDb.beginTx();
 		try {
 			if(runTestOnly == false) { // actually load the tree into the db
-//				postOrderAddProcessedTreeToGraph(inputTree.getRoot(), inputTree.getRoot(), sourceName);
 				postOrderAddProcessedTreeToGraph(inputTree.getRoot());
 
 			} else { // just test the loading process
-//				postOrderAddProcessedTreeToGraphNoAdd(inputTree.getRoot(), inputTree.getRoot(), sourceName);
 				postOrderAddProcessedTreeToGraphNoAdd(inputTree.getRoot());
 			}
 
@@ -554,7 +452,6 @@ public class GraphImporter extends GraphBase {
 	 *		
 	 */
 	@SuppressWarnings("unchecked")
-//	private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode, JadeNode root, String sourcename) throws TreeIngestException {
 	private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode) throws TreeIngestException {
 		// postorder traversal via recursion
 		for (int i = 0; i < curJadeNode.getChildCount(); i++) {
@@ -734,11 +631,9 @@ public class GraphImporter extends GraphBase {
 	 *		
 	 */
 //	@SuppressWarnings("unchecked")
-//	private void postOrderAddProcessedTreeToGraphNoAdd(JadeNode inode, JadeNode root, String sourcename) throws TreeIngestException {
 	private void postOrderAddProcessedTreeToGraphNoAdd(JadeNode inode) throws TreeIngestException {
 	// postorder traversal via recursion
 		for (int i = 0; i < inode.getChildCount(); i++) {
-//			postOrderAddProcessedTreeToGraphNoAdd(inode.getChild(i), root, sourcename);
 			postOrderAddProcessedTreeToGraphNoAdd(inode.getChild(i));
 		}
 		//		_LOG.trace("children: "+inode.getChildCount());
@@ -775,11 +670,8 @@ public class GraphImporter extends GraphBase {
 			outndids.sort();
 
 			HashSet<Node> ancestors = null;
-			/*
-			 * we can use a simpler calculation if we can assume that the 'trees that come in 
-			 * are complete in their taxa
-			 */
 			if (allTreesHaveAllTaxa) {
+				//we can use a simpler calculation if we can assume that the 'trees that come in are complete in their taxa
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
 			} else {
 				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);

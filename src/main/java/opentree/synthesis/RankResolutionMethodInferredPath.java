@@ -77,52 +77,6 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 		if (!candRelDescendantIdsMap.containsKey(rel2)) {
 			storeDescendants(rel2);
 		}
-
-		/*
-		// == begin testing code
-
-		// setting up a test for case involving Thamnidium elegans
-		Long testNodeId = 337420L;
-		boolean testing = false;
-		Long forkPointNodeId = 337050L;
-
-		Long badRelId1 = 959223L; // Thamnidiaceae id=337362 STREECHILDOF Mucorales id=337050
-		Long badRelId2 = 981143L; // source tree node id=340862 STREECHILDOF Mucorales id=337050 from source 1162_5805
-		
-		if (forkPointNodeId.equals((Long) rel1.getEndNode().getId()) && forkPointNodeId.equals((Long) rel2.getEndNode().getId())) {
-			
-			System.out.println("\n\n\nFound forking point. Comparing:");
-			System.out.println(getIdString(rel1));
-			System.out.println(getIdString(rel2));
-			
-			testing = true;
-			
-			if ((badRelId1.equals((Long) rel1.getId()) && badRelId2.equals((Long) rel2.getId())) ||
-				(badRelId2.equals((Long) rel1.getId()) && badRelId1.equals((Long) rel2.getId()))) {
-
-				System.out.println("\n\nFound test case. Attempting comparison of known conflicting rels");
-				
-				System.out.println("Candidate rel 1 : " + getIdString(rel1));
-				TLongArrayList rel1Descendants = candRelDescendantIdsMap.get(rel1);
-				for (int i = 0; i < rel1Descendants.size(); i++) {
-					System.out.println("\t" + rel1Descendants.get(i));
-					
-					if (rel1Descendants.get(i) == testNodeId) {
-						System.out.println("\nFound the id of Thamnidium elegans in relationship 1 MRCA");
-					}
-				}
-	
-				System.out.println("Candidate rel 2 : " + getIdString(rel2));
-				TLongArrayList rel2Descendants = candRelDescendantIdsMap.get(rel2);
-				for (int i = 0; i < rel2Descendants.size(); i++) {
-					System.out.println("\t" + rel2Descendants.get(i));
-					
-					if (rel2Descendants.get(i) == testNodeId) {
-						System.out.println("\nFound the id of Thamnidium elegans in relationship 2 MRCA");
-					}
-				}
-			}
-		} */
 		
 		// if the relationships share any descendant leaves, then there is some kind of conflict
 		if (LicaUtil.containsAnyt4jUnsorted(candRelDescendantIdsMap.get(rel2), candRelDescendantIdsMap.get(rel1))) {
@@ -140,15 +94,6 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 		} else { // no conflict
 			rval = ConflictType.NO_CONFLICT;
 		}
-
-		/*
-		// == begin testing code
-		if (testing) {
-			System.out.println(rval.toString());
-			System.out.println("\n\n");
-		}
-		// == end testing code
-		 */
 			
 		return rval;
 	}
@@ -184,9 +129,6 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	    	Relationship candidate = relsIter.next();
 	    	System.out.println("testing " + getIdString(candidate) + " for conflicts");
 
-	    	// will record any previously saved rels that are conflicting/compatible but less inclusive
-//	    	HashSet <Relationship> tempSavedRelsToRemove = new HashSet<Relationship> ();
-
 	    	// test candidate against all saved
 	    	boolean candidatePassed = true;
 	    	for (Relationship saved : bestRels) {
@@ -217,7 +159,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	    	if (candidatePassed) {
 		    	System.out.println("\t++ rel " + candidate.getId() + " passed, it will be added");
 	    		bestRels.add(candidate);
-//	    		savedRelsToRemove.addAll(tempSavedRelsToRemove);
+
 	    	} else { // candidate failed
 	    		System.out.println("\t-- rel " + candidate.getId() + " failed, it will NOT be added");
 	    	}
