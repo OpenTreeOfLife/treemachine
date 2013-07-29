@@ -7,7 +7,7 @@ public enum RelType implements RelationshipType {
 	TAXCHILDOF, //standard rel for tax db, from node to parent
 	SYNONYMOF,
 	STREECHILDOF, //standard rel for input tree, from node to parent
-	STREEEXEMPLAROF, // rel connecting the deep taxa that input leaves are mapped to when with the shallow taxa to which the tip name corresponds
+	STREEEXEMPLAROF, // rel connecting shallow exemplar taxa (mapped directly to input tips) to the deep taxa they exemplify, which are what are used in synthesis
 	SYNTHCHILDOF, // standard rel for stored synthesis tree
 	METADATAFOR;
 	//To make tree order not matter, going back to just one type of STREEREL
