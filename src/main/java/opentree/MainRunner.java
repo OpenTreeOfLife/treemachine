@@ -1018,6 +1018,7 @@ public class MainRunner {
 
 			// find the start node
 			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+			
 			if (firstNode == null) {
 				throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
 			}

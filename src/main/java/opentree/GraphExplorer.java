@@ -11,6 +11,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -810,13 +811,32 @@ public class GraphExplorer extends GraphBase {
         // user feedback
         System.out.println("\n" + draftSynthesisMethod.getDescription());
         
+        //make the metadatanode
+        Transaction tx = graphDb.beginTx();
+        String synthTreeName = DRAFTTREENAME;//needs to be changed to the name that gets passed
+        try {
+        	Node metadatanode = graphDb.createNode();
+        	metadatanode.createRelationshipTo(startNode, RelType.SYNTHMETADATAFOR);
+        	metadatanode.setProperty("name", synthTreeName);
+        	Date date = new Date();
+        	metadatanode.setProperty("date", date.toString());
+//        	metadatanode.setProperty("synthmethod", arg1);
+//        	metadatanode.setProperty("command", command);
+        	metadatanode.setProperty("sourcenames",sourceIdPriorityList); //need to make sure that this list is processed correctly
+        	tx.success();
+        } catch (Exception ex) {
+        	tx.failure();
+        	throw ex;
+        } finally {
+        	tx.finish();
+        }
+        
         // set empty parameters for initial recursion
         Node originalParent = null; // hmm. not used.
 
         // recursively build the tree structure
         knownIdsInTree = new HashSet<Long>();
-        Transaction tx = graphDb.beginTx();
-        String synthTreeName = DRAFTTREENAME;
+        tx = graphDb.beginTx();
         try {
         	for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
 
