@@ -1248,117 +1248,6 @@ public class MainRunner {
 		return 0;
 	}
 	
-	/*
-	 * Use this to load trees from nexson into the graph from a directory
-	 * not from the server
-	 * Will load all trees
-	 */
-	public int pg_loading(String [] args) throws Exception{
-		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
-		if (args.length != 3) {
-			graphDb.shutdownDb();
-			return 1;
-		}
-		String directory = args[2];
-		System.out.println("loading files from " + directory + " into " + args[1]);
-		File file = new File(directory);
-		File [] files = file.listFiles();
-		MessageLogger messageLogger = new MessageLogger("pg_loading:", " ");
-		for (int i = 0; i < files.length; i++) {
-			System.out.println("files "+ files[i]);
-			BufferedReader br= null;
-			List<JadeTree> rawTreeList = new ArrayList<JadeTree>();
-			List<JadeTree> jt = new ArrayList<JadeTree>();
-				try {
-					br = new BufferedReader(new FileReader(files[i]));
-					rawTreeList = NexsonReader.readNexson(br, true, messageLogger);
-					for (JadeTree j : rawTreeList) {
-						if (j == null) {
-							messageLogger.indentMessage(1, "Skipping null tree...");
-						} else {
-							System.out.println(files[i] + ": " + j.getExternalNodeCount());
-							jt.add(j);
-						}
-					}
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (java.lang.NullPointerException e) {
-					e.printStackTrace();
-				}
-				try {
-					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
-				} catch(IOException ioe) {
-					ioe.printStackTrace();
-					System.out.println("failed to get the names from server fixNamesFromTrees");
-					continue;
-				}
-				try {
-					for (JadeTree j: jt) {
-						GraphImporter gi = new GraphImporter(graphDb);
-						boolean doubname = false;
-						HashSet<Long> ottols = new HashSet<Long>();
-						for (int m = 0; m < j.getExternalNodeCount(); m++){
-							System.out.println(j.getExternalNode(m).getName() + " " + j.getExternalNode(m).getObject("ot:ottolid"));
-							if(j.getExternalNode(m).getObject("ot:ottolid") == null) {//use doubname as also 
-								doubname = true;
-								break;
-							}
-							if (ottols.contains(j.getExternalNode(m).getObject("ot:ottolid")) == true) {
-								doubname = true;
-								break;
-							} else {
-								ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
-							}
-						}
-						//check for any duplicate ottol:id
-						if (doubname == true) {
-							System.out.println("there are duplicate names");
-						} else {
-							System.out.println("this is being added");
-							gi.setTree(j);
-							String sourcename = "";
-							if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-								sourcename = (String)j.getObject("ot:studyId");
-							}
-							if (j.getObject("id") != null) { // use treeid (if present) as sourcename
-								sourcename += "_" + (String)j.getObject("id");
-							}							
-							//test to see if the tree is already in there
-							Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-							IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
-							if (hits.size() > 0) {
-								System.out.println("source "+sourcename+" already added");
-							} else {
-								gi.addSetTreeToGraphWIdsSet(sourcename, false, false, messageLogger);
-							}
-						}
-					}
-				} catch(java.lang.NullPointerException e) {
-					System.out.println("failed to get study " + files[i].getName());
-					continue;
-				} catch (TaxonNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (TreeIngestException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				try {
-					br.close();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-		}
-		messageLogger.close();
-		graphDb.shutdownDb();
-		return 0;
-	}
-	
 	// check if tree is already in the graph
 	// @returns true is new to graph, false if already present
 	public static boolean checkTreeNewToGraph (String sourcename, GraphDatabaseAgent graphDb) {
@@ -1484,6 +1373,9 @@ public class MainRunner {
 	 * not from the server
 	 * 
 	 * changed to loading individual trees
+	 * 
+	 * arguments are 
+	 * database filename treeid (test)
 	 */
 	public int pg_loading_ind_studies(String [] args) throws Exception {
 		boolean test = false;
@@ -1561,96 +1453,34 @@ public class MainRunner {
 		return rc;
 	}
 	
-	public int pgtesting(String [] args) throws Exception{
+	/**
+	 *  arguments are 
+	 * database sourcename (test)
+	 * @param args
+	 * @return
+	 * @throws Exception
+	 */
+	public int pg_delete_ind_study(String [] args) throws Exception {
+		boolean test = false;
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
-		if (args.length != 2) {
+		PrintStream jsonOutputPrintStream = null;
+		if (args.length != 3 && args.length != 4) {
+			graphDb.shutdownDb();
+			System.out.println("the argument has to be graphdb sourcename (test)");
+			System.out.println("\tif you have test at the end, it will not be deleted from the database, but everything will be performed");
 			return 1;
 		}
-		ArrayList<Long> list = PhylografterConnector.getUpdateStudyList("2010-01-01","2013-04-22");
-		int rc = 0;
-		
-		long start = System.currentTimeMillis();
-		MessageLogger messageLogger = new MessageLogger("pgtesting", " ");
-
-		for (Long k: list) {
-			if (k > 20) {
-				break;
-			}
-			try {
-				//List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k);
-				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k, messageLogger);
-				for (JadeTree j : jt) {
-					if (j != null) {
-						System.out.println(k + ": " + j.getExternalNodeCount());
-					}
-				}
-				try {
-					PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-		        for(JadeTree j: jt){
-		        	if (j == null) {
-						messageLogger.indentMessage(1, "Skipping null tree...");
-					}
-		        	GraphImporter gi = new GraphImporter(graphDb);
-		        	boolean doubname = false;
-		        	HashSet<Long> ottols = new HashSet<Long>();
-		        	for(int m=0;m<j.getExternalNodeCount();m++){
-		        		if(j.getExternalNode(m).getObject("ot:ottolid") == null){//use doubname as also 
-		        			doubname = true;
-		        			break;
-		        		}
-		        		if (ottols.contains(j.getExternalNode(m).getObject("ot:ottolid")) == true){
-		        			doubname = true;
-		        			break;
-		        		} else {
-		        			ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
-		        		}
-		        	}
-		        	//check for any duplicate ottol:id
-					if (doubname == true){
-						System.out.println("there are duplicate names");
-					} else {
-						System.out.println("this is being added");
-						gi.setTree(j);
-						String sourcename = "";
-						if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-							sourcename = (String)j.getObject("ot:studyId");
-						}if (j.getObject("id") != null) { // use treeid (if present) as sourcename
-							sourcename += "_"+(String)j.getObject("id");
-						}
-						//test to see if the tree is already in there
-						Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-						IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
-						if (hits.size() > 0){
-							System.out.println("source "+sourcename+" already added");
-						}else{
-							gi.addSetTreeToGraphWIdsSet(sourcename, false, false, messageLogger);
-						}
-					}
-		        }
-			} catch(java.lang.NullPointerException e){
-				System.out.println("failed to get study "+k);
-				rc = 1;
-				continue;
-			} catch (TaxonNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (TreeIngestException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+		if (args.length == 4) {
+			System.err.println("not entering into the database, just testing");
+			test = true;
 		}
-		
-		long elapsedTimeMillis = System.currentTimeMillis() - start;
-		float elapsedTimeSec = elapsedTimeMillis/1000F;
-		System.out.println("elapsed time: " + elapsedTimeSec);
-		messageLogger.close();
-		graphDb.shutdownDb();
-		return rc;
+		String sourcename = args[2];
+		GraphImporter gi = new GraphImporter(graphDb);
+		gi.deleteTreeBySource(sourcename);
+		gi.shutdownDB();
+		return 0;
 	}
+	
 	
 	public int nodeInfo(String [] args){
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
@@ -1896,12 +1726,10 @@ public class MainRunner {
 			} else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
 				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
 			
-			} else if (command.compareTo("pgload") == 0) {
-				cmdReturnCode = mr.pg_loading(args);
-			} else if (command.compareTo("pgloadind") == 0) {
+			}else if (command.compareTo("pgloadind") == 0) {
 				cmdReturnCode = mr.pg_loading_ind_studies(args);
-			}else if (command.compareTo("getupdatedlist") == 0) {
-				cmdReturnCode = mr.pgtesting(args);
+			}else if (command.compareTo("pgdelind") == 0) {
+				cmdReturnCode = mr.pg_delete_ind_study(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
