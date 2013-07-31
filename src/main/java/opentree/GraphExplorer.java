@@ -883,7 +883,7 @@ public class GraphExplorer extends GraphBase {
         if (!test) {
 	        tx = graphDb.beginTx();
 	        try {
-	            addMissingChildrenToDraftTreeWhile(startNode,startNode);
+	           // addMissingChildrenToDraftTreeWhile(startNode,startNode);
 	        	tx.success();
 	        } catch (Exception ex) {
 	        	tx.failure();

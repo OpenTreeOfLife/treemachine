@@ -79,17 +79,17 @@ public class RankResolutionMethod implements ResolutionMethod {
 	    while (relsIter.hasNext()) {
 	    	
 	    	Relationship candidate = relsIter.next();
-	    	//System.out.println("\ttesting rel " + candidate.getId() + " for conflicts");
+	    	System.out.println("\ttesting rel " + candidate.getId() + " for conflicts");
 
 	    	boolean saveRel = true;
 	    	// test for conflict between candidate against all saved
 	    	for (Relationship saved : bestRels) {
-		    	//System.out.println("\t\tagainst rel " + saved.getId());
+		    	System.out.println("\t\tagainst rel " + saved.getId());
 
 	    		if (testForConflict(candidate, saved) == true) {
 			    	
 	    			// testing
-	    			//System.out.println("\t\tconflict found! offending rel=" + saved.getId());
+	    			System.out.println("\t\tconflict found! offending rel=" + saved.getId());
 	    			
 			    	saveRel = false;
 	    			break;

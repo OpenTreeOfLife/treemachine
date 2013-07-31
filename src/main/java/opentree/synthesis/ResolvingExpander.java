@@ -69,6 +69,7 @@ public class ResolvingExpander implements PathExpander {
 	 * @param inNode
 	 */
 	private void filter(Node inNode) {
+		System.out.println("working with node: "+inNode);
 		
 		Iterable<Relationship> allRels = inNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF);
 		
@@ -95,6 +96,7 @@ public class ResolvingExpander implements PathExpander {
 	 * TODO: include the branch and bound option (new resolver?), size option (new resolver?), others?
 	 */
 	private void resolveConflicts() {
+		System.out.println("candidates: "+candidateRels);
 		if (resolver != null) {
 			bestRels = resolver.resolveConflicts(candidateRels);
 		} else {
