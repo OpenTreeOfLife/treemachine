@@ -37,8 +37,11 @@ public class RankResolutionMethod implements ResolutionMethod {
 	private void storeDescendants(Relationship rel) {
 
 		TLongArrayList descendantIds = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
+		//using a different relationship testing method
+		TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
+		descendantIds.retainAll(exclusiveIds);
 		candRelDescendantIdsMap.put(rel, descendantIds);
-
+		
 		// just user feedback for non-terminal nodes
 		if (descendantIds.size() > 1) {
 			String name = null;
