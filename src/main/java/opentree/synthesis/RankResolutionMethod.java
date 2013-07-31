@@ -38,8 +38,10 @@ public class RankResolutionMethod implements ResolutionMethod {
 
 		TLongArrayList descendantIds = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
 		//using a different relationship testing method
-		TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
-		descendantIds.retainAll(exclusiveIds);
+		if(((String)rel.getProperty("source")).equals("taxonomy") == false){
+			TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
+			descendantIds.retainAll(exclusiveIds);
+		}
 		candRelDescendantIdsMap.put(rel, descendantIds);
 		
 		// just user feedback for non-terminal nodes
