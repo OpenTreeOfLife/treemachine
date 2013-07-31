@@ -823,7 +823,7 @@ public class GraphExplorer extends GraphBase {
         	metadatanode.setProperty("date", date.toString());
 //        	metadatanode.setProperty("synthmethod", arg1);
 //        	metadatanode.setProperty("command", command);
-        	metadatanode.setProperty("sourcenames",sourceIdPriorityList); //need to make sure that this list is processed correctly
+//        	metadatanode.setProperty("sourcenames",sourceIdPriorityList); //need to make sure that this list is processed correctly
         	tx.success();
         } catch (Exception ex) {
         	tx.failure();
