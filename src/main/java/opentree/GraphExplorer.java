@@ -29,6 +29,7 @@ import opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.synthesis.FilterComparisonType;
 import opentree.synthesis.RankResolutionMethodInferredPath;
+import opentree.synthesis.RankResolutionMethod;
 import opentree.synthesis.RankingOrder;
 import opentree.synthesis.RelationshipConflictResolver;
 import opentree.synthesis.RelationshipFilter;
@@ -805,7 +806,7 @@ public class GraphExplorer extends GraphBase {
         draftSynthesisMethod.setRanker(rs);
 
         // set conflict resolution criteria
-        RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethodInferredPath());
+        RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethod());
         draftSynthesisMethod.setConflictResolver(rcr);
         
         // user feedback
