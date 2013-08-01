@@ -125,6 +125,10 @@ public class RankResolutionMethod implements ResolutionMethod {
 	    		bestRels.add(candidate);
 	    		//THIS COULD POTENTIALLY BE MADE FASTER
 	    		//add the exclusive mrcas from the relationship to the totalIncluded
+	    		//System.out.println(candRelDescendantIdsMap.get(candidate));
+	    		if (!candRelDescendantIdsMap.containsKey(candidate)) {
+	    			storeDescendants(candidate);
+	    		}
 	    		totalIncluded.addAll(candRelDescendantIdsMap.get(candidate));
 	    		//get the full mrcas identify dups and add to dups
 	    		TLongHashSet fullmrcas = new TLongHashSet((long[])candidate.getEndNode().getProperty("mrca"));
