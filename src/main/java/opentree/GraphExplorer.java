@@ -841,9 +841,7 @@ public class GraphExplorer extends GraphBase {
         tx = graphDb.beginTx();
         try {
         	for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
-        		TLongHashSet tset = draftSynthesisMethod.getDupMRCAS();
-        		System.out.println("tsetsize: "+tset.size());
-        		draftSynthesisMethod.setDupMRCAS(tset);
+        		System.out.println("tsetsize: "+draftSynthesisMethod.getDupMRCAS().size());
         		// testing
 //        		System.out.println("now attempting to store rel " + rel.getId());
         		

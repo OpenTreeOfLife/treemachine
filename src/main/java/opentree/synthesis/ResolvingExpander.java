@@ -193,6 +193,8 @@ public class ResolvingExpander implements PathExpander {
 			tem.removeAll(dupMRCAS);
 			if(tem.size() > 0){
 				rels.add(rel);
+			}else{
+				System.out.println("not adding relationship "+rel+" because of overlap taxa");
 			}
 		}
 		return rels;
