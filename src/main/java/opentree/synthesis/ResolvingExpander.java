@@ -2,6 +2,7 @@ package opentree.synthesis;
 
 import java.util.HashSet;
 
+import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 import opentree.constants.RelType;
 
@@ -180,7 +181,15 @@ public class ResolvingExpander implements PathExpander {
 		//we need to take out the relationships that just go to the dupmrcas
 		HashSet<Relationship> rels = new HashSet<Relationship>();
 		for (Relationship rel:bestRels){
-			TLongHashSet tem = new TLongHashSet((long[])rel.getProperty("exclusive_mrca"));
+			TLongArrayList tem = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
+			//this will test only the mrcas that are included in the relationship from the source tree
+			//this will not always be the full set from the mrca of the node -- unless it is taxonomy relationship
+			//need to verify that the exclusive mrca is correct in this conflict
+			//it should be the mapped tip mrcas subtending this node
+			if(((String)rel.getProperty("source")).equals("taxonomy") == false){
+				TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
+				tem.retainAll(exclusiveIds);
+			}
 			tem.removeAll(dupMRCAS);
 			if(tem.size() > 0){
 				rels.add(rel);
