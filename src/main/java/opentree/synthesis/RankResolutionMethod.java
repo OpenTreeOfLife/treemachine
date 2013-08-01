@@ -1,6 +1,7 @@
 package opentree.synthesis;
 
 import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -24,6 +25,8 @@ public class RankResolutionMethod implements ResolutionMethod {
 	// containers used to make decisions about best paths
 	HashMap<Relationship, TLongArrayList> candRelDescendantIdsMap;
 	LinkedList<Relationship> bestRels;
+	//this will include all the mrcas that were found in this round that should be excluded
+	TLongHashSet dupMRCAS;
 	
 	public RankResolutionMethod() {
 		initialize();
@@ -32,12 +35,16 @@ public class RankResolutionMethod implements ResolutionMethod {
 	private void initialize() {
 		candRelDescendantIdsMap = new HashMap<Relationship, TLongArrayList>();
 		bestRels = new LinkedList<Relationship>();
+		dupMRCAS = new TLongHashSet();
 	}
-
+	
 	private void storeDescendants(Relationship rel) {
 
 		TLongArrayList descendantIds = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
-		//using a different relationship testing method
+		//this will test only the mrcas that are included in the relationship from the source tree
+		//this will not always be the full set from the mrca of the node -- unless it is taxonomy relationship
+		//need to verify that the exclusive mrca is correct in this conflict
+		//it should be the mapped tip mrcas subtending this node
 		if(((String)rel.getProperty("source")).equals("taxonomy") == false){
 			TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
 			descendantIds.retainAll(exclusiveIds);
@@ -74,11 +81,22 @@ public class RankResolutionMethod implements ResolutionMethod {
 		}
 	}
 	
+	/*
+	 * This returns the mrcas that were found to be in not true conflict in these sets
+	 */
+	public TLongHashSet getDupMRCAS(){
+		return dupMRCAS;
+	}
+	
 	@Override
 	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> rels) {
 
 		initialize();
 		Iterator<Relationship> relsIter = rels.iterator();
+		//these are all the mrcas that are actually included in the set of saveRels
+		TLongHashSet totalIncluded = new TLongHashSet();
+		//these are all the mrcas that are included in the subtending nodes
+		TLongHashSet totalMRCAS = new TLongHashSet();
 		
 	    // for every candidate relationship
 	    while (relsIter.hasNext()) {
@@ -105,6 +123,16 @@ public class RankResolutionMethod implements ResolutionMethod {
 	    	if (saveRel) {
 		    	System.out.println("\t\t++rel " + candidate.getId() + " passed, it will be added");
 	    		bestRels.add(candidate);
+	    		//THIS COULD POTENTIALLY BE MADE FASTER
+	    		//add the exclusive mrcas from the relationship to the totalIncluded
+	    		totalIncluded.addAll(candRelDescendantIdsMap.get(candidate));
+	    		//get the full mrcas identify dups and add to dups
+	    		TLongHashSet fullmrcas = new TLongHashSet((long[])candidate.getEndNode().getProperty("mrca"));
+	    		fullmrcas.retainAll(totalMRCAS);
+	    		dupMRCAS.addAll(fullmrcas);
+	    		//get the full mrcas and add any new ones to the totalmrcas
+	    		TLongHashSet fullmrcas2 = new TLongHashSet((long[])candidate.getEndNode().getProperty("mrca"));
+	    		totalMRCAS.addAll(fullmrcas2);
 	    	}else{
 	    		System.out.println("\t\t--rel " + candidate.getId() + " failed, it will NOT be added");
 	    	}

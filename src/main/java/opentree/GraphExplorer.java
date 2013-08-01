@@ -1,6 +1,7 @@
 package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.TreeReader;
@@ -840,7 +841,9 @@ public class GraphExplorer extends GraphBase {
         tx = graphDb.beginTx();
         try {
         	for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
-
+        		TLongHashSet tset = draftSynthesisMethod.getDupMRCAS();
+        		System.out.println("tsetsize: "+tset.size());
+        		draftSynthesisMethod.setDupMRCAS(tset);
         		// testing
 //        		System.out.println("now attempting to store rel " + rel.getId());
         		

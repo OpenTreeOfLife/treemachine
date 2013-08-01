@@ -1,5 +1,7 @@
 package opentree.synthesis;
 
+import gnu.trove.set.hash.TLongHashSet;
+
 import org.neo4j.graphdb.Relationship;
 
 /**
@@ -31,5 +33,8 @@ public class RelationshipConflictResolver {
 	
 	public String getDescription() {
 		return "Conflict resolution will " + method.getDescription();
+	}
+	public TLongHashSet getDupMRCAS(){
+		return new TLongHashSet();
 	}
 }

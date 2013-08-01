@@ -1,5 +1,7 @@
 package opentree.synthesis;
 
+import gnu.trove.set.hash.TLongHashSet;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import org.neo4j.graphdb.Relationship;
@@ -144,4 +146,5 @@ public class RelationshipRanker {
 		
 		return bestRels;		
 	}
+
 }

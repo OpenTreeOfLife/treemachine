@@ -1,5 +1,8 @@
 package opentree.synthesis;
 
+import java.util.HashSet;
+
+import gnu.trove.set.hash.TLongHashSet;
 import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
@@ -31,11 +34,13 @@ public class ResolvingExpander implements PathExpander {
 	private RelationshipConflictResolver resolver;
 	private Iterable<Relationship> candidateRels;
 	private Iterable<Relationship> bestRels;
+	private TLongHashSet dupMRCAS;
 	
 	public ResolvingExpander() {
 		this.filter = null;
 		this.ranker = null;
 		this.resolver = null;
+		dupMRCAS = new TLongHashSet();
 	}
 	
 	public ResolvingExpander setFilter(RelationshipFilter filter) {
@@ -46,6 +51,14 @@ public class ResolvingExpander implements PathExpander {
 	public ResolvingExpander setRanker(RelationshipRanker ranker) {
 		this.ranker = ranker;
 		return this;
+	}
+	
+	public void setDupMRCAS(TLongHashSet mrcas){
+		dupMRCAS = mrcas;
+	}
+	
+	public TLongHashSet getDupMRCAS(){
+		return dupMRCAS;
 	}
 
 	/**
@@ -99,6 +112,7 @@ public class ResolvingExpander implements PathExpander {
 		System.out.println("candidates: "+candidateRels);
 		if (resolver != null) {
 			bestRels = resolver.resolveConflicts(candidateRels);
+			dupMRCAS.addAll(resolver.getDupMRCAS());
 		} else {
 			bestRels = candidateRels;
 		}
@@ -143,41 +157,6 @@ public class ResolvingExpander implements PathExpander {
 		
 		return desc;
 	}
-	
-	/*
-	 * DEAD CODE, replaced by the expand() method when refactored into a PathExpander class
-	 * 
-	 * Filters and ranks the candidate relationships according to the relationship filter and ranker assigned to this
-	 * evaluator, and then picks the best set that do not conflict according to the assigned conflict resolver.
-	 * 
-	 * @param node
-	 * @return best relationship
-	 *
-	public Iterable<Relationship> evaluateBestPaths(Node node) {
-		
-		//TODO: why aren't these filtered at this stage
-		//TODO: we should rank at this stage as well
-		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
-		for (Relationship rel : node.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
-			if (filter != null){
-				boolean t = filter.filterRelationship(rel);
-				if (t == true)
-					allRels.add(rel);
-			}else
-				allRels.add(rel);
-		}
-
-		candidateRels = allRels;
-				
-		//filter();
-		//TODO: this is likely to be very slow unless we only rank the relationships that we care about
-		//		in other words, we shouldn't rank all of them, just the ones we care about
-		rank();
-		resolveConflicts();
-		
-		return bestRels;
-	} */
-	
 
 	/**
 	 * The essential PathExpander method that performs all the steps to make decisions about
@@ -190,27 +169,6 @@ public class ResolvingExpander implements PathExpander {
 	 */
 	@Override
 	public Iterable<Relationship> expand(Path inPath, BranchState arg1) {
-		
-//		LinkedList<Relationship> allRels = new LinkedList<Relationship>();
-
-		/*		// first filter the set of incoming rels (if we have a filter)
-		for (Relationship rel : inPath.endNode().getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
-			if (filter != null) {
-				boolean t = filter.filterRelationship(rel);
-				if (t == true)
-//					allRels.add(rel);
-					candidateRels.add(rel);
-			} else {
-				candidateRels.add(rel);
-			}
-		} */
-		
-//		candidateRels = allRels;
-				
-		//filter();
-		//TODO: this is likely to be very slow unless we only rank the relationships that we care about
-		//		in other words, we shouldn't rank all of them, just the ones we care about
-		
 		// TESTING
 //		System.out.println("synthesis path expander preparing to work with path starting at (end) node: " + inPath.endNode().getId());
 		
@@ -219,8 +177,16 @@ public class ResolvingExpander implements PathExpander {
 		filter(inPath.endNode());
 		rank();
 		resolveConflicts();
-		
-		return bestRels;
+		//we need to take out the relationships that just go to the dupmrcas
+		HashSet<Relationship> rels = new HashSet<Relationship>();
+		for (Relationship rel:bestRels){
+			TLongHashSet tem = new TLongHashSet((long[])rel.getProperty("exclusive_mrca"));
+			tem.removeAll(dupMRCAS);
+			if(tem.size() > 0){
+				rels.add(rel);
+			}
+		}
+		return rels;
 	}
 
 	@Override
