@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
 import opentree.constants.NodeProperty;
@@ -254,13 +255,26 @@ public class GraphInitializer extends GraphBase{
 	private void processTaxInputLine(String line) {
 		
 		StringTokenizer st = new StringTokenizer(line,"|");
-		String tid = st.nextToken().trim();
-		String pid = st.nextToken().trim();
-		String name = st.nextToken().trim();
-		String rank = st.nextToken().trim();
-		String srce = st.nextToken().trim();
-		String uniqname = st.nextToken().trim();
-		String flag = st.nextToken().trim(); //for dubious
+		String tid = null;
+		String pid = null;
+		String name = null;
+		String rank = null;
+		String srce = null;
+		String uniqname = null;
+		String flag = null; 
+		
+		try {
+			tid = st.nextToken().trim();
+			pid = st.nextToken().trim();
+			name = st.nextToken().trim();
+			rank = st.nextToken().trim();
+			srce = st.nextToken().trim();
+			uniqname = st.nextToken().trim();
+			flag = st.nextToken().trim(); //for dubious
+		} catch (NoSuchElementException ex) {
+			throw new NoSuchElementException("the taxonomy file appears to be missing some fields.");
+		}
+
 		//if flag == D
 		if (flag.equals("D")){
 			System.out.println("skipping dubious "+name);	

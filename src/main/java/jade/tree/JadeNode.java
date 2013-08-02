@@ -80,9 +80,27 @@ public class JadeNode {
     
     public Iterable<JadeNode> getDescendants(NodeOrder order) {
         
-        ArrayList<JadeNode> nodes = new ArrayList<JadeNode>();
+        LinkedList<JadeNode> nodes = new LinkedList<JadeNode>();
         addDescendants(this, nodes, order);
         return nodes;
+    }
+    
+    public Iterable<JadeNode> getDescendantLeaves(NodeOrder order) {
+        LinkedList<JadeNode> leaves = new LinkedList<JadeNode>();
+    	for (JadeNode descendant : getDescendants(order)) {
+    		if (descendant.isExternal()) {
+    			leaves.add(descendant);
+    		}
+    	}
+    	return leaves;
+    }
+    
+    public Iterable<JadeNode> getDescendantLeaves() {
+    	return getDescendantLeaves(NodeOrder.PREORDER);
+    }
+    
+    public Iterable<JadeNode> getDescendants() {
+    	return getDescendants(NodeOrder.PREORDER);
     }
     
     /* ---------------------------- end node iterators --------------------------------*/

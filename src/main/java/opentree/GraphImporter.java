@@ -11,10 +11,9 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.LinkedList;
 import java.util.Map.Entry;
 
-import opentree.constants.GraphProperty;
 import opentree.constants.RelType;
 import opentree.exceptions.AmbiguousTaxonException;
 import opentree.exceptions.MultipleHitsException;
@@ -27,17 +26,11 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.PathExpander;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.graphdb.traversal.BranchState;
-import org.neo4j.graphdb.traversal.Evaluation;
-import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
-
-import scala.actors.threadpool.Arrays;
 
 /**
  * GraphImporter is intended to control the initial creation 
@@ -49,6 +42,9 @@ public class GraphImporter extends GraphBase {
 
 //	private int transaction_iter = 100000;
 //	private int cur_tran_iter = 0;
+	
+	private int commitFrequency = 1000;
+	private int nNodesToCommit = 0;
 
 	private JadeTree inputTree; // the jadetree that we are importing; was jt
 	private String inputTreeNewick; // original newick string for the inputTree; was treestring
@@ -65,7 +61,7 @@ public class GraphImporter extends GraphBase {
 	private ArrayList<JadeNode> inputJadeTreeLeaves; // just the leaves of the input tree
 	// TODO making a Set<Long> or sorted ArrayList<Long> for the ids would make the look ups faster. See comment in testIsMRCA
 	private TLongArrayList graphNodeIdsForInputLeaves; // the graph node ids for the nodes matched to the input tree leaves
-	private HashMap<JadeNode,Long> jadeNodeToMatchedGraphNodeIdMap; // maps each jade node to the id of the graph node it's mapped to
+	private HashMap<JadeNode,Long> inputJadeTreeLeafToMatchedGraphNodeIdMap; // maps each jade node to the id of the graph node it's mapped to
 	private TLongArrayList graphDescendantNodeIdsForInputLeaves; // all the ids of the graph nodes descended from the leaves of the input tree
 	private HashMap<JadeNode,ArrayList<Long>> jadeNodeToDescendantGraphNodeIdsMap; // maps each jade node to the node ids in the mrca property of its matched graph node
 
@@ -198,7 +194,7 @@ public class GraphImporter extends GraphBase {
 		
 		inputJadeTreeLeaves = inputTree.getRoot().getTips();
 		graphNodeIdsForInputLeaves = new TLongArrayList();  // was ndids
-		jadeNodeToMatchedGraphNodeIdMap = new HashMap<JadeNode,Long>(); // was hashnodeids
+		inputJadeTreeLeafToMatchedGraphNodeIdMap = new HashMap<JadeNode,Long>(); // was hashnodeids
 		graphDescendantNodeIdsForInputLeaves = new TLongArrayList(); // was ndidssearch
 		jadeNodeToDescendantGraphNodeIdsMap = new HashMap<JadeNode,ArrayList<Long>>(); // hashnodeidssearch
 		
@@ -262,7 +258,7 @@ public class GraphImporter extends GraphBase {
 			} finally {
 				hits.close();
 			}
-			jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, matchedGraphNode.getId());
+			inputJadeTreeLeafToMatchedGraphNodeIdMap.put(curLeaf, matchedGraphNode.getId());
 		}
 		gatherInfoForLicaSearches();
 	}
@@ -297,7 +293,7 @@ public class GraphImporter extends GraphBase {
 				hits.close();
 			}
 
-			jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, matchedGraphNode.getId());
+			inputJadeTreeLeafToMatchedGraphNodeIdMap.put(curLeaf, matchedGraphNode.getId());
 		}
 		gatherInfoForLicaSearches();
 	}
@@ -311,7 +307,8 @@ public class GraphImporter extends GraphBase {
 	private void remapTipsToDeepestExemplifiedTaxa() throws Exception {
 		
 		// preserve the original taxon mappings so we can use these to generate sets of outgroup ids for each tip
-		HashMap<JadeNode, Long> shallowTaxonMappings = new HashMap<JadeNode, Long>(jadeNodeToMatchedGraphNodeIdMap);
+		HashMap<JadeNode, Long> shallowTaxonMappings = new HashMap<JadeNode, Long>(inputJadeTreeLeafToMatchedGraphNodeIdMap);
+		System.out.println("attempting to remap tips to deepest exemplified taxa");
 
 		tx = graphDb.beginTx();
 		try {
@@ -319,7 +316,7 @@ public class GraphImporter extends GraphBase {
 				
 				Long originalMatchedNodeId = shallowTaxonMappings.get(curLeaf);
 				Node originalMatchedNode = graphDb.getNodeById(originalMatchedNodeId);
-				System.out.println("attempting to remap tip " + curLeaf.getName() + " (was mapped to " + getIdString(originalMatchedNode) +")");
+//				System.out.println("attempting to remap tip " + curLeaf.getName() + " (was mapped to " + getIdString(originalMatchedNode) +")");
 				
 				// get the outgroup set for this node, which is *all* the mrca descendendants of all the nodes mapped to all the input tips except this one.
 				// we do this here because we get the mrca properties from the original taxon mappings.
@@ -333,12 +330,12 @@ public class GraphImporter extends GraphBase {
 				Node newMatch = getDeepestExemplifiedTaxon(graphDb.getNodeById(originalMatchedNodeId), outgroupIds);
 				
 				if (originalMatchedNodeId.equals(newMatch.getId())) {
-					System.out.println("\t" + curLeaf.getName() + " was not remapped");
+//					System.out.println("\t" + curLeaf.getName() + " was not remapped");
 	
 				} else { // we remapped the leaf to a deeper taxon
 					
 					// update the map
-					jadeNodeToMatchedGraphNodeIdMap.put(curLeaf, newMatch.getId());
+					inputJadeTreeLeafToMatchedGraphNodeIdMap.put(curLeaf, newMatch.getId());
 	
 					// add a relationship that records the mapping
 					Relationship exemplarRel = originalMatchedNode.createRelationshipTo(newMatch, RelType.STREEEXEMPLAROF);
@@ -349,7 +346,7 @@ public class GraphImporter extends GraphBase {
 				}
 			}
 			
-		} catch (Exception ex) { // dump the transaction if tree import fails
+		} catch (Exception ex) { // dump the transaction if remapping fails
 			tx.failure();
 			tx.finish();
 			throw ex;
@@ -415,7 +412,7 @@ public class GraphImporter extends GraphBase {
 	 * `matchTaxaUsing...` methods, and assumes that the jade node tips have already been matched to graph nodes.
 	 */
 	private void gatherInfoForLicaSearches() {
-		for (Entry<JadeNode, Long> match : jadeNodeToMatchedGraphNodeIdMap.entrySet()) {
+		for (Entry<JadeNode, Long> match : inputJadeTreeLeafToMatchedGraphNodeIdMap.entrySet()) {
 			
 			JadeNode curLeaf = match.getKey();
 			Node matchedGraphNode = graphDb.getNodeById(match.getValue());
@@ -444,7 +441,7 @@ public class GraphImporter extends GraphBase {
 	private void loadTree() throws TreeIngestException {
 
 		tx = graphDb.beginTx();
-		try {
+//		try {
 			if(runTestOnly == false) { // actually load the tree into the db
 				postOrderAddProcessedTreeToGraph(inputTree.getRoot());
 
@@ -454,9 +451,9 @@ public class GraphImporter extends GraphBase {
 
 			tx.success();
 
-		} finally {
+//		} finally {
 			tx.finish();
-		}
+//		}
 	}
 			
 	/**
@@ -480,17 +477,48 @@ public class GraphImporter extends GraphBase {
 	@SuppressWarnings("unchecked")
 	private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode) throws TreeIngestException {
 
+		if (nNodesToCommit % commitFrequency == 0) {
+			System.out.println("Committing: " + nNodesToCommit);
+			tx.success();
+			tx.finish();
+			tx = graphDb.beginTx();
+		}
+
+		// increment for the transaction frequency
+		nNodesToCommit++;
+		
 		// postorder traversal via recursion
 		for (int i = 0; i < curJadeNode.getChildCount(); i++) {
 			postOrderAddProcessedTreeToGraph(curJadeNode.getChild(i));
 		}
 
 		if (curJadeNode.getChildCount() == 0) { // this is a tip, not much to do here
-			HashSet<Node> nar = new HashSet<Node>();
-			nar.add(graphDb.getNodeById(jadeNodeToMatchedGraphNodeIdMap.get(curJadeNode)));
-			curJadeNode.assocObject("dbnodes", nar);
+			
+			// there is only one lica match: the node to which we mapped this input node
+			HashSet<Node> licaMatches = new HashSet<Node>();
+			licaMatches.add(graphDb.getNodeById(inputJadeTreeLeafToMatchedGraphNodeIdMap.get(curJadeNode)));
+			curJadeNode.assocObject("dbnodes", licaMatches);
+			curJadeNode.assocObject("graph_nodes_mapped_to_descendant_leaves", new LinkedList<Node>(licaMatches));
 
+			TLongArrayList mrcaDescendantIds = new TLongArrayList((long[]) graphDb.getNodeById(inputJadeTreeLeafToMatchedGraphNodeIdMap.get(curJadeNode)).getProperty("mrca"));
+//			long[] mrca = (long[]) graphDb.getNodeById(inputLeafJadeNodeToMatchedGraphNodeIdMap.get(curJadeNode)).getProperty("mrca");
+//			for (long id : mrca) {
+//				mrcaDescendantIds.add(id);
+//			}
+			
+			// add all the ids for the mrca descendants of the mapped node to the 'exclusive_mrca' field
+			curJadeNode.assocObject("exclusive_mrca", mrcaDescendantIds.toArray());
+
+			
 		} else { // this is an internal node
+
+			LinkedList<String> childNames = new LinkedList<String>();
+			for (JadeNode child : curJadeNode.getDescendantLeaves()) {
+				childNames.add(child.getName());
+			}
+
+			// testing
+//			System.out.println("looking for descendants of input node : \'" + curJadeNode.getName() + "\' " + Arrays.toString(childNames.toArray()));
 
 			// NOTE: the following several variables contain similar information in different combinations and formats.
 			// They are used to optimize the LICA searches by attempting to perform less exhaustive tests whenever possible.
@@ -498,23 +526,37 @@ public class GraphImporter extends GraphBase {
 			// An underscore in the name indicates that what follows is a direct reference to another variable (with that name).
 			
 			// the nodes mapped to the descendant tips of the current node in the input tree
-			ArrayList<Node> graphNodesMappedToDescendantLeavesOfThisJadeNode = new ArrayList<Node>();
-
+			LinkedList<Node> graphNodesMappedToDescendantLeavesOfThisJadeNode = new LinkedList<Node>();
 			// the graph nodes corresponding to all the mrca descendants of the nodes mapped to all the tips descended from the current node in the input tree
-			ArrayList<Node> graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode = new ArrayList<Node>();
-
+			LinkedList<Node> graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode = new LinkedList<Node>();
 			// the node ids of the nodes in graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode
 			TLongArrayList nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode = new TLongArrayList();
 
-			for (JadeNode curLeaf : inputJadeTreeLeaves) {
+			// begin alternative block 1
+/*			// summarize the lica mapping information as we recursive move up the tree to the root
+			for (JadeNode child : curJadeNode.getChildren()) {
+				graphNodesMappedToDescendantLeavesOfThisJadeNode.addAll((List<Node>) child.getObject("graph_nodes_mapped_to_descendant_leaves"));
+				nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.addAll((long[]) child.getObject("exclusive_mrca"));
 
-				// get all the graph nodes for the jade tree leaves of this jade node
-				graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphDb.getNodeById(jadeNodeToMatchedGraphNodeIdMap.get(curLeaf)));
+				TLongIterator descIter = nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.iterator();
+				while (descIter.hasNext()) {
+					graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphDb.getNodeById(descIter.next()));
+				}
+			}
+			// end alternative block 1  */
 
-				// get the node ids for all the mrca descendants of the current graph node (same info as the mrca field from the graph node we matched to this jadenode)
+			// begin alternative block 2
+ 			// gather lica mapping information independently for each node as we see it. this is slightly slower than recording this
+			// info recursively in the jadenode objects as we traverse, but it uses *much* less memory
+			for (JadeNode curLeaf : curJadeNode.getDescendantLeaves()) {
+
+				// remember the ids for the the graph nodes mapped to each jade tree leaf descended from the current node
+				graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphDb.getNodeById(inputJadeTreeLeafToMatchedGraphNodeIdMap.get(curLeaf)));
+
+				// get the mrca descendants for each leaf descended from this jade node (same info as the mrca fields from the graph nodes we matched to these jade tree leaves)
 				ArrayList<Long> descendantGraphNodeIdsForCurLeaf = jadeNodeToDescendantGraphNodeIdsMap.get(curLeaf);
 
-				// get all the ids from the mrca fields of the graph nodes mapped to all the jade tree leaves descended from this jade node in the input tree
+				// remember the node ids for all the mrca descendants of this jade node's descendant leaves (just from the input tree)
 				nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.addAll(descendantGraphNodeIdsForCurLeaf);
 
 				// also remember all the nodes themselves for for mrca descendant ids that we encounter
@@ -522,7 +564,16 @@ public class GraphImporter extends GraphBase {
 					graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphDb.getNodeById(descId));
 				}
 			}
+			// end alternative block 2  */
+
+			curJadeNode.assocObject("graph_nodes_mapped_to_descendant_leaves", graphNodesMappedToDescendantLeavesOfThisJadeNode);
+			curJadeNode.assocObject("exclusive_mrca", nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray());
+		
+			// testing
+//			System.out.println("mrca descendants for input node \'" + curJadeNode.getName() + "\' include: " + Arrays.toString(nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray()));
+			
 			nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.sort();
+			curJadeNode.assocObject("exclusive_mrca", nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray()); // moved up from below
 
 			// Get the union of all node ids from the mrca properties (i.e. descendant node ids) for every graph node mapped as a lica to every jade node
 			// child of the current jade node. This accumulates descendant node ids as the postorder traversal moves down the input tree toward the root.
@@ -570,19 +621,20 @@ public class GraphImporter extends GraphBase {
 			//			_LOG.trace("ancestor "+ancestor);
 			// _LOG.trace(ancestor.getProperty("name"));
 
-			if (licaMatches.size() > 0) { // if we found any compatible mrca mappings to nodes already in the graph
+			if (licaMatches.size() > 0) { // if we found any compatible lica mappings to nodes already in the graph
 
 				// remember all the lica mappings
 				curJadeNode.assocObject("dbnodes", licaMatches);
 
 				// remember the ids of the graph nodes mapped to all the jade tree leaves descended from this jade node
-				long[] nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode = new long[graphNodesMappedToDescendantLeavesOfThisJadeNode.size()];
-				for (int i = 0; i < graphNodesMappedToDescendantLeavesOfThisJadeNode.size(); i++) {
-					nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode[i] = graphNodesMappedToDescendantLeavesOfThisJadeNode.get(i).getId();
-				}
-				Arrays.sort(nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode);
-				curJadeNode.assocObject("exclusive_mrca", nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode);
-								
+//				long[] nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode = new long[graphNodesMappedToDescendantLeavesOfThisJadeNode.size()];
+//				for (int i = 0; i < graphNodesMappedToDescendantLeavesOfThisJadeNode.size(); i++) {
+//					nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode[i] = graphNodesMappedToDescendantLeavesOfThisJadeNode.get(i).getId();
+//				}
+//				Arrays.sort(nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode);
+//				curJadeNode.assocObject("exclusive_mrca", nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode);
+
+				
 			} else { // if there were no compatible lica mappings found for this jade node, then we need to make a new one
 
 				// === step 1. create an new node in the graph
@@ -603,13 +655,14 @@ public class GraphImporter extends GraphBase {
 				newLicaNode.setProperty("outmrca", licaOutgroupDescendantIdsForCurrentJadeNode.toArray());
 				//System.out.println("\t\toutmrca: "+outndids);
 
+				// this is duplicated above
 				// set exclusive relationships
-				long[] rete = new long[graphNodesMappedToDescendantLeavesOfThisJadeNode.size()];
-				for (int j = 0; j < graphNodesMappedToDescendantLeavesOfThisJadeNode.size(); j++) {
-					rete[j] = graphNodesMappedToDescendantLeavesOfThisJadeNode.get(j).getId();
-				}
-				Arrays.sort(rete);
-				curJadeNode.assocObject("exclusive_mrca", rete);
+//				long[] rete = new long[graphNodesMappedToDescendantLeavesOfThisJadeNode.size()];
+//				for (int j = 0; j < graphNodesMappedToDescendantLeavesOfThisJadeNode.size(); j++) {
+//					rete[j] = graphNodesMappedToDescendantLeavesOfThisJadeNode.get(j).getId();
+//				}
+//				Arrays.sort(rete);
+//				curJadeNode.assocObject("exclusive_mrca", rete);
 				
 				// === step 3. assoc the jade node with the new graph node
 
@@ -635,10 +688,9 @@ public class GraphImporter extends GraphBase {
 
 			// now related nodes are prepared and we have the information we need to make relationships
 			addProcessedNodeRelationships(curJadeNode);
-		} 
+		}
 	}
 
-	
 	/**
 	 * Finish ingest a tree into the GoL. This is called after the names in the tree
 	 *	have been mapped to IDs for the nodes in the Taxonomy graph. The mappings are stored
@@ -674,7 +726,7 @@ public class GraphImporter extends GraphBase {
 
 			// store the hits for each of the nodes in the tips
 			for (int j = 0; j < nds.size(); j++) {
-				hit_nodes.add(graphDb.getNodeById(jadeNodeToMatchedGraphNodeIdMap.get(nds.get(j))));
+				hit_nodes.add(graphDb.getNodeById(inputJadeTreeLeafToMatchedGraphNodeIdMap.get(nds.get(j))));
 				ArrayList<Long> tlist = jadeNodeToDescendantGraphNodeIdsMap.get(nds.get(j));
 				hit_nodes_small_search.addAll(tlist);
 				for (int k = 0; k < tlist.size(); k++) {
@@ -737,68 +789,21 @@ public class GraphImporter extends GraphBase {
 		ArrayList<Relationship> inclusiverelationships = new ArrayList<Relationship>();
 		for (Node currGoLNode : allGraphNodesMappedToThisJadeNode) {
 
-			// add the root index for the source trail
 			if (inputJadeNode.isTheRoot()) {
-				
-				// TODO: this will need to be updated when trees are updated
-				System.out.println("placing root in index");
-				sourceRootIndex.add(currGoLNode, "rootnode", sourceName);
-				if (treeID != null) {
-					sourceRootIndex.add(currGoLNode, "rootnodeForID", treeID);
-				}
-				
-				/* Add metadata (if present) from jadetree coming from nexson.
-
-				   STUDY-wide fields used at present (2013 07 24):
-					ot:studyPublicationReference - string: ot:studyPublicationReference "long string"
-					ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
-					ot:curatorName - string: ot:curatorName "Jane Doe"
-					ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
-					ot:studyId - string / integer ot:studyId "123"
-					ot:ottolid - integer: ot:ottolid 783941
-
-				   TREE-wide fields used at present:
-					ot:branchLengthMode - string: ot:branchLengthMode "ot:substitutionCount"
-					ot:inGroupClade - string: ot:inGroupClade node208482 <- this might not be desired anymore */
-				
-				// create metadata node
-				Node metadataNode = null;
-				metadataNode = graphDb.createNode();
-				metadataNode.createRelationshipTo(currGoLNode, RelType.METADATAFOR); // TODO: doesn't account for multiple root nodes (I don't think this is true anymore)
-				sourceMetaIndex.add(metadataNode, "source", sourceName);
-
-				// set metadat from tree
-				metadataNode.setProperty("source", sourceName);
-				metadataNode.setProperty("newick", inputTreeNewick);
-				metadataNode.setProperty("original_taxa_map", graphNodeIdsForInputLeaves.toArray()); // node ids for the taxon mappings
-				if (treeID != null) {
-					metadataNode.setProperty("treeID", treeID);
-				}
-
-				// Set metadata from NEXSON
-				HashMap<String,Object> assoc = inputTree.getAssoc();
-				for (Entry<String, Object> entry : assoc.entrySet()) {
-				    String key = entry.getKey();
-				    System.out.println("Dealing with metadata property: " + key);
-				    Object value = entry.getValue();
-
-				    if (key.startsWith("ot:")) {
-				    	System.out.println("Adding property '" + key + "': " + value);
-
-				    	// Note: setProperty() throws IllegalArgumentException if value is of an unsupported type (including null)
-						metadataNode.setProperty(key, value);
-					}
-				}
+				addRootProperties(currGoLNode);
 			}
 
+			// for each child of the jade node we are installing
 			for (JadeNode childJadeNode : inputJadeNode.getChildren()) {
 				HashSet<Node> allChildGoLNodes = (HashSet<Node>)(childJadeNode.getObject("dbnodes"));
 
 				for (Node childGoLNode : allChildGoLNodes) {
 					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelType.STREECHILDOF);
 					sourceRelIndex.add(rel, "source", sourceName);
-					rel.setProperty("exclusive_mrca", inputJadeNode.getObject("exclusive_mrca"));
-
+					
+//					rel.setProperty("exclusive_mrca", inputJadeNode.getObject("exclusive_mrca"));
+					rel.setProperty("exclusive_mrca", childJadeNode.getObject("exclusive_mrca")); // switching from holding info for parent to holding info for child
+					
 					rel.setProperty("root_exclusive_mrca", graphNodeIdsForInputLeaves.toArray());
 					rel.setProperty("licas", licaids);
 					inclusiverelationships.add(rel);
@@ -849,6 +854,62 @@ public class GraphImporter extends GraphBase {
 
 		for (int n = 0; n < inclusiverelationships.size(); n++) {
 			inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
+		}
+	}
+	
+	/**
+	 * Add metadata and create index entries for the root of the tree
+	 * @param currGoLNode
+	 */
+	private void addRootProperties(Node currGoLNode) {
+		// TODO: this will need to be updated when trees are updated
+		System.out.println("placing root in index");
+		sourceRootIndex.add(currGoLNode, "rootnode", sourceName);
+		if (treeID != null) {
+			sourceRootIndex.add(currGoLNode, "rootnodeForID", treeID);
+		}
+		
+		/* Add metadata (if present) from jadetree coming from nexson.
+
+		   STUDY-wide fields used at present (2013 07 24):
+			ot:studyPublicationReference - string: ot:studyPublicationReference "long string"
+			ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
+			ot:curatorName - string: ot:curatorName "Jane Doe"
+			ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
+			ot:studyId - string / integer ot:studyId "123"
+			ot:ottolid - integer: ot:ottolid 783941
+
+		   TREE-wide fields used at present:
+			ot:branchLengthMode - string: ot:branchLengthMode "ot:substitutionCount"
+			ot:inGroupClade - string: ot:inGroupClade node208482 <- this might not be desired anymore */
+		
+		// create metadata node
+		Node metadataNode = null;
+		metadataNode = graphDb.createNode();
+		metadataNode.createRelationshipTo(currGoLNode, RelType.METADATAFOR); // TODO: doesn't account for multiple root nodes (I don't think this is true anymore)
+		sourceMetaIndex.add(metadataNode, "source", sourceName);
+
+		// set metadat from tree
+		metadataNode.setProperty("source", sourceName);
+		metadataNode.setProperty("newick", inputTreeNewick);
+		metadataNode.setProperty("original_taxa_map", graphNodeIdsForInputLeaves.toArray()); // node ids for the taxon mappings
+		if (treeID != null) {
+			metadataNode.setProperty("treeID", treeID);
+		}
+
+		// Set metadata from NEXSON
+		HashMap<String,Object> assoc = inputTree.getAssoc();
+		for (Entry<String, Object> entry : assoc.entrySet()) {
+		    String key = entry.getKey();
+		    System.out.println("Dealing with metadata property: " + key);
+		    Object value = entry.getValue();
+
+		    if (key.startsWith("ot:")) {
+		    	System.out.println("Adding property '" + key + "': " + value);
+
+		    	// Note: setProperty() throws IllegalArgumentException if value is of an unsupported type (including null)
+				metadataNode.setProperty(key, value);
+			}
 		}
 	}
 	

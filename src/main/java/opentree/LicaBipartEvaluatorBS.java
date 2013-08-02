@@ -13,6 +13,7 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.kernel.Traversal;
 
 /**
@@ -101,7 +102,8 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 				if (to.intersects(inIdBS) == false) {// no overlap in ingroup and outgroup of dbnode
 					if (tm.intersects(inIdBS) == true) {// some overlap in inbipart -- //LARGEST one, do last
 						boolean tmt = false;
-						boolean checkParents = false;
+//						boolean updateParents = false;
+//						boolean updateChildren = false;
 						BitSet inIdBS2 = (BitSet) inIdBS.clone();
 						inIdBS2.andNot(tm);// any missing ones we want to add
 						for (int i = 0; i < inIdBS2.length(); i++) {
@@ -113,7 +115,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						if (tmt) {
 							ttm.sort();
 							tn.setProperty("mrca", ttm.toArray());
-							checkParents = true;
+//							updateParents = true;
 						}
 						tmt = false;
 						BitSet outIdBS2 = (BitSet) outIdBS.clone();
@@ -127,18 +129,26 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						if (tmt) {
 							tto.sort();
 							tn.setProperty("outmrca", tto.toArray());
-							checkParents = true;
+//							updateChildren = true;
 						}
 						
-						// we need to make sure that parents of this node get updated now with the new mrca and outmrca information
-						if (checkParents) {
-							for (Node pNode : Traversal.description().breadthFirst().evaluator(new MRCAValidatingEvaluator(ttm)).
-									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(tn).nodes()) {
-								System.out.println("Updating parent node " + pNode + " with new lica mappings");
+						// ok, now we will check to see if the STREECHILDOF ancestors of this node in the graph have all the node ids
+						// in their mrca properties that this node does, and do the same for this node's graph descendants and their
+						// outmrca properties. sometimes we need to update parents/children even when we're not updating the current
+						// node (not sure why but in the updating test this is the case). so we *always* check.
+
+//						System.out.println("checking if we need to update parents of " + tn);
+						
+						// have to be tricky here, if we start traversing on the current node the traversal ends immediately, because the
+						// current node has all the values we're looking for. so we get all its parents and traverse independently from each one
+						for (Relationship parentRel : tn.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
+							for (Node ancestor : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("mrca", ttm)).
+									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(parentRel.getEndNode()).nodes()) {
+								System.out.println("updating parent node " + ancestor + " with new ingroup lica mappings");
 
 								// test, validate that the child ingroup doesn't contain things that are already in the outgroup
 								// of the parent as this indicates failure on the part of the lica-identification code
-								TLongArrayList outmrcaParent = new TLongArrayList((long[]) pNode.getProperty("outmrca"));
+								TLongArrayList outmrcaParent = new TLongArrayList((long[]) ancestor.getProperty("outmrca"));
 								BitSet outmrcaParentBS = new BitSet((int) outmrcaParent.max());
 								for (int i = 0; i < outmrcaParent.size(); i++) {
 									outmrcaParentBS.set((int) outmrcaParent.getQuick(i));
@@ -149,9 +159,36 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 								}
 								
 								// add all the new ingroup ids to the parent
-								TLongArrayList mrcaNew = new TLongArrayList((long[]) pNode.getProperty("mrca"));
-								mrcaNew.addAll(tto);
-								pNode.setProperty("mrca", mrcaNew.toArray());
+								TLongArrayList mrcaNew = new TLongArrayList((long[]) ancestor.getProperty("mrca"));
+								mrcaNew.addAll(ttm);
+								ancestor.setProperty("mrca", mrcaNew.toArray());
+							}
+						}
+
+//						System.out.println("checking if we need to update children of " + tn);
+
+						// here we want descendants instead of ancestors so we go the other direction
+						for (Relationship childRel : tn.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
+							for (Node descendant : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("outmrca", tto)).
+									relationships(RelType.STREECHILDOF, Direction.INCOMING).traverse(childRel.getStartNode()).nodes()) {
+								System.out.println("updating child node " + descendant + " with new outgroup lica mappings");
+	
+								// test, validate that the child outgroup doesn't contain things that are in the ingroup
+								// of the parent as this indicates failure on the part of the lica-identification code
+								TLongArrayList mrcaParent = new TLongArrayList((long[]) descendant.getProperty("mrca"));
+								BitSet mrcaParentBS = new BitSet((int) mrcaParent.max());
+								for (int i = 0; i < mrcaParent.size(); i++) {
+									mrcaParentBS.set((int) mrcaParent.getQuick(i));
+								}
+								if (mrcaParentBS.intersects(outIdBS2)) {
+									throw new java.lang.IllegalStateException("attempt to add a child containing a taxon in its outgroup, which is descended from a parent with that taxon in its ingroup");
+									// TODO: put in output about the nodes involved in the failed mapping
+								}
+								
+								// add all the new ingroup ids to the parent
+								TLongArrayList outMrcaNew = new TLongArrayList((long[]) descendant.getProperty("outmrca"));
+								outMrcaNew.addAll(tto);
+								descendant.setProperty("outmrca", outMrcaNew.toArray());
 							}
 						}
 							

@@ -138,7 +138,12 @@ public class GraphExplorer extends GraphBase {
         }
     }
 
-    JadeNode extractDraftSubtreeForTipNodes(Iterable<Node> tips) {
+    /**
+     * Get a subtree out of the draft tree topology for the indicated tips.
+     * @param tips
+     * @return draftSubtree
+     */
+    public JadeNode extractDraftSubtreeForTipNodes(Iterable<Node> tips) {
     	
     	HashMap<JadeNode, ArrayList<Node>> treeTipRootPathMap = new HashMap<JadeNode, ArrayList<Node>>();
     	HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<Node, JadeNode>();
@@ -884,7 +889,12 @@ public class GraphExplorer extends GraphBase {
         if (!test) {
 	        tx = graphDb.beginTx();
 	        try {
-	           // addMissingChildrenToDraftTreeWhile(startNode,startNode);
+
+	        	
+	        	// uncommented for testing with new synth method
+	        	addMissingChildrenToDraftTreeWhile(startNode,startNode);
+
+	        	
 	        	tx.success();
 	        } catch (Exception ex) {
 	        	tx.failure();

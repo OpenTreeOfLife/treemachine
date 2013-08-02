@@ -107,7 +107,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 	    	boolean saveRel = true;
 	    	// test for conflict between candidate against all saved
 	    	for (Relationship saved : bestRels) {
-		    	System.out.println("\t\tagainst rel " + saved.getId());
+//		    	System.out.println("\t\tagainst rel " + saved.getId());
 
 	    		if (testForConflict(candidate, saved) == true) {
 			    	
