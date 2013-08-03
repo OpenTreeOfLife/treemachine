@@ -1,17 +1,9 @@
 package opentree;
 
-import gnu.trove.list.array.TLongArrayList;
-
-import opentree.constants.RelType;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
-
-import scala.actors.threadpool.Arrays;
 
 /**
  * Neo4j Traversal Evaluator that checks nodes to make sure their mrca and outmrca properties are set. Nodes that need
@@ -20,7 +12,7 @@ import scala.actors.threadpool.Arrays;
 public class LongArrayPropertyContainsAllEvaluator implements Evaluator {
 
 	String propertyName;
-	TLongArrayList testArray;
+	TLongBitArray testArray;
 	boolean visitTaxNodes = false;
 
 	/**
@@ -29,7 +21,7 @@ public class LongArrayPropertyContainsAllEvaluator implements Evaluator {
 	 * @param testArray
 	 * @param outmrca
 	 */
-	public LongArrayPropertyContainsAllEvaluator(String propertyName, TLongArrayList testArray) {
+	public LongArrayPropertyContainsAllEvaluator(String propertyName, TLongBitArray testArray) {
 		this.propertyName = propertyName;
 		this.testArray = testArray;
 	}
@@ -56,12 +48,12 @@ public class LongArrayPropertyContainsAllEvaluator implements Evaluator {
 			}
 		}
 
-		TLongArrayList obsArray = new TLongArrayList((long[]) curNode.getProperty(propertyName));
+		TLongBitArray obsArray = new TLongBitArray((long[]) curNode.getProperty(propertyName));
 		
 		// testing
 //		System.out.println("testing " + propertyName + " of " + curNode + ": " + Arrays.toString(obsArray.toArray()));
 //		System.out.println("against test values: " + Arrays.toString(testArray.toArray()));
-		
+			
 		// include the node if it is missing any mrca ids
 		if (!obsArray.containsAll(testArray)) {
 
@@ -75,6 +67,6 @@ public class LongArrayPropertyContainsAllEvaluator implements Evaluator {
 //		System.out.println("the \"" + propertyName + "\" property of " + curNode + " contained all the test values, it will be skipped");
 
 		// if we passed the tests, this node has all the right descendant ids, so we won't include it
-		return Evaluation.EXCLUDE_AND_PRUNE;
+		return Evaluation.EXCLUDE_AND_CONTINUE; // was: return Evaluation.EXCLUDE_AND_PRUNE;
 	}
 }

@@ -32,6 +32,8 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 
+import scala.actors.threadpool.Arrays;
+
 /**
  * GraphImporter is intended to control the initial creation 
  * and addition of trees to the tree graph.
@@ -43,8 +45,8 @@ public class GraphImporter extends GraphBase {
 //	private int transaction_iter = 100000;
 //	private int cur_tran_iter = 0;
 	
-	private int commitFrequency = 1000;
-	private int nNodesToCommit = 0;
+	private static final int commitFrequency = 1000;
+	private int nNodesToCommit;
 
 	private JadeTree inputTree; // the jadetree that we are importing; was jt
 	private String inputTreeNewick; // original newick string for the inputTree; was treestring
@@ -64,8 +66,12 @@ public class GraphImporter extends GraphBase {
 	private HashMap<JadeNode,Long> inputJadeTreeLeafToMatchedGraphNodeIdMap; // maps each jade node to the id of the graph node it's mapped to
 	private TLongArrayList graphDescendantNodeIdsForInputLeaves; // all the ids of the graph nodes descended from the leaves of the input tree
 	private HashMap<JadeNode,ArrayList<Long>> jadeNodeToDescendantGraphNodeIdsMap; // maps each jade node to the node ids in the mrca property of its matched graph node
-
+	
 	private Transaction	tx;
+
+	// contains the names of the descendant jade tree leaves of the current jade node, recycled as we move through the tree.
+	// just used for generating meaningful user output
+	private ArrayList<String> namesList;
 	
 	public GraphImporter(String graphName) {
 		super(graphName);
@@ -191,6 +197,7 @@ public class GraphImporter extends GraphBase {
 		allTreesHaveAllTaxa = false;
 		runTestOnly = false;
 		sourceName = null;
+		nNodesToCommit = 0;
 		
 		inputJadeTreeLeaves = inputTree.getRoot().getTips();
 		graphNodeIdsForInputLeaves = new TLongArrayList();  // was ndids
@@ -442,20 +449,22 @@ public class GraphImporter extends GraphBase {
 
 		tx = graphDb.beginTx();
 //		try {
-			if(runTestOnly == false) { // actually load the tree into the db
-				postOrderAddProcessedTreeToGraph(inputTree.getRoot());
+		if(runTestOnly == false) { // actually load the tree into the db
+			postOrderAddProcessedTreeToGraph(inputTree.getRoot());
 
-			} else { // just test the loading process
-				postOrderAddProcessedTreeToGraphNoAdd(inputTree.getRoot());
-			}
+		} else { // just test the loading process
+			postOrderAddProcessedTreeToGraphNoAdd(inputTree.getRoot());
+		}
 
-			tx.success();
+		tx.success();
 
 //		} finally {
-			tx.finish();
+
+		System.out.println("Committing nodes: " + nNodesToCommit);
+		tx.finish();
 //		}
 	}
-			
+	
 	/**
 	 * Finish ingest a tree into the GoL. This is called after the names in the tree
 	 *	have been mapped to IDs for the nodes in the Taxonomy graph. The mappings are stored
@@ -477,19 +486,29 @@ public class GraphImporter extends GraphBase {
 	@SuppressWarnings("unchecked")
 	private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode) throws TreeIngestException {
 
-		if (nNodesToCommit % commitFrequency == 0) {
-			System.out.println("Committing: " + nNodesToCommit);
+/*		if (nNodesToCommit % commitFrequency == 0) {
+			System.out.println("Committing nodes: " + nNodesToCommit);
 			tx.success();
 			tx.finish();
 			tx = graphDb.beginTx();
 		}
 
 		// increment for the transaction frequency
-		nNodesToCommit++;
+		nNodesToCommit++; */
 		
 		// postorder traversal via recursion
 		for (int i = 0; i < curJadeNode.getChildCount(); i++) {
 			postOrderAddProcessedTreeToGraph(curJadeNode.getChild(i));
+		}
+
+		// testing
+		namesList = new ArrayList<String>();
+		for (JadeNode child : curJadeNode.getDescendantLeaves()) {
+			namesList.add(child.getName());
+		}
+		System.out.println("working on node: " + Arrays.toString(namesList.toArray()));
+		if (curJadeNode.isTheRoot()) {
+			System.out.println("this is the ROOT");
 		}
 
 		if (curJadeNode.getChildCount() == 0) { // this is a tip, not much to do here
@@ -506,6 +525,8 @@ public class GraphImporter extends GraphBase {
 //				mrcaDescendantIds.add(id);
 //			}
 			
+//			System.out.println("Mapping tip [" + curJadeNode.getName() + "] to " + Arrays.toString(licaMatches.toArray()));
+						
 			// add all the ids for the mrca descendants of the mapped node to the 'exclusive_mrca' field
 			curJadeNode.assocObject("exclusive_mrca", mrcaDescendantIds.toArray());
 
@@ -603,6 +624,12 @@ public class GraphImporter extends GraphBase {
 			licaOutgroupDescendantIdsForCurrentJadeNode.removeAll(licaDescendantIdsForCurrentJadeNode);
 			licaOutgroupDescendantIdsForCurrentJadeNode.sort();
 
+			LinkedList<String> names = new LinkedList<String>();
+			for (JadeNode d : curJadeNode.getDescendantLeaves()) {
+				names.add(d.getName());
+			}
+			System.out.println("Looking for LICA Nodes of " + Arrays.toString(names.toArray()));
+			
 			// find all the compatible lica mappings for this jade node to existing graph nodes
 			HashSet<Node> licaMatches = null;
 			if(allTreesHaveAllTaxa == true) { // use a simpler calculation if we can assume that all trees have completely overlapping taxon sampling (including taxonomy)
@@ -617,7 +644,7 @@ public class GraphImporter extends GraphBase {
 						licaDescendantIdsForCurrentJadeNode,
 						licaOutgroupDescendantIdsForCurrentJadeNode, graphDb);
 			}
-						
+			
 			//			_LOG.trace("ancestor "+ancestor);
 			// _LOG.trace(ancestor.getProperty("name"));
 
@@ -686,9 +713,12 @@ public class GraphImporter extends GraphBase {
 				updatedNodes.add(newLicaNode);
 			}
 
+			System.out.println("Mapping " + Arrays.toString(names.toArray()) + " to " + Arrays.toString(((HashSet<Node>) curJadeNode.getObject("dbnodes")).toArray()));
+			
 			// now related nodes are prepared and we have the information we need to make relationships
 			addProcessedNodeRelationships(curJadeNode);
 		}
+		System.out.println("done with node " + Arrays.toString(namesList.toArray()));
 	}
 
 	/**
@@ -776,6 +806,7 @@ public class GraphImporter extends GraphBase {
 	@SuppressWarnings("unchecked")
 	private void addProcessedNodeRelationships(JadeNode inputJadeNode) throws TreeIngestException {
 
+		System.out.println("installing " + Arrays.toString(namesList.toArray()));
 		HashSet<Node> allGraphNodesMappedToThisJadeNode = (HashSet<Node>) inputJadeNode.getObject("dbnodes");
 		
 		// preload the licaids to be stored in rels
@@ -793,25 +824,43 @@ public class GraphImporter extends GraphBase {
 				addRootProperties(currGoLNode);
 			}
 
+			System.out.println("adding relationships to licas for children");
+
 			// for each child of the jade node we are installing
 			for (JadeNode childJadeNode : inputJadeNode.getChildren()) {
 				HashSet<Node> allChildGoLNodes = (HashSet<Node>)(childJadeNode.getObject("dbnodes"));
-
+				
+				// testing
+				ArrayList<String> childNamesList = new ArrayList<String>();
+				for (JadeNode child : childJadeNode.getDescendantLeaves()) {
+					childNamesList.add(child.getName());
+				}
+				System.out.println("\ton child1: " + Arrays.toString(childNamesList.toArray()));
+				
 				for (Node childGoLNode : allChildGoLNodes) {
+					
+					if (childGoLNode.getId() == currGoLNode.getId()) {
+						throw new IllegalStateException("this child is mapped the same graph node (" + currGoLNode + ") as its parent " + Arrays.toString(namesList.toArray()));
+					}
+					
 					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelType.STREECHILDOF);
 					sourceRelIndex.add(rel, "source", sourceName);
 					
 //					rel.setProperty("exclusive_mrca", inputJadeNode.getObject("exclusive_mrca"));
-					rel.setProperty("exclusive_mrca", childJadeNode.getObject("exclusive_mrca")); // switching from holding info for parent to holding info for child
 					
+//					System.out.println("setting exclusive mrca to: " + Arrays.toString((long[]) childJadeNode.getObject("exclusive_mrca")));
+					rel.setProperty("exclusive_mrca", (long[]) childJadeNode.getObject("exclusive_mrca")); // switching from holding info for parent to holding info for child
+
 					rel.setProperty("root_exclusive_mrca", graphNodeIdsForInputLeaves.toArray());
 					rel.setProperty("licas", licaids);
 					inclusiverelationships.add(rel);
 
+/*					System.out.println("checking to make sure the rel doesn't point to its parent");
+					
 					// check to make sure the parent and child nodes are distinct entities...
 					if (rel.getStartNode().getId() == rel.getEndNode().getId()) {
 						StringBuffer errbuff = new StringBuffer();
-						errbuff.append("A node and its child map to the same GoL node.\nTips:\n");
+						errbuff.append("error: the node and its child map to the same GoL node.\nTips:\n");
 						for (int j = 0; j < inputJadeNode.getTips().size(); j++) {
 							errbuff.append(inputJadeNode.getTips().get(j).getName() + "\n");
 							errbuff.append("\n");
@@ -819,9 +868,16 @@ public class GraphImporter extends GraphBase {
 						if (currGoLNode.hasProperty("name")) {
 							errbuff.append(" ancestor taxonomic name: " + currGoLNode.getProperty("name"));
 						}
+						
+						System.out.println("the graph node is: " + rel.getEndNode());
+						
 						errbuff.append("\nThe tree has been partially imported into the db.\n");
-						throw new TreeIngestException(errbuff.toString());
+//						throw new TreeIngestException(errbuff.toString());
+						throw new IllegalStateException(errbuff.toString());
 					}
+					System.out.println("passed"); */
+
+					System.out.println("setting metadata");
 
 					// METADATA ENTRY
 					rel.setProperty("source", sourceName);
@@ -843,6 +899,9 @@ public class GraphImporter extends GraphBase {
 						// if the endpoints have the same ID.
 						assert rel2.getStartNode().getId() != rel2.getEndNode().getId();
 					}
+					
+					
+					updateLICAProperties(childGoLNode); // this function should do the actual loading of mrca properties and updating ancestors/descendants
 				}
 			}
 		}
@@ -855,6 +914,14 @@ public class GraphImporter extends GraphBase {
 		for (int n = 0; n < inclusiverelationships.size(); n++) {
 			inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
 		}
+	}
+	
+	private void updateLICAProperties(Node n) {
+
+		// this function should do the actual loading of mrca properties and updating ancestors/descendants
+		
+		// all this stuff is currently in the LicaBipartEvaluatorBS class. But it should be here.
+		
 	}
 	
 	/**

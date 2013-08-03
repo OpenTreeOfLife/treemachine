@@ -1,6 +1,6 @@
 package opentree;
 
-import java.util.BitSet;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 import gnu.trove.list.array.TLongArrayList;
@@ -13,7 +13,6 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
-import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.kernel.Traversal;
 
 /**
@@ -21,33 +20,40 @@ import org.neo4j.kernel.Traversal;
  */
 public class LicaBipartEvaluatorBS implements Evaluator {
 	TLongArrayList visited = null;
-	BitSet inIdBS = null;
-	TLongArrayList inIdSet = null; // this can be larger than smInIdSet and includes the mrca for the matched nodes in the tree (so the dbnodes of the children)
-	BitSet outIdBS = null;
-	TLongArrayList outIdSet = null; // this is the other part of the bipartition
+
+//	BitSet ingroupMRCAIdsBS = null;
+//	TLongArrayList ingroupMRCAIds = null; // this can be larger than smInIdSet and includes the mrca for the matched nodes in the tree (so the dbnodes of the children)
+	TLongBitArray ingroupNodeIds; // replacing with BitArray
+	
+//	BitSet outgroupMRCAIdsBS = null;
+//	TLongArrayList outgroupMRCAIds = null; // this is the other part of the bipartition
+	TLongBitArray outgroupNodeIds;
+	
 	GraphDatabaseAgent graphdb = null;
 
 	public LicaBipartEvaluatorBS() {
 	}
 
 	public void setOutset(TLongArrayList fids) {
-		outIdSet = fids;
+		outgroupNodeIds = new TLongBitArray(fids);
+/*		outgroupMRCAIds = fids;
 		if (fids.size() > 0) {
-			outIdBS = new BitSet((int) fids.max());// could set this to the smallest number
+			outgroupMRCAIdsBS = new BitSet((int) fids.max());// could set this to the smallest number
 			for (int i = 0; i < fids.size(); i++) {
-				outIdBS.set((int) fids.getQuick(i));
+				outgroupMRCAIdsBS.set((int) fids.getQuick(i));
 			}
 		} else {
-			outIdBS = new BitSet(0);
-		}
+			outgroupMRCAIdsBS = new BitSet(0);
+		} */
 	}
 
 	public void setInset(TLongArrayList fids) {
-		inIdSet = fids;
-		inIdBS = new BitSet((int) fids.max());// could set this to the smallest number
+		ingroupNodeIds = new TLongBitArray(fids);
+/*		ingroupMRCAIds = fids;
+		ingroupMRCAIdsBS = new BitSet((int) fids.max());// could set this to the smallest number
 		for (int i = 0; i < fids.size(); i++) {
-			inIdBS.set((int) fids.getQuick(i));
-		}
+			ingroupMRCAIdsBS.set((int) fids.getQuick(i));
+		} */
 	}
 
 	public void setVisitedSet(TLongArrayList fids) {
@@ -63,72 +69,117 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 	}
 
 	@Override
-	public Evaluation evaluate(Path arg0) {
+	public Evaluation evaluate(Path inPath) {
 		// System.out.println(arg0);
-		Node tn = arg0.endNode();
-		if (visited.contains(tn.getId())) {
+		Node curNode = inPath.endNode();
+
+		if (visited.contains(curNode.getId())) {
 			return Evaluation.EXCLUDE_AND_PRUNE;
 		}
-		visited.add(tn.getId());
-		TLongArrayList ttm = new TLongArrayList((long[]) tn.getProperty("mrca"));
+		visited.add(curNode.getId());
+
+/*		TLongArrayList ttm = new TLongArrayList((long[]) tn.getProperty("mrca"));
 		BitSet tm = new BitSet((int) ttm.max());
 		for (int i = 0; i < ttm.size(); i++) {
 			tm.set((int) ttm.getQuick(i));
-		}
+		} */
+		TLongBitArray curNodeMRCAIds = new TLongBitArray((long[]) curNode.getProperty("mrca")); // replacing with container
+		
 		// System.out.println("inIdSet "+inIdSet.size());
 		// System.out.println("outIdSet "+outIdSet.size());
 		// System.out.println("mrca: "+tm.size());
 
 		// NOTE: in order to cut down on size, taxnodes outmrca are assumed to be "the rest"
 		// they are denoted with not having an outmrca
-		boolean taxnode = false;
-		BitSet to = null;
-		TLongArrayList tto = null;
-		if (tn.hasProperty("outmrca") == false) {
-			taxnode = true;
+		boolean isTaxNode = false;
+//		BitSet to = null;
+
+//		TLongArrayList tto = null;
+		TLongBitArray curNodeOutMRCAIds = null; // replacing with container
+		
+		if (curNode.hasProperty("outmrca") == false) {
+			isTaxNode = true;
 		} else {
-			tto = new TLongArrayList((long[]) tn.getProperty("outmrca"));
+			
+/*			tto = new TLongArrayList((long[]) tn.getProperty("outmrca"));
 			to = new BitSet((int) tto.max());// could set this to the smallest number
 			for (int i = 0; i < tto.size(); i++) {
 				to.set((int) tto.getQuick(i));
 			}
-			// System.out.println("mrca o: "+to.size());
+			// System.out.println("mrca o: "+to.size()); */
+			curNodeOutMRCAIds = new TLongBitArray((long[]) curNode.getProperty("outmrca")); // replacing with container
+			
 		}
-		if (taxnode == false) {
+		
+		if (isTaxNode == false) {
 			// System.out.println("passed early quit");
 			// if match, extend the mrca and outmrca
+			
+			// ===
+//			if (tm.intersects(outIdBS) == false) {// no overlap of outgroup and ingroup of dbnode
 
-			if (tm.intersects(outIdBS) == false) {// no overlap of outgroup and ingroup of dbnode
-				if (to.intersects(inIdBS) == false) {// no overlap in ingroup and outgroup of dbnode
-					if (tm.intersects(inIdBS) == true) {// some overlap in inbipart -- //LARGEST one, do last
-						boolean tmt = false;
+			if (curNodeMRCAIds.containsAny(outgroupNodeIds) == false) {
+//				if (to.intersects(inIdBS) == false) {// no overlap in ingroup and outgroup of dbnode
+				if (curNodeOutMRCAIds.containsAny(ingroupNodeIds) == false) {
+//					if (tm.intersects(inIdBS) == true) {// some overlap in inbipart -- //LARGEST one, do last
+					if (curNodeMRCAIds.containsAny(ingroupNodeIds) == true) {
+						
+						System.out.println("LICA search found " + curNode);
+
+						// =========================== everything between these lines (look down) should move to the GraphImporter class ==========================
+						
+//						boolean tmt = false;
 //						boolean updateParents = false;
 //						boolean updateChildren = false;
-						BitSet inIdBS2 = (BitSet) inIdBS.clone();
-						inIdBS2.andNot(tm);// any missing ones we want to add
-						for (int i = 0; i < inIdBS2.length(); i++) {
-							if (inIdBS2.get(i) == true) {
-								ttm.add(i);
-								tmt = true;
-							}
-						}
-						if (tmt) {
-							ttm.sort();
-							tn.setProperty("mrca", ttm.toArray());
+//						BitSet inIdBS2 = (BitSet) inIdBS.clone();
+
+						// get the node ids that are in our search ingroup but not in the current node's mrca property
+//						inIdBS2.andNot(tm);// any missing ones we want to add 
+//						inIdBS2.andNot(ttm.getBitSet()); // any missing ones we want to add  // replacing with container // was getting the same thing as 
+						TLongBitArray mrcaSearchIdsNotSetForThisNode = ingroupNodeIds.andNot(curNodeMRCAIds);
+						
+						// if we found any then update the node mrca property
+//						for (int i = 0; i < inIdBS2.length(); i++) {
+//							if (inIdBS2.get(i) == true) {
+//								ttm.add(i);
+//								tmt = true;
+//							}
+//						}
+//						if (tmt) {
+//							curNodeMRCAIds.sort();
+//							curNode.setProperty("mrca", curNodeMRCAIds.toArray());
+//							updateParents = true;
+//						}
+//						tmt = false;
+						if (mrcaSearchIdsNotSetForThisNode.size() > 0) {
+							curNodeMRCAIds.addAll(mrcaSearchIdsNotSetForThisNode); // new, replacing with container
+							curNodeMRCAIds.sort();
+							curNode.setProperty("mrca", curNodeMRCAIds.toArray());
 //							updateParents = true;
 						}
-						tmt = false;
-						BitSet outIdBS2 = (BitSet) outIdBS.clone();
-						outIdBS2.andNot(to);// any missing ones we want to add
-						for (int i = 0; i < outIdBS2.length(); i++) {
-							if (outIdBS2.get(i) == true) {
-								tto.add(i);
-								tmt = true;
-							}
-						}
-						if (tmt) {
-							tto.sort();
-							tn.setProperty("outmrca", tto.toArray());
+						
+						// get the node ids that are in our search outgroup but not in the current node's outmrca property
+//						BitSet outIdBS2 = (BitSet) outIdBS.clone();
+//						outIdBS2.andNot(to);// any missing ones we want to add
+//						outIdBS2.andNot(tto.getBitSet());// any missing ones we want to add // replacing with container
+						TLongBitArray outmrcaSearchIdsNotSetForThisNode = outgroupNodeIds.andNot(curNodeOutMRCAIds);
+
+						// if we found any then update the node outmrca property
+//						for (int i = 0; i < outIdBS2.length(); i++) {
+//							if (outIdBS2.get(i) == true) {
+//								tto.add(i);
+//								tmt = true;
+//							}
+//						}
+//						if (tmt) {
+//							curNodeOutMRCAIds.sort();
+//							curNode.setProperty("outmrca", curNodeOutMRCAIds.toArray());
+//							updateChildren = true;
+//						}
+						if (outmrcaSearchIdsNotSetForThisNode.size() > 0) {
+							curNodeOutMRCAIds.addAll(outmrcaSearchIdsNotSetForThisNode); // new, replacing with container
+							curNodeOutMRCAIds.sort();
+							curNode.setProperty("outmrca", curNodeOutMRCAIds.toArray());
 //							updateChildren = true;
 						}
 						
@@ -139,67 +190,99 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 
 //						System.out.println("checking if we need to update parents of " + tn);
 						
-						// have to be tricky here, if we start traversing on the current node the traversal ends immediately, because the
-						// current node has all the values we're looking for. so we get all its parents and traverse independently from each one
-						for (Relationship parentRel : tn.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
-							for (Node ancestor : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("mrca", ttm)).
-									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(parentRel.getEndNode()).nodes()) {
-								System.out.println("updating parent node " + ancestor + " with new ingroup lica mappings");
-
-								// test, validate that the child ingroup doesn't contain things that are already in the outgroup
-								// of the parent as this indicates failure on the part of the lica-identification code
-								TLongArrayList outmrcaParent = new TLongArrayList((long[]) ancestor.getProperty("outmrca"));
-								BitSet outmrcaParentBS = new BitSet((int) outmrcaParent.max());
-								for (int i = 0; i < outmrcaParent.size(); i++) {
-									outmrcaParentBS.set((int) outmrcaParent.getQuick(i));
+//						if (updateParents) {
+							// have to be tricky here, if we start traversing on the current node the traversal ends immediately, because the
+							// current node has all the values we're looking for. so we get all its parents and traverse independently from each one
+							for (Relationship parentRel : curNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
+								for (Node ancestor : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("mrca", curNodeMRCAIds)).
+										relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(parentRel.getEndNode()).nodes()) {
+									System.out.println("updating ancestor " + ancestor + " with new ingroup lica mappings");
+	
+									// test, validate that the child ingroup doesn't contain things that are already in the outgroup of the parent
+	/*								TLongArrayList outmrcaAncestor = new TLongArrayList((long[]) ancestor.getProperty("outmrca"));
+									BitSet outmrcaParentBS = new BitSet((int) outmrcaAncestor.max());
+									for (int i = 0; i < outmrcaAncestor.size(); i++) {
+										outmrcaParentBS.set((int) outmrcaAncestor.getQuick(i));
+									} */
+									
+									TLongBitArray outmrcaAncestor = new TLongBitArray((long[]) ancestor.getProperty("outmrca"));
+	//								if (outmrcaParentBS.intersects(inIdBS2)) {
+									if (outmrcaAncestor.containsAny(mrcaSearchIdsNotSetForThisNode)) {
+										System.out.println("attempt to add a descendant with a taxon in its ingroup, which has an ancestor with that taxon in its outgroup");
+	
+										LinkedList <String> names = new LinkedList<String>();
+										for (Long l : outmrcaAncestor.getIntersection(mrcaSearchIdsNotSetForThisNode)) {
+											names.add((String) graphdb.getNodeById(l).getProperty("name"));
+										}
+										System.out.println(curNode + " would have been a descendant of " + ancestor + ", but " + curNode + " contains " + Arrays.toString(names.toArray()) + ", which is in the outgroup of " + ancestor);
+	
+	//									System.out.println("the ancestor (already in the graph) was: " + ancestor);
+	//									System.out.println("the overlapping ids from the mrca of the descendant and the outmrca of the ancestor were: " + Arrays.toString(names.toArray()));
+	
+	//									throw new java.lang.IllegalStateException();
+									}
+									
+									// add all the new ingroup ids to the parent
+									TLongBitArray mrcaNew = new TLongBitArray((long[]) ancestor.getProperty("mrca"));
+									mrcaNew.addAll(curNodeMRCAIds);
+	//								System.out.println("setting mrca property to: " + Arrays.toString(mrcaNew.toArray()));
+									ancestor.setProperty("mrca", mrcaNew.toArray());
+									System.out.println("done");
 								}
-								if (outmrcaParentBS.intersects(inIdBS2)) {
-									throw new java.lang.IllegalStateException("attempt to add a child containing a descendant to a parent with that descendant in its outgroup");
-									// TODO: put in output about the nodes involved in the failed mapping
-								}
-								
-								// add all the new ingroup ids to the parent
-								TLongArrayList mrcaNew = new TLongArrayList((long[]) ancestor.getProperty("mrca"));
-								mrcaNew.addAll(ttm);
-								ancestor.setProperty("mrca", mrcaNew.toArray());
 							}
-						}
+//						}
 
 //						System.out.println("checking if we need to update children of " + tn);
 
-						// here we want descendants instead of ancestors so we go the other direction
-						for (Relationship childRel : tn.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
-							for (Node descendant : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("outmrca", tto)).
-									relationships(RelType.STREECHILDOF, Direction.INCOMING).traverse(childRel.getStartNode()).nodes()) {
-								System.out.println("updating child node " + descendant + " with new outgroup lica mappings");
+//						if (updateChildren) {
+							// here we want descendants instead of ancestors so we go the other direction
+							for (Relationship childRel : curNode.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
+								System.out.println("Now looking for descendants beginning with rel " + childRel.getStartNode() + " STREECHILDOF " + childRel.getEndNode());
+								for (Node descendant : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("outmrca", curNodeOutMRCAIds)).
+										relationships(RelType.STREECHILDOF, Direction.INCOMING).traverse(childRel.getStartNode()).nodes()) {
+		
+									System.out.println("Found descendant " + descendant);
+									
+									// test, validate that the descendant outgroup doesn't contain things that are in the ingroup of the parent
+	/*								TLongArrayList mrcaDescendant = new TLongArrayList((long[]) descendant.getProperty("mrca"));
+									BitSet mrcaDescendantBS = new BitSet((int) mrcaDescendant.max());
+									for (int i = 0; i < mrcaDescendant.size(); i++) {
+										mrcaDescendantBS.set((int) mrcaDescendant.getQuick(i));
+									} */
 	
-								// test, validate that the child outgroup doesn't contain things that are in the ingroup
-								// of the parent as this indicates failure on the part of the lica-identification code
-								TLongArrayList mrcaParent = new TLongArrayList((long[]) descendant.getProperty("mrca"));
-								BitSet mrcaParentBS = new BitSet((int) mrcaParent.max());
-								for (int i = 0; i < mrcaParent.size(); i++) {
-									mrcaParentBS.set((int) mrcaParent.getQuick(i));
+									TLongBitArray mrcaDescendant = new TLongBitArray((long[]) descendant.getProperty("mrca"));
+	//								if (mrcaDescendantBS.intersects(outIdBS2)) {
+									if (mrcaDescendant.containsAny(outmrcaSearchIdsNotSetForThisNode)) {
+										System.out.println("attempt to add an ancestor with a taxon in its ingroup, which has a descendant with that taxon in its outgroup"); // something may be wrong with this sentence....
+										System.out.println("the ancestor (the node we were adding) was: " + curNode);
+										System.out.println("the descendant (already in the graph) was: " + descendant);
+										System.out.println("the overlapping ids from the outmrca of the ancestor and the mrca of the descendant were: " + Arrays.toString(mrcaDescendant.getIntersection(outmrcaSearchIdsNotSetForThisNode).toArray()));
+										throw new java.lang.IllegalStateException();
+									}
+									
+									// add all the new outgroup ids to the descendant
+									TLongBitArray outMrcaNew = new TLongBitArray((long[]) descendant.getProperty("outmrca"));
+									outMrcaNew.addAll(curNodeOutMRCAIds);
+									descendant.setProperty("outmrca", outMrcaNew.toArray());
+									System.out.println("updating descendant " + descendant + ": added " + Arrays.toString(curNodeOutMRCAIds.toArray()) + " to outmrca");
+	
 								}
-								if (mrcaParentBS.intersects(outIdBS2)) {
-									throw new java.lang.IllegalStateException("attempt to add a child containing a taxon in its outgroup, which is descended from a parent with that taxon in its ingroup");
-									// TODO: put in output about the nodes involved in the failed mapping
-								}
-								
-								// add all the new ingroup ids to the parent
-								TLongArrayList outMrcaNew = new TLongArrayList((long[]) descendant.getProperty("outmrca"));
-								outMrcaNew.addAll(tto);
-								descendant.setProperty("outmrca", outMrcaNew.toArray());
 							}
-						}
+//						}
+							
+						// =========================== everything between these lines (look up) should move to the GraphImporter class ==========================
 							
 						return Evaluation.INCLUDE_AND_PRUNE;
 					}
 				}
 			}
-		} else {
-			if (outIdBS.intersects(tm) == false) {// containsany
-				tm.and(inIdBS);
-				if (inIdBS.cardinality() == tm.cardinality()) {// containsall
+
+		} else { // this is a taxonomy node, so the tests are simpler
+//			if (outIdBS.intersects(tm) == false) {// containsany
+			if (curNodeMRCAIds.containsAny(outgroupNodeIds) == false) { // if the node does not contain any of the outgroup
+	//			tm.and(inIdBS);
+	//			if (inIdBS.cardinality() == tm.cardinality()) { // containsall
+				if (curNodeMRCAIds.containsAll(ingroupNodeIds)) { // and it does contain all of the ingroup
 					return Evaluation.INCLUDE_AND_PRUNE;
 				}
 			}
