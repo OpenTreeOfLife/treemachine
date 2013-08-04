@@ -1287,6 +1287,12 @@ public class MainRunner {
 				if (treeJId != null) { // use treeid (if present) as sourcename
 					sourcename += "_" + treeJId;
 				}
+				if (treeid != null) {
+					if (treeJId.equals(treeid) == false) {
+						System.out.println("skipping tree: " + treeJId);
+						continue;
+					}
+				}
 				if (!checkTreeNewToGraph(sourcename, graphDb)) {
 					messageLogger.indentMessageStrStr(1, "Source tree already added:", "tree id", treeJId, "source", sourcename);
 				} else {
