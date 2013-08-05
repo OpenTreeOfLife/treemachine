@@ -486,7 +486,7 @@ public class GraphImporter extends GraphBase {
 	@SuppressWarnings("unchecked")
 	private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode) throws TreeIngestException {
 
-/*		if (nNodesToCommit % commitFrequency == 0) {
+		if (nNodesToCommit % commitFrequency == 0) {
 			System.out.println("Committing nodes: " + nNodesToCommit);
 			tx.success();
 			tx.finish();
@@ -494,7 +494,7 @@ public class GraphImporter extends GraphBase {
 		}
 
 		// increment for the transaction frequency
-		nNodesToCommit++; */
+		nNodesToCommit++;
 		
 		// postorder traversal via recursion
 		for (int i = 0; i < curJadeNode.getChildCount(); i++) {
@@ -610,6 +610,8 @@ public class GraphImporter extends GraphBase {
 			// convert hashset to arraylist so we can use it in the lica calculations
 			TLongArrayList licaDescendantIdsForCurrentJadeNode = new TLongArrayList(licaDescendantIdsForCurrentJadeNode_Hash);
 			licaDescendantIdsForCurrentJadeNode.sort();
+
+			// ================ this section needs review
 			
 			// get the outgroup ids, which is the set of mrca descendent ids for all the graph nodes mapped to jade nodes in the
 			// input tree that are *not* descended from the current jade node
@@ -620,10 +622,12 @@ public class GraphImporter extends GraphBase {
 				}
 			}
 			
-			// in case of multiple, partially overlapping lica mappings (?), make sure we don't put any ingroup descendants in the outgroup
+			// things that are in the ingroup of any child of this node are in the ingroup of this node (even if they're in the outgroup of another child)
 			licaOutgroupDescendantIdsForCurrentJadeNode.removeAll(licaDescendantIdsForCurrentJadeNode);
 			licaOutgroupDescendantIdsForCurrentJadeNode.sort();
 
+			// =================
+			
 			LinkedList<String> names = new LinkedList<String>();
 			for (JadeNode d : curJadeNode.getDescendantLeaves()) {
 				names.add(d.getName());
@@ -713,7 +717,7 @@ public class GraphImporter extends GraphBase {
 				updatedNodes.add(newLicaNode);
 			}
 
-			System.out.println("Mapping " + Arrays.toString(names.toArray()) + " to " + Arrays.toString(((HashSet<Node>) curJadeNode.getObject("dbnodes")).toArray()));
+//			System.out.println("Mapping " + Arrays.toString(names.toArray()) + " to " + Arrays.toString(((HashSet<Node>) curJadeNode.getObject("dbnodes")).toArray()));
 			
 			// now related nodes are prepared and we have the information we need to make relationships
 			addProcessedNodeRelationships(curJadeNode);

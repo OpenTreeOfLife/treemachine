@@ -994,7 +994,24 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int synthesizeDraftTreeWithList(String [] args) throws Exception {
+	public int synthesizeDraftTreeWithListForTaxUID(String [] args) throws Exception {
+
+		// open the graph
+		String graphname = args[3];
+		GraphExplorer ge = new GraphExplorer(graphname);
+		String ottolId = args[1];
+
+		// get the start node
+		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottolId).getId());
+		args[1] = startNodeIdStr;
+
+		// do the synth
+		return synthesizeDraftTreeWithListForNodeId(args);
+	}
+
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
+	public int synthesizeDraftTreeWithListForNodeId(String [] args) throws Exception {
+		
 		boolean test = false; 
 		if (args.length != 4 && args.length != 5) {
 			System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder (test)");
@@ -1003,7 +1020,7 @@ public class MainRunner {
 			System.out.println("test is set, so the synthesis will not be stored");
 			test = true;
 		}
-		String ottolId = args[1];
+		Long startNodeId = Long.valueOf(args[1]);
 		String slist = args[2];
 		String graphname = args[3];
 		boolean success = false;
@@ -1017,11 +1034,7 @@ public class MainRunner {
 			//preferredSources.add("taxonomy");, need to add taxonomy 
 
 			// find the start node
-			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
-			
-			if (firstNode == null) {
-				throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
-			}
+			Node firstNode = ge.graphDb.getNodeById(startNodeId);
 
 			try {
 				success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources, test);
@@ -1030,8 +1043,7 @@ public class MainRunner {
 				e.printStackTrace();
 			}
 			System.out.println("done with synthesis");
-		} catch (OttolIdNotFoundException oex) {
-			oex.printStackTrace();
+
 		} finally {
 			ge.shutdownDB();
 		}
@@ -1628,9 +1640,10 @@ public class MainRunner {
 		
 		System.out.println("---synthesis functions---");
 		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
-		System.out.println("\tsynthesizedrafttreelist <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
+		System.out.println("\tsynthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
+		System.out.println("\tsynthesizedrafttreelist_nodeid <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\textractdrafttree <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
-		System.out.println("\textractdraftsubtreefornodes <tipOTTid1>,<tipOTTid2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
+		System.out.println("\textractdraftsubtreefornodes <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
 				
 		System.out.println("---temporary functions---");
 		System.out.println("\taddtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");
@@ -1712,8 +1725,10 @@ public class MainRunner {
 				cmdReturnCode = mr.treeUtilsDB(args);
 			} else if (command.compareTo("synthesizedrafttree") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTree(args);
-			}else if (command.compareTo("synthesizedrafttreelist") == 0) {
-				cmdReturnCode = mr.synthesizeDraftTreeWithList(args);
+			} else if (command.compareTo("synthesizedrafttreelist_ottid") == 0) {
+				cmdReturnCode = mr.synthesizeDraftTreeWithListForTaxUID(args);
+			} else if (command.compareTo("synthesizedrafttreelist_nodeid") == 0) {
+				cmdReturnCode = mr.synthesizeDraftTreeWithListForNodeId(args);
 			} else if (command.compareTo("extractdrafttree") == 0) {
 				cmdReturnCode = mr.extractDraftTree(args);
 			} else if (command.compareTo("extractdraftsubtreefornodes") == 0) {
