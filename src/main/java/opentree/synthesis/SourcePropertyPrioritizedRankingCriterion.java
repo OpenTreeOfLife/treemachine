@@ -30,7 +30,7 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	private final static Integer NOTRANKED = -999999999;
 
 	// for testing
-	private static final boolean VERBOSE = true;
+	private static final boolean VERBOSE = false;
 	
 	/**
 	 * Define a ranking order for relationships based on the order defined by the priorityList `l` for the property `p`.
@@ -151,9 +151,9 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		if (v1 == null && v2 == null) {
 			return 0;
 		} else if (v2 == NOTRANKED) {
-			return 1;
-		} else if (v1 == NOTRANKED) {
 			return -1;
+		} else if (v1 == NOTRANKED) {
+			return 1;
 		}
 
 		Integer rank1 = NOTRANKED;
