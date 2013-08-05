@@ -774,7 +774,7 @@ public class GraphExplorer extends GraphBase {
         ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
         	justSourcePriorityList.add(sourceId.split("_")[0]);
-        }		
+        }	
         
         // define the synthesis protocol
         ResolvingExpander draftSynthesisMethod = new ResolvingExpander();
@@ -786,35 +786,38 @@ public class GraphExplorer extends GraphBase {
         HashSet<String> filteredsources = new HashSet<String>();
         //ignore any source that isn't in our preferred list
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
+        boolean studyids = false;
         while (hits.hasNext()) {
             Node n = hits.next();
             if (n.hasProperty("ot:studyId")){
             	if (justSourcePriorityList.contains(n.getProperty("ot:studyId")) == false) {
             		filteredsources.add((String)n.getProperty("ot:studyId"));
+            		studyids = true;
             	}
             } else {
-            	if (justSourcePriorityList.contains(n.getProperty("source")) == false) {
+            	if (sourceIdPriorityList.contains(n.getProperty("source")) == false) {
             		filteredsources.add((String) n.getProperty("source"));
             	}
             }
         }
-        System.out.println("filtered: " + filteredsources);
+        System.out.println("filtered: "+filteredsources);
         if (filteredsources.size() > 0) {
-        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
+        	if(studyids == true)
+        		rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
+        	else
+        		rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.SOURCE, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
+        	draftSynthesisMethod.setFilter(rf);
         	draftSynthesisMethod.setFilter(rf);
         }
-        
-        
-        
-        
-        
-        
-        
         //if(true == true)
         //	return true;
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
-        rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.SOURCE, sourceIdPriorityList, sourceMetaIndex));
+        if(studyids == true)
+    		rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDY_ID, sourceIdPriorityList, sourceMetaIndex));
+    	else
+    		rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.SOURCE, sourceIdPriorityList, sourceMetaIndex));
+        
         //rs.addCriterion(new SourcePropertyRankingCriterion(SourceProperty.YEAR, RankingOrder.DECREASING, sourceMetaIndex));
         draftSynthesisMethod.setRanker(rs);
 
@@ -824,14 +827,6 @@ public class GraphExplorer extends GraphBase {
         
         // user feedback
         System.out.println("\n" + draftSynthesisMethod.getDescription());
-        
-        
-        
-        
-        
-        
-        
-        
         
         //make the metadatanode
         Transaction tx = graphDb.beginTx();
@@ -904,9 +899,11 @@ public class GraphExplorer extends GraphBase {
         if (!test) {
 	        tx = graphDb.beginTx();
 	        try {
+
 	        	
 	        	// uncommented for testing with new synth method
 	        	addMissingChildrenToDraftTreeWhile(startNode,startNode);
+
 	        	
 	        	tx.success();
 	        } catch (Exception ex) {

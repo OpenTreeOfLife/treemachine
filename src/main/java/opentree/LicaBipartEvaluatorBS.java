@@ -1,9 +1,13 @@
 package opentree;
 
+import jade.tree.JadeNode;
+
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 
 import opentree.constants.RelType;
 
@@ -29,6 +33,8 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 //	TLongArrayList outgroupMRCAIds = null; // this is the other part of the bipartition
 	TLongBitArray outgroupNodeIds;
 	
+	JadeNode jadenode;
+	
 	GraphDatabaseAgent graphdb = null;
 
 	public LicaBipartEvaluatorBS() {
@@ -46,7 +52,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 			outgroupMRCAIdsBS = new BitSet(0);
 		} */
 	}
-
+	
 	public void setInset(TLongArrayList fids) {
 		ingroupNodeIds = new TLongBitArray(fids);
 /*		ingroupMRCAIds = fids;
@@ -64,6 +70,10 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 		graphdb = gb;
 	}
 
+	public void setJadeNode(JadeNode jn){
+		jadenode = jn;
+	}
+	
 	public TLongArrayList getVisitedSet() {
 		return visited;
 	}
@@ -124,7 +134,56 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 //					if (tm.intersects(inIdBS) == true) {// some overlap in inbipart -- //LARGEST one, do last
 					if (curNodeMRCAIds.containsAny(ingroupNodeIds) == true) {
 						
-						System.out.println("LICA search found " + curNode);
+						System.out.println("    Potential LICA found " + curNode);
+						boolean passed = false;
+						TLongHashSet visitedrels = new TLongHashSet();
+						//checking the relationships to make sure that this is a good mapping
+						//this will check each set of relationships from a mapping in the database to each of the children in 
+						//     the source tree. there has to be a match in at least 2 of the database relationships and all of the 
+						//     source tree relationships must have mappings
+						for(Relationship rel: curNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)){
+							System.out.println(rel);
+							if(visitedrels.contains(rel.getId())){
+								continue;
+							}
+							TLongArrayList inids = new TLongArrayList((long []) rel.getProperty("inclusive_relids"));
+							visited.addAll(inids);
+							TLongHashSet relmatched = new TLongHashSet();
+							HashSet<Integer> childmatched = new HashSet<Integer>();
+							for(int j=0;j<inids.size();j++){
+								TLongBitArray trelj = new TLongBitArray((long[])graphdb.getRelationshipById(inids.get(j)).getProperty("exclusive_mrca"));
+								System.out.print("\t\t\ttesting rel "+inids.get(j)+" ex_mrca: ");
+								for(Long tl: trelj){
+									System.out.print(" "+tl);
+								}
+								System.out.print("\n");
+								for(int i=0;i<jadenode.getChildCount();i++){
+									TLongBitArray chndi = new TLongBitArray((long[])jadenode.getChild(i).getObject("exclusive_mrca"));
+									System.out.print("\t\t\t\ttesting jn child:"+i+" ex_mrca: ");
+									for(Long tl: chndi){
+										System.out.print(" "+tl);
+									}
+									System.out.print("\n");
+									System.out.println("\t\t\t\t"+jadenode.getChild(i).getNewick(false));
+									if(chndi.containsAny(trelj) == true){
+										relmatched.add(inids.get(j));
+										childmatched.add(i);
+										break;
+									}
+								}
+							}
+							//have to match at least 2 relationships from the set in the database sources
+							//have to match all of the lineages from the sources tree
+							if(relmatched.size() >=2 && childmatched.size() == jadenode.getChildCount()){
+								passed = true;
+								break;
+							}
+						}
+						if (passed == false){
+							return Evaluation.EXCLUDE_AND_CONTINUE;
+						}
+						
+						
 
 						// =========================== propose to move everything between these lines (look down) to the GraphImporter class ==========================
 						
@@ -241,6 +300,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 
 							}
 						}
+						
 							
 						// =========================== propose to move everything between these lines (look up) the GraphImporter class ==========================
 							
@@ -248,7 +308,6 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 					}
 				}
 			}
-
 		} else { // this is a taxonomy node, so the tests are simpler
 //			if (outIdBS.intersects(tm) == false) {// containsany
 			if (curNodeMRCAIds.containsAny(outgroupNodeIds) == false) { // if the node does not contain any of the outgroup

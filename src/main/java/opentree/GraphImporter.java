@@ -638,7 +638,7 @@ public class GraphImporter extends GraphBase {
 						licaOutgroupDescendantIdsForCurrentJadeNode);
 
 			} else { // when taxon sets don't completely overlap, the lica calculator needs more info
-				licaMatches = LicaUtil.getBipart4j(graphNodesMappedToDescendantLeavesOfThisJadeNode,
+				licaMatches = LicaUtil.getBipart4j(curJadeNode,graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						licaDescendantIdsForCurrentJadeNode,
@@ -783,7 +783,7 @@ public class GraphImporter extends GraphBase {
 				//we can use a simpler calculation if we can assume that the 'trees that come in are complete in their taxa
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
 			} else {
-				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
+				ancestors = LicaUtil.getBipart4j(inode,hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
 			}
 			for (Node tnd : ancestors) {
 				if (tnd.hasProperty("name")) {
@@ -814,12 +814,12 @@ public class GraphImporter extends GraphBase {
 		int m = 0;
 		for (Node golNode : allGraphNodesMappedToThisJadeNode) {
 			licaids[m] = golNode.getId();
+			m++;
 		}
 
 		// for use if this node will be an incluchildof and we want to store the relationships for faster retrieval
-		ArrayList<Relationship> inclusiverelationships = new ArrayList<Relationship>();
 		for (Node currGoLNode : allGraphNodesMappedToThisJadeNode) {
-
+			ArrayList<Relationship> inclusiverelationships = new ArrayList<Relationship>();
 			if (inputJadeNode.isTheRoot()) {
 				addRootProperties(currGoLNode);
 			}
@@ -899,21 +899,19 @@ public class GraphImporter extends GraphBase {
 						// if the endpoints have the same ID.
 						assert rel2.getStartNode().getId() != rel2.getEndNode().getId();
 					}
-					
-					
 					updateLICAProperties(childGoLNode); // this function should do the actual loading of mrca properties and updating ancestors/descendants
 				}
 			}
+			long [] relids = new long[inclusiverelationships.size()];
+			for (int n = 0; n < inclusiverelationships.size(); n++) {
+				relids[n] = inclusiverelationships.get(n).getId();
+			}
+
+			for (int n = 0; n < inclusiverelationships.size(); n++) {
+				inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
+			}
 		}
 
-		long [] relids = new long[inclusiverelationships.size()];
-		for (int n = 0; n < inclusiverelationships.size(); n++) {
-			relids[n] = inclusiverelationships.get(n).getId();
-		}
-
-		for (int n = 0; n < inclusiverelationships.size(); n++) {
-			inclusiverelationships.get(n).setProperty("inclusive_relids", relids);
-		}
 	}
 	
 	private void updateLICAProperties(Node n) {
