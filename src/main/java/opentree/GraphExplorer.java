@@ -807,7 +807,6 @@ public class GraphExplorer extends GraphBase {
         	else
         		rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.SOURCE, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
         	draftSynthesisMethod.setFilter(rf);
-        	draftSynthesisMethod.setFilter(rf);
         }
         //if(true == true)
         //	return true;

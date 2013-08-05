@@ -86,37 +86,7 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	public String getDescription() {
 		return description;
 	}
-	
-	@Override
-	public String getReport() {
-		String report = "";
-		if (nRankableRelsCompared > 0) {
-			report = String.valueOf(nRankableRelsCompared) + " rels were compared (and ranked) using source property " + property.propertyName + " in the order specified by the list:\n" + priorityListText;
-		} else {
-			report = "No relationships yet found that could be ranked using source property " + property.propertyName +
-					" in the order specified by the list. This could indicate a problem such as a mismatch between the property type and the info in the list:\n" + priorityListText;
-		}
-		return report;
-	}
-	
-	/*
-	public String testSort () {
-	LinkedList <Relationship> rels = new LinkedList <Relationship> ();
-	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8897628));
-	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895202));
-	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895544));
-	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895956));
-	
-	Collections.sort(rels, this);
-	
-	desc = "by source property " + property.propertyName + " in the order specified by the list:\n";
-	for (Relationship o : rels) {
-		desc = desc.concat((String)o.getProperty("source") + " ");
-	}
-	
-	//System.exit(0);
-	return desc;
-	}  */
+
 
 	/**
 	 * Compare the specified source property of the two provided relationships.
@@ -227,9 +197,11 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 			}
 		}
 		
+		// priority is indicated by proximity to the beginning of the list, so we sort in REVERSE!
+		//return retval * -1;
 		return retval;
 	}
-	
+
 	@Override
 	public void sort(List<Relationship> rels) {
 		Collections.sort(rels, this);
