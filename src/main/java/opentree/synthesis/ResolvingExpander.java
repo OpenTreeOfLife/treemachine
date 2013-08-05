@@ -186,14 +186,14 @@ public class ResolvingExpander implements PathExpander {
 			//this will not always be the full set from the mrca of the node -- unless it is taxonomy relationship
 			//need to verify that the exclusive mrca is correct in this conflict
 			//it should be the mapped tip mrcas subtending this node
-			if(((String)rel.getProperty("source")).equals("taxonomy") == false){
+			if (((String)rel.getProperty("source")).equals("taxonomy") == false) {
 				TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
 				tem.retainAll(exclusiveIds);
 			}
 			tem.removeAll(dupMRCAS);
-			if(tem.size() > 0){
+			if (tem.size() > 0) {
 				rels.add(rel);
-			}else{
+			} else {
 				System.out.println("not adding relationship "+rel+" because of overlap taxa");
 			}
 		}
