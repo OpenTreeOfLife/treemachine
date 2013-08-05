@@ -261,9 +261,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 										names.add((String) graphdb.getNodeById(l).getProperty("name"));
 									}
 									System.out.println(curNode + " would have been a descendant of " + ancestor + ", but " + curNode + " contains " + Arrays.toString(names.toArray()) + ", which are in the outgroup of " + ancestor);
-									// not throwing exception during testing, otherwise this should be on
-//									throw new java.lang.IllegalStateException();
-									
+									throw new java.lang.IllegalStateException();
 								}
 									
 								// add all the new ingroup ids to the parent
@@ -289,8 +287,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 										names.add((String) graphdb.getNodeById(l).getProperty("name"));
 									}
 									System.out.println(curNode + " would have been an ancestor of " + descendant + ", but " + curNode + " excludes " + Arrays.toString(names.toArray()) + ", which are in the ingroup of " + descendant);
-									// not throwing exception during testing, otherwise this should be on
-//									throw new java.lang.IllegalStateException();
+									throw new java.lang.IllegalStateException();
 								}
 								
 								// add all the new outgroup ids to the descendant
