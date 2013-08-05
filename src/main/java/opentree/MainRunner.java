@@ -579,13 +579,14 @@ public class MainRunner {
 			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
 				sourcename = (String)jt.get(i).getObject("ot:studyId");
 			}
-			sourcename += "_" + String.valueOf(i);
+			sourcename += "t_" + String.valueOf(i);
 
 			System.out.println("adding tree '" + sourcename + "' to the graph");
 			gi.setTree(jt.get(i));
 			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
-			gi.deleteTreeBySource(sourcename);
-		}			
+			//gi.deleteTreeBySource(sourcename);
+		}
+		
 		// adding them again after all the nodes are there
 		for (int i = 0; i < jt.size(); i++) {
 			String sourcename = "treeinfile";
@@ -598,6 +599,15 @@ public class MainRunner {
 			gi.setTree(jt.get(i));
 			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
 		}
+		//delete the trees after they are loaded
+				for (int i = 0; i < jt.size(); i++) {
+					String sourcename = "treeinfile";
+					if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+						sourcename = (String)jt.get(i).getObject("ot:studyId");
+					}
+					sourcename += "t_" + String.valueOf(i);
+					gi.deleteTreeBySource(sourcename);
+				}
 		gi.shutdownDB();
 		return 0;
 	}

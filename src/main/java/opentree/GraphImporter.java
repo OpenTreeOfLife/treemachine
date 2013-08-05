@@ -638,7 +638,7 @@ public class GraphImporter extends GraphBase {
 						licaOutgroupDescendantIdsForCurrentJadeNode);
 
 			} else { // when taxon sets don't completely overlap, the lica calculator needs more info
-				licaMatches = LicaUtil.getBipart4j(graphNodesMappedToDescendantLeavesOfThisJadeNode,
+				licaMatches = LicaUtil.getBipart4j(curJadeNode,graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						licaDescendantIdsForCurrentJadeNode,
@@ -783,7 +783,7 @@ public class GraphImporter extends GraphBase {
 				//we can use a simpler calculation if we can assume that the 'trees that come in are complete in their taxa
 				ancestors = LicaUtil.getAllLICAt4j(hit_nodes_search, childndids, outndids);
 			} else {
-				ancestors = LicaUtil.getBipart4j(hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
+				ancestors = LicaUtil.getBipart4j(inode,hit_nodes,hit_nodes_search, hit_nodes_small_search,childndids, outndids,graphDb);
 			}
 			for (Node tnd : ancestors) {
 				if (tnd.hasProperty("name")) {

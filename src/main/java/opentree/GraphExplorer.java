@@ -786,21 +786,27 @@ public class GraphExplorer extends GraphBase {
         HashSet<String> filteredsources = new HashSet<String>();
         //ignore any source that isn't in our preferred list
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
+        boolean studyids = false;
         while (hits.hasNext()) {
             Node n = hits.next();
             if (n.hasProperty("ot:studyId")){
             	if (justSourcePriorityList.contains(n.getProperty("ot:studyId")) == false) {
             		filteredsources.add((String)n.getProperty("ot:studyId"));
+            		studyids = true;
             	}
             } else {
-            	if (justSourcePriorityList.contains(n.getProperty("source")) == false) {
+            	if (sourceIdPriorityList.contains(n.getProperty("source")) == false) {
             		filteredsources.add((String) n.getProperty("source"));
             	}
             }
         }
         System.out.println("filtered: "+filteredsources);
         if (filteredsources.size() > 0) {
-        	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
+        	if(studyids == true)
+        		rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
+        	else
+        		rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.SOURCE, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
+        	draftSynthesisMethod.setFilter(rf);
         	draftSynthesisMethod.setFilter(rf);
         }
         //if(true == true)
