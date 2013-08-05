@@ -798,17 +798,24 @@ public class GraphExplorer extends GraphBase {
             	}
             }
         }
-        System.out.println("filtered: "+filteredsources);
+        System.out.println("filtered: " + filteredsources);
         if (filteredsources.size() > 0) {
         	rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
         	draftSynthesisMethod.setFilter(rf);
         }
+        
+        
+        
+        
+        
+        
+        
         //if(true == true)
         //	return true;
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
-        rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDY_ID, sourceIdPriorityList, sourceMetaIndex));
-        rs.addCriterion(new SourcePropertyRankingCriterion(SourceProperty.YEAR, RankingOrder.DECREASING, sourceMetaIndex));
+        rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.SOURCE, sourceIdPriorityList, sourceMetaIndex));
+        //rs.addCriterion(new SourcePropertyRankingCriterion(SourceProperty.YEAR, RankingOrder.DECREASING, sourceMetaIndex));
         draftSynthesisMethod.setRanker(rs);
 
         // set conflict resolution criteria
@@ -817,6 +824,14 @@ public class GraphExplorer extends GraphBase {
         
         // user feedback
         System.out.println("\n" + draftSynthesisMethod.getDescription());
+        
+        
+        
+        
+        
+        
+        
+        
         
         //make the metadatanode
         Transaction tx = graphDb.beginTx();
@@ -846,7 +861,7 @@ public class GraphExplorer extends GraphBase {
         tx = graphDb.beginTx();
         try {
         	for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
-        		System.out.println("tsetsize: "+draftSynthesisMethod.getDupMRCAS().size());
+        		System.out.println("tsetsize: " + draftSynthesisMethod.getDupMRCAS().size());
         		// testing
 //        		System.out.println("now attempting to store rel " + rel.getId());
         		
@@ -889,11 +904,9 @@ public class GraphExplorer extends GraphBase {
         if (!test) {
 	        tx = graphDb.beginTx();
 	        try {
-
 	        	
 	        	// uncommented for testing with new synth method
 	        	addMissingChildrenToDraftTreeWhile(startNode,startNode);
-
 	        	
 	        	tx.success();
 	        } catch (Exception ex) {
