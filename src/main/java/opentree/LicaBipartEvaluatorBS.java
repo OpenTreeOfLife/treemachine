@@ -207,19 +207,21 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 									
 									TLongBitArray outmrcaAncestor = new TLongBitArray((long[]) ancestor.getProperty("outmrca"));
 	//								if (outmrcaParentBS.intersects(inIdBS2)) {
-									if (outmrcaAncestor.containsAny(mrcaSearchIdsNotSetForThisNode)) {
+									if (outmrcaAncestor.containsAny(ingroupNodeIds)) {
 										System.out.println("attempt to add a descendant with a taxon in its ingroup, which has an ancestor with that taxon in its outgroup");
 	
 										LinkedList <String> names = new LinkedList<String>();
-										for (Long l : outmrcaAncestor.getIntersection(mrcaSearchIdsNotSetForThisNode)) {
+										for (Long l : outmrcaAncestor.getIntersection(ingroupNodeIds)) {
 											names.add((String) graphdb.getNodeById(l).getProperty("name"));
 										}
-										System.out.println(curNode + " would have been a descendant of " + ancestor + ", but " + curNode + " contains " + Arrays.toString(names.toArray()) + ", which is in the outgroup of " + ancestor);
-	
+										System.out.println(curNode + " would have been a descendant of " + ancestor + ", but " + curNode + " contains " + Arrays.toString(names.toArray()) + ", which are in the outgroup of " + ancestor);
+										// not throwing exception during testing, otherwise this should be on
+//										throw new java.lang.IllegalStateException();
+										
 	//									System.out.println("the ancestor (already in the graph) was: " + ancestor);
 	//									System.out.println("the overlapping ids from the mrca of the descendant and the outmrca of the ancestor were: " + Arrays.toString(names.toArray()));
 	
-	//									throw new java.lang.IllegalStateException();
+
 									}
 									
 									// add all the new ingroup ids to the parent
@@ -237,11 +239,10 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 //						if (updateChildren) {
 							// here we want descendants instead of ancestors so we go the other direction
 							for (Relationship childRel : curNode.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
-								System.out.println("Now looking for descendants beginning with rel " + childRel.getStartNode() + " STREECHILDOF " + childRel.getEndNode());
 								for (Node descendant : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("outmrca", curNodeOutMRCAIds)).
 										relationships(RelType.STREECHILDOF, Direction.INCOMING).traverse(childRel.getStartNode()).nodes()) {
 		
-									System.out.println("Found descendant " + descendant);
+									System.out.println("updating descendant " + descendant + " with new outgroup lica mappings");
 									
 									// test, validate that the descendant outgroup doesn't contain things that are in the ingroup of the parent
 	/*								TLongArrayList mrcaDescendant = new TLongArrayList((long[]) descendant.getProperty("mrca"));
@@ -252,12 +253,23 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 	
 									TLongBitArray mrcaDescendant = new TLongBitArray((long[]) descendant.getProperty("mrca"));
 	//								if (mrcaDescendantBS.intersects(outIdBS2)) {
-									if (mrcaDescendant.containsAny(outmrcaSearchIdsNotSetForThisNode)) {
+									if (mrcaDescendant.containsAny(outgroupNodeIds)) {
+										
+										System.out.println("attempt to add an ancestor with a taxon in its outgroup, which has a descendant with that taxon in its ingroup");
+										
+										LinkedList <String> names = new LinkedList<String>();
+										for (Long l : mrcaDescendant.getIntersection(outgroupNodeIds)) {
+											names.add((String) graphdb.getNodeById(l).getProperty("name"));
+										}
+										System.out.println(curNode + " would have been an ancestor of " + descendant + ", but " + curNode + " excludes " + Arrays.toString(names.toArray()) + ", which are in the ingroup of " + descendant);
+										// not throwing exception during testing, otherwise this should be on
+//										throw new java.lang.IllegalStateException();
+
+										/*
 										System.out.println("attempt to add an ancestor with a taxon in its ingroup, which has a descendant with that taxon in its outgroup"); // something may be wrong with this sentence....
 										System.out.println("the ancestor (the node we were adding) was: " + curNode);
 										System.out.println("the descendant (already in the graph) was: " + descendant);
-										System.out.println("the overlapping ids from the outmrca of the ancestor and the mrca of the descendant were: " + Arrays.toString(mrcaDescendant.getIntersection(outmrcaSearchIdsNotSetForThisNode).toArray()));
-										throw new java.lang.IllegalStateException();
+										System.out.println("the overlapping ids from the outmrca of the ancestor and the mrca of the descendant were: " + Arrays.toString(mrcaDescendant.getIntersection(outmrcaSearchIdsNotSetForThisNode).toArray()));  */
 									}
 									
 									// add all the new outgroup ids to the descendant
