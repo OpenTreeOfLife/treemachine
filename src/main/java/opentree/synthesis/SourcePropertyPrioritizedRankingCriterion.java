@@ -80,10 +80,10 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 
 	@Override
 	public String getDescription() {
-		System.out.println(testSort ());
 		return desc;
 	}
 	
+	/*
 	public String testSort () {
 	LinkedList <Relationship> rels = new LinkedList <Relationship> ();
 	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8897628));
@@ -100,7 +100,7 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	
 	//System.exit(0);
 	return desc;
-}
+	}  */
 
 
 
