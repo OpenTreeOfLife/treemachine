@@ -2,6 +2,7 @@ package opentree.synthesis;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 import opentree.constants.SourceProperty;
@@ -29,7 +30,7 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	private final static Integer NOTRANKED = -999999999;
 
 	// for testing
-	private static final boolean VERBOSE = false;
+	private static final boolean VERBOSE = true;
 	
 	/**
 	 * Define a ranking order for relationships based on the order defined by the priorityList `l` for the property `p`.
@@ -65,12 +66,46 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		for (Object o : priortyListIterable) {
 			desc = desc.concat(String.valueOf(o) + "\n");
 		}
+		
+		// check things are ordered correctly -- yes
+//		System.out.println("\nContents of priority hashmap:");
+//		for (String name: priorityMapString.keySet()){
+//
+//            String key = name.toString();
+//            Integer value = priorityMapString.get(name);  
+//            System.out.println(key + " " + value);  
+//		}
+		
 	}
 
 	@Override
 	public String getDescription() {
+		System.out.println(testSort ());
 		return desc;
 	}
+	
+	public String testSort () {
+	LinkedList <Relationship> rels = new LinkedList <Relationship> ();
+	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8897628));
+	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895202));
+	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895544));
+	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895956));
+	
+	Collections.sort(rels, this);
+	
+	desc = "by source property " + property.propertyName + " in the order specified by the list:\n";
+	for (Relationship o : rels) {
+		desc = desc.concat((String)o.getProperty("source") + " ");
+	}
+	
+	//System.exit(0);
+	return desc;
+}
+
+
+
+
+
 
 	/**
 	 * Compare the specified source property of the two provided relationships.
@@ -80,12 +115,25 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		
 		Object v1 = null;
 		Object v2 = null;
-		if(rel1.hasProperty("source") == false || rel2.hasProperty("source") == false)
+		if (rel1.hasProperty("source") == false || rel2.hasProperty("source") == false) {
+			
+			if (VERBOSE) {
+				System.out.println("Ack!!! A relationship has no source!");
+				System.out.println("rel1 source = " + rel1.getProperty("source") + "; rel2 source = " + rel2.getProperty("source"));
+			}
+			
 			return 0;
+		}
 		//TODO: can have multiple metanodes with multiple lica mappings
 		IndexHits<Node> h1 = metadataNodeIndex.get("source", rel1.getProperty("source"));//.next();//.getSingle();
 		IndexHits<Node> h2 = metadataNodeIndex.get("source", rel2.getProperty("source"));//.next();//.getSingle();
-		if(h1.size() == 0 || h2.size() == 0){
+		if (h1.size() == 0 || h2.size() == 0) {
+			
+			if (VERBOSE) {
+				System.out.println("Dorf!!! A relationship has no metaDataNode!");
+				System.out.println("rel1 MDN = " + metadataNodeIndex.get("source", rel1.getProperty("source")) + "; rel2 MDN = " + metadataNodeIndex.get("source", rel1.getProperty("source")));
+			}
+			
 			return 0;
 		}
 		Node m1 = h1.next();
@@ -93,12 +141,13 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		
 		h1.close();
 		h2.close();
-		if (m1.hasProperty(property.propertyName))
+		if (m1.hasProperty(property.propertyName)) {
 			v1 = m1.getProperty(property.propertyName);
-
-		if (m2.hasProperty(property.propertyName))
+		}
+		if (m2.hasProperty(property.propertyName)) {
 			v2 = m2.getProperty(property.propertyName);
-
+		}
+		
 		if (v1 == null && v2 == null) {
 			return 0;
 		} else if (v2 == NOTRANKED) {
@@ -111,26 +160,26 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		Integer rank2 = NOTRANKED;
 
 		if (property.type == String.class) {
-			if (priorityMapString.containsKey(v1))
+			if (priorityMapString.containsKey(v1)) {
 				rank1 = priorityMapString.get(v1);
-
-			if (priorityMapString.containsKey(v2))
+			}
+			if (priorityMapString.containsKey(v2)) {
 				rank2 = priorityMapString.get(v2);
-			
+			}
 		} else if (property.type == Long.class || property.type == Integer.class) {
-			if (priorityMapString.containsKey(v1))
+			if (priorityMapString.containsKey(v1)) {
 				rank1 = priorityMapLong.get(v1);
-			
-			if (priorityMapString.containsKey(v2))
+			}
+			if (priorityMapString.containsKey(v2)) {
 				rank2 = priorityMapLong.get(v2);
-
+			}
 		} else if (property.type == Double.class) {
-			if (priorityMapString.containsKey(v1))
+			if (priorityMapString.containsKey(v1)) {
 				rank1 = priorityMapDouble.get(v1);
-
-			if (priorityMapString.containsKey(v2))
+			}
+			if (priorityMapString.containsKey(v2)) {
 				rank2 = priorityMapDouble.get(v2);
-
+			}
 		} else {
 			throw new java.lang.UnsupportedOperationException("the source property datatype " + String.valueOf(property.type) + " is unrecognized");
 		}
@@ -138,19 +187,23 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		Integer retval = null;
 		if (rank1 == NOTRANKED && rank2 == NOTRANKED) {
 			retval = 0;
-
+			
+			if (VERBOSE) {
+				System.out.println("Glarg!!! Both relationships are unranked");
+			}
+			
 		} else if (rank2 == NOTRANKED) {
-			retval = 1;
-
-			if (VERBOSE)
-				System.out.println("rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source") + ") property " + v2 + " is not in priority list; preferring rel 1 (relid " + rel1.getId() + "; source " + rel1.getProperty("source") + ") property " + v1 + ")");
-		
-		} else if (rank1 == NOTRANKED) {
 			retval = -1;
 
-			if (VERBOSE)
-				System.out.println("rel 1 (relid " + rel1.getId() + "; name " + rel1.getProperty("source") + ") property " + v1 + " is not in priority list; preferring rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source") + ") property " + v2 + ")");
+			if (VERBOSE) {
+				System.out.println("rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source") + ") property " + v2 + " is not in priority list; preferring rel 1 (relid " + rel1.getId() + "; source " + rel1.getProperty("source") + ") property " + v1 + ")");
+			}
+		} else if (rank1 == NOTRANKED) {
+			retval = 1;
 
+			if (VERBOSE) {
+				System.out.println("rel 1 (relid " + rel1.getId() + "; name " + rel1.getProperty("source") + ") property " + v1 + " is not in priority list; preferring rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source") + ") property " + v2 + ")");
+			}
 		} else {
 			retval = rank1.compareTo(rank2);
 		
@@ -161,7 +214,8 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		}
 		
 		// priority is indicated by proximity to the beginning of the list, so we sort in REVERSE!
-		return retval * -1;
+		//return retval * -1;
+		return retval;
 	}
 
 	@Override
