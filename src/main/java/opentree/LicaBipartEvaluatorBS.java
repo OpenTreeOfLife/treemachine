@@ -126,7 +126,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						
 						System.out.println("LICA search found " + curNode);
 
-						// =========================== everything between these lines (look down) should move to the GraphImporter class ==========================
+						// =========================== propose to move everything between these lines (look down) to the GraphImporter class ==========================
 						
 //						boolean tmt = false;
 //						boolean updateParents = false;
@@ -155,7 +155,6 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 							curNodeMRCAIds.addAll(mrcaSearchIdsNotSetForThisNode); // new, replacing with container
 							curNodeMRCAIds.sort();
 							curNode.setProperty("mrca", curNodeMRCAIds.toArray());
-//							updateParents = true;
 						}
 						
 						// get the node ids that are in our search outgroup but not in the current node's outmrca property
@@ -180,109 +179,70 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 							curNodeOutMRCAIds.addAll(outmrcaSearchIdsNotSetForThisNode); // new, replacing with container
 							curNodeOutMRCAIds.sort();
 							curNode.setProperty("outmrca", curNodeOutMRCAIds.toArray());
-//							updateChildren = true;
 						}
 						
-						// ok, now we will check to see if the STREECHILDOF ancestors of this node in the graph have all the node ids
-						// in their mrca properties that this node does, and do the same for this node's graph descendants and their
-						// outmrca properties. sometimes we need to update parents/children even when we're not updating the current
-						// node (not sure why but in the updating test this is the case). so we *always* check.
+						// check to see if the STREECHILDOF ancestors of this node in the graph have all the node ids in their mrca properties that this node
+						// does, and do the same for this node's graph descendants and their outmrca properties. sometimes we need to update parents/children
+						// even when we're not updating the current node (not sure why but in the updating tests this seems to be the case). so we always check.
 
-//						System.out.println("checking if we need to update parents of " + tn);
-						
-//						if (updateParents) {
-							// have to be tricky here, if we start traversing on the current node the traversal ends immediately, because the
-							// current node has all the values we're looking for. so we get all its parents and traverse independently from each one
-							for (Relationship parentRel : curNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
-								for (Node ancestor : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("mrca", curNodeMRCAIds)).
-										relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(parentRel.getEndNode()).nodes()) {
-									System.out.println("updating ancestor " + ancestor + " with new ingroup lica mappings");
-	
-									// test, validate that the child ingroup doesn't contain things that are already in the outgroup of the parent
-	/*								TLongArrayList outmrcaAncestor = new TLongArrayList((long[]) ancestor.getProperty("outmrca"));
-									BitSet outmrcaParentBS = new BitSet((int) outmrcaAncestor.max());
-									for (int i = 0; i < outmrcaAncestor.size(); i++) {
-										outmrcaParentBS.set((int) outmrcaAncestor.getQuick(i));
-									} */
-									
-									TLongBitArray outmrcaAncestor = new TLongBitArray((long[]) ancestor.getProperty("outmrca"));
-	//								if (outmrcaParentBS.intersects(inIdBS2)) {
-									if (outmrcaAncestor.containsAny(ingroupNodeIds)) {
-										System.out.println("attempt to add a descendant with a taxon in its ingroup, which has an ancestor with that taxon in its outgroup");
-	
-										LinkedList <String> names = new LinkedList<String>();
-										for (Long l : outmrcaAncestor.getIntersection(ingroupNodeIds)) {
-											names.add((String) graphdb.getNodeById(l).getProperty("name"));
-										}
-										System.out.println(curNode + " would have been a descendant of " + ancestor + ", but " + curNode + " contains " + Arrays.toString(names.toArray()) + ", which are in the outgroup of " + ancestor);
-										// not throwing exception during testing, otherwise this should be on
-//										throw new java.lang.IllegalStateException();
-										
-	//									System.out.println("the ancestor (already in the graph) was: " + ancestor);
-	//									System.out.println("the overlapping ids from the mrca of the descendant and the outmrca of the ancestor were: " + Arrays.toString(names.toArray()));
-	
+						// start the updating traversals independently from each parent of the current node, otherwise we prune the start node (and never go
+						// anywhere), because this node has the exact set of lica ids and always passes the tests
+						for (Relationship parentRel : curNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
+							for (Node ancestor : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("mrca", curNodeMRCAIds)).
+									relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(parentRel.getEndNode()).nodes()) {
+								System.out.println("updating ancestor " + ancestor + " with new ingroup lica mappings");
 
+								// sanity check, if this fails then mapping is not working right
+								TLongBitArray outmrcaAncestor = new TLongBitArray((long[]) ancestor.getProperty("outmrca"));
+								if (outmrcaAncestor.containsAny(ingroupNodeIds)) {
+									System.out.println("attempt to add a descendant with a taxon in its ingroup, which has an ancestor with that taxon in its outgroup");
+
+									LinkedList <String> names = new LinkedList<String>();
+									for (Long l : outmrcaAncestor.getIntersection(ingroupNodeIds)) {
+										names.add((String) graphdb.getNodeById(l).getProperty("name"));
 									}
+									System.out.println(curNode + " would have been a descendant of " + ancestor + ", but " + curNode + " contains " + Arrays.toString(names.toArray()) + ", which are in the outgroup of " + ancestor);
+									// not throwing exception during testing, otherwise this should be on
+//									throw new java.lang.IllegalStateException();
 									
-									// add all the new ingroup ids to the parent
-									TLongBitArray mrcaNew = new TLongBitArray((long[]) ancestor.getProperty("mrca"));
-									mrcaNew.addAll(curNodeMRCAIds);
-	//								System.out.println("setting mrca property to: " + Arrays.toString(mrcaNew.toArray()));
-									ancestor.setProperty("mrca", mrcaNew.toArray());
-									System.out.println("done");
 								}
-							}
-//						}
-
-//						System.out.println("checking if we need to update children of " + tn);
-
-//						if (updateChildren) {
-							// here we want descendants instead of ancestors so we go the other direction
-							for (Relationship childRel : curNode.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
-								for (Node descendant : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("outmrca", curNodeOutMRCAIds)).
-										relationships(RelType.STREECHILDOF, Direction.INCOMING).traverse(childRel.getStartNode()).nodes()) {
-		
-									System.out.println("updating descendant " + descendant + " with new outgroup lica mappings");
 									
-									// test, validate that the descendant outgroup doesn't contain things that are in the ingroup of the parent
-	/*								TLongArrayList mrcaDescendant = new TLongArrayList((long[]) descendant.getProperty("mrca"));
-									BitSet mrcaDescendantBS = new BitSet((int) mrcaDescendant.max());
-									for (int i = 0; i < mrcaDescendant.size(); i++) {
-										mrcaDescendantBS.set((int) mrcaDescendant.getQuick(i));
-									} */
-	
-									TLongBitArray mrcaDescendant = new TLongBitArray((long[]) descendant.getProperty("mrca"));
-	//								if (mrcaDescendantBS.intersects(outIdBS2)) {
-									if (mrcaDescendant.containsAny(outgroupNodeIds)) {
-										
-										System.out.println("attempt to add an ancestor with a taxon in its outgroup, which has a descendant with that taxon in its ingroup");
-										
-										LinkedList <String> names = new LinkedList<String>();
-										for (Long l : mrcaDescendant.getIntersection(outgroupNodeIds)) {
-											names.add((String) graphdb.getNodeById(l).getProperty("name"));
-										}
-										System.out.println(curNode + " would have been an ancestor of " + descendant + ", but " + curNode + " excludes " + Arrays.toString(names.toArray()) + ", which are in the ingroup of " + descendant);
-										// not throwing exception during testing, otherwise this should be on
-//										throw new java.lang.IllegalStateException();
+								// add all the new ingroup ids to the parent
+								TLongBitArray mrcaNew = new TLongBitArray((long[]) ancestor.getProperty("mrca"));
+								mrcaNew.addAll(curNodeMRCAIds);
+								ancestor.setProperty("mrca", mrcaNew.toArray());
+							}
+						}
 
-										/*
-										System.out.println("attempt to add an ancestor with a taxon in its ingroup, which has a descendant with that taxon in its outgroup"); // something may be wrong with this sentence....
-										System.out.println("the ancestor (the node we were adding) was: " + curNode);
-										System.out.println("the descendant (already in the graph) was: " + descendant);
-										System.out.println("the overlapping ids from the outmrca of the ancestor and the mrca of the descendant were: " + Arrays.toString(mrcaDescendant.getIntersection(outmrcaSearchIdsNotSetForThisNode).toArray()));  */
+						// start the updating traversals independently from each child of the current node for the same reason as above
+						for (Relationship childRel : curNode.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
+							for (Node descendant : Traversal.description().breadthFirst().evaluator(new LongArrayPropertyContainsAllEvaluator("outmrca", curNodeOutMRCAIds)).
+									relationships(RelType.STREECHILDOF, Direction.INCOMING).traverse(childRel.getStartNode()).nodes()) {
+								System.out.println("updating descendant " + descendant + " with new outgroup lica mappings");
+
+								// sanity check, if this fails then mapping is not working right
+								TLongBitArray mrcaDescendant = new TLongBitArray((long[]) descendant.getProperty("mrca"));
+								if (mrcaDescendant.containsAny(outgroupNodeIds)) {
+									System.out.println("attempt to add an ancestor with a taxon in its outgroup, which has a descendant with that taxon in its ingroup");
+									
+									LinkedList <String> names = new LinkedList<String>();
+									for (Long l : mrcaDescendant.getIntersection(outgroupNodeIds)) {
+										names.add((String) graphdb.getNodeById(l).getProperty("name"));
 									}
-									
-									// add all the new outgroup ids to the descendant
-									TLongBitArray outMrcaNew = new TLongBitArray((long[]) descendant.getProperty("outmrca"));
-									outMrcaNew.addAll(curNodeOutMRCAIds);
-									descendant.setProperty("outmrca", outMrcaNew.toArray());
-									System.out.println("updating descendant " + descendant + ": added " + Arrays.toString(curNodeOutMRCAIds.toArray()) + " to outmrca");
-	
+									System.out.println(curNode + " would have been an ancestor of " + descendant + ", but " + curNode + " excludes " + Arrays.toString(names.toArray()) + ", which are in the ingroup of " + descendant);
+									// not throwing exception during testing, otherwise this should be on
+//									throw new java.lang.IllegalStateException();
 								}
+								
+								// add all the new outgroup ids to the descendant
+								TLongBitArray outMrcaNew = new TLongBitArray((long[]) descendant.getProperty("outmrca"));
+								outMrcaNew.addAll(curNodeOutMRCAIds);
+								descendant.setProperty("outmrca", outMrcaNew.toArray());
+
 							}
-//						}
+						}
 							
-						// =========================== everything between these lines (look up) should move to the GraphImporter class ==========================
+						// =========================== propose to move everything between these lines (look up) the GraphImporter class ==========================
 							
 						return Evaluation.INCLUDE_AND_PRUNE;
 					}

@@ -67,6 +67,11 @@ public class LongArrayPropertyContainsAllEvaluator implements Evaluator {
 //		System.out.println("the \"" + propertyName + "\" property of " + curNode + " contained all the test values, it will be skipped");
 
 		// if we passed the tests, this node has all the right descendant ids, so we won't include it
-		return Evaluation.EXCLUDE_AND_CONTINUE; // was: return Evaluation.EXCLUDE_AND_PRUNE;
+
+		// extremely conservative, check the entire graph to see if it needs updates
+//		return Evaluation.EXCLUDE_AND_CONTINUE;
+
+		// more permissive, hopefully this works
+		return Evaluation.EXCLUDE_AND_PRUNE;
 	}
 }
