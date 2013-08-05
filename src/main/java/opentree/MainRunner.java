@@ -1015,6 +1015,8 @@ public class MainRunner {
 		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottolId).getId());
 		args[1] = startNodeIdStr;
 
+		ge.shutdownDB();
+		
 		// do the synth
 		return synthesizeDraftTreeWithListForNodeId(args);
 	}
@@ -1109,6 +1111,8 @@ public class MainRunner {
 		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottolId).getId());
 		args[1] = startNodeIdStr;
 
+		ge.shutdownDB();
+		
 		// do the synth
 		return extractDraftTreeForNodeId(args);
 	}
