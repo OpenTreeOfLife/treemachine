@@ -814,6 +814,7 @@ public class GraphImporter extends GraphBase {
 		int m = 0;
 		for (Node golNode : allGraphNodesMappedToThisJadeNode) {
 			licaids[m] = golNode.getId();
+			m++;
 		}
 
 		// for use if this node will be an incluchildof and we want to store the relationships for faster retrieval

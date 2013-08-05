@@ -774,7 +774,7 @@ public class GraphExplorer extends GraphBase {
         ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
         	justSourcePriorityList.add(sourceId.split("_")[0]);
-        }		
+        }	
         
         // define the synthesis protocol
         ResolvingExpander draftSynthesisMethod = new ResolvingExpander();
@@ -813,8 +813,12 @@ public class GraphExplorer extends GraphBase {
         //	return true;
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
-        rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDY_ID, sourceIdPriorityList, sourceMetaIndex));
-        rs.addCriterion(new SourcePropertyRankingCriterion(SourceProperty.YEAR, RankingOrder.DECREASING, sourceMetaIndex));
+        if(studyids == true)
+    		rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDY_ID, sourceIdPriorityList, sourceMetaIndex));
+    	else
+    		rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.SOURCE, sourceIdPriorityList, sourceMetaIndex));
+        
+        //rs.addCriterion(new SourcePropertyRankingCriterion(SourceProperty.YEAR, RankingOrder.DECREASING, sourceMetaIndex));
         draftSynthesisMethod.setRanker(rs);
 
         // set conflict resolution criteria

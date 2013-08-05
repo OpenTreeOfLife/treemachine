@@ -149,6 +149,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 							TLongArrayList rellicas = new TLongArrayList((long []) rel.getProperty("licas"));
 							TLongArrayList inids = new TLongArrayList((long []) rel.getProperty("inclusive_relids"));
 							visited.addAll(inids);
+							//this isn't correct and should be changed to the number of actual relationships
 							int testsize = inids.size()/rellicas.size();
 							System.out.println("\t\ttesting "+testsize+" rels: "+inids);
 							int childcount_passed = 0;
