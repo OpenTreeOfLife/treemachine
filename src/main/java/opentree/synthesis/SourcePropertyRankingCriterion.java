@@ -44,11 +44,12 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 	@Override
 	public int compare(Relationship rel1, Relationship rel2) {
 		//TODO: there are multiple metanodes when there are multiple licas found
-		if(rel1.hasProperty("source") == false || rel2.hasProperty("source") == false)
+		if (rel1.hasProperty("source") == false || rel2.hasProperty("source") == false) {
 			return 0;
+		}
 		IndexHits<Node> h1 = metadataNodeIndex.get("source", rel1.getProperty("source"));//.next();//.getSingle();
 		IndexHits<Node> h2 = metadataNodeIndex.get("source", rel2.getProperty("source"));//.next();//.getSingle();
-		if(h1.size() == 0 || h2.size() == 0){
+		if (h1.size() == 0 || h2.size() == 0) {
 			return 0;
 		}
 		Node m1 = h1.next();
@@ -62,11 +63,13 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 		SourcePropertyValue v1 = null;
 		SourcePropertyValue v2 = null;
 		
-		if (m1.hasProperty(property.propertyName))
+		if (m1.hasProperty(property.propertyName)) {
 			v1 = new SourcePropertyValue(property, m1.getProperty(property.propertyName));
+		}
 
-		if (m2.hasProperty(property.propertyName))
+		if (m2.hasProperty(property.propertyName)) {
 			v2 = new SourcePropertyValue(property, m2.getProperty(property.propertyName));
+		}
 
 		Integer retval = null;
 		
@@ -83,14 +86,15 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 		// if both rels have the property, then compare them
 		} else {
 
-			if (order == RankingOrder.INCREASING)
+			if (order == RankingOrder.INCREASING) {
 				retval = v1.compareTo(v2);
 			
-			else if (order == RankingOrder.DECREASING)
+			} else if (order == RankingOrder.DECREASING) {
 				retval = v2.compareTo(v1); // reverse the comparison direction
 
-			else
+			} else {
 				throw new java.lang.UnsupportedOperationException("the ranking method " + order.toString() + " is not recognized");
+			}
 		}
 		
 		return retval;
