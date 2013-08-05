@@ -83,4 +83,9 @@ public class RelationshipFilter {
 		}
 		return description;
 	}
+	
+	public String getReport() {
+		String report = "Results of filtering:\n(result reporting feature not yet implemented)";
+		return "";
+	}
 }

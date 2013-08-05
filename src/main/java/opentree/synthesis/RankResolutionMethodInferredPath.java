@@ -178,4 +178,10 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	public String getDescription() {
 		return "prefer relationships with higher ranking, but take paths with more descendants as long as they don't indicate relationships incompatible with preferred rels. Result will be fully acyclic.";
 	}
+
+	@Override
+	public String getReport() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

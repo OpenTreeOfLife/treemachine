@@ -6,5 +6,6 @@ public interface ResolutionMethod {
 	
 	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> candidateRels);
 	public String getDescription();
+	public String getReport();
 	
 }

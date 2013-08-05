@@ -104,4 +104,10 @@ public class SourcePropertyRankingCriterion implements RankingCriterion {
 	public void sort(List<Relationship> rels) {
 		Collections.sort(rels, this);
 	}
+
+	@Override
+	public String getReport() {
+		// TODO Auto-generated method stub
+		return "";
+	}
 }

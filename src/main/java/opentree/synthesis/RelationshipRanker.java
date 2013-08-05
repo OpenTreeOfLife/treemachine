@@ -56,35 +56,28 @@ public class RelationshipRanker {
 			origRels.add(rel);
 		}
 		
-		
-		
-		if (rankedRels.size() == 0) {
-			System.out.println("\n\t*** Whoops?!? No relationships to deal with! ***");
-		} else {
-			
-			System.out.println("\n*** Relationships BEFORE ranking: ***");
-			for (int i = 0; i < rankedRels.size(); i++) {
-				System.out.println("Relationship: " + rankedRels.get(i).toString() + "; Source: " + rankedRels.get(i).getProperty("source"));
-			}
-			System.out.print("\n");
-			
-			for (int i = criteria.size() - 1; i >= 0; i--) {
-				// iterate through criteria in reverse order and sort the relationships in that order
-				criteria.get(i).sort(rankedRels); // TEST THIS
-			}
-			
-			System.out.println("*** Relationships AFTER ranking: ***");
-			for (int i = 0; i < rankedRels.size(); i++) {
-				System.out.println("Relationship: " + rankedRels.get(i).toString() + "; Source: " + rankedRels.get(i).getProperty("source"));
-			}
-			System.out.print("\n");
-			
-			if (!origRels.equals(rankedRels)) {
-				System.out.println("\n\t*** RANKING DIFFERS! ***\n");
-			}
+		/*		
+		System.out.println("\n*** Relationships BEFORE ranking: ***");
+		for (int i = 0; i < rankedRels.size(); i++) {
+			System.out.println("Relationship: " + rankedRels.get(i).toString() + "; Source: " + rankedRels.get(i).getProperty("source"));
 		}
+		System.out.print("\n"); */
 		
+		for (int i = criteria.size() - 1; i >= 0; i--) {
+			// iterate through criteria in reverse order and sort the relationships in that order
+			criteria.get(i).sort(rankedRels); // TEST THIS
+		}
+
+		/*
+		System.out.println("*** Relationships AFTER ranking: ***");
+		for (int i = 0; i < rankedRels.size(); i++) {
+			System.out.println("Relationship: " + rankedRels.get(i).toString() + "; Source: " + rankedRels.get(i).getProperty("source"));
+		}
+		System.out.print("\n");
 		
+		if (!origRels.equals(rankedRels)) {
+			System.out.println("\n\t*** RANKING DIFFERS! ***\n");
+		} */
 		
 		return rankedRels;
 	}
@@ -92,10 +85,19 @@ public class RelationshipRanker {
 	public String getDescription() {
 		String description = "Relationships will be ranked (rankings listed in order of priority):\n";
 		for (RankingCriterion rc : criteria) {
-			description = description.concat(rc.getDescription()+"\n");
+			description = description.concat("AND THEN ").concat(rc.getDescription()+"\n");
 		}
 		return description;
 	}
+	
+	public String getReport() {
+		String report = "Results of ranking:\n";
+		for (RankingCriterion rc : criteria) {
+			report = report.concat("AND THEN ").concat(rc.getReport()+"\n");
+		}
+		return report;
+	}
+	
 	
 	/**
 	 * Return the highest ranking relationship from the set of incoming rels. Ranking is performed according to the set of

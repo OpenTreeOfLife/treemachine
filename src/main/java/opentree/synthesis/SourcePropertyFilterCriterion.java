@@ -86,4 +86,10 @@ public class SourcePropertyFilterCriterion implements FilterCriterion {
 	public String getDescription() {
 		return "source property " + property.propertyName + " " + c.name() + " " + t.getValue();
 	}
+
+	@Override
+	public String getReport() {
+		// TODO Auto-generated method stub
+		return "";
+	}
 }

@@ -2,7 +2,6 @@ package opentree.synthesis;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
 import opentree.constants.SourceProperty;
@@ -25,7 +24,10 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	private HashMap<Long, Integer> priorityMapLong;
 	private HashMap<Double, Integer> priorityMapDouble;
 	private Index<Node> metadataNodeIndex;
-	private String desc;
+	private String description;
+	private String priorityListText;
+	
+	private long nRankableRelsCompared;
 	
 	private final static Integer NOTRANKED = -999999999;
 
@@ -41,6 +43,7 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	public SourcePropertyPrioritizedRankingCriterion(SourceProperty property, Iterable<Object> priortyListIterable, Index<Node> sourceMetaNodes) {
 		this.property = property;
 		this.metadataNodeIndex = sourceMetaNodes;
+		this.nRankableRelsCompared = 0;
 
 		int i = 0;
 		if (property.type == String.class) {
@@ -62,10 +65,11 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 			}
 		}
 		
-		desc = "by source property " + property.propertyName + " in the order specified by the list:\n";
+		priorityListText = "";
 		for (Object o : priortyListIterable) {
-			desc = desc.concat(String.valueOf(o) + "\n");
+			priorityListText = priorityListText.concat(String.valueOf(o) + "\n");
 		}
+		description = "by source property " + property.propertyName + " in the order specified by the list:\n" + priorityListText;
 		
 		// check things are ordered correctly -- yes
 //		System.out.println("\nContents of priority hashmap:");
@@ -80,7 +84,19 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 
 	@Override
 	public String getDescription() {
-		return desc;
+		return description;
+	}
+	
+	@Override
+	public String getReport() {
+		String report = "";
+		if (nRankableRelsCompared > 0) {
+			report = String.valueOf(nRankableRelsCompared) + " rels were compared (and ranked) using source property " + property.propertyName + " in the order specified by the list:\n" + priorityListText;
+		} else {
+			report = "No relationships yet found that could be ranked using source property " + property.propertyName +
+					" in the order specified by the list. This could indicate a problem such as a mismatch between the property type and the info in the list:\n" + priorityListText;
+		}
+		return report;
 	}
 	
 	/*
@@ -102,11 +118,6 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	return desc;
 	}  */
 
-
-
-
-
-
 	/**
 	 * Compare the specified source property of the two provided relationships.
 	 */
@@ -124,9 +135,9 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 			
 			return 0;
 		}
-		//TODO: can have multiple metanodes with multiple lica mappings
-		IndexHits<Node> h1 = metadataNodeIndex.get("source", rel1.getProperty("source"));//.next();//.getSingle();
-		IndexHits<Node> h2 = metadataNodeIndex.get("source", rel2.getProperty("source"));//.next();//.getSingle();
+
+		IndexHits<Node> h1 = metadataNodeIndex.get("source", rel1.getProperty("source"));
+		IndexHits<Node> h2 = metadataNodeIndex.get("source", rel2.getProperty("source"));
 		if (h1.size() == 0 || h2.size() == 0) {
 			
 			if (VERBOSE) {
@@ -194,18 +205,21 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 			
 		} else if (rank2 == NOTRANKED) {
 			retval = -1;
+			nRankableRelsCompared++;
 
 			if (VERBOSE) {
 				System.out.println("rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source") + ") property " + v2 + " is not in priority list; preferring rel 1 (relid " + rel1.getId() + "; source " + rel1.getProperty("source") + ") property " + v1 + ")");
 			}
 		} else if (rank1 == NOTRANKED) {
 			retval = 1;
+			nRankableRelsCompared++;
 
 			if (VERBOSE) {
 				System.out.println("rel 1 (relid " + rel1.getId() + "; name " + rel1.getProperty("source") + ") property " + v1 + " is not in priority list; preferring rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source") + ") property " + v2 + ")");
 			}
 		} else {
 			retval = rank1.compareTo(rank2);
+			nRankableRelsCompared += 2;
 		
 			if (VERBOSE) {
 				System.out.println("rel 1 (relid " + rel1.getId() + "; name " + rel1.getProperty("source") + ") property " + v1 + " || rel 2 (relid " + rel2.getId() + "; source " + rel2.getProperty("source")  + ") property " + v2 + ")");
@@ -213,11 +227,9 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 			}
 		}
 		
-		// priority is indicated by proximity to the beginning of the list, so we sort in REVERSE!
-		//return retval * -1;
 		return retval;
 	}
-
+	
 	@Override
 	public void sort(List<Relationship> rels) {
 		Collections.sort(rels, this);

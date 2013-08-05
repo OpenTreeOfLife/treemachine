@@ -34,7 +34,13 @@ public class RelationshipConflictResolver {
 	public String getDescription() {
 		return "Conflict resolution will " + method.getDescription();
 	}
+
+	public String getReport() {
+		return "Results of conflict resolution:\n(result reporting feature not yet implemented)";
+	}
+	
 	public TLongHashSet getDupMRCAS(){
 		return new TLongHashSet();
 	}
+	
 }

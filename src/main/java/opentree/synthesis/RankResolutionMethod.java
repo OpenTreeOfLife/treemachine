@@ -149,4 +149,10 @@ public class RankResolutionMethod implements ResolutionMethod {
 	public String getDescription() {
 		return "prefer relationships with higher ranking, and guarantee a fully acyclic result";
 	}
+
+	@Override
+	public String getReport() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

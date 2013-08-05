@@ -160,6 +160,34 @@ public class ResolvingExpander implements PathExpander {
 	}
 
 	/**
+	 * Return a textual report of the status of the synthesis procedures. This could be called during or after synthesis to describe general results.
+	 * @return
+	 */
+	public String getReport() {
+		String report = "";
+		
+		if (filter != null) {
+			report = report.concat(filter.getReport() + "\n");
+		} else {
+			report = report.concat("This synthesis method does not perform relationship filtering\n");
+		}
+		
+		if (ranker != null) {
+			report = report.concat(ranker.getReport() + "\n");
+		} else {
+			report = report.concat("This synthesis method does not perform relationship ranking. \n");
+		}
+		
+		if (resolver != null) {
+			report = report.concat(resolver.getReport() + "\n");
+		} else {
+			report = report.concat("This synthesis method does not perform conflict resolution. \n");
+		}
+		
+		return report;
+	}
+	
+	/**
 	 * The essential PathExpander method that performs all the steps to make decisions about
 	 * which relationships to traverse, which in this case means deciding which rels to include in
 	 * synthesis. All the logic for these decisions is farmed out to the individual classes that do the

@@ -889,6 +889,9 @@ public class GraphExplorer extends GraphBase {
             	// remember the ids of taxa we add, this is when sinking lost children
                 knownIdsInTree.add(curNode.getId());
         	}
+        	
+            System.out.println("\n" + draftSynthesisMethod.getReport());
+        	
         	tx.success();
         } catch (Exception ex) {
         	tx.failure();
