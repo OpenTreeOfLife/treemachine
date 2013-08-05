@@ -487,7 +487,7 @@ public class GraphImporter extends GraphBase {
 	private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode) throws TreeIngestException {
 
 		if (nNodesToCommit % commitFrequency == 0) {
-			System.out.println("Committing nodes: " + nNodesToCommit);
+			System.out.println("Committing " + nNodesToCommit + " nodes");
 			tx.success();
 			tx.finish();
 			tx = graphDb.beginTx();
