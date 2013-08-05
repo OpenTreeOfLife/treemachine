@@ -19,6 +19,8 @@ import java.util.Random;
  */
 public class TLongBitArray implements Iterable<Long> {
 
+	private static boolean testing = false; // set to true when performing unit tests 
+	
 	TLongArrayList tl; 
 	BitSet bs;
 	
@@ -27,42 +29,31 @@ public class TLongBitArray implements Iterable<Long> {
 	public TLongBitArray(Iterable<Long> longArr) {
 		tl = new TLongArrayList();
 		this.addAll(longArr);
-//		for (Long l : longArr) {
-//			tl.add(l);
-//		}
-//		updateBitSet();
 	}
 
 	public TLongBitArray(int[] intArr) {
 		tl = new TLongArrayList();
 		this.addAll(intArr);
-//		for (int i : intArr) {
-//			tl.add(i);
-//		}
-//		updateBitSet();
 	}
 	
 	public TLongBitArray(long[] longArr) {
 		tl = new TLongArrayList();
 		this.addAll(longArr);
-//		updateBitSet();
 	}
 
 	public TLongBitArray(TLongArrayList tLongArr) {
 		tl = new TLongArrayList();
 		this.addAll(tLongArr);
-//		updateBitSet();
 	}
 	
 	public TLongBitArray(BitSet bs) {
 		tl = new TLongArrayList();
 		this.addAll(bs);
-//		this.bs = (BitSet) bs.clone();
 	}
 	
 	public TLongBitArray() {
 		tl = new TLongArrayList();
-		updateBitSet();
+		bs = new BitSet();
 	}
 
 	// ==== basic functions
@@ -72,30 +63,42 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	public int size() {
+		if (testing) {testInternalState();}
 		return tl.size();
+	}
+
+	public int cardinality() {
+		return bs.cardinality();
 	}
 	
 	public Long get(int i) {
-		assert bs.get(Long.valueOf(tl.get(i)).intValue()) == true;
+		if (testing) {testInternalState();}
 		return tl.get(i);
+	}
+
+	public Long getQuick(int i) {
+		if (testing) {testInternalState();}
+		return tl.getQuick(i);
 	}
 	
 	public long[] toArray() {
+		if (testing) {testInternalState();}
 		return tl.toArray();
 	}
 	
 	public void sort() {
+		if (testing) {testInternalState();}
 		tl.sort();
 	}
 	
 	public boolean contains(Long l) {
-		assert tl.contains(l) == bs.get(l.intValue());
-		return tl.contains(l);
+		if (testing) {testInternalState();}
+		return bs.get(l.intValue());
 	}
 
 	public boolean contains(int i) {
-		assert tl.contains(i) == bs.get(i);
-		return tl.contains(i);
+		if (testing) {testInternalState();}
+		return bs.get(i);
 	}
 	
 	// ==== any operation that changes the underlying TLongArray instance must trigger an update to the BitSet
@@ -103,29 +106,26 @@ public class TLongBitArray implements Iterable<Long> {
 	// == addition methods
 	
 	/**
-	 * Adds the value to the array. A subsequent call to updateBitSet() must be made manually. This is intended *only* to
-	 * provide access to the add() method without rebuilding the BitSet every time, but use with caution! If possible,
-	 * use addAll() to avoid the need to manually update the BitSet.
-	 * @param l
+	 * Adds the value to the array and the bitset. For adding more than one value, the use of addAll() methods is preferred,
+	 * as they are more efficient than using add() on multiple individual values.	 * @param l
 	 */
-	public void addAndDoNotUpdateBitSet(Long l) {
+	public void add(Long l) {
 		tl.add(l);
 		bs.set(l.intValue(), true);
 	}
 
 	/**
-	 * Adds the value to the array. A subsequent call to updateBitSet() must be made manually. This is intended *only* to
-	 * provide access to the add() method without rebuilding the BitSet every time, but use with caution! If possible,
-	 * use addAll() to avoid the need to manually update the BitSet.
+	 * Adds the value to the array and the bitset. For adding more than one value, the use of addAll() methods is preferred,
+	 * as they are more efficient than using add() on multiple individual values.
 	 * @param l
 	 */
-	public void addAndDoNotUpdateBitSet(int i) {
+	public void add(int i) {
 		tl.add((long) i);
 		bs.set(i, true);
 	}
 
 	/**
-	 * Add all the values to the array. Will update the underlying bitset.
+	 * Add all the values to the array and the bitset.
 	 * @param toAdd
 	 */
 	public void addAll(int[] toAdd) {
@@ -136,7 +136,7 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	/**
-	 * Add all the values to the array. Will update the underlying bitset.
+	 * Add all the values to the array and the bitset.
 	 * @param toAdd
 	 */
 	public void addAll(long[] toAdd) {
@@ -147,7 +147,7 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	/**
-	 * Add all the values to the array. Will update the underlying bitset.
+	 * Add all the values to the array and the bitset.
 	 * @param toAdd
 	 */
 	public void addAll(Iterable<Long> toAdd) {
@@ -158,7 +158,7 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	/**
-	 * Add all the values to the array. Will update the underlying bitset.
+	 * Add all the values to the array and the bitset.
 	 * @param toAdd
 	 */
 	public void addAll(BitSet toAdd) {
@@ -169,7 +169,7 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 
 	/**
-	 * Add all the values to the array. Will update the underlying bitset.
+	 * Add all the values to the array and the bitset.
 	 * @param toAdd
 	 */
 	public void addAll(TLongArrayList toAdd) {
@@ -178,7 +178,7 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 
 	/**
-	 * Add all the values to the array. Will update the underlying bitset.
+	 * Add all the values to the array and the bitset.
 	 * @param toAdd
 	 */
 	public void addAll(TLongBitArray toAdd) {
@@ -188,11 +188,10 @@ public class TLongBitArray implements Iterable<Long> {
 	
 	// == removal methods
 	
-	// THIS IS INCORRECT BEHAVIOR. REVIEW REMOVE METHODS FOR TLONGARRAYLIST AND UPDATE ACCORDINGLY.
-	
 	/**
-	 * Remove the value from the array. If there are multiple equivalent values, only one will be removed.
-	 * Not as efficient as removeAll() because of the need to validate the internal state on every removal.
+	 * Remove the value from the array. If this is the last instance of this value in the array, it will alsoe be removed from
+	 * the bitset. When removing multiple values, the use of removeAll() is preferred, as it only requires a single update to
+	 * the bitset.
 	 * @param l
 	 */
 	public void remove(Long l) {
@@ -206,8 +205,9 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	/**
-	 * Remove the value from the array. If there are multiple equivalent values, only one will be removed.
-	 * Not as efficient as removeAll() because of the need to validate the internal state on every removal.
+	 * Remove the value from the array. If this is the last instance of this value in the array, it will alsoe be removed from
+	 * the bitset. When removing multiple values, the use of removeAll() is preferred, as it only requires a single update to
+	 * the bitset.
 	 * @param i
 	 */
 	public void remove(int i) {
@@ -221,8 +221,8 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 
 	/**
-	 * Remove all the values to the array. Will update the underlying bitset.
-	 * @param toAdd
+	 * Remove all the values to the array and the bitset.
+	 * @param toRemove
 	 */
 	public void removeAll(int[] toRemove) {
 		for (int i : toRemove) {
@@ -232,8 +232,8 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	/**
-	 * Remove all the values to the array. Will update the underlying bitset.
-	 * @param toAdd
+	 * Remove all the values to the array and the bitset.
+	 * @param toRemove
 	 */
 	public void removeAll(long[] toRemove) {
 		for (long l : toRemove) {
@@ -243,8 +243,8 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	/**
-	 * Remove all the values to the array. Will update the underlying bitset.
-	 * @param toAdd
+	 * Remove all the values to the array and the bitset.
+	 * @param toRemove
 	 */
 	public void removeAll(Iterable<Long> toRemove) {
 		for (Long l : toRemove) {
@@ -254,8 +254,8 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 
 	/**
-	 * Remove all the values to the array. Will update the underlying bitset.
-	 * @param toAdd
+	 * Remove all the values to the array and the bitset.
+	 * @param toRemove
 	 */
 	public void removeAll(BitSet toRemove) {
 		for (int i = toRemove.nextSetBit(0); i >= 0; i = toRemove.nextSetBit(i+1)) {
@@ -265,8 +265,8 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	/**
-	 * Remove all the values to the array. Will update the underlying bitset.
-	 * @param toAdd
+	 * Remove all the values to the array and the bitset.
+	 * @param toRemove
 	 */
 	public void removeAll(TLongArrayList toRemove) {
 		tl.removeAll(toRemove);
@@ -274,8 +274,8 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 
 	/**
-	 * Remove all the values to the array. Will update the underlying bitset.
-	 * @param toAdd
+	 * Remove all the values to the array and the bitset.
+	 * @param toRemove
 	 */
 	public void removeAll(TLongBitArray toRemove) {
 		this.removeAll((Iterable<Long>) toRemove); // use the iterator method
@@ -283,8 +283,8 @@ public class TLongBitArray implements Iterable<Long> {
 	}
 	
 	/**
-	 * Rebuild the internal bitset, used for bitwise operations. This could probably be optimized but it is
-	 * still pretty fast even to rebuild the whole thing.
+	 * Rebuild the bitset based on the array. Currently just creates a new bitset and fills it from the array.
+	 * This could be optimized further but it is fairly fast.
 	 */
 	public void updateBitSet() {
 		if (tl.size() > 0) {
@@ -295,7 +295,7 @@ public class TLongBitArray implements Iterable<Long> {
 		} else {
 			bs = new BitSet();
 		}
-//		testInternalState();
+		if (testing) {testInternalState();}
 	}
 	
 	// ==== boolean / bitwise operations
@@ -307,7 +307,7 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @return
 	 */
 	public TLongBitArray andNot(BitSet compBS) {
-//		testInternalState();
+		if (testing) {testInternalState();}
 		BitSet result = (BitSet) this.bs.clone();
 		result.andNot(compBS);
 		return new TLongBitArray(result);
@@ -320,7 +320,7 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @return
 	 */
 	public TLongBitArray andNot(TLongBitArray compArr) {
-//		testInternalState();
+		if (testing) {testInternalState();}
 		return new TLongBitArray(this.andNot(compArr.bs));
 	}
 	
@@ -330,7 +330,7 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @return
 	 */
 	public boolean containsAny(TLongBitArray compArr) {
-//		testInternalState();
+		if (testing) {testInternalState();}
 		return this.containsAny(compArr.getBitSet());
 	}
 
@@ -340,12 +340,7 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @return
 	 */
 	public boolean containsAny(BitSet compBS) {
-//		testInternalState();
-		
-//		if (compBS.isEmpty()) {
-//			throw new NoSuchElementException("attempt to pass an empty list to contains any");
-//		}
-		
+		if (testing) {testInternalState();}
 		return bs.intersects(compBS);
 	}
 
@@ -355,7 +350,7 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @return
 	 */
 	public boolean containsAll(TLongBitArray compArr) {
-//		testInternalState();
+		if (testing) {testInternalState();}
 		return this.containsAll(compArr.bs);
 	}
 
@@ -365,12 +360,7 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @return
 	 */
 	public boolean containsAll(BitSet compBS) {
-//		testInternalState();
-		
-//		if (compBS.isEmpty()) {
-//			throw new NoSuchElementException("attempt to pass an empty list to contains all");
-//		}
-		
+		if (testing) {testInternalState();}
 		BitSet intersection = (BitSet) compBS.clone();
 		intersection.and(bs);
 		if (intersection.cardinality() == compBS.cardinality()) { 
@@ -378,14 +368,6 @@ public class TLongBitArray implements Iterable<Long> {
 		} else {
 			return false;
 		}
-
-		// alternative method. not sure which is faster
-//		for (int i = compBS.nextSetBit(0); i >= 0; i = compBS.nextSetBit(i+1)) {
-//			if (bs.get(i) == false) {
-//				return false; // if we find a bit from compBS not in our BS
-//		    }
-//		}
-//		return true; // we found all the bits from compBS
 	}
 	
 	/**
@@ -394,14 +376,7 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @return
 	 */
 	public TLongBitArray getIntersection(TLongBitArray compArr) {
-//		testInternalState();
-/*		TLongBitArray intersect = new TLongBitArray();
-		for (int k = 0; k < compArr.size(); k++) {
-			if (tl.contains(compArr.get(k))) {
-				intersect.addAndDoNotUpdateBitSet(compArr.get(k));
-			}
-		} */
-		
+		if (testing) {testInternalState();}
 		BitSet intersection = (BitSet) bs.clone();
 		intersection.and(compArr.bs);
 		return new TLongBitArray(intersection);
@@ -413,51 +388,9 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @return
 	 */
 	public TLongBitArray getIntersection(BitSet compBS) {
-//		testInternalState();
-/*		TLongBitArray intersect = new TLongBitArray();
-		for (int k = 0; k < tl.size(); k++) {
-			if (compBS.get((int) tl.get(k)) == true) { // casting to an int, this could be bad
-				intersect.addAndDoNotUpdateBitSet(tl.get(k));
-			}
-		} */
-
-		// testing
-/*		int[] compValues = new int[compBS.length()];
-		int j = 0;
-		for (int k = compBS.nextSetBit(0); k >= 0;  k = compBS.nextSetBit(k+1)) {
-			compValues[j++] = k;
-		}
-		System.out.println("Performing intersection.\nThe passed in BitSet contained: " + Arrays.toString(compValues));
-
-		int[] intValues = new int[bs.length()];
-		j = 0;
-		for (int k = bs.nextSetBit(0); k >= 0;  k = bs.nextSetBit(k+1)) {
-			intValues[j++] = k;
-		}
-		System.out.println("The internal BitSet contained: " + Arrays.toString(intValues)); */
-
-		
+		if (testing) {testInternalState();}
 		BitSet intersection = (BitSet) bs.clone();
-
-		
-/*		int[] tempValues = new int[intersection.length()];
-		j = 0;
-		for (int k = intersection.nextSetBit(0); k >= 0;  k = intersection.nextSetBit(k+1)) {
-			tempValues[j++] = k;
-		}
-		System.out.println("The temporary BitSet (cloned from internal) contained: " + Arrays.toString(tempValues)); */
-
-		
 		intersection.and(compBS);
-
-		
-/*		int[] intersectedValues = new int[intersection.length()];
-		j = 0;
-		for (int k = intersection.nextSetBit(0); k >= 0;  k = intersection.nextSetBit(k+1)) {
-			intersectedValues[j++] = k;
-		}
-		System.out.println("The intersection BitSet contained: " + Arrays.toString(intersectedValues)); */
-
 		return new TLongBitArray(intersection);
 	}
 	
@@ -501,6 +434,9 @@ public class TLongBitArray implements Iterable<Long> {
 		}
 	}
 	
+	/**
+	 * Validates that the bitset and long array are congruent. If not then there is an error somewhere. Used during unit tests.
+	 */
 	private void testInternalState() {
 	
 		int[] bsVals = new int[bs.cardinality()];
@@ -533,8 +469,33 @@ public class TLongBitArray implements Iterable<Long> {
 	 */
 	public static void main(String[] args) {
 
-		int maxVal = 100;
+		testing = true;
+		
+		int numTestCycles = 0;
+		if (args.length == 1) {
+			numTestCycles = Integer.valueOf(args[0]);
+		} else {
+			throw new java.lang.IllegalArgumentException("you must indicate the number of test cycles to perform");
+		}
+
+		// run the tests
 		Random r = new Random();
+		boolean allTestsPassed = false;
+		for (int i = 0; i < numTestCycles; i++) {
+			System.out.println("\nTest cycle " + i);
+			allTestsPassed  = runUnitTests(r.nextInt(Integer.MAX_VALUE));
+		}
+		
+		if (allTestsPassed) {
+			System.out.println("\nAll tests passed\n");
+		} else {
+			System.out.println("\nTests failed\n");
+		}
+	}
+	
+	private static boolean runUnitTests(int randSeed) {
+		int maxVal = 100;
+		Random r = new Random(randSeed);
 
 		// create a random test arrays of ints
 		int n1 = r.nextInt(20);
@@ -549,17 +510,16 @@ public class TLongBitArray implements Iterable<Long> {
 		System.out.println("Testing adding and getting");
 		TLongBitArray test1 = new TLongBitArray();
 		for (int k : arr1) {
-			test1.addAndDoNotUpdateBitSet(k);
+			test1.add(k);
 		}
 		test1.updateBitSet();
 		test1.testInternalState();
-//		int j = 0;
 		TLongBitArray test2 = new TLongBitArray();
 		for (int k : arr1) {
 			if (test1.contains(k) == false) {
 				throw new AssertionError("Adding and getting failed. BitArray 1 should have contained " + k + " but it did not");
 			} else {
-				test2.addAndDoNotUpdateBitSet(k);
+				test2.add(k);
 			}
 		}
 		test1 = new TLongBitArray(arr1);
@@ -602,7 +562,7 @@ public class TLongBitArray implements Iterable<Long> {
 		System.out.println("the TLongArrayList contains " + testTL.size() + " values: " + Arrays.toString(testTL.toArray()));
 		test1 = new TLongBitArray(testTL);
 		System.out.println("The BitArray constructed from the TLongArrayList contains: " + Arrays.toString(test1.toArray()));
-		Arrays.sort(arr1);
+		Arrays.sort(arr1); // has to be on because testInternalState calls sort the bitarray
 		for (int k = 0; k < arr1.length; k++) {
 			if (test1.get(k) != arr1[k]) {
 				throw new java.lang.AssertionError("BitArray creation from TLongArrayList failed");
@@ -634,7 +594,7 @@ public class TLongBitArray implements Iterable<Long> {
 		System.out.println("The long array contains " + testArrLong.length + " values: " + Arrays.toString(testArrLong));
 		test1 = new TLongBitArray(testArrLong);
 		System.out.println("The BitArray constructed from the TLongArrayList contains: " + Arrays.toString(test1.toArray()));
-		Arrays.sort(testArrLong);
+		Arrays.sort(testArrLong); // has to be on because testInternalState calls sort the bitarray
 		for (int k = 0; k < testArrLong.length; k++) {
 			if (test1.get(k) != testArrLong[k]) {
 				throw new java.lang.AssertionError("BitArray creation from long array failed");
@@ -652,7 +612,7 @@ public class TLongBitArray implements Iterable<Long> {
 		System.out.println("The int array contains " + testArrInt.length + " values: " + Arrays.toString(testArrInt));
 		test1 = new TLongBitArray(testArrInt);
 		System.out.println("The BitArray constructed from the TLongArrayList contains: " + Arrays.toString(test1.toArray()));
-		Arrays.sort(testArrInt);
+		Arrays.sort(testArrInt); // has to be on because testInternalState calls sort the bitarray
 		for (int k = 0; k < testArrInt.length; k++) {
 			if (test1.get(k) != testArrInt[k]) {
 				throw new java.lang.AssertionError("BitArray creation from int array failed");
@@ -723,6 +683,7 @@ public class TLongBitArray implements Iterable<Long> {
 		test1 = new TLongBitArray(arr1);
 		System.out.println("Intersecting BitArray: " + Arrays.toString(test1.toArray()));
 		System.out.println("with BitSet containing: " + Arrays.toString(arr2));
+
 		// making a new BitSet with arr2 values
 		testBS2 = new BitSet();
 		for (int i : arr2) {
@@ -926,7 +887,7 @@ public class TLongBitArray implements Iterable<Long> {
 			testVal = r.nextInt(maxVal);
 			System.out.println("Will add the value " + testVal + " to  BitArray " + nAdds + " times, then attempt to remove it " + nRemoves + " times");
 			for (int l = 0; l < nAdds; l++) {
-				test1.addAndDoNotUpdateBitSet(testVal);
+				test1.add(testVal);
 			}
 			for (int l = 0; l < nRemoves; l++) {
 				test1.remove(testVal);
@@ -965,7 +926,7 @@ public class TLongBitArray implements Iterable<Long> {
 		for (int i = 0; i < nOps1; i++) {
 			int nextInt = r.nextInt(maxVal);
 			if (r.nextBoolean()) {
-				test1.addAndDoNotUpdateBitSet(nextInt);
+				test1.add(nextInt);
 				nAddOps++;
 			} else {
 				if (test1.contains(nextInt)) {
@@ -986,7 +947,7 @@ public class TLongBitArray implements Iterable<Long> {
 		for (int i = 0; i < nOps2; i++) {
 			int nextInt = r.nextInt(maxVal);
 			if (r.nextBoolean()) {
-				test2.addAndDoNotUpdateBitSet(nextInt);
+				test2.add(nextInt);
 				nAddOps++;
 			} else {
 				if (test2.contains(nextInt)) {
@@ -1006,99 +967,82 @@ public class TLongBitArray implements Iterable<Long> {
 		intersection = test1.getIntersection(test2);
 		System.out.println("BitArray 1 and BitArray 2 have " + intersection.size() + " elements in common: " + Arrays.toString(intersection.toArray()));
 
+		// these should always be true
+		boolean arr1ContainsAllIntersectionEXPECT = true;
+		boolean arr2ContainsAllIntersectionEXPECT = true;
+		boolean arr1ContainsAllArr2EXPECT = intersection.size() == test2.cardinality() ? true : false;
+		boolean arr2ContainsAllArr1EXPECT = intersection.size() == test1.cardinality() ? true : false;
+
+		// these depend on the situation
 		boolean intersectionContainsAnyArr1EXPECT;
 		boolean intersectionContainsAnyArr2EXPECT;
 		boolean arr1ContainsAnyArr2EXPECT;
 		boolean arr2ContainsAnyArr1EXPECT;
-		boolean arr1ContainsAllArr2EXPECT;
-		boolean arr2ContainsAllArr1EXPECT;
 
 		if (intersection.size() > 0) {
-			
-			boolean arr1ContainsAllIntersection = test1.containsAll(intersection);
-			System.out.println("Does BitArray 1 contain all the shared values? " + arr1ContainsAllIntersection);
-			if (arr1ContainsAllIntersection != true) {
-				throw new AssertionError("Contains all failed");
-			}
-			
-			boolean arr2ContainsAllIntersection = test2.containsAll(intersection);
-			System.out.println("Does BitArray 2 contain all the shared values? " + arr2ContainsAllIntersection);
-			if (arr2ContainsAllIntersection != true) {
-				throw new AssertionError("Contains all failed");
-			}
 			
 			intersectionContainsAnyArr1EXPECT = true;
 			intersectionContainsAnyArr2EXPECT = true;
 			arr1ContainsAnyArr2EXPECT = true;
 			arr2ContainsAnyArr1EXPECT = true;
-			arr1ContainsAllArr2EXPECT = intersection.size() == test2.size() ? true : false;
-			arr2ContainsAllArr1EXPECT = intersection.size() == test1.size() ? true : false;
 			
 		} else { // the intersection was null
 
-			System.out.println("Does BitArray 1 contain all the shared values?");
-			try {
-				boolean arr1ContainsAllIntersection = test1.containsAll(intersection);
-			} catch (NoSuchElementException ex) {
-				System.out.println(ex.getMessage() + " (NoSuchElementException thrown correctly)");
-			}
-
-			System.out.println("Does BitArray 2 contain all the shared values?");
-			try {
-				boolean arr1ContainsAllIntersection = test1.containsAll(intersection);
-			} catch (NoSuchElementException ex) {
-				System.out.println(ex.getMessage() + " (NoSuchElementException thrown correctly)");
-			}
-			
 			intersectionContainsAnyArr1EXPECT = false;
 			intersectionContainsAnyArr2EXPECT = false;
 			arr1ContainsAnyArr2EXPECT = false;
 			arr2ContainsAnyArr1EXPECT = false;
-			arr1ContainsAllArr2EXPECT = false;
-			arr2ContainsAllArr1EXPECT = false;
 			
+		}
+
+		boolean arr1ContainsAllIntersection = test1.containsAll(intersection);
+		System.out.println("Does BitArray 1 contain all the shared values? " + arr1ContainsAllIntersection);
+		if (arr1ContainsAllIntersection != arr1ContainsAllIntersectionEXPECT) {
+			throw new AssertionError("Contains all failed");
+		}
+
+		boolean arr2ContainsAllIntersection = test2.containsAll(intersection);
+		System.out.println("Does BitArray 2 contain all the shared values? " + arr2ContainsAllIntersection);
+		if (arr2ContainsAllIntersection != arr2ContainsAllIntersectionEXPECT) {
+			throw new AssertionError("Contains all failed");
 		}
 		
-		if (test2.size() > 0) {
-			boolean intersectionContainsAnyArr2 = intersection.containsAny(test2);
-			System.out.println("Does the intersection contain any of BitArray 2? " + intersectionContainsAnyArr2);
-			if (intersectionContainsAnyArr2 != intersectionContainsAnyArr2EXPECT) {
-				throw new AssertionError("Contains any failed");
-			}
-			
-			boolean arr1ContainsAnyArr2 = test1.containsAny(test2);
-			System.out.println("Does BitArray 1 contain any of BitArray 2? " + arr1ContainsAnyArr2);
-			if (arr1ContainsAnyArr2 != arr1ContainsAnyArr2EXPECT) {
-				throw new AssertionError("Contains any failed");
-			}
-
-			boolean arr1ContainsAllArr2 = test1.containsAll(test2);
-			System.out.println("Does BitArray 1 contain ALL of BitArray 2? " + arr1ContainsAllArr2);
-			if (arr1ContainsAllArr2 != arr1ContainsAllArr2EXPECT) {
-				throw new AssertionError("Contains all failed");
-			}
+		boolean intersectionContainsAnyArr1 = intersection.containsAny(test1);
+		System.out.println("Does the intersection contain any of BitArray 1? " + intersectionContainsAnyArr1);
+		if (intersectionContainsAnyArr1 != intersectionContainsAnyArr1EXPECT) {
+			throw new AssertionError("Contains any failed");
 		}
 		
-		if (test1.size() > 0) {
-			boolean intersectionContainsAnyArr1 = intersection.containsAny(test1);
-			System.out.println("Does the intersection contain any of BitArray 1? " + intersectionContainsAnyArr1);
-			if (intersectionContainsAnyArr1 != intersectionContainsAnyArr1EXPECT) {
-				throw new AssertionError("Contains any failed");
-			}
-			
-			boolean arr2ContainsAnyArr1 = test2.containsAny(test1);
-			System.out.println("Does BitArray 2 contain any of BitArray 1? " + arr2ContainsAnyArr1);
-			if (arr2ContainsAnyArr1 != arr2ContainsAnyArr1EXPECT) {
-				throw new AssertionError("Contains any failed");
-			}
-
-			boolean arr2ContainsAllArr1 = test2.containsAll(test1);
-			System.out.println("Does BitArray 2 contain ALL of BitArray 1? " + arr2ContainsAllArr1);
-			if (arr2ContainsAllArr1 != arr2ContainsAllArr1EXPECT) {
-				throw new AssertionError("Contains all failed");
-			}
+		boolean intersectionContainsAnyArr2 = intersection.containsAny(test2);
+		System.out.println("Does the intersection contain any of BitArray 2? " + intersectionContainsAnyArr2);
+		if (intersectionContainsAnyArr2 != intersectionContainsAnyArr2EXPECT) {
+			throw new AssertionError("Contains any failed");
+		}
+		
+		boolean arr1ContainsAnyArr2 = test1.containsAny(test2);
+		System.out.println("Does BitArray 1 contain any of BitArray 2? " + arr1ContainsAnyArr2);
+		if (arr1ContainsAnyArr2 != arr1ContainsAnyArr2EXPECT) {
+			throw new AssertionError("Contains any failed");
 		}
 
-		System.out.println("\nAll tests passed\n");
+		boolean arr2ContainsAnyArr1 = test2.containsAny(test1);
+		System.out.println("Does BitArray 2 contain any of BitArray 1? " + arr2ContainsAnyArr1);
+		if (arr2ContainsAnyArr1 != arr2ContainsAnyArr1EXPECT) {
+			throw new AssertionError("Contains any failed");
+		}
+		
+		boolean arr1ContainsAllArr2 = test1.containsAll(test2);
+		System.out.println("Does BitArray 1 contain ALL of BitArray 2? " + arr1ContainsAllArr2);
+		if (arr1ContainsAllArr2 != arr1ContainsAllArr2EXPECT) {
+			throw new AssertionError("Contains all failed");
+		}
+
+		boolean arr2ContainsAllArr1 = test2.containsAll(test1);
+		System.out.println("Does BitArray 2 contain ALL of BitArray 1? " + arr2ContainsAllArr1);
+		if (arr2ContainsAllArr1 != arr2ContainsAllArr1EXPECT) {
+			throw new AssertionError("Contains all failed");
+		}
+
+		return true;
 	}
 }
