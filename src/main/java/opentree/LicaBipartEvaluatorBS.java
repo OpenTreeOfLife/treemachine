@@ -146,15 +146,11 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 							if(visitedrels.contains(rel.getId())){
 								continue;
 							}
-							TLongArrayList rellicas = new TLongArrayList((long []) rel.getProperty("licas"));
 							TLongArrayList inids = new TLongArrayList((long []) rel.getProperty("inclusive_relids"));
 							visited.addAll(inids);
-							//this isn't correct and should be changed to the number of actual relationships
-							int testsize = inids.size()/rellicas.size();
-							System.out.println("\t\ttesting "+testsize+" rels: "+inids);
-							int childcount_passed = 0;
-							int relcount_passed = 0;
-							for(int j=0;j<testsize;j++){
+							TLongHashSet relmatched = new TLongHashSet();
+							HashSet<Integer> childmatched = new HashSet<Integer>();
+							for(int j=0;j<inids.size();j++){
 								TLongBitArray trelj = new TLongBitArray((long[])graphdb.getRelationshipById(inids.get(j)).getProperty("exclusive_mrca"));
 								System.out.print("\t\t\ttesting rel "+inids.get(j)+" ex_mrca: ");
 								for(Long tl: trelj){
@@ -170,13 +166,13 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 									System.out.print("\n");
 									System.out.println("\t\t\t\t"+jadenode.getChild(i).getNewick(false));
 									if(chndi.containsAny(trelj) == true){
-										relcount_passed += 1;
-										childcount_passed += 1;
+										relmatched.add(inids.get(j));
+										childmatched.add(i);
 										break;
 									}
 								}
 							}
-							if(relcount_passed >=2 && childcount_passed == jadenode.getChildCount()){
+							if(relmatched.size() >=2 && childmatched.size() == jadenode.getChildCount()){
 								passed = true;
 								break;
 							}
