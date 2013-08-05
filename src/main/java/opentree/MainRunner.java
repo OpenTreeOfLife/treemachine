@@ -1014,9 +1014,7 @@ public class MainRunner {
 		// get the start node
 		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottolId).getId());
 		args[1] = startNodeIdStr;
-
 		ge.shutdownDB();
-		
 		// do the synth
 		return synthesizeDraftTreeWithListForNodeId(args);
 	}
@@ -1110,9 +1108,7 @@ public class MainRunner {
 		// get the start node
 		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottolId).getId());
 		args[1] = startNodeIdStr;
-
 		ge.shutdownDB();
-		
 		// do the synth
 		return extractDraftTreeForNodeId(args);
 	}
@@ -1670,7 +1666,6 @@ public class MainRunner {
 		System.out.println("\tnexson2newick <filename.nexson> [filename.newick]\n");
 		
 		System.out.println("---synthesis functions---");
-		System.out.println("\tsynthesizedrafttree <rootNodeId> <graphdbfolder> (DEPRECATED, I think) (was: perform default synthesis from the root node using source-preference tie breaking and store the synthesized rels)");
 		System.out.println("\tsynthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\tsynthesizedrafttreelist_nodeid <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\textractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");

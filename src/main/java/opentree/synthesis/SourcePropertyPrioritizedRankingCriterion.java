@@ -82,29 +82,6 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 	public String getDescription() {
 		return desc;
 	}
-	
-	/*
-	public String testSort () {
-	LinkedList <Relationship> rels = new LinkedList <Relationship> ();
-	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8897628));
-	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895202));
-	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895544));
-	rels.add(metadataNodeIndex.getGraphDatabase().getRelationshipById(8895956));
-	
-	Collections.sort(rels, this);
-	
-	desc = "by source property " + property.propertyName + " in the order specified by the list:\n";
-	for (Relationship o : rels) {
-		desc = desc.concat((String)o.getProperty("source") + " ");
-	}
-	
-	//System.exit(0);
-	return desc;
-	}  */
-
-
-
-
 
 
 	/**
