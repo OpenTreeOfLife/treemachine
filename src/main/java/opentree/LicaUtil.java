@@ -1,5 +1,7 @@
 package opentree;
 
+import jade.tree.JadeNode;
+
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
@@ -88,12 +90,13 @@ public class LicaUtil {
 	 * @param graphdb
 	 * @return
 	 */
-	public static HashSet<Node> getBipart4j(List<Node> nodeSetsm, List<Node> nodeSet, TLongArrayList nodeSetinIdSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb){
+	public static HashSet<Node> getBipart4j(JadeNode jn,List<Node> nodeSetsm, List<Node> nodeSet, TLongArrayList nodeSetinIdSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb){
 //		System.out.println("starting bipart lica search");
 //		System.out.println("smnodeset:"+nodeSetsm.size()+" nodeset:"+nodeSet.size());
 		HashSet<Node> retaln = new HashSet<Node>();
 		TLongArrayList testnodes = new TLongArrayList();
 		LicaBipartEvaluatorBS le = new LicaBipartEvaluatorBS();
+		le.setJadeNode(jn);
 		le.setgraphdb(graphdb);
 //		if(nodeSetinIdSet.size()!= inIdSet.size()){
 //			System.out.println("set small set");
