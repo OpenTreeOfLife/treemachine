@@ -141,6 +141,11 @@ public class GraphImporter extends GraphBase {
 
 		this.runTestOnly = runTestOnly;
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
+		System.out.println("all trees have all taxa: "+this.allTreesHaveAllTaxa);
+		if(this.allTreesHaveAllTaxa)
+			System.out.println("\tusing complete mapping technique");
+		else
+			System.out.println("\tusing bipartition technique");
 		this.logger = msgLogger;
 		this.sourceName = sourceName;
 
@@ -148,7 +153,9 @@ public class GraphImporter extends GraphBase {
 		matchTaxaUsingTaxUIDs();
 
 		// now remap them
-		remapTipsToDeepestExemplifiedTaxa(); // remove this line to return to the old method of exact taxon mapping
+		//should not do this if all trees have taxa
+		if(this.allTreesHaveAllTaxa == false)
+			remapTipsToDeepestExemplifiedTaxa(); // remove this line to return to the old method of exact taxon mapping
 		
 		loadTree();
 	}
@@ -175,6 +182,11 @@ public class GraphImporter extends GraphBase {
 
 		this.runTestOnly = false;
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
+		System.out.println("all trees have all taxa: "+this.allTreesHaveAllTaxa);
+		if(this.allTreesHaveAllTaxa)
+			System.out.println("\tusing complete mapping technique");
+		else
+			System.out.println("\tusing bipartition technique");
 		this.logger = msgLogger;
 		this.sourceName = sourceName;
 
@@ -182,7 +194,9 @@ public class GraphImporter extends GraphBase {
 		matchTaxaUsingNames(focalgroup);
 		
 		// now remap them
-		remapTipsToDeepestExemplifiedTaxa(); // remove this line to return to the old method of exact taxon mapping
+		//should not do this if all trees have taxa
+		if(this.allTreesHaveAllTaxa == false)
+			remapTipsToDeepestExemplifiedTaxa(); // remove this line to return to the old method of exact taxon mapping
 		
 		loadTree();
 	}
@@ -506,7 +520,7 @@ public class GraphImporter extends GraphBase {
 		for (JadeNode child : curJadeNode.getDescendantLeaves()) {
 			namesList.add(child.getName());
 		}
-		System.out.println("working on node: " + Arrays.toString(namesList.toArray()));
+		//System.out.println("working on node: " + Arrays.toString(namesList.toArray()));
 		if (curJadeNode.isTheRoot()) {
 			System.out.println("this is the ROOT");
 		}
@@ -632,7 +646,7 @@ public class GraphImporter extends GraphBase {
 			for (JadeNode d : curJadeNode.getDescendantLeaves()) {
 				names.add(d.getName());
 			}
-			System.out.println("Looking for LICA Nodes of " + Arrays.toString(names.toArray()));
+			//System.out.println("Looking for LICA Nodes of " + Arrays.toString(names.toArray()));
 			
 			// find all the compatible lica mappings for this jade node to existing graph nodes
 			HashSet<Node> licaMatches = null;
@@ -722,7 +736,7 @@ public class GraphImporter extends GraphBase {
 			// now related nodes are prepared and we have the information we need to make relationships
 			addProcessedNodeRelationships(curJadeNode);
 		}
-		System.out.println("done with node " + Arrays.toString(namesList.toArray()));
+		//System.out.println("done with node " + Arrays.toString(namesList.toArray()));
 	}
 
 	/**
@@ -810,7 +824,7 @@ public class GraphImporter extends GraphBase {
 	@SuppressWarnings("unchecked")
 	private void addProcessedNodeRelationships(JadeNode inputJadeNode) throws TreeIngestException {
 
-		System.out.println("installing " + Arrays.toString(namesList.toArray()));
+		//System.out.println("installing " + Arrays.toString(namesList.toArray()));
 		HashSet<Node> allGraphNodesMappedToThisJadeNode = (HashSet<Node>) inputJadeNode.getObject("dbnodes");
 		
 		// preload the licaids to be stored in rels
@@ -828,7 +842,7 @@ public class GraphImporter extends GraphBase {
 				addRootProperties(currGoLNode);
 			}
 
-			System.out.println("adding relationships to licas for children");
+			//System.out.println("adding relationships to licas for children");
 
 			// for each child of the jade node we are installing
 			for (JadeNode childJadeNode : inputJadeNode.getChildren()) {
@@ -839,7 +853,7 @@ public class GraphImporter extends GraphBase {
 				for (JadeNode child : childJadeNode.getDescendantLeaves()) {
 					childNamesList.add(child.getName());
 				}
-				System.out.println("\ton child1: " + Arrays.toString(childNamesList.toArray()));
+				//System.out.println("\ton child1: " + Arrays.toString(childNamesList.toArray()));
 				
 				for (Node childGoLNode : allChildGoLNodes) {
 					
@@ -881,7 +895,7 @@ public class GraphImporter extends GraphBase {
 					}
 					System.out.println("passed"); */
 
-					System.out.println("setting metadata");
+					//System.out.println("setting metadata");
 
 					// METADATA ENTRY
 					rel.setProperty("source", sourceName);
