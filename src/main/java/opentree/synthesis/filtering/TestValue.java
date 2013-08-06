@@ -1,10 +1,12 @@
-package opentree.synthesis;
+package opentree.synthesis.filtering;
 
 import java.util.HashSet;
 
+import opentree.synthesis.SourcePropertyValue;
+
 /**
  * This class is used to contain arbitrary values for comparison against SourcePropertyValue objects. It is used
- * by classes implementing the FilterCriterion interface.
+ * by the SourcePropertySingleValueTest class.
  * 
  * @author cody hinchliff
  *
@@ -46,11 +48,6 @@ public class TestValue implements Comparable<SourcePropertyValue> {
 		this.d = d;
 		this.type = Double.class;
 	}
-	
-	public TestValue(HashSet<String> h){
-		this.h = h;
-		this.type = HashSet.class;
-	}
 
 	public Object getValue() {
 		if (type == Long.class)
@@ -67,14 +64,13 @@ public class TestValue implements Comparable<SourcePropertyValue> {
 			return null;
 	}
 
-	@Override
 	public int compareTo(SourcePropertyValue comparable) {
 
 		if (this.type == String.class) {
 			if (comparable.type() != String.class) {
 				throw new java.lang.UnsupportedOperationException(illegalComparisonMessage(comparable.type()));
 			} else {
-				boolean b = s.equals(comparable.value());//returns 1 if they are equal
+				boolean b = s.equals(comparable.value()); // returns 1 if they are equal
 				int val = b? 1 : 0;
 				return val;
 			}
@@ -92,16 +88,7 @@ public class TestValue implements Comparable<SourcePropertyValue> {
 			} else {
 				return l.compareTo((Long) comparable.value());
 			}
-		}else if(this.type == HashSet.class){
-			if (comparable.type() != String.class) {
-				throw new java.lang.UnsupportedOperationException(illegalComparisonMessage(comparable.type()));
-			} else {
-				boolean tv = h.contains(comparable.value());
-				if (tv  == true)
-					return 1;
-				else
-					return 0;
-			}
+			
 		} else {
 			throw new java.lang.UnsupportedOperationException(illegalComparisonMessage(comparable.type()));
 		}

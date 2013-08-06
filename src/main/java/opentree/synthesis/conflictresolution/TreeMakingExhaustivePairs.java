@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.conflictresolution;
 
 import java.util.ArrayList;
 import java.util.HashMap;

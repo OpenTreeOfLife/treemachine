@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.conflictresolution;
 
 import org.neo4j.graphdb.Relationship;
 

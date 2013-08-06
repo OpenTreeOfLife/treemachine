@@ -1,6 +1,7 @@
-package opentree.synthesis;
+package opentree.synthesis.conflictresolution;
 
 import gnu.trove.set.hash.TLongHashSet;
+
 
 import org.neo4j.graphdb.Relationship;
 

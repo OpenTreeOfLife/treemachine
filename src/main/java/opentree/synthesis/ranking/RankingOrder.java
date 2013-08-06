@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.ranking;
 
 public enum RankingOrder {
 

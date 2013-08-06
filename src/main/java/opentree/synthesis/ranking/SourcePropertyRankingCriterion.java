@@ -1,9 +1,10 @@
-package opentree.synthesis;
+package opentree.synthesis.ranking;
 
 import java.util.Collections;
 import java.util.List;
 
 import opentree.constants.SourceProperty;
+import opentree.synthesis.SourcePropertyValue;
 
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;

@@ -1,6 +1,7 @@
-package opentree.synthesis;
+package opentree.synthesis.filtering;
 
 import java.util.LinkedList;
+
 
 import org.neo4j.graphdb.Relationship;
 
@@ -33,10 +34,13 @@ public class RelationshipFilter {
 		for (Relationship r : incomingRels) {
 			boolean passfilter = true;
 			for (FilterCriterion fc : filters) {
-				//make sure that the logic for each of these is correct
+
+/*				//make sure that the logic for each of these is correct
 				//this says, if you filter as true, then it excludes
 				//TODO: this is where include vs exclude goes
-				if (fc.test(r) == true) {
+				if (fc.test(r) == true) { */
+				if (fc.validate(r) == false) { // changed when adding filter directives to make behavior more explicit
+
 					passfilter = false;
 					break;
 				}
@@ -51,10 +55,13 @@ public class RelationshipFilter {
 	public boolean filterRelationship(Relationship r){
 		boolean passfilter = true;
 		for (FilterCriterion fc : filters) {
-			//make sure that the logic for each of these is correct
+
+/*			//make sure that the logic for each of these is correct
 			//this says, if you filter as true, then it excludes
 			//TODO: this is where include vs exclude goes
-			if (fc.test(r) == true) {
+			if (fc.test(r) == true) { */
+			if (fc.validate(r) == false) { // changed when adding filter directives to make behavior more explicit
+				
 				passfilter = false;
 				break;
 			}
@@ -77,7 +84,7 @@ public class RelationshipFilter {
 	 * @return
 	 */
 	public String getDescription() {
-		String description = "Relationships will be accepted only if they meet the following criteria:\n";
+		String description = "Relationships will be filtered according to the following criteria:\n";
 		for (FilterCriterion fc : filters) {
 			description = description.concat(fc.getDescription()+"\n");
 		}
@@ -85,7 +92,6 @@ public class RelationshipFilter {
 	}
 	
 	public String getReport() {
-		String report = "Results of filtering:\n(result reporting feature not yet implemented)";
-		return "";
+		return "Results of filtering:\n(result reporting feature not yet implemented)";
 	}
 }

@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.conflictresolution;
 
 import gnu.trove.list.array.TLongArrayList;
 
@@ -13,6 +13,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
 /**
+ * This resolution method is deprecated. Use the RankResolutionMethod (without inferred path) instead
+ * 
  * This conflict resolution method finds the set of relationships with completely non-overlapping leaf sets,
  * preferring higher-ranked relationships. Ranking order is interpreted as the order of the relationships in
  * the supplied iterable.
@@ -24,6 +26,7 @@ import org.neo4j.graphdb.Relationship;
  * 
  * @author stephen smith and cody hinchliff
  */
+@Deprecated
 public class RankResolutionMethodInferredPath implements ResolutionMethod {
 
 	// containers used to make decisions about best paths
@@ -45,6 +48,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	/**
 	 * clears the saved best rels
 	 */
+	@Deprecated
 	private void reset() {
 		bestRels = new LinkedList<Relationship>();
 	}
@@ -113,6 +117,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	}
 	
 	@Override
+	@Deprecated
 	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> rels) {
 
 		reset();
@@ -175,13 +180,15 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	}
 	
 	@Override
+	@Deprecated
 	public String getDescription() {
 		return "prefer relationships with higher ranking, but take paths with more descendants as long as they don't indicate relationships incompatible with preferred rels. Result will be fully acyclic.";
 	}
 
 	@Override
+	@Deprecated
 	public String getReport() {
 		// TODO Auto-generated method stub
-		return null;
+		return "";
 	}
 }

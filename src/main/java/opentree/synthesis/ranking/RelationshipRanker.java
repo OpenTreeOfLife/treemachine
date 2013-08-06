@@ -1,9 +1,11 @@
-package opentree.synthesis;
+package opentree.synthesis.ranking;
 
 import gnu.trove.set.hash.TLongHashSet;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+
+
 import org.neo4j.graphdb.Relationship;
 
 /**
@@ -84,16 +86,28 @@ public class RelationshipRanker {
 
 	public String getDescription() {
 		String description = "Relationships will be ranked (rankings listed in order of priority):\n";
+		boolean first = true;
 		for (RankingCriterion rc : criteria) {
-			description = description.concat("AND THEN ").concat(rc.getDescription()+"\n");
+			if (first) {
+				first = false;
+			} else {
+				description = description.concat("AND THEN ");
+			}
+			description = description.concat(rc.getDescription()+"\n");
 		}
 		return description;
 	}
 	
 	public String getReport() {
 		String report = "Results of ranking:\n";
+		boolean first = true;
 		for (RankingCriterion rc : criteria) {
-			report = report.concat("AND THEN ").concat(rc.getReport()+"\n");
+			if (first) {
+				first = false;
+			} else {
+				report = report.concat("AND THEN ");
+			}
+			report = report.concat(rc.getReport()+"\n");
 		}
 		return report;
 	}

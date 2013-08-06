@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.conflictresolution;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
@@ -153,6 +153,6 @@ public class RankResolutionMethod implements ResolutionMethod {
 	@Override
 	public String getReport() {
 		// TODO Auto-generated method stub
-		return null;
+		return "";
 	}
 }

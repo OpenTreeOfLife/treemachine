@@ -28,19 +28,23 @@ import opentree.exceptions.OttolIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
-import opentree.synthesis.FilterComparisonType;
-import opentree.synthesis.RankResolutionMethodInferredPath;
-import opentree.synthesis.RankResolutionMethod;
-import opentree.synthesis.RankingOrder;
-import opentree.synthesis.RelationshipConflictResolver;
-import opentree.synthesis.RelationshipFilter;
-import opentree.synthesis.RelationshipRanker;
-import opentree.synthesis.ResolvingExpander;
-import opentree.synthesis.SourcePropertyFilterCriterion;
-import opentree.synthesis.SourcePropertyPrioritizedRankingCriterion;
-import opentree.synthesis.SourcePropertyRankingCriterion;
-import opentree.synthesis.TestValue;
-import opentree.synthesis.TreeMakingBandB;
+import opentree.synthesis.SynthesisExpander;
+import opentree.synthesis.conflictresolution.RankResolutionMethod;
+import opentree.synthesis.conflictresolution.RankResolutionMethodInferredPath;
+import opentree.synthesis.conflictresolution.RelationshipConflictResolver;
+import opentree.synthesis.conflictresolution.TreeMakingBandB;
+import opentree.synthesis.filtering.RelationshipFilter;
+import opentree.synthesis.filtering.SetComparison;
+import opentree.synthesis.filtering.SingleValueComparison;
+import opentree.synthesis.filtering.FilterCriterion;
+import opentree.synthesis.filtering.Directive;
+import opentree.synthesis.filtering.Test;
+import opentree.synthesis.filtering.SourcePropertySetTest;
+import opentree.synthesis.filtering.TestValue;
+import opentree.synthesis.ranking.RankingOrder;
+import opentree.synthesis.ranking.RelationshipRanker;
+import opentree.synthesis.ranking.SourcePropertyPrioritizedRankingCriterion;
+import opentree.synthesis.ranking.SourcePropertyRankingCriterion;
 
 
 import jade.MessageLogger;
@@ -777,7 +781,7 @@ public class GraphExplorer extends GraphBase {
         }	
         
         // define the synthesis protocol
-        ResolvingExpander draftSynthesisMethod = new ResolvingExpander();
+        SynthesisExpander draftSynthesisMethod = new SynthesisExpander();
 
         // set filtering criteria
         //RelationshipFilter rf = new RelationshipFilter();
@@ -803,9 +807,9 @@ public class GraphExplorer extends GraphBase {
         System.out.println("filtered: "+filteredsources);
         if (filteredsources.size() > 0) {
         	if(studyids == true)
-        		rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.STUDY_ID, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
+        		rf.addCriterion(new FilterCriterion(Directive.INCLUDE, new SourcePropertySetTest(filteredsources, SetComparison.CONTAINS_ANY, SourceProperty.STUDY_ID, sourceMetaIndex)));
         	else
-        		rf.addCriterion(new SourcePropertyFilterCriterion(SourceProperty.SOURCE, FilterComparisonType.CONTAINS, new TestValue(filteredsources), sourceMetaIndex));
+        		rf.addCriterion(new FilterCriterion(Directive.INCLUDE, new SourcePropertySetTest(filteredsources, SetComparison.CONTAINS_ANY, SourceProperty.SOURCE, sourceMetaIndex)));
         	draftSynthesisMethod.setFilter(rf);
         }
         //if(true == true)
@@ -889,6 +893,7 @@ public class GraphExplorer extends GraphBase {
                 knownIdsInTree.add(curNode.getId());
         	}
         	
+        	System.out.println("Synthesis traversal complete. Results:\n");
             System.out.println("\n" + draftSynthesisMethod.getReport());
         	
         	tx.success();

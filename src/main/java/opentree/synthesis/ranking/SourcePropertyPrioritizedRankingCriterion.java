@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.ranking;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,7 +73,7 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		
 		// check things are ordered correctly -- yes
 //		System.out.println("\nContents of priority hashmap:");
-//		for (String name: priorityMapString.keySet()){
+//		for (String name: priorityMapString.keySet()) {
 //
 //            String key = name.toString();
 //            Integer value = priorityMapString.get(name);  
@@ -87,6 +87,17 @@ public class SourcePropertyPrioritizedRankingCriterion implements RankingCriteri
 		return description;
 	}
 
+	@Override
+	public String getReport() {
+		String report = "";
+		if (nRankableRelsCompared > 0) {
+			report = String.valueOf(nRankableRelsCompared) + " rels have been compared (and ranked) using source property " + property.propertyName + " in the order specified by the list:\n" + priorityListText;
+		} else {
+			report = "A total of 0 relationships have been found that could be ranked using source property " + property.propertyName +
+					" in the order specified by the list.\nThis could indicate a mismatch between the property and the data in the list:\n" + priorityListText;
+		}
+		return report;
+	}
 
 	/**
 	 * Compare the specified source property of the two provided relationships.

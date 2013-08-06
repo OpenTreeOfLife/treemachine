@@ -5,6 +5,9 @@ import java.util.HashSet;
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 import opentree.constants.RelType;
+import opentree.synthesis.conflictresolution.RelationshipConflictResolver;
+import opentree.synthesis.filtering.RelationshipFilter;
+import opentree.synthesis.ranking.RelationshipRanker;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -28,7 +31,7 @@ import org.neo4j.kernel.Traversal;
  * @author cody hinchliff and stephen smith
  *
  */
-public class ResolvingExpander implements PathExpander {
+public class SynthesisExpander implements PathExpander {
 
 	private RelationshipFilter filter;
 	private RelationshipRanker ranker;
@@ -37,19 +40,19 @@ public class ResolvingExpander implements PathExpander {
 	private Iterable<Relationship> bestRels;
 	private TLongHashSet dupMRCAS;
 	
-	public ResolvingExpander() {
+	public SynthesisExpander() {
 		this.filter = null;
 		this.ranker = null;
 		this.resolver = null;
 		dupMRCAS = new TLongHashSet();
 	}
 	
-	public ResolvingExpander setFilter(RelationshipFilter filter) {
+	public SynthesisExpander setFilter(RelationshipFilter filter) {
 		this.filter = filter;
 		return this;
 	}
 
-	public ResolvingExpander setRanker(RelationshipRanker ranker) {
+	public SynthesisExpander setRanker(RelationshipRanker ranker) {
 		this.ranker = ranker;
 		return this;
 	}
@@ -71,7 +74,7 @@ public class ResolvingExpander implements PathExpander {
 	 * @param resolver
 	 * @return RelationshipEvaluator
 	 */
-	public ResolvingExpander setConflictResolver(RelationshipConflictResolver resolver) {
+	public SynthesisExpander setConflictResolver(RelationshipConflictResolver resolver) {
 		this.resolver = resolver;
 		return this;
 	}
@@ -169,19 +172,19 @@ public class ResolvingExpander implements PathExpander {
 		if (filter != null) {
 			report = report.concat(filter.getReport() + "\n");
 		} else {
-			report = report.concat("This synthesis method does not perform relationship filtering\n");
+			report = report.concat("No filtering to report: this synthesis method does not perform relationship filtering\n");
 		}
 		
 		if (ranker != null) {
 			report = report.concat(ranker.getReport() + "\n");
 		} else {
-			report = report.concat("This synthesis method does not perform relationship ranking. \n");
+			report = report.concat("No ranking to report: this synthesis method does not perform relationship ranking.\n");
 		}
 		
 		if (resolver != null) {
 			report = report.concat(resolver.getReport() + "\n");
 		} else {
-			report = report.concat("This synthesis method does not perform conflict resolution. \n");
+			report = report.concat("No conflict resolution to report: this synthesis method does not perform conflict resolution.\n");
 		}
 		
 		return report;
