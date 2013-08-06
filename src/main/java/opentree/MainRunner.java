@@ -573,21 +573,30 @@ public class MainRunner {
 		
 		GraphImporter gi = new GraphImporter(graphname);
 		System.out.println("started graph importer");
-		// Go through the trees again and add and update as necessary
-		for (int i = 0; i < jt.size(); i++) {
-			String sourcename = "treeinfile";
-			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-				sourcename = (String)jt.get(i).getObject("ot:studyId");
+		/*
+		 * if the taxa are not completely overlapping, we add, add again, then delete the first ones
+		 * this is the first add
+		 */
+		if(overlap==false){
+			// Go through the trees again and add and update as necessary
+			for (int i = 0; i < jt.size(); i++) {
+				String sourcename = "treeinfile";
+				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)jt.get(i).getObject("ot:studyId");
+				}
+				sourcename += "t_" + String.valueOf(i);
+	
+				System.out.println("adding tree '" + sourcename + "' to the graph");
+				gi.setTree(jt.get(i));
+				gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
+				//gi.deleteTreeBySource(sourcename);
 			}
-			sourcename += "t_" + String.valueOf(i);
-
-			System.out.println("adding tree '" + sourcename + "' to the graph");
-			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
-			//gi.deleteTreeBySource(sourcename);
 		}
 		
-		// adding them again after all the nodes are there
+		/*
+		 * If the taxa overlap completely, we only add once, this time
+		 * If the taxa don't overlap, this is the second time
+		 */
 		for (int i = 0; i < jt.size(); i++) {
 			String sourcename = "treeinfile";
 			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
@@ -599,15 +608,19 @@ public class MainRunner {
 			gi.setTree(jt.get(i));
 			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
 		}
-		//delete the trees after they are loaded
-				for (int i = 0; i < jt.size(); i++) {
-					String sourcename = "treeinfile";
-					if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-						sourcename = (String)jt.get(i).getObject("ot:studyId");
-					}
-					sourcename += "t_" + String.valueOf(i);
-					gi.deleteTreeBySource(sourcename);
+		/*
+		 * If the taxa don't overlap, we delete the second set of trees
+		 */
+		if(overlap == false){
+			for (int i = 0; i < jt.size(); i++) {
+				String sourcename = "treeinfile";
+				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)jt.get(i).getObject("ot:studyId");
 				}
+				sourcename += "t_" + String.valueOf(i);
+				gi.deleteTreeBySource(sourcename);
+			}
+		}
 		gi.shutdownDB();
 		return 0;
 	}

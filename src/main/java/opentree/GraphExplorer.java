@@ -859,7 +859,6 @@ public class GraphExplorer extends GraphBase {
         tx = graphDb.beginTx();
         try {
         	for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
-        		System.out.println("tsetsize: " + draftSynthesisMethod.getDupMRCAS().size());
         		// testing
 //        		System.out.println("now attempting to store rel " + rel.getId());
         		
@@ -1152,7 +1151,7 @@ public class GraphExplorer extends GraphBase {
     private void addMissingChildrenToDraftTreeWhile(Node startNode, Node taxRootNode) {
         // to be stored as the 'supporting_sources' property of newly created rels
         String[] supportingSources = new String[1];
-        supportingSources[0] = "taxonomy";
+        supportingSources[0] = "taxonomy_inferred";
         TLongArrayList taxaleft = new TLongArrayList ((long [])startNode.getProperty("mrca"));
         taxaleft.removeAll(knownIdsInTree);
         
