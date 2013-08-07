@@ -1151,7 +1151,7 @@ public class GraphExplorer extends GraphBase {
     private void addMissingChildrenToDraftTreeWhile(Node startNode, Node taxRootNode) {
         // to be stored as the 'supporting_sources' property of newly created rels
         String[] supportingSources = new String[1];
-        supportingSources[0] = "taxonomy_inferred";
+        supportingSources[0] = "taxonomy";
         TLongArrayList taxaleft = new TLongArrayList ((long [])startNode.getProperty("mrca"));
         taxaleft.removeAll(knownIdsInTree);
         
