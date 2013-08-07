@@ -1252,6 +1252,8 @@ public class GraphExplorer extends GraphBase {
      * 
      * Deprecated. Should be updated to use new synthesis methods.
      * 
+     * THIS IS STILL USED FOR CURRENT JUSTTREES SYNTH!!
+     * 
      * @param taxName
      * @param sourcesArray
      * @throws MultipleHitsException 
@@ -1491,6 +1493,8 @@ public class GraphExplorer extends GraphBase {
      * Stores the synthetic tree in the graph as SYNTHCHILDOF relationships, bearing the value of `syntheticTreeName` in their "name" property.
      * 
      * Deprecated. Needs to be reimplemented in the new synthesis methods.
+     * 
+     * THIS IS STILL USED CURRENTLY FOR JUSTTREES SYNTHS!
      * 
      * @param nodeId
      * @param useTaxonomy
