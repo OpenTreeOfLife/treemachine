@@ -132,9 +132,8 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 //				if (to.intersects(inIdBS) == false) {// no overlap in ingroup and outgroup of dbnode
 				if (curNodeOutMRCAIds.containsAny(ingroupNodeIds) == false) {
 //					if (tm.intersects(inIdBS) == true) {// some overlap in inbipart -- //LARGEST one, do last
-					if (curNodeMRCAIds.containsAny(ingroupNodeIds) == true) {
-						
-						System.out.println("    Potential LICA found " + curNode);
+					if (curNodeMRCAIds.containsAny(ingroupNodeIds) == true) {					
+//						System.out.println("    Potential LICA found " + curNode);
 						boolean passed = false;
 						TLongHashSet visitedrels = new TLongHashSet();
 						//checking the relationships to make sure that this is a good mapping
@@ -142,7 +141,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						//     the source tree. there has to be a match in at least 2 of the database relationships and all of the 
 						//     source tree relationships must have mappings
 						for(Relationship rel: curNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)){
-							System.out.println(rel);
+//							System.out.println(rel);
 							if(visitedrels.contains(rel.getId())){
 								continue;
 							}
@@ -152,19 +151,19 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 							HashSet<Integer> childmatched = new HashSet<Integer>();
 							for(int j=0;j<inids.size();j++){
 								TLongBitArray trelj = new TLongBitArray((long[])graphdb.getRelationshipById(inids.get(j)).getProperty("exclusive_mrca"));
-								System.out.print("\t\t\ttesting rel "+inids.get(j)+" ex_mrca: ");
-								for(Long tl: trelj){
-									System.out.print(" "+tl);
-								}
-								System.out.print("\n");
+//								System.out.print("\t\t\ttesting rel "+inids.get(j)+" ex_mrca: ");
+//								for(Long tl: trelj){
+//									System.out.print(" "+tl);
+//								}
+//								System.out.print("\n");
 								for(int i=0;i<jadenode.getChildCount();i++){
 									TLongBitArray chndi = new TLongBitArray((long[])jadenode.getChild(i).getObject("exclusive_mrca"));
-									System.out.print("\t\t\t\ttesting jn child:"+i+" ex_mrca: ");
-									for(Long tl: chndi){
-										System.out.print(" "+tl);
-									}
-									System.out.print("\n");
-									System.out.println("\t\t\t\t"+jadenode.getChild(i).getNewick(false));
+//									System.out.print("\t\t\t\ttesting jn child:"+i+" ex_mrca: ");
+//									for(Long tl: chndi){
+//										System.out.print(" "+tl);
+//									}
+//									System.out.print("\n");
+//									System.out.println("\t\t\t\t"+jadenode.getChild(i).getNewick(false));
 									if(chndi.containsAny(trelj) == true){
 										relmatched.add(inids.get(j));
 										childmatched.add(i);

@@ -48,20 +48,25 @@ public class MainRunner {
 	/// @returns 0 for success, 1 for poorly formed command
 	public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
 		if (args.length < 3) {
-			System.out.println("arguments should be: filename synfilename graphdbfolder");
+			System.out.println("arguments should be: filename (optional:synfilename) graphdbfolder");
 			return 1;
 		}
 		String filename = args[1];
-		String synfilename = args[2];
-		String graphname = args[3] ;
-	// this should never get called. must be true or this will not be entered
-		//if (args[0].compareTo("inittax") != 0) {
-		//	System.err.println("ERROR: not a known command");
-		//	return 1;
-		//}
-		
+		String graphname = "";
+		String synfilename = "";
+		if(args.length == 4){
+			synfilename = args[2];
+			graphname = args[3];
+			System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
+		}else if(args.length==3){
+			graphname = args[2];
+			System.out.println("initializing taxonomy from " + filename + " to " + graphname);
+
+		}else{
+			System.out.println("you have the wrong number of arguments. should be : filename (optional:synonym) graphdbfolder");
+			return 1;
+		}
 		GraphInitializer tl = new GraphInitializer(graphname);
-		System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
 		try {
 			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename);
 		} finally {
@@ -143,30 +148,17 @@ public class MainRunner {
 			return 2;
 		}
 		String filename;
-		String idfilename = "";
 		String focalgroup;
 		String sourcename;
 		String graphname;
-		if (readingNewick) {
-			if (args.length != 6) {
-				System.out.println("arguments should be: filename idfilename focalgroup sourcename graphdbfolder");
-				return 1;
-			}
-			filename = args[1];
-			idfilename = args[2];
-			focalgroup = args[3];
-			sourcename = args[4];
-			graphname = args[5];
-		} else {
-			if (args.length != 5) {
-				System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
-				return 1;
-			}
-			filename = args[1];
-			focalgroup = args[2];
-			sourcename = args[3];
-			graphname = args[4];
+		if (args.length != 5) {
+			System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
+			return 1;
 		}
+		filename = args[1];
+		focalgroup = args[2];
+		sourcename = args[3];
+		graphname = args[4];
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
 		MessageLogger messageLogger = new MessageLogger(args[0] + ":");
@@ -181,23 +173,14 @@ public class MainRunner {
 				if (readingNewick) { // newick
 					System.out.println("Reading newick file...");
 					TreeReader tr = new TreeReader();
-					BufferedReader ibr = new BufferedReader(new FileReader(idfilename));
-					String treeID;
 					String ts = "";
 					BufferedReader br = new BufferedReader(new FileReader(filename));
 					int treeNum = 0;
 					while ((ts = br.readLine()) != null) {
 						if (ts.length() > 1) {
 							++treeNum;
-							treeID = "";
-							while (treeID.length() == 0) {
-								if (null  == (treeID = ibr.readLine())) {
-									String emsg = "Newick treefile \"" + filename + "\" has (at least) " + treeNum + " line(s), but the file of IDs \"" + idfilename + "\" does not have that many ids. Expecting one ID per line.";
-									throw new TreeIngestException(emsg);
-								}
-							}
 							JadeTree newestTree = tr.readTree(ts);
-							newestTree.assocObject("id", treeID);
+							newestTree.assocObject("id", String.valueOf(treeNum));
 							jt.add(newestTree);
 							treeCounter++;
 						}
@@ -229,9 +212,7 @@ public class MainRunner {
 				} else {
 					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i), false, messageLogger);
 					gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
-				}
-				// gi.updateAfterTreeIngest(false);
-				
+				}				
 			}
 			if (jt.size() > 1) {
 				for (int i = 0; i < jt.size(); i++) {
@@ -573,21 +554,30 @@ public class MainRunner {
 		
 		GraphImporter gi = new GraphImporter(graphname);
 		System.out.println("started graph importer");
-		// Go through the trees again and add and update as necessary
-		for (int i = 0; i < jt.size(); i++) {
-			String sourcename = "treeinfile";
-			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-				sourcename = (String)jt.get(i).getObject("ot:studyId");
+		/*
+		 * if the taxa are not completely overlapping, we add, add again, then delete the first ones
+		 * this is the first add
+		 */
+		if(overlap==false){
+			// Go through the trees again and add and update as necessary
+			for (int i = 0; i < jt.size(); i++) {
+				String sourcename = "treeinfile";
+				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)jt.get(i).getObject("ot:studyId");
+				}
+				sourcename += "t_" + String.valueOf(i);
+	
+				System.out.println("adding tree '" + sourcename + "' to the graph");
+				gi.setTree(jt.get(i));
+				gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
+				//gi.deleteTreeBySource(sourcename);
 			}
-			sourcename += "t_" + String.valueOf(i);
-
-			System.out.println("adding tree '" + sourcename + "' to the graph");
-			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
-			//gi.deleteTreeBySource(sourcename);
 		}
 		
-		// adding them again after all the nodes are there
+		/*
+		 * If the taxa overlap completely, we only add once, this time
+		 * If the taxa don't overlap, this is the second time
+		 */
 		for (int i = 0; i < jt.size(); i++) {
 			String sourcename = "treeinfile";
 			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
@@ -599,15 +589,19 @@ public class MainRunner {
 			gi.setTree(jt.get(i));
 			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
 		}
-		//delete the trees after they are loaded
-				for (int i = 0; i < jt.size(); i++) {
-					String sourcename = "treeinfile";
-					if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-						sourcename = (String)jt.get(i).getObject("ot:studyId");
-					}
-					sourcename += "t_" + String.valueOf(i);
-					gi.deleteTreeBySource(sourcename);
+		/*
+		 * If the taxa don't overlap, we delete the second set of trees
+		 */
+		if(overlap == false){
+			for (int i = 0; i < jt.size(); i++) {
+				String sourcename = "treeinfile";
+				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)jt.get(i).getObject("ot:studyId");
 				}
+				sourcename += "t_" + String.valueOf(i);
+				gi.deleteTreeBySource(sourcename);
+			}
+		}
 		gi.shutdownDB();
 		return 0;
 	}
