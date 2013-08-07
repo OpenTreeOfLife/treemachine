@@ -1597,12 +1597,24 @@ public class MainRunner {
 		System.out.println("usage: java -jar locationOftreemachine.jar command options");
 		System.out.println("For a more comprehensive help message, type java -jar locationOftreemachine.jar help");
 		System.out.println("");
-		System.out.println("  addnewick <filename> <taxacompletelyoverlap[T|F]> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("  justtrees <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder> (loads the trees into a graph)");
-		System.out.println("  sourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
-		System.out.println("  graphml <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder> (constructs a graphml file of the region starting from the name)");
-		System.out.println("  fulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F] (constructs a newick file from a particular node)");
-		System.out.println("  fulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (constructs a newick file from a particular node, break ties preferring sources)");
+		System.out.println("Here are some common commands with descriptions.");
+		System.out.println("INPUT SET OF TREES (bootstrap, posterior probability)");
+		System.out.println("  \033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
+		System.out.println("");
+		System.out.println("INPUT TAXONOMY AND TREES");
+		System.out.println("  Initializes the graph with a tax list in the format");
+		System.out.println("    \033[1minittax\033[0m <filename> (optional:synonymfilename) <graphdbfolder>");
+		System.out.println("  Add a newick tree to the graph");
+		System.out.println("    \033[1maddnewick\033[0m <filename> <taxacompletelyoverlap[T|F]> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder>");
+		System.out.println("  Export a source tree from that graph with taxonomy mapped");
+		System.out.println("    \033[1msourceexplorer\033[0m <sourcename> <graphdbfolder>");
+		System.out.println("");
+		System.out.println("WORK WITH GRAPH");
+		System.out.println("  Export the graph in graphml format with statistics embedded");
+		System.out.println("    \033[1mgraphml\033[0m <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder>");
+		System.out.println("  Synthesize the graph");
+		System.out.println("    \033[1mfulltree\033[0m <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F]");
+		System.out.println("    \033[1mfulltree_sources\033[0m <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F]");
 		System.out.println("\n");
 	}
 	
@@ -1616,9 +1628,7 @@ public class MainRunner {
 
 		System.out.println("---graph input---");
 		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
-		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)");
+		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
 		System.out.println("\tpgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
 
 		System.out.println("---graph output---");
