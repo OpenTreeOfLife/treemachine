@@ -852,7 +852,7 @@ public class GraphExplorer extends GraphBase {
         }
         
         // set empty parameters for initial recursion
-        Node originalParent = null; // hmm. not used.
+//        Node originalParent = null; // hmm. not used.
 
         // recursively build the tree structure
         knownIdsInTree = new HashSet<Long>();
