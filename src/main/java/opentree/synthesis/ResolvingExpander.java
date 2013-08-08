@@ -114,6 +114,7 @@ public class ResolvingExpander implements PathExpander {
 		if (resolver != null) {
 			bestRels = resolver.resolveConflicts(candidateRels);
 			dupMRCAS.addAll(resolver.getDupMRCAS());
+			System.out.println("dups from method: "+dupMRCAS.size());
 		} else {
 			bestRels = candidateRels;
 		}

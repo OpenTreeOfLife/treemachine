@@ -1150,9 +1150,10 @@ public class GraphExplorer extends GraphBase {
         System.out.println("have to add "+taxaleft.size());
         
         while(taxaleft.size() > 0){
-        	System.out.println("taxaleft: "+taxaleft.size());
+        	System.out.print("taxaleft: "+taxaleft.size());
         	long tid = taxaleft.removeAt(0);
         	Node taxNode = graphDb.getNodeById(tid);
+        	System.out.println(" working with "+((String)taxNode.getProperty("name")));
             TLongArrayList ttmrca = new TLongArrayList((long [])taxNode.getProperty("mrca"));
         	if(taxNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF))
         		continue;

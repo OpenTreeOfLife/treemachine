@@ -35,6 +35,6 @@ public class RelationshipConflictResolver {
 		return "Conflict resolution will " + method.getDescription();
 	}
 	public TLongHashSet getDupMRCAS(){
-		return new TLongHashSet();
+		return method.getDupMRCAS();
 	}
 }
