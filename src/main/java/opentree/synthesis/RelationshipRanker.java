@@ -59,7 +59,7 @@ public class RelationshipRanker {
 		
 		
 		if (rankedRels.size() == 0) {
-			System.out.println("\n\t*** Whoops?!? No relationships to deal with! ***");
+			//System.out.println("\n\t*** Whoops?!? No relationships to deal with! ***");
 		} else {
 			
 			System.out.println("\n*** Relationships BEFORE ranking: ***");

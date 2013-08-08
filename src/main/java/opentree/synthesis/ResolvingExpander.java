@@ -36,12 +36,14 @@ public class ResolvingExpander implements PathExpander {
 	private Iterable<Relationship> candidateRels;
 	private Iterable<Relationship> bestRels;
 	private TLongHashSet dupMRCAS;
+	private TLongHashSet deadnodes;
 	
 	public ResolvingExpander() {
 		this.filter = null;
 		this.ranker = null;
 		this.resolver = null;
 		dupMRCAS = new TLongHashSet();
+		deadnodes = new TLongHashSet();
 	}
 	
 	public ResolvingExpander setFilter(RelationshipFilter filter) {
@@ -115,7 +117,7 @@ public class ResolvingExpander implements PathExpander {
 			bestRels = resolver.resolveConflicts(candidateRels);
 			dupMRCAS.addAll(resolver.getDupMRCAS());
 			System.out.println("dups from method: "+dupMRCAS.size());
-			System.out.println(dupMRCAS);
+			//System.out.println(dupMRCAS);
 		} else {
 			bestRels = candidateRels;
 		}
@@ -160,6 +162,10 @@ public class ResolvingExpander implements PathExpander {
 		
 		return desc;
 	}
+	
+	public TLongHashSet getDeadNodes(){
+		return deadnodes;
+	}
 
 	/**
 	 * The essential PathExpander method that performs all the steps to make decisions about
@@ -182,6 +188,7 @@ public class ResolvingExpander implements PathExpander {
 		resolveConflicts();
 		//we need to take out the relationships that just go to the dupmrcas
 		HashSet<Relationship> rels = new HashSet<Relationship>();
+		boolean alldead = true;
 		for (Relationship rel:bestRels){
 			TLongArrayList tem = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
 			//this will test only the mrcas that are included in the relationship from the source tree
@@ -194,10 +201,18 @@ public class ResolvingExpander implements PathExpander {
 			}
 			tem.removeAll(dupMRCAS);
 			if (tem.size() > 0) {
+				alldead = false;
 				rels.add(rel);
 			} else {
 				System.out.println("not adding relationship "+rel+" because of overlap taxa");
 			}
+		}
+		if(rels.size() == 0 && alldead == true){
+			//TODO: make this cleaner -- shouldn't even go down these roads
+			//get parent
+			Node curnode = inPath.endNode();
+			System.out.println("cleaning up dead ends "+curnode);
+			deadnodes.add(curnode.getId());
 		}
 		return rels;
 	}

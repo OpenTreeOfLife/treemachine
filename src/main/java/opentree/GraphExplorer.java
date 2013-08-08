@@ -887,6 +887,49 @@ public class GraphExplorer extends GraphBase {
             	// remember the ids of taxa we add, this is when sinking lost children
                 knownIdsInTree.add(curNode.getId());
         	}
+        	System.out.println("number of potential dead nodes "+draftSynthesisMethod.getDeadNodes().size());
+        	TLongArrayList deadnodes = new TLongArrayList(draftSynthesisMethod.getDeadNodes());
+        	//System.out.println("dead nodes "+deadnodes);
+        	//should do this cleaner
+        	/*
+        	 * This cleans up dead nodes
+        	 */
+        	System.out.println("cleaning dead nodes");
+        	TLongHashSet vd = new TLongHashSet();
+        	int actual = 0;
+        	for(int i=0;i<deadnodes.size();i++){
+        		long cnd = deadnodes.get(i);
+        		if (vd.contains(cnd)){
+        			continue;
+        		}else{
+        			vd.add(cnd);
+        		}
+        		//check to see if this has any other children
+        		Node cn = graphDb.getNodeById(cnd);
+        		if(cn.hasRelationship(RelType.STREECHILDOF, Direction.INCOMING) == false){
+        			vd.add(cnd);
+        		}else{
+        			System.out.println("actual: "+cnd);
+        			actual++;
+        			boolean going = true;
+        			Node curnode = cn;
+        			while(going){
+        				if(curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING)== false){
+        					vd.add(curnode.getId());
+        					Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
+        					curnode = tr.getEndNode();
+        					System.out.println("deleting: "+tr);
+        					tr.delete();
+        				}else{
+        					break;
+        				}
+        			}
+        		}
+        	}
+        	System.out.println("number of actual deadnodes:"+actual);
+        	/*
+        	 * end the cleaning
+        	 */
         	tx.success();
         } catch (Exception ex) {
         	tx.failure();
