@@ -1263,6 +1263,9 @@ public class GraphExplorer extends GraphBase {
 
         // add the current node to the tree we're building
         if (parentJadeNode != null) {
+        	if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")){
+            	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
+            }
         	parentJadeNode.addChild(curNode);
             if (incomingRel.hasProperty("branch_length")) {
                 curNode.setBL((Double) incomingRel.getProperty("branch_length"));
