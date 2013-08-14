@@ -19,6 +19,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 //import java.util.Iterator;
 import java.util.Stack;
 
@@ -735,6 +736,80 @@ public class GraphExporter extends GraphBase {
 		return ret;
 	}
 
+	// ====================================== extracting Synthetic trees from the db ==========================================
+
+	
+	public JadeTree buildSyntheticTreeForWeb(Node startNode, String synthTreeName, int maxNodes){
+		//JadeNode parentJadeNode = null;
+        //Relationship incomingRel = null;
+		cne.setStartNode(startNode);
+		cne.setChildThreshold(200);
+		se.setStartNode(startNode);
+        TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
+        JadeNode root = new JadeNode();
+        HashMap<Node,JadeNode> traveledNodes = new HashMap<Node,JadeNode>();
+        for (Node curGraphNode : CHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()){//.evaluator(Evaluators.toDepth(3)).evaluator(cne).evaluator(se).traverse(startNode).nodes()) {
+        	JadeNode curNode = null;
+    		if (curGraphNode == startNode){
+    			curNode = root;
+    		}else{
+    			curNode = new JadeNode();
+    		}
+    		traveledNodes.put(curGraphNode, curNode);
+            if (curGraphNode.hasProperty("name")) {
+                curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+//                curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+            }
+            curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+            JadeNode parentJadeNode = null;
+            Relationship incomingRel = null;
+            if (curGraphNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF) && curGraphNode != startNode){
+            	Node parentGraphNode = curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+            	if(traveledNodes.containsKey(parentGraphNode)){
+            		parentJadeNode = traveledNodes.get(parentGraphNode);
+            		incomingRel = curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
+            	}
+            }
+            // add the current node to the tree we're building
+            if (parentJadeNode != null) {
+            	if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")){
+                	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
+                }
+            	parentJadeNode.addChild(curNode);
+                if (incomingRel.hasProperty("branch_length")) {
+                    curNode.setBL((Double) incomingRel.getProperty("branch_length"));
+                }
+            }
+            
+            // get the immediate synth children of the current node
+            LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
+            for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+            	        	
+            	// TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
+            	if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name"))))	{
+            		// currently just filtering on name
+            		synthChildRels.add(synthChildRel);
+            	}
+            }
+
+        }
+        if (startNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)){
+        	Node curGraphNode = startNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+        	JadeNode newroot = new JadeNode();
+            if (curGraphNode.hasProperty("name")) {
+                newroot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+//                curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+            }
+            newroot.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+        	newroot.addChild(root);
+        	return new JadeTree(newroot);
+        }
+        //(add a bread crumb)
+        return new JadeTree(root);
+       // return new JadeTree(buildSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
+	}
+	
+	
 	/**
 	 * @param args
 	 */

@@ -1260,6 +1260,7 @@ public class GraphExplorer extends GraphBase {
             curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
 //            curNode.setName(GeneralUtils.cleanName(curNode.getName()));
         }
+        curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
 
         // add the current node to the tree we're building
         if (parentJadeNode != null) {

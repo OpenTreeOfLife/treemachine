@@ -237,6 +237,9 @@ public class JadeNode {
 			}
 			ret.append(", \"size\": "+sz);
 		}
+		if(this.getObject("nodeID") != null){
+			ret.append(", \"id\":"+this.getObject("nodeID"));
+		}
 		ret.append("}");
 		return ret.toString();
 	}
