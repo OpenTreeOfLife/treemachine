@@ -778,15 +778,17 @@ public class GraphExporter extends GraphBase {
             }
             includednodes.add(curGraphNode);
             // add the current node to the tree we're building
+            if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")){
+            	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
+            }
+            
             if (parentJadeNode != null) {
-            	if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")){
-                	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
-                }
             	parentJadeNode.addChild(curNode);
                 if (incomingRel.hasProperty("branch_length")) {
                     curNode.setBL((Double) incomingRel.getProperty("branch_length"));
                 }
             }
+            
             // get the immediate synth children of the current node
             LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
             int numchild = 0;
@@ -858,18 +860,20 @@ public class GraphExporter extends GraphBase {
             }
             includednodes.add(curGraphNode);
             // add the current node to the tree we're building
-            if (parentJadeNode != null) {
-            	HashSet<String> supportingsources = new HashSet<String> ();
-            	for(Relationship rels: curGraphNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)){
-            		if(((String)rels.getProperty("source")).equals("taxonomy")==false){
-            			supportingsources.add((String)rels.getProperty("source"));
-            		}
+
+            HashSet<String> supportingsources = new HashSet<String> ();
+            for(Relationship rels: curGraphNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)){
+            	if(((String)rels.getProperty("source")).equals("taxonomy")==false){
+            		supportingsources.add((String)rels.getProperty("source"));
             	}
-            	if(supportingsources.size()>0){
-                	String [] sendstring = new String[supportingsources.size()];
-                	supportingsources.toArray(sendstring);
-            		curNode.assocObject("supporting_sources", sendstring);
-            	}            		
+            }
+            if(supportingsources.size()>0){
+            	String [] sendstring = new String[supportingsources.size()];
+            	supportingsources.toArray(sendstring);
+            	curNode.assocObject("supporting_sources", sendstring);
+            }
+            	
+            if (parentJadeNode != null) {
             	parentJadeNode.addChild(curNode);
             }
             // get the immediate synth children of the current node
