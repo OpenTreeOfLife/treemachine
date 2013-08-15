@@ -743,12 +743,13 @@ public class GraphExporter extends GraphBase {
 		//JadeNode parentJadeNode = null;
         //Relationship incomingRel = null;
 		cne.setStartNode(startNode);
-		cne.setChildThreshold(200);
+		cne.setChildThreshold(100);
 		se.setStartNode(startNode);
         TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
         JadeNode root = new JadeNode();
         HashMap<Node,JadeNode> traveledNodes = new HashMap<Node,JadeNode>();
-        for (Node curGraphNode : CHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()){//.evaluator(Evaluators.toDepth(3)).evaluator(cne).evaluator(se).traverse(startNode).nodes()) {
+        int maxdepth = 3;
+        for (Node curGraphNode : CHILDOF_TRAVERSAL.breadthFirst().evaluator(cne).traverse(startNode).nodes()){//.evaluator(Evaluators.toDepth(3)).evaluator(cne).evaluator(se).traverse(startNode).nodes()) {
         	JadeNode curNode = null;
     		if (curGraphNode == startNode){
     			curNode = root;
