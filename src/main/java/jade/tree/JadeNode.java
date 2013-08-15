@@ -221,6 +221,13 @@ public class JadeNode {
 				ret.append(",\n");
 			}
 		}
+		Object hc = this.getObject("haschild");
+		if (hc != null) {
+			int nc = (Integer)this.getObject("numchild");
+			if(nc > this.getChildCount()){
+				ret.append(", \"notcomplete\": 1");
+			}
+		}
 		if (bl) {
 			ret.append(", \"branch_length\": " + this.getBL());
 		}

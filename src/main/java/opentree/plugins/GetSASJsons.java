@@ -25,8 +25,7 @@ public class GetSASJsons extends ServerPlugin {
 	} 
 	
 	/**
-	 * Is this service used? For now I have marked it as deprecated.
-	 * @param source
+	 * @param nodeid
 	 * @return
 	 */
 	@Description( "Return a JSON with alternative parents presented" )
@@ -40,4 +39,18 @@ public class GetSASJsons extends ServerPlugin {
 		return t.getRoot().getJSON(false);
 	}
 
+	/**
+	 * @param nodeid
+	 * @return
+	 */
+	@Description( "Return a JSON with alternative parents presented" )
+	@PluginTarget( GraphDatabaseService.class )
+	public String getTaxonJson(@Source GraphDatabaseService graphDb,
+			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
+			@Parameter(name = "nodeID", optional = false) Long nodeID) {
+		Node firstNode = graphDb.getNodeById(nodeID);
+		GraphExporter ge = new GraphExporter(graphDb);
+		JadeTree t = ge.buildTaxonomyTreeForWeb(firstNode,150);
+		return t.getRoot().getJSON(false);
+	}
 }
