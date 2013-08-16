@@ -887,6 +887,49 @@ public class GraphExplorer extends GraphBase {
             	// remember the ids of taxa we add, this is when sinking lost children
                 knownIdsInTree.add(curNode.getId());
         	}
+        	System.out.println("number of potential dead nodes "+draftSynthesisMethod.getDeadNodes().size());
+        	TLongArrayList deadnodes = new TLongArrayList(draftSynthesisMethod.getDeadNodes());
+        	//System.out.println("dead nodes "+deadnodes);
+        	//should do this cleaner
+        	/*
+        	 * This cleans up dead nodes
+        	 */
+        	System.out.println("cleaning dead nodes");
+        	TLongHashSet vd = new TLongHashSet();
+        	int actual = 0;
+        	for(int i=0;i<deadnodes.size();i++){
+        		long cnd = deadnodes.get(i);
+        		if (vd.contains(cnd)){
+        			continue;
+        		}else{
+        			vd.add(cnd);
+        		}
+        		//check to see if this has any other children
+        		Node cn = graphDb.getNodeById(cnd);
+        		if(cn.hasRelationship(RelType.STREECHILDOF, Direction.INCOMING) == false){
+        			vd.add(cnd);
+        		}else{
+        			System.out.println("actual: "+cnd);
+        			actual++;
+        			boolean going = true;
+        			Node curnode = cn;
+        			while(going){
+        				if(curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING)== false){
+        					vd.add(curnode.getId());
+        					Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
+        					curnode = tr.getEndNode();
+        					System.out.println("deleting: "+tr);
+        					tr.delete();
+        				}else{
+        					break;
+        				}
+        			}
+        		}
+        	}
+        	System.out.println("number of actual deadnodes:"+actual);
+        	/*
+        	 * end the cleaning
+        	 */
         	
             System.out.println("\n" + draftSynthesisMethod.getReport());
         	
@@ -1153,9 +1196,10 @@ public class GraphExplorer extends GraphBase {
         System.out.println("have to add "+taxaleft.size());
         
         while(taxaleft.size() > 0){
-        	System.out.println("taxaleft: "+taxaleft.size());
+        	System.out.print("taxaleft: "+taxaleft.size());
         	long tid = taxaleft.removeAt(0);
         	Node taxNode = graphDb.getNodeById(tid);
+        	System.out.println(" working with "+((String)taxNode.getProperty("name")));
             TLongArrayList ttmrca = new TLongArrayList((long [])taxNode.getProperty("mrca"));
         	if(taxNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF))
         		continue;
@@ -1219,9 +1263,13 @@ public class GraphExplorer extends GraphBase {
             curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
 //            curNode.setName(GeneralUtils.cleanName(curNode.getName()));
         }
+        curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
 
         // add the current node to the tree we're building
         if (parentJadeNode != null) {
+        	if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")){
+            	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
+            }
         	parentJadeNode.addChild(curNode);
             if (incomingRel.hasProperty("branch_length")) {
                 curNode.setBL((Double) incomingRel.getProperty("branch_length"));

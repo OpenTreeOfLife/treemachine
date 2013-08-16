@@ -1,6 +1,7 @@
 package opentree.synthesis;
 
 import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -180,7 +181,11 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	}
 
 	@Override
+<<<<<<< HEAD
 	public String getReport() {
+=======
+	public TLongHashSet getDupMRCAS() {
+>>>>>>> deadends
 		// TODO Auto-generated method stub
 		return null;
 	}

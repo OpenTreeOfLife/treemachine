@@ -1190,7 +1190,32 @@ public class MainRunner {
 		return 0;
     }
 	
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
+	public int extractDraftTreeForOttidJSON(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException{
+		// open the graph
+		String graphname = args[3];
+		String outFileName = args[2];
+		String ottolId = args[1];
+		GraphExplorer ge = new GraphExplorer(graphname);
+		Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+		JadeTree synthTree = null;
+		synthTree = ge.extractDraftTree(firstNode, GraphBase.DRAFTTREENAME);
+		if (synthTree == null) {
+			return -1;
+		}
 
+		PrintWriter outFile = null;
+		try {
+			outFile = new PrintWriter(new FileWriter(outFileName));
+			outFile.write(synthTree.getRoot().getJSON(false));
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			outFile.close();
+			ge.shutdownDB();
+		}
+		return 0;
+	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int makePrunedBipartsTestFiles(String [] args) {
@@ -1752,6 +1777,8 @@ public class MainRunner {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForNodeId(args);
 			} else if (command.compareTo("extractdrafttree_ottid") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForOttId(args);
+			} else if (command.compareTo("extractdrafttree_ottid_JSON") == 0) {
+				cmdReturnCode = mr.extractDraftTreeForOttidJSON(args);
 			} else if (command.compareTo("extractdrafttree_nodeid") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForNodeId(args);
 			} else if (command.compareTo("extractdraftsubtreefornodes") == 0) {

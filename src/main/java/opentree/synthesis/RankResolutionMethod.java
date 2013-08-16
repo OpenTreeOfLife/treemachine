@@ -84,6 +84,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 	/*
 	 * This returns the mrcas that were found to be in not true conflict in these sets
 	 */
+	@Override
 	public TLongHashSet getDupMRCAS(){
 		return dupMRCAS;
 	}
@@ -131,11 +132,12 @@ public class RankResolutionMethod implements ResolutionMethod {
 	    		}
 	    		totalIncluded.addAll(candRelDescendantIdsMap.get(candidate));
 	    		//get the full mrcas identify dups and add to dups
-	    		TLongHashSet fullmrcas = new TLongHashSet((long[])candidate.getEndNode().getProperty("mrca"));
+	    		TLongHashSet fullmrcas = new TLongHashSet((long[])candidate.getStartNode().getProperty("mrca"));
 	    		fullmrcas.retainAll(totalMRCAS);
 	    		dupMRCAS.addAll(fullmrcas);
+	    		//System.out.println("dups:"+dupMRCAS.size());
 	    		//get the full mrcas and add any new ones to the totalmrcas
-	    		TLongHashSet fullmrcas2 = new TLongHashSet((long[])candidate.getEndNode().getProperty("mrca"));
+	    		TLongHashSet fullmrcas2 = new TLongHashSet((long[])candidate.getStartNode().getProperty("mrca"));
 	    		totalMRCAS.addAll(fullmrcas2);
 	    	}else{
 	    		System.out.println("\t\t--rel " + candidate.getId() + " failed, it will NOT be added");

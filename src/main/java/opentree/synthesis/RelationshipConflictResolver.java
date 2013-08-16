@@ -40,7 +40,7 @@ public class RelationshipConflictResolver {
 	}
 	
 	public TLongHashSet getDupMRCAS(){
-		return new TLongHashSet();
+		return method.getDupMRCAS();
 	}
 	
 }

@@ -194,19 +194,13 @@ public class JadeNode {
 	}
 	
 	/**
-	 * Get JSON output for argus viewer. DEPRECATED. Use the ArgusRepresentationConverter instead.
+	 * Get JSON output NOT FOR THE ARGUS viewer. DEPRECATED for ARGUS. Use the ArgusRepresentationConverter instead.
 	 * 
-	 * Addendum: I have commented out this method and replaced calls to it with methods from ArgusRepresentationConverter.class.
-	 * If this is to remain unused then it should be removed. - ceh 2013 07 17
 	 * 
 	 * @param bl should be true to include branch lengths
 	 * @return string with JSON representation of the subtree rooted at this node
 	 */
-	@Deprecated
-	public String getJSON(boolean bl) { 
-		
-		throw new java.lang.UnsupportedOperationException("The getJSON method is deprecated. Use ArgusRepresentationConverter instead.");
-		/*
+	public String getJSON(boolean bl) { 		
 		StringBuffer ret = new StringBuffer("{");
 		if (this.name != null) {
 			ret.append(" \"name\": \"" + this.getName() + "\"");
@@ -227,58 +221,34 @@ public class JadeNode {
 				ret.append(",\n");
 			}
 		}
-		if (bl) {
-			ret.append(", \"size\": " + this.getBL());
-		}
-		if ((this.getObject("jsonprint")) != null) {
-			ret.append(this.getObject("jsonprint"));
-		}
-		if (this.getObject("nodedepth") != null) {
-			ret.append(", \"maxnodedepth\": " + this.getObject("nodedepth"));
-		}
-		if (this.isInternal()) {
-			ret.append(", \"nleaves\": " + this.getTips().size());
-		} else {
-			ret.append(", \"nleaves\": 0");
-		}
-		String [] optionalPropN = {"uniqName", "taxSource", "taxSourceId", "taxRank", "ottolId"};
-		for (String opn : optionalPropN) {
-			JSONExporter.writeStringPropertyIfNotNull(ret, this.getObject(opn), opn, true);
-		}
-		Object ptr = this.getObject("pathToRoot");
-		if (ptr != null) {
-			ret.append(", ");
-			JSONExporter.escapePropertyColon(ret, "pathToRoot");
-			JSONExporter.writeListOfNodesAsJSONSummary(ret, ptr);
-		}
-		
-		Object hc = this.getObject("hasChildren");
+		Object hc = this.getObject("haschild");
 		if (hc != null) {
-			ret.append(", ");
-			JSONExporter.escapePropertyColon(ret, "hasChildren");
-			JSONExporter.writeBooleanAsJSON(ret, (Boolean) hc);
+			int nc = (Integer)this.getObject("numchild");
+			if(nc > this.getChildCount()){
+				ret.append(", \"notcomplete\": 1");
+			}
 		}
-		
-		Object dnl = this.getObject("descendantNameList");
-		if (dnl != null) {
-			ret.append(", \"descendantNameList\": ");
-			JSONExporter.writeStringArrayAsJSON(ret, (String []) dnl);
+		if (bl) {
+			ret.append(", \"branch_length\": " + this.getBL());
 		}
-		// report tree IDs supporting each clade as supportedBy list of strings
 		Object sup = this.getObject("supporting_sources");
 		if (sup != null) {
-			ret.append(", \"supportedBy\": ");
-			JSONExporter.writeStringArrayAsJSON(ret, (String []) sup);
+//			ret.append(", \"supportedBy\": ");
+//			JSONExporter.writeStringArrayAsJSON(ret, (String []) sup);
+			int sz = 0;
+			for (int i=0;i<((String []) sup).length;i++){
+				if ((((String []) sup)[i]).equals("taxonomy"))
+					continue;
+				else
+					sz++;
+			}
+			ret.append(", \"size\": "+sz);
 		}
-		// report metadata for the sources mentioned in supporting_sources. the sourceMetaList property
-		//	should be set for the root
-		Object n2m = this.getObject("sourceMetaList");
-		if (n2m != null) {
-			ret.append(", ");
-			JSONExporter.writeSourceToMetaMapForArgus(ret, n2m);
+		if(this.getObject("nodeID") != null){
+			ret.append(", \"id\":"+this.getObject("nodeID"));
 		}
 		ret.append("}");
-		return ret.toString(); */
+		return ret.toString();
 	}
 
 	/**
