@@ -11,5 +11,7 @@ viz*
 *.jar
 *.war
 *.ear
-
+save_trees
+data
+Probs
 .DS_Store

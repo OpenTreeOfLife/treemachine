@@ -806,6 +806,7 @@ public class GraphImporter extends GraphBase {
 			for (Node tnd : ancestors) {
 				if (tnd.hasProperty("name")) {
 					logger.indentMessageStrStr(3, "matched anc", "node", tnd.toString(), "name", (String)tnd.getProperty("name"));
+					logger.indentMessageStrStr(3, "matched anc info", "tax_uid", (String)tnd.getProperty("tax_uid"), "name", (String)tnd.getProperty("name"));
 				} else {
 					logger.indentMessageStr(3, "matched anc", "node", tnd.toString());
 				}

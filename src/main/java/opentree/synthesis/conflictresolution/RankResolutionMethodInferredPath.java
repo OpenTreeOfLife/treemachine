@@ -1,6 +1,7 @@
 package opentree.synthesis.conflictresolution;
 
 import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.set.hash.TLongHashSet;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -184,11 +185,17 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	public String getDescription() {
 		return "prefer relationships with higher ranking, but take paths with more descendants as long as they don't indicate relationships incompatible with preferred rels. Result will be fully acyclic.";
 	}
-
+	
 	@Override
 	@Deprecated
 	public String getReport() {
 		// TODO Auto-generated method stub
 		return "";
+	}
+
+	@Override
+	public TLongHashSet getDupMRCAS() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
