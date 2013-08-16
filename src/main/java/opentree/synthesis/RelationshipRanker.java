@@ -56,28 +56,35 @@ public class RelationshipRanker {
 			origRels.add(rel);
 		}
 		
-		/*		
-		System.out.println("\n*** Relationships BEFORE ranking: ***");
-		for (int i = 0; i < rankedRels.size(); i++) {
-			System.out.println("Relationship: " + rankedRels.get(i).toString() + "; Source: " + rankedRels.get(i).getProperty("source"));
-		}
-		System.out.print("\n"); */
 		
-		for (int i = criteria.size() - 1; i >= 0; i--) {
-			// iterate through criteria in reverse order and sort the relationships in that order
-			criteria.get(i).sort(rankedRels); // TEST THIS
-		}
-
-		/*
-		System.out.println("*** Relationships AFTER ranking: ***");
-		for (int i = 0; i < rankedRels.size(); i++) {
-			System.out.println("Relationship: " + rankedRels.get(i).toString() + "; Source: " + rankedRels.get(i).getProperty("source"));
-		}
-		System.out.print("\n");
 		
-		if (!origRels.equals(rankedRels)) {
-			System.out.println("\n\t*** RANKING DIFFERS! ***\n");
-		} */
+		if (rankedRels.size() == 0) {
+		//	System.out.println("\n\t*** Whoops?!? No relationships to deal with! ***");
+		} else {
+			
+		//	System.out.println("\n*** Relationships BEFORE ranking: ***");
+		//	for (int i = 0; i < rankedRels.size(); i++) {
+		//		System.out.println("Relationship: " + rankedRels.get(i).toString() + "; Source: " + rankedRels.get(i).getProperty("source"));
+		//	}
+		//	System.out.print("\n");
+			
+			for (int i = criteria.size() - 1; i >= 0; i--) {
+				// iterate through criteria in reverse order and sort the relationships in that order
+				criteria.get(i).sort(rankedRels); // TEST THIS
+			}
+			
+		//	System.out.println("*** Relationships AFTER ranking: ***");
+		//	for (int i = 0; i < rankedRels.size(); i++) {
+		//		System.out.println("Relationship: " + rankedRels.get(i).toString() + "; Source: " + rankedRels.get(i).getProperty("source"));
+		//	}
+		//	System.out.print("\n");
+			
+		//	if (!origRels.equals(rankedRels)) {
+		//		System.out.println("\n\t*** RANKING DIFFERS! ***\n");
+		//	}
+		}
+		
+		
 		
 		return rankedRels;
 	}

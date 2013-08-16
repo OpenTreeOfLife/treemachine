@@ -151,14 +151,19 @@ public class MainRunner {
 		String focalgroup;
 		String sourcename;
 		String graphname;
-		if (args.length != 5) {
-			System.out.println("arguments should be: filename focalgroup sourcename graphdbfolder");
+		if (args.length != 6) {
+			System.out.println("arguments should be: filename  <taxacompletelyoverlap[T|F]> focalgroup sourcename graphdbfolder");
 			return 1;
 		}
 		filename = args[1];
-		focalgroup = args[2];
-		sourcename = args[3];
-		graphname = args[4];
+		String soverlap = args[2];
+		boolean overlap = true;
+		if (soverlap.toLowerCase().equals("f")){
+			overlap = false;
+		}
+		focalgroup = args[3];
+		sourcename = args[4];
+		graphname = args[5];
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
 		MessageLogger messageLogger = new MessageLogger(args[0] + ":");
@@ -208,7 +213,7 @@ public class MainRunner {
 					sourcename = (String)jt.get(i).getObject("ot:studyId");
 				}
 				if (jt.size() == 1) {
-					gi.addSetTreeToGraph(focalgroup, sourcename, false, messageLogger);
+					gi.addSetTreeToGraph(focalgroup, sourcename, overlap, messageLogger);
 				} else {
 					gi.addSetTreeToGraph(focalgroup, sourcename + "_" + String.valueOf(i), false, messageLogger);
 					gi.deleteTreeBySource(sourcename + "_" + String.valueOf(i));	
@@ -222,7 +227,7 @@ public class MainRunner {
 					System.out.println("adding a tree to the graph: " + i);
 					gi.setTree(jt.get(i));
 					String tmpName = sourcename + "_" + String.valueOf(i);
-					gi.addSetTreeToGraph(focalgroup, tmpName, false, messageLogger); //@QUERY treeID has been added, so I'm not sure we want to munge the sourcename
+					gi.addSetTreeToGraph(focalgroup, tmpName, overlap, messageLogger); //@QUERY treeID has been added, so I'm not sure we want to munge the sourcename
 				}
 			}
 		} finally {
@@ -1185,36 +1190,7 @@ public class MainRunner {
 		return 0;
     }
 	
-	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int addTaxonomyMetadataNodeToIndex(String [] args) {
-		if (args.length != 3) {
-			System.out.println("arguments should be metadatanodeid graphdbfolder");
-			return 1;
-		}
 
-		String metadataNodeIdStr = args[1];
-		String graphname = args[2];
-		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(new EmbeddedGraphDatabase(graphname));
-		Index<Node> metadataNodeIndex = graphDb.getNodeIndex("sourceMetaNodes");
-		
-		Node metadataNode = graphDb.getNodeById(Long.valueOf(metadataNodeIdStr));
-		
-		Transaction tx = graphDb.beginTx();
-		
-		try {
-			metadataNodeIndex.add(metadataNode, "source", "taxonomy");
-			metadataNode.setProperty("source", "taxonomy");
-			tx.success();
-		} catch (Exception ex) {
-			tx.failure();
-			ex.printStackTrace();
-		} finally {
-			tx.finish();
-			graphDb.shutdownDb();
-		}
-		
-		return 0;
-	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int makePrunedBipartsTestFiles(String [] args) {
@@ -1616,6 +1592,32 @@ public class MainRunner {
 		return 0;
 	}
 	
+	public static void printShortHelp(){
+		System.out.println("======================Treemachine======================");
+		System.out.println("usage: java -jar locationOftreemachine.jar command options");
+		System.out.println("For a more comprehensive help message, type java -jar locationOftreemachine.jar help");
+		System.out.println("");
+		System.out.println("Here are some common commands with descriptions.");
+		System.out.println("INPUT SET OF TREES (bootstrap, posterior probability)");
+		System.out.println("  \033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
+		System.out.println("");
+		System.out.println("INPUT TAXONOMY AND TREES");
+		System.out.println("  Initializes the graph with a tax list in the format");
+		System.out.println("    \033[1minittax\033[0m <filename> (optional:synonymfilename) <graphdbfolder>");
+		System.out.println("  Add a newick tree to the graph");
+		System.out.println("    \033[1maddnewick\033[0m <filename> <taxacompletelyoverlap[T|F]> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder>");
+		System.out.println("  Export a source tree from that graph with taxonomy mapped");
+		System.out.println("    \033[1msourceexplorer\033[0m <sourcename> <graphdbfolder>");
+		System.out.println("");
+		System.out.println("WORK WITH GRAPH");
+		System.out.println("  Export the graph in graphml format with statistics embedded");
+		System.out.println("    \033[1mgraphml\033[0m <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder>");
+		System.out.println("  Synthesize the graph");
+		System.out.println("    \033[1mfulltree\033[0m <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F]");
+		System.out.println("    \033[1mfulltree_sources\033[0m <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F]");
+		System.out.println("\n");
+	}
+	
 	public static void printHelp() {
 		System.out.println("==========================");
 		System.out.println("usage: treemachine command options");
@@ -1625,10 +1627,8 @@ public class MainRunner {
 		System.out.println("\tinittax <filename> <synonymfilename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
-		System.out.println("\taddnewick <filename> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("\treprocess <graphdbfolder> (delete the sources and reprocess)");
-		System.out.println("\tdeletetrees <graphdbfolder> (delete all the sources)");
+		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
 		System.out.println("\tpgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
 
 		System.out.println("---graph output---");
@@ -1684,7 +1684,7 @@ public class MainRunner {
 		//PropertyConfigurator.configure(System.getProperties());
 		//System.err.println("treemachine version alpha.alpha.prealpha");
 		if (args.length < 1) {
-			printHelp();
+			printShortHelp();
 			System.exit(1);
 		}
 		String command = args[0];
@@ -1756,11 +1756,6 @@ public class MainRunner {
 				cmdReturnCode = mr.extractDraftTreeForNodeId(args);
 			} else if (command.compareTo("extractdraftsubtreefornodes") == 0) {
 				cmdReturnCode = mr.extractDraftSubTreeForOttIDs(args);
-			
-			// temporary
-			} else if (command.compareTo("addtaxonomymetadatanodetoindex") == 0) {
-				cmdReturnCode = mr.addTaxonomyMetadataNodeToIndex(args);
-			
 			// not sure where this should live
 			} else if (command.compareTo("nexson2newick") == 0) {
 				cmdReturnCode = mr.nexson2newick(args);
