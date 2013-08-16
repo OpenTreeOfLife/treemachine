@@ -181,11 +181,7 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	}
 
 	@Override
-<<<<<<< HEAD
-	public String getReport() {
-=======
 	public TLongHashSet getDupMRCAS() {
->>>>>>> deadends
 		// TODO Auto-generated method stub
 		return null;
 	}
