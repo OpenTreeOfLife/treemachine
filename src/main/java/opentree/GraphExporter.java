@@ -888,6 +888,13 @@ public class GraphExporter extends GraphBase {
             	curNode.assocObject("haschild", true);
             	curNode.assocObject("numchild", numchild);
             }
+            //adding information for gbif display
+            if(curGraphNode.hasProperty("tax_source")){
+            	String tsour = (String)curGraphNode.getProperty("tax_source");
+            	if (tsour.contains("ncbi")==false){
+            		curNode.assocObject("onlygbif", true);
+            	}
+            }
             
         }
         if (startNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)){

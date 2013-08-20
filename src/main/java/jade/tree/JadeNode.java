@@ -247,6 +247,9 @@ public class JadeNode {
 		if(this.getObject("nodeID") != null){
 			ret.append(", \"id\":"+this.getObject("nodeID"));
 		}
+		if(this.getObject("onlygbif") != null){
+			ret.append(", \"jgbif\": 1");
+		}
 		ret.append("}");
 		return ret.toString();
 	}
