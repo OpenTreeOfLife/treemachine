@@ -275,12 +275,40 @@ public class GraphInitializer extends GraphBase{
 			throw new NoSuchElementException("the taxonomy file appears to be missing some fields.");
 		}
 
-		//if flag == D
-		if (flag.equals("D")){
-			System.out.println("skipping dubious "+name);	
-			return;
+		/**
+		 * This is meant to ignore certain bad taxa based on a flagging system used in smasher
+		 * Currently, we filter 
+		 * major_rank_conflict   - an ancestor has a sibling with a *much* higher rank
+		 * environmental
+		 * unclassified_inherited
+		 * unclassified_direct
+		 */
+		//the flag can be comma delimited
+		StringTokenizer stfl = new StringTokenizer(flag,",");
+		while(stfl.hasMoreTokens()){
+			String tflag = stfl.nextToken();
+			//if flag == D
+			if (tflag.equals("major_rank_conflict")){
+				System.out.println("skipping major_rank_conflict "+name);	
+				return;
+			}if (tflag.equals("environmental")){
+				System.out.println("skipping environmental "+name);	
+				return;
+			}if (tflag.equals("unclassified_inherited")){
+				System.out.println("skipping unclassified_inherited "+name);	
+				return;
+			}if (tflag.equals("unclassified_direct")){
+				System.out.println("skipping unclassified_direct "+name);	
+				return;
+			}if (tflag.equals("viral")){
+				System.out.println("skipping viral "+name);	
+				return;
+			}if (tflag.equals("nootu")){
+				System.out.println("skipping nootu "+name);	
+				return;
+			}
 		}
-
+		
 		Node tnode = graphDb.createNode();
 		tnode.setProperty(NodeProperty.NAME.propertyName, name);
 		tnode.setProperty(NodeProperty.TAX_UID.propertyName, tid);
