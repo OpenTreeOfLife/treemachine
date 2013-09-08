@@ -187,7 +187,7 @@ public class PhylografterConnector {
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
 		String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
-		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/doTNRSForNames";
+		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
 		logger.message("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
 			JadeTree currTree = trees.get(i);
@@ -217,7 +217,7 @@ public class PhylografterConnector {
 				}
 				sb.append("\"}");
 				String contextQueryParameters = sb.toString();
-				// System.out.println(urlParameters);
+				System.out.println(contextQueryParameters);
 
 				// set up the connection to the TNRS context query
 				ClientConfig cc = new DefaultClientConfig();
@@ -243,6 +243,8 @@ public class PhylografterConnector {
 				}
 				sb.append("\",\"contextName\":\"" + cn + "\"}");
 				contextQueryParameters = sb.toString();
+				
+				System.out.println(sb.toString());
 
 				// set up the connection to the TNRS context query
 				cc = new DefaultClientConfig();
@@ -260,27 +262,29 @@ public class PhylografterConnector {
 				}
 				if (tnrsResponseJSONStr != null) {
 					contextResponse = (JSONObject) JSONValue.parse(tnrsResponseJSONStr);
-					// System.out.println(contextResponse);
-					JSONArray unm = (JSONArray) contextResponse.get("unmatched_names");
+					//System.out.println(contextResponse);
+					JSONArray unm = (JSONArray) contextResponse.get("unmatched_name_ids");
 					logger.indentMessageInt(1, "TNRS unmatched", "total number", unm.size());
 					JSONArray res = (JSONArray) contextResponse.get("results");
 					// if the match is with score 1, then we keep
 					for (Object id: res) {
 						JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
+						String origname = (String)((JSONObject)id).get("id");
+						//System.out.println(origname);
 						for (Object tid: tres) {
 							Double score = (Double)((JSONObject)tid).get("score");
 							boolean permat = (Boolean)((JSONObject)tid).get("isPerfectMatch");
 							String ottolid = (String)((JSONObject)tid).get("matchedOttolID");
 							String matchedName = (String)((JSONObject)tid).get("matchedName");
-							String searchString = (String)((JSONObject)tid).get("searchString");
-							//	        		System.out.println(score+" "+permat+" "+ottolid);
+							//String searchString = (String)((JSONObject)tid).get("searchString");
 							if (score >= 1) {
 								Long tnrsOttolID = Long.valueOf(ottolid);
-								JadeNode fixedNode = namenodemap.get(searchString);
-								logger.indentMessageLongStrStrStr(2, "TNRS resolved OttolID", "OTT ID", tnrsOttolID, "name", matchedName, "searched on", searchString, "nexsonid", (String)fixedNode.getObject("nexsonid"));
+								//System.out.println(tnrsOttolID+ " "+ namenodemap.get(origname));
+								JadeNode fixedNode = namenodemap.get(origname);	
+								logger.indentMessageLongStrStrStr(2, "TNRS resolved OttolID", "OTT ID", tnrsOttolID, "name", matchedName, "searched on", origname, "nexsonid", (String)fixedNode.getObject("nexsonid"));
 								fixedNode.assocObject("ot:ottolid", tnrsOttolID);
-								matchednodes.add(namenodemap.get(searchString));
-								namenodemap.remove(searchString);
+								matchednodes.add(namenodemap.get(origname));
+								namenodemap.remove(origname);
 								break;
 							}
 						}
