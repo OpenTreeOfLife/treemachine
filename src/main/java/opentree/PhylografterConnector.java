@@ -281,9 +281,9 @@ public class PhylografterConnector {
 						//System.out.println(origname);
 						for (Object tid: tres) {
 							Double score = (Double)((JSONObject)tid).get("score");
-							boolean permat = (Boolean)((JSONObject)tid).get("isPerfectMatch");
-							String ottolid = (String)((JSONObject)tid).get("matchedOttolID");
-							String matchedName = (String)((JSONObject)tid).get("matchedName");
+							boolean permat = (Boolean)((JSONObject)tid).get("is_perfect_match");
+							String ottolid = (String)((JSONObject)tid).get("matched_ott_id");
+							String matchedName = (String)((JSONObject)tid).get("matched_name");
 							//String searchString = (String)((JSONObject)tid).get("searchString");
 							if (score >= 1) {
 								Long tnrsOttolID = Long.valueOf(ottolid);
