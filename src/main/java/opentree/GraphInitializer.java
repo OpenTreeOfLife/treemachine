@@ -306,6 +306,12 @@ public class GraphInitializer extends GraphBase{
 			}if (tflag.equals("nootu")){
 				System.out.println("skipping nootu "+name);	
 				return;
+			}if (tflag.equals("barren")){
+				System.out.println("skipping barren "+name);	
+				return;
+			}if (tflag.equals("not_otu")){
+				System.out.println("skipping not_otu "+name);	
+				return;
 			}
 		}
 		
