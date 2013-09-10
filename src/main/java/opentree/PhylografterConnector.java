@@ -210,13 +210,17 @@ public class PhylografterConnector {
 			} else {
 				StringBuffer sb = new StringBuffer();
 				// build the parameter string for the context query
-				sb.append("{\"queryString\":\"");
-				sb.append(currTree.getExternalNode(0).getName());
-				for (int j = 1; j < currTree.getExternalNodeCount(); j++) {
-					sb.append("," + currTree.getExternalNode(j).getName());
+//				sb.append("{\"queryString\":\"");
+				ArrayList<String> namelist = new ArrayList<String>();
+				//sb.append(currTree.getExternalNode(0).getName());
+				for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
+					//sb.append("," + currTree.getExternalNode(j).getName());
+					namelist.add(currTree.getExternalNode(j).getName());
 				}
-				sb.append("\"}");
-				String contextQueryParameters = sb.toString();
+				HashMap <String,Object> namemap = new HashMap <String,Object>();
+				namemap.put("names",namelist);
+//				sb.append("\"}");
+				String contextQueryParameters = new JSONObject(namemap).toJSONString();
 				System.out.println(contextQueryParameters);
 
 				// set up the connection to the TNRS context query
@@ -231,20 +235,24 @@ public class PhylografterConnector {
 				// Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
 				//  System.out.println(contextResponse);
 				//getting the names for each of the speices
-				sb = new StringBuffer();
+//				sb = new StringBuffer();
 
 				// build the parameter string for the context query
-				sb.append("{\"queryString\":\"");
-				sb.append(searchnds.get(0).getName());
-				for (int j = 1; j < searchnds.size(); j++) {
+//				sb.append("{\"queryString\":\"");
+//				sb.append(searchnds.get(0).getName());
+				ArrayList<String> namelist2 = new ArrayList<String>();
+				for (int j = 0; j < searchnds.size(); j++) {
 					if (searchnds.get(j).getObject("ot:ottolid") == null) {
-						sb.append("," + searchnds.get(j).getName());
+						//sb.append("," + searchnds.get(j).getName());
+						namelist2.add(searchnds.get(j).getName());
 					}
 				}
-				sb.append("\",\"contextName\":\"" + cn + "\"}");
-				contextQueryParameters = sb.toString();
-				
-				System.out.println(sb.toString());
+//				sb.append("\",\"contextName\":\"" + cn + "\"}");
+//				contextQueryParameters = sb.toString();
+				HashMap <String,Object> namemap2 = new HashMap <String,Object>();
+				namemap2.put("names", namelist2);
+				namemap2.put("contextName", cn);
+				contextQueryParameters = new JSONObject(namemap2).toJSONString();
 
 				// set up the connection to the TNRS context query
 				cc = new DefaultClientConfig();
