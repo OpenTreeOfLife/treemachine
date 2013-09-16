@@ -291,6 +291,12 @@ public class GraphInitializer extends GraphBase{
 			if (tflag.equals("major_rank_conflict")){
 				System.out.println("skipping major_rank_conflict "+name);	
 				return;
+			}if (tflag.equals("major_rank_confict_direct")){
+				System.out.println("skipping major_rank_confict_direct "+name);	
+				return;
+			}if (tflag.equals("major_rank_conflict_inherited")){
+				System.out.println("skipping major_rank_conflict_inherited "+name);	
+				return;
 			}if (tflag.equals("environmental")){
 				System.out.println("skipping environmental "+name);	
 				return;
