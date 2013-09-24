@@ -401,9 +401,16 @@ public class PhylografterConnector {
 							TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
 							if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
 								logger.indentMessage(2, "overlapping tips");
-								logger.indentMessageStrStr(3, "overlapping retained", "name", currNdJ.getName(), "nexsonid", (String)currNdJ.getObject("nexsonid"));
-								logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdK.getName(), "nexsonid", (String)currNdK.getObject("nexsonid"));
-								pru.add(currNdK);
+								if(t2.size() < t1.size()){
+									pru.add(currNdJ);
+									logger.indentMessageStrStr(3, "overlapping retained", "name", currNdK.getName(), "nexsonid", (String)currNdK.getObject("nexsonid"));
+									logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdJ.getName(), "nexsonid", (String)currNdJ.getObject("nexsonid"));
+									break;
+								}else{
+									pru.add(currNdK);
+									logger.indentMessageStrStr(3, "overlapping retained", "name", currNdJ.getName(), "nexsonid", (String)currNdJ.getObject("nexsonid"));
+									logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdK.getName(), "nexsonid", (String)currNdK.getObject("nexsonid"));
+								}
 							}
 						}
 					}
