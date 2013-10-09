@@ -1631,7 +1631,7 @@ public class MainRunner {
 		System.out.println("  Initializes the graph with a tax list in the format");
 		System.out.println("    \033[1minittax\033[0m <filename> (optional:synonymfilename) <graphdbfolder>");
 		System.out.println("  Add a newick tree to the graph");
-		System.out.println("    \033[1maddnewick\033[0m <filename> <taxacompletelyoverlap[T|F]> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder>");
+		System.out.println("    \033[1maddnewick\033[0m <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder>");
 		System.out.println("  Export a source tree from that graph with taxonomy mapped");
 		System.out.println("    \033[1msourceexplorer\033[0m <sourcename> <graphdbfolder>");
 		System.out.println("");
@@ -1653,7 +1653,7 @@ public class MainRunner {
 		System.out.println("\tinittax <filename> <synonymfilename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
-		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <filewithtreeids> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
 		System.out.println("\tpgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
 

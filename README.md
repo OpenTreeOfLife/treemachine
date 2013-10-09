@@ -31,6 +31,9 @@ To see the help message run:
 
 See below for an example of adding information to a database. More examples are being added to the treemachine wiki https://github.com/OpenTreeOfLife/treemachine/wiki. 
 
+### Quickstart
+There is an example script that will load the ncbi taxonomy that is in the examples directory as well as two trees. It does this with two commands inittax and addnewick.
+
 ### Using the neo4j server
 There are a number of ways to visualize the content in the database. One way to do so is with the neo4j server. You do not need the server to load content or run analyses. However, it does off one way of visualizing the database. This requires having the full neo4j installation from http://neo4j.org/download  Note that the file $(NEO4J_HOME)/conf/neo4j-server.properties will have to be modified slightly. Typically, you'll just have to put the full path of the db directory that you are using with the opentree-treemachine as the value for the org.neo4j.server.database.location setting.
 
@@ -41,6 +44,10 @@ with the command:
 	neo4j start
 	
 ### Taxonomy Loading
+The taxonomy should have the format
+uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|	
+It can have 1 header line and the white space is a single tab.
+
 The code has been refactored to have only one taxonomy (the preferred taxonomy). Loading multiple taxonomies has been moved to taxomachine.
 
 As an example of usage to load the snapshot of OTToL into test.db:
@@ -55,8 +62,6 @@ To load a tree:
 
 An older description on loading the taxonomies for the full ToL at 
 https://docs.google.com/document/d/1J82ZvgqMwv9Y43SqSGcw1ZjqWEPHaFQww5deuFFV7Js/edit
-
-
 
 ### Credits/Attribution
 The (non-essential) program scripts/compare_normalized_original_names_in_taxonomy.py

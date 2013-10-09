@@ -18,16 +18,10 @@ treemachine_invocation="java -Dlog4j.configuration=${config_arg_val} -jar target
 # turn on command echoing
 set -x
 
-## add the Catalog of life taxonomy of primates
-#${treemachine_invocation} inittax  example/col_primates.txt col test.db || exit
-
-# add the NCBI taxonomy of primates
-#${treemachine_invocation} addtax  example/ncbi_primates.txt ncbi  test.db -1 || exit
-
 # added for the new refactor
 ${treemachine_invocation} inittax  example/ncbi_primates.txt test.db || exit
 
 # initialize the GoL - this will add the NCBI taxonomy as a tree to the GoL
 #${treemachine_invocation} inittree test.db
-java  "-Dlog4j.configuration=debuglog4j.properties" -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addtree example/sarich_wilson_1967.tre Catarrhini sarichwilson1967 test.db
-java  "-Dlog4j.configuration=debuglog4j.properties" -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addtree example/grehan_schwartz_2009.tre Hominoidea grehanschwartz2009 test.db
+java  "-Dlog4j.configuration=debuglog4j.properties" -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addnewick example/sarich_wilson_1967.tre F Catarrhini sarichwilson1967 test.db
+java  "-Dlog4j.configuration=debuglog4j.properties" -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addnewick example/grehan_schwartz_2009.tre F Hominoidea grehanschwartz2009 test.db
