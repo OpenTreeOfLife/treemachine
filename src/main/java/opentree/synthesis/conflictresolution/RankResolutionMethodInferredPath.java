@@ -23,20 +23,19 @@ import org.neo4j.graphdb.Relationship;
  * This differs from the RankResolutionMethod in that it will assume an inferred path that contains a node but 
  * has more children is compatible.
  * 
- * Should these resolution methods be implemented in an enum? Or abstracted to make combinations of features available?
  * 
  * @author stephen smith and cody hinchliff
  */
-@Deprecated
 public class RankResolutionMethodInferredPath implements ResolutionMethod {
 
 	// containers used to make decisions about best paths
 	HashMap<Relationship, TLongArrayList> candRelDescendantIdsMap;
 	LinkedList<Relationship> bestRels;
+	//this will include all the mrcas that were found in this round that should be excluded
+	TLongHashSet dupMRCAS;
 	
 	public RankResolutionMethodInferredPath() {
-		candRelDescendantIdsMap = new HashMap<Relationship, TLongArrayList>();
-		reset();
+		initialize();
 	}
 
 	public enum ConflictType {
@@ -46,17 +45,23 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 		INCOMPATIBLE			// indicates that neither element is a subset of the other, but they have overalpping descendent sets
 	}
 
-	/**
-	 * clears the saved best rels
-	 */
-	@Deprecated
-	private void reset() {
+	private void initialize() {
+		candRelDescendantIdsMap = new HashMap<Relationship, TLongArrayList>();
 		bestRels = new LinkedList<Relationship>();
+		dupMRCAS = new TLongHashSet();
 	}
 
 	private void storeDescendants(Relationship rel) {
 
 		TLongArrayList descendantIds = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
+		//this will test only the mrcas that are included in the relationship from the source tree
+		//this will not always be the full set from the mrca of the node -- unless it is taxonomy relationship
+		//need to verify that the exclusive mrca is correct in this conflict
+		//it should be the mapped tip mrcas subtending this node
+		//if(((String)rel.getProperty("source")).equals("taxonomy") == false){
+		//	TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
+		//	descendantIds.retainAll(exclusiveIds);
+		//}
 		candRelDescendantIdsMap.put(rel, descendantIds);
 
 		// just user feedback for non-terminal nodes
@@ -118,11 +123,14 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	}
 	
 	@Override
-	@Deprecated
 	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> rels) {
 
-		reset();
+		initialize();
 		Iterator<Relationship> relsIter = rels.iterator();
+		//these are all the mrcas that are actually included in the set of saveRels
+		TLongHashSet totalIncluded = new TLongHashSet();
+		//these are all the mrcas that are included in the subtending nodes
+		TLongHashSet totalMRCAS = new TLongHashSet();
 		
 		// this keeps track of rels we've added that we subsequently want to remove, which we do
 		// when we find a relationship that is more inclusive than a previously saved conflicting rel,
@@ -165,6 +173,21 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	    	if (candidatePassed) {
 		    	System.out.println("\t++ rel " + candidate.getId() + " passed, it will be added");
 	    		bestRels.add(candidate);
+	    		//THIS COULD POTENTIALLY BE MADE FASTER
+	    		//add the exclusive mrcas from the relationship to the totalIncluded
+	    		//System.out.println(candRelDescendantIdsMap.get(candidate));
+	    		if (!candRelDescendantIdsMap.containsKey(candidate)) {
+	    			storeDescendants(candidate);
+	    		}
+	    		totalIncluded.addAll(candRelDescendantIdsMap.get(candidate));
+	    		//get the full mrcas identify dups and add to dups
+	    		TLongHashSet fullmrcas = new TLongHashSet((long[])candidate.getStartNode().getProperty("mrca"));
+	    		fullmrcas.retainAll(totalMRCAS);
+	    		dupMRCAS.addAll(fullmrcas);
+	    		//System.out.println("dups:"+dupMRCAS.size());
+	    		//get the full mrcas and add any new ones to the totalmrcas
+	    		TLongHashSet fullmrcas2 = new TLongHashSet((long[])candidate.getStartNode().getProperty("mrca"));
+	    		totalMRCAS.addAll(fullmrcas2);
 
 	    	} else { // candidate failed
 	    		System.out.println("\t-- rel " + candidate.getId() + " failed, it will NOT be added");
@@ -181,13 +204,11 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	}
 	
 	@Override
-	@Deprecated
 	public String getDescription() {
 		return "prefer relationships with higher ranking, but take paths with more descendants as long as they don't indicate relationships incompatible with preferred rels. Result will be fully acyclic.";
 	}
 	
 	@Override
-	@Deprecated
 	public String getReport() {
 		// TODO Auto-generated method stub
 		return "";
@@ -195,7 +216,6 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 
 	@Override
 	public TLongHashSet getDupMRCAS() {
-		// TODO Auto-generated method stub
-		return null;
+		return dupMRCAS;
 	}
 }
