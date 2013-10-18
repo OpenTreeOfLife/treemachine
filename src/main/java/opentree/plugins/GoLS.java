@@ -21,7 +21,7 @@ import opentree.GraphExplorer;
 import opentree.MainRunner;
 import opentree.constants.RelType;
 import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.ottIdNotFoundException;
+import opentree.exceptions.OttIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 import opentree.exceptions.TreeNotFoundException;
@@ -116,7 +116,7 @@ public class GoLS extends ServerPlugin {
         // find the start node
         Node firstNode = ge.findGraphTaxNodeByUID(rootottId);
         if (firstNode == null) {
-            throw new ottIdNotFoundException(rootottId);
+            throw new OttIdNotFoundException(rootottId);
         }
 		
 		if (ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,false)) {

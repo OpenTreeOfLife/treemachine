@@ -24,7 +24,7 @@ import java.util.Stack;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
 import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.ottIdNotFoundException;
+import opentree.exceptions.OttIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
@@ -971,7 +971,7 @@ public class GraphExplorer extends GraphBase {
      * External function that uses the ottol id to find the root node in the db.
      * 
      * @param nodeId
-     * @throws ottIdNotFoundException 
+     * @throws OttIdNotFoundException 
      */
     public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
     	
