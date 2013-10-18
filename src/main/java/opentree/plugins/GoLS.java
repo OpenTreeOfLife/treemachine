@@ -21,7 +21,7 @@ import opentree.GraphExplorer;
 import opentree.MainRunner;
 import opentree.constants.RelType;
 import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.OttolIdNotFoundException;
+import opentree.exceptions.ottIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 import opentree.exceptions.TreeNotFoundException;
@@ -101,12 +101,12 @@ public class GoLS extends ServerPlugin {
 	public String synthesizeSubtree(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
-			@Parameter(name = "rootOttolID", optional = true) String rootOttolID) throws Exception {
+			@Parameter(name = "rootottId", optional = true) String rootottId) throws Exception {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		
-		if (rootOttolID == null || rootOttolID.length() == 0)
-			rootOttolID = (String) ge.findTaxNodeByName("life").getProperty("tax_uid");
+		if (rootottId == null || rootottId.length() == 0)
+			rootottId = (String) ge.findTaxNodeByName("life").getProperty("tax_uid");
 		
     	// TODO: for now just using very simple list of studies, this will need to be extended for this service to be useful
 		LinkedList<String> preferredSources = new LinkedList<String>();
@@ -114,15 +114,15 @@ public class GoLS extends ServerPlugin {
 		preferredSources.add("taxonomy");
 		
         // find the start node
-        Node firstNode = ge.findGraphTaxNodeByUID(rootOttolID);
+        Node firstNode = ge.findGraphTaxNodeByUID(rootottId);
         if (firstNode == null) {
-            throw new OttolIdNotFoundException(rootOttolID);
+            throw new ottIdNotFoundException(rootottId);
         }
 		
 		if (ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,false)) {
-			return "Success. Synthesized relationships stored for ottolid=" + rootOttolID;
+			return "Success. Synthesized relationships stored for ottId=" + rootottId;
 		} else {
-			return "Failure. Nothing stored for ottolid=" + rootOttolID;
+			return "Failure. Nothing stored for ottId=" + rootottId;
 		}
 	}
 	
@@ -246,17 +246,17 @@ public class GoLS extends ServerPlugin {
 		}
 	}
 	
-	@Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottolID`.")
+	@Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation getDraftTreeForOttolID( // TODO: should be renamed getDraftTreeNewickForOttolID, will need to be updated in argus
+	public Representation getDraftTreeForottId( // TODO: should be renamed getDraftTreeNewickForottId, will need to be updated in argus
 			@Source GraphDatabaseService graphDb,
 			@Description( "The ottol id of the taxon to be used as the root for the tree.")
-			@Parameter(name = "ottolID", optional = false) String ottolID) throws TaxonNotFoundException, MultipleHitsException { //,
+			@Parameter(name = "ottId", optional = false) String ottId) throws TaxonNotFoundException, MultipleHitsException { //,
 //			@Description( "DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
 //			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) { // TODO: Remove this parameter if it is unused
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
-		Node startNode = ge.findGraphTaxNodeByUID(ottolID);
+		Node startNode = ge.findGraphTaxNodeByUID(ottId);
 		
 		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
 
@@ -284,15 +284,15 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(response);
 	}
 
-	@Description("Returns the the node id of the named node identified by `ottolID`.")
+	@Description("Returns the the node id of the named node identified by `ottId`.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Long getNodeIDForOttolID(
+	public Long getNodeIDForottId(
 			@Source GraphDatabaseService graphDb,
 			@Description( "The ottol id of the taxon to be used as the root for the tree.")
-			@Parameter(name = "ottolID", optional = false) String ottolID) throws TaxonNotFoundException, MultipleHitsException {
+			@Parameter(name = "ottId", optional = false) String ottId) throws TaxonNotFoundException, MultipleHitsException {
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
-		return ge.findGraphTaxNodeByUID(ottolID).getId();
+		return ge.findGraphTaxNodeByUID(ottId).getId();
 	}
 	
 	// ============================== arbor interoperability services ==================================

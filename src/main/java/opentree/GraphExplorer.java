@@ -24,7 +24,7 @@ import java.util.Stack;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
 import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.OttolIdNotFoundException;
+import opentree.exceptions.ottIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
@@ -971,7 +971,7 @@ public class GraphExplorer extends GraphBase {
      * External function that uses the ottol id to find the root node in the db.
      * 
      * @param nodeId
-     * @throws OttolIdNotFoundException 
+     * @throws ottIdNotFoundException 
      */
     public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
     	
@@ -2274,7 +2274,7 @@ public class GraphExplorer extends GraphBase {
             jNd.assocObject("taxRank", nd.getProperty("tax_rank"));
         }
         if (nd.hasProperty("tax_uid")) {
-            jNd.assocObject("ottolId", nd.getProperty("tax_uid"));
+            jNd.assocObject("ottId", nd.getProperty("tax_uid"));
         }
     }
     /**
@@ -2388,7 +2388,7 @@ public class GraphExplorer extends GraphBase {
 			if (numh == 1) {
 				hitnode = hits.getSingle();
 			//	System.out.println(hitnode);
-				nds.get(j).assocObject("ot:ottolid", Long.valueOf((String)hitnode.getProperty("tax_uid")));
+				nds.get(j).assocObject("ot:ottId", Long.valueOf((String)hitnode.getProperty("tax_uid")));
 			}
 			hits.close();
 		}
@@ -2407,7 +2407,7 @@ public class GraphExplorer extends GraphBase {
     		ArrayList<JadeNode> tnds = tree.getInternalNode(i).getTips();
     		TLongArrayList nodeSet = new TLongArrayList();
     		for(int j=0;j<tnds.size();j++){ 
-    			Long tid = ((Long)tnds.get(j).getObject("ot:ottolid"));
+    			Long tid = ((Long)tnds.get(j).getObject("ot:ottId"));
     			Node tnd = graphTaxUIDNodeIndex.get("tax_uid", tid).getSingle();
     			nodeSet.add(tnd.getId());
     		}

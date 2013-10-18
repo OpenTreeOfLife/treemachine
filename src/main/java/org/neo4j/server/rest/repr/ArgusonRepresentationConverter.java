@@ -122,7 +122,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 					serializer.putNumber("nleaves", 0);
 				}
 				
-				String [] optProperties = {"uniqName", "taxSource", "taxSourceId", "taxRank", "ottolId"};
+				String [] optProperties = {"uniqName", "taxSource", "taxSourceId", "taxRank", "ottId"};
 				for (String optPropertyName : optProperties) {
 					if (inNode.getObject(optPropertyName) != null) {
 						serializer.putString(optPropertyName, (String) inNode.getObject(optPropertyName));

@@ -52,7 +52,7 @@ public class NexsonReader {
 				msgLogger.indentMessageStr(1, "representation", "newick", tree.getRoot().getNewick(false));
 				int i = 0;
 				for (JadeNode node : tree.iterateExternalNodes()) {
-					Object o = node.getObject("ot:ottolid");
+					Object o = node.getObject("ot:ottId");
 					msgLogger.indentMessageStr(2, "node", "name", node.getName());
 					msgLogger.indentMessageStr(2, "node", "OTT ID", o.toString());
 					msgLogger.indentMessageStr(2, "node", "ID class", o.getClass().toString());
@@ -222,10 +222,10 @@ public class NexsonReader {
 						JSONObject m = (JSONObject)meta;
 						String propname = (String)m.get("@property");
 						Object value = m.get("$");
-						if (propname.equals("ot:ottId")) {
-							propname = "ot:ottolid";
-						}
 						if (propname.equals("ot:ottolid")) {
+							propname = "ot:ottId";
+						}
+						if (propname.equals("ot:ottId")) {
 							// Kludge! For important special case
 							if (value instanceof String) {
 								value = Long.parseLong((String)value);
@@ -234,10 +234,10 @@ public class NexsonReader {
 							} else if (value instanceof Integer) {
 								value = new Long((((Integer)value).intValue()));
 							} else if (value == null) {
-								msgLogger.indentMessageStr(1, "Warning: dealing with null ot:ottolid here.", "nexsonid", id);
+								msgLogger.indentMessageStr(1, "Warning: dealing with null ot:ottId here.", "nexsonid", id);
 							} else {
 								System.err.println("Error with: " + m);
-								throw new RuntimeException("Invalid ottolid value: " + value);
+								throw new RuntimeException("Invalid ottId value: " + value);
 							}
 						} else if (propname.equals("ot:originalLabel")){
 							// ignoring originalLabel, but not emitting the unknown property warning

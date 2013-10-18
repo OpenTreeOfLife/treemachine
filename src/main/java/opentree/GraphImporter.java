@@ -129,7 +129,7 @@ public class GraphImporter extends GraphBase {
 	/**
 	 * Ingest the current JadeTree (in the inputTree instance variable) to the GoL.
 	 *
-	 * This will assume that the JadeNodes all have a property set as ot:ottolid
+	 * This will assume that the JadeNodes all have a property set as ot:ottId
 	 * 		that will be the preset ottol id identifier that will be found by index.
 	 * 		ALL THE NAMES HAVE TO BE SET FOR THIS FUNCTION
 	 *
@@ -285,7 +285,7 @@ public class GraphImporter extends GraphBase {
 	}
 	
 	/**
-	 * Searches the graph for taxa identified using the ottolids stored in the input tree leaves. Will throw exceptions if it
+	 * Searches the graph for taxa identified using the ottIds stored in the input tree leaves. Will throw exceptions if it
 	 * cannot find taxa or finds multiple taxa with the same uid.
 	 * @throws TaxonNotFoundException
 	 */
@@ -295,18 +295,18 @@ public class GraphImporter extends GraphBase {
 		// TODO: this could be modified to account for internal node name mapping
 		for (JadeNode curLeaf : inputJadeTreeLeaves) {
 			
-			Long ottolid = (Long) curLeaf.getObject("ot:ottolid");
+			Long ottId = (Long) curLeaf.getObject("ot:ottId");
 
-			// use the ottolid to match to a graph node, or throw an exception if we can't
+			// use the ottId to match to a graph node, or throw an exception if we can't
 			Node matchedGraphNode = null;
 			IndexHits<Node> hits = null;
 			try {
-				hits = graphTaxUIDNodeIndex.get("tax_uid", ottolid);
+				hits = graphTaxUIDNodeIndex.get("tax_uid", ottId);
 				int numh = hits.size();
 				if (numh < 1) {
-					throw new TaxonNotFoundException(String.valueOf(ottolid));
+					throw new TaxonNotFoundException(String.valueOf(ottId));
 				} else if (numh > 1) {
-					throw new AmbiguousTaxonException("tax_uid=" + ottolid);
+					throw new AmbiguousTaxonException("tax_uid=" + ottId);
 				} else {
 					matchedGraphNode = hits.getSingle();
 				}
@@ -961,7 +961,7 @@ public class GraphImporter extends GraphBase {
 			ot:curatorName - string: ot:curatorName "Jane Doe"
 			ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
 			ot:studyId - string / integer ot:studyId "123"
-			ot:ottolid - integer: ot:ottolid 783941
+			ot:ottId - integer: ot:ottId 783941
 
 		   TREE-wide fields used at present:
 			ot:branchLengthMode - string: ot:branchLengthMode "ot:substitutionCount"

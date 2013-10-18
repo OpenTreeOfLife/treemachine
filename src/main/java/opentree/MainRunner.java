@@ -33,7 +33,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import opentree.exceptions.DataFormatException;
 import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.OttolIdNotFoundException;
+import opentree.exceptions.ottIdNotFoundException;
 import opentree.exceptions.StoredEntityNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
@@ -1008,10 +1008,10 @@ public class MainRunner {
 		// open the graph
 		String graphname = args[3];
 		GraphExplorer ge = new GraphExplorer(graphname);
-		String ottolId = args[1];
+		String ottId = args[1];
 
 		// get the start node
-		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottolId).getId());
+		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottId).getId());
 		args[1] = startNodeIdStr;
 		ge.shutdownDB();
 		// do the synth
@@ -1023,7 +1023,7 @@ public class MainRunner {
 		
 		boolean test = false; 
 		if (args.length != 4 && args.length != 5) {
-			System.out.println("arguments should be rootOTToLid listofsources(CSV) graphdbfolder (test)");
+			System.out.println("arguments should be rootottId listofsources(CSV) graphdbfolder (test)");
 			return 1;
 		}if(args.length == 5){
 			System.out.println("test is set, so the synthesis will not be stored");
@@ -1064,10 +1064,10 @@ public class MainRunner {
 	public int synthesizeDraftTree(String [] args) throws Exception {
 		boolean test = false;
 		if (args.length != 3) {
-			System.out.println("arguments should be rootOTToLid graphdbfolder");
+			System.out.println("arguments should be rootottId graphdbfolder");
 			return 1;
 		}
-		String ottolId = args[1];
+		String ottId = args[1];
 		String graphname = args[2];
 		boolean success = false;
 		GraphExplorer ge = new GraphExplorer(graphname);
@@ -1078,9 +1078,9 @@ public class MainRunner {
 			preferredSources.add("taxonomy");
 			
 			// find the start node
-			Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+			Node firstNode = ge.findGraphTaxNodeByUID(ottId);
 			if (firstNode == null) {
-				throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
+				throw new opentree.exceptions.ottIdNotFoundException(ottId);
 			}
 			try {
 				success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
@@ -1088,7 +1088,7 @@ public class MainRunner {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		} catch (OttolIdNotFoundException oex) {
+		} catch (ottIdNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
 			ge.shutdownDB();
@@ -1097,15 +1097,15 @@ public class MainRunner {
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftTreeForOttId(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int extractDraftTreeForOttId(String [] args) throws ottIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 
 		// open the graph
 		String graphname = args[3];
 		GraphExplorer ge = new GraphExplorer(graphname);
-		String ottolId = args[1];
+		String ottId = args[1];
 
 		// get the start node
-		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottolId).getId());
+		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottId).getId());
 		args[1] = startNodeIdStr;
 		ge.shutdownDB();
 		// do the synth
@@ -1113,9 +1113,9 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftTreeForNodeId(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int extractDraftTreeForNodeId(String [] args) throws ottIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
-			System.out.println("arguments should be rootOTToLid outFileName graphdbfolder");
+			System.out.println("arguments should be rootottId outFileName graphdbfolder");
 			return 1;
 		}
 		Long startNodeId = Long.valueOf(args[1]);
@@ -1124,10 +1124,10 @@ public class MainRunner {
 		GraphExplorer ge = new GraphExplorer(graphname);
 		
 		// find the start node
-//        Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+//        Node firstNode = ge.findGraphTaxNodeByUID(ottId);
 		Node firstNode = ge.graphDb.getNodeById(startNodeId);
 //        if (firstNode == null) {
-//            throw new opentree.exceptions.OttolIdNotFoundException(ottolId);
+//            throw new opentree.exceptions.ottIdNotFoundException(ottId);
 //        }
 		
 		JadeTree synthTree = null;
@@ -1152,7 +1152,7 @@ public class MainRunner {
 	}
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftSubTreeForOttIDs(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int extractDraftSubTreeForOttIDs(String [] args) throws ottIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
 			return 1;
@@ -1191,13 +1191,13 @@ public class MainRunner {
     }
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftTreeForOttidJSON(String [] args) throws OttolIdNotFoundException, MultipleHitsException, TaxonNotFoundException{
+	public int extractDraftTreeForOttidJSON(String [] args) throws ottIdNotFoundException, MultipleHitsException, TaxonNotFoundException{
 		// open the graph
 		String graphname = args[3];
 		String outFileName = args[2];
-		String ottolId = args[1];
+		String ottId = args[1];
 		GraphExplorer ge = new GraphExplorer(graphname);
-		Node firstNode = ge.findGraphTaxNodeByUID(ottolId);
+		Node firstNode = ge.findGraphTaxNodeByUID(ottId);
 		JadeTree synthTree = null;
 		synthTree = ge.extractDraftTree(firstNode, GraphBase.DRAFTTREENAME);
 		if (synthTree == null) {
@@ -1369,19 +1369,19 @@ public class MainRunner {
 			HashSet<Long> ottols = new HashSet<Long>();
 			messageLogger.indentMessageStr(1, "Checking for uniqueness of OTT IDs", "tree id", treeJId);
 			for (int m = 0; m < j.getExternalNodeCount(); m++) {
-				//System.out.println(j.getExternalNode(m).getName() + " " + j.getExternalNode(m).getObject("ot:ottolid"));
-				if (j.getExternalNode(m).getObject("ot:ottolid") == null) {//use doubname as also 
+				//System.out.println(j.getExternalNode(m).getName() + " " + j.getExternalNode(m).getObject("ot:ottId"));
+				if (j.getExternalNode(m).getObject("ot:ottId") == null) {//use doubname as also 
 					messageLogger.indentMessageStr(2, "null OTT ID for node", "name", j.getExternalNode(m).getName());
 					doubname = true;
 					break;
 				}
-				Long ottID = (Long)j.getExternalNode(m).getObject("ot:ottolid");
+				Long ottID = (Long)j.getExternalNode(m).getObject("ot:ottId");
 				if (ottols.contains(ottID) == true) {
 					messageLogger.indentMessageLongStr(2, "duplicate OTT ID for node", "OTT ID", ottID, "name", j.getExternalNode(m).getName());
 					doubname = true;
 					break;
 				} else {
-					ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
+					ottols.add((Long)j.getExternalNode(m).getObject("ot:ottId"));
 				}
 			}
 			//check for any duplicate ottol:id

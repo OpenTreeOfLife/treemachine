@@ -58,15 +58,15 @@ public class PhylografterUpdater extends ServerPlugin{
 					boolean doubname = false;
 					HashSet<Long> ottols = new HashSet<Long>();
 					for(int m=0;m<j.getExternalNodeCount();m++){
-						if(j.getExternalNode(m).getObject("ot:ottolid")==null){//use doubname as also 
+						if(j.getExternalNode(m).getObject("ot:ottId")==null){//use doubname as also 
 							doubname = true;
 							break;
 						}
-						if (ottols.contains(j.getExternalNode(m).getObject("ot:ottolid"))==true){
+						if (ottols.contains(j.getExternalNode(m).getObject("ot:ottId"))==true){
 							doubname = true;
 							break;
 						}else{
-							ottols.add((Long)j.getExternalNode(m).getObject("ot:ottolid"));
+							ottols.add((Long)j.getExternalNode(m).getObject("ot:ottId"));
 						}
 					}
 					//check for any duplicate ottol:id
