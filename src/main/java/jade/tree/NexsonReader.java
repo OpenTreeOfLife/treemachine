@@ -222,6 +222,9 @@ public class NexsonReader {
 						JSONObject m = (JSONObject)meta;
 						String propname = (String)m.get("@property");
 						Object value = m.get("$");
+						if (propname.equals("ot:ottId")) {
+							propname = "ot:ottolid";
+						}
 						if (propname.equals("ot:ottolid")) {
 							// Kludge! For important special case
 							if (value instanceof String) {
@@ -236,7 +239,7 @@ public class NexsonReader {
 								System.err.println("Error with: " + m);
 								throw new RuntimeException("Invalid ottolid value: " + value);
 							}
-						} else if(propname.equals("ot:originalLabel")){
+						} else if (propname.equals("ot:originalLabel")){
 							// ignoring originalLabel, but not emitting the unknown property warning
 						} else {
 							msgLogger.indentMessageStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);
