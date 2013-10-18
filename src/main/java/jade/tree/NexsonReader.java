@@ -186,7 +186,9 @@ public class NexsonReader {
 		
 		// arbitraryNode is for finding the root later on (if not specified), see below
 		JadeNode arbitraryNode = null;
-
+		
+		boolean deprecatedOttID = false;
+		
 		// For each node as specified in the Nexson file, create a JadeNode, and squirrel it away
 		for (Object node : nodeList) {
 			// {"@otu": "otu221", "@id": "node692"}
@@ -224,6 +226,7 @@ public class NexsonReader {
 						Object value = m.get("$");
 						if (propname.equals("ot:ottolid")) {
 							propname = "ot:ottId";
+							deprecatedOttID = true;
 						}
 						if (propname.equals("ot:ottId")) {
 							// Kludge! For important special case
@@ -249,7 +252,11 @@ public class NexsonReader {
 				}
 			}
 		}
-
+		
+		if (deprecatedOttID) {
+			System.err.println("\tWarning: study uses the deprecated 'ot:ottolid'. Consider getting a newer version of the study for tree: " + treeID);
+		}
+		
 		// For each specified edge, hook up the two corresponding JadeNodes
 		for (Object edge : edgeList) {
 			JSONObject j = (JSONObject)edge;
