@@ -12,7 +12,7 @@ if __name__ == "__main__":
         sys.exit(0)
     
     target = (sys.argv[1]).strip()
-    print "target taxa: ",target
+    print "target taxa:",target
     infile = open(sys.argv[2],"r")
     outfile = open(sys.argv[3],"w")
 
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         unid[tid] = spls[5].strip()
         flgs[tid] = spls[6].strip()
         if name == target:
-            print "name set ",tid
+            print "name set:",tid
             targetid = tid
         pid[tid] = parentid
         if parentid not in cid: 
@@ -49,9 +49,14 @@ if __name__ == "__main__":
     infile.close()
     
     stack = [targetid]
+    rootSet = False
     while len(stack) > 0:
         tempid = stack.pop()
-        outfile.write(tempid+"\t|\t"+pid[tempid]+"\t|\t"+nid[tempid]+"\t|\t"+nrank[tempid]+"\t|\t"+sid[tempid]+"\t|\t"+unid[tempid]+"\t|\t"+flgs[tempid]+"\t|\t\n")
+        if rootSet:
+            outfile.write(tempid+"\t|\t"+pid[tempid]+"\t|\t"+nid[tempid]+"\t|\t"+nrank[tempid]+"\t|\t"+sid[tempid]+"\t|\t"+unid[tempid]+"\t|\t"+flgs[tempid]+"\t|\t\n")
+        else:
+            outfile.write(tempid+"\t|\t"+"\t|\t"+nid[tempid]+"\t|\t"+nrank[tempid]+"\t|\t"+sid[tempid]+"\t|\t"+unid[tempid]+"\t|\t"+flgs[tempid]+"\t|\t\n")
+            rootSet = True
         if tempid in cid:
             for i in cid[tempid]:
                 stack.append(i)
