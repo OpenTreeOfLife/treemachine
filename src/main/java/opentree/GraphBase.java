@@ -54,6 +54,7 @@ public abstract class GraphBase {
 	protected static Index<Node> graphTaxUIDNodeIndex; //tax_uid is the key, the uid from the taxonomy points to this node
 	protected static Index<Node> synTaxUIDNodeIndex; //tax_uid is the key, this points to the synonymn node, to get the tax that this points to you need to travel synonymof
 	protected static Index<Node> graphTaxNewNodes;
+	protected static Index<Node> synthMetaIndex;
 
 	// this is clunky, might be a better way to do this
 	public static final String DRAFTTREENAME = (String) GeneralConstants.DRAFT_TREE_NAME.value;
@@ -328,5 +329,6 @@ public abstract class GraphBase {
     	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes");
     	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
     	graphTaxNewNodes = graphDb.getNodeIndex(""); // not sure what the name of this one is in the graphdb. it doesn't seem to be used (for now)
+    	synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes");
 	}
 }

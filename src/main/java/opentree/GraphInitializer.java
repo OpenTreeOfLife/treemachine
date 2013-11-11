@@ -318,6 +318,9 @@ public class GraphInitializer extends GraphBase{
 			}if (tflag.equals("not_otu")){
 				System.out.println("skipping not_otu "+name);	
 				return;
+			}if (tflag.equals("tattered")){
+				System.out.println("skipping tattered "+name);	
+				return;
 			}
 		}
 		

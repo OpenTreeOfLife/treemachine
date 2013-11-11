@@ -757,6 +757,16 @@ public class GraphExplorer extends GraphBase {
 
     // ===================================== draft tree synthesis methods ======================================
     
+    public Node getSynthesisMetaNode(){
+    	IndexHits<Node> hits = synthMetaIndex.query("name", DRAFTTREENAME);
+    	Node nd = null;
+    	if (hits.hasNext()){
+    		nd = hits.next();
+    	}
+    	hits.close();
+    	return nd;
+    }
+    
     /**
      * The synthesis method for creating the draft tree. Uses the refactored synthesis classes. This will store the synthesized
      * topology as SYNTHCHILDOF relationships in the graph.
@@ -774,10 +784,15 @@ public class GraphExplorer extends GraphBase {
         	sourceIdPriorityList.add(sourceId);
         }
         
+        
         // build the list of ids, have to use generic objects
+        String [] sourceIdPriorityListString = new String [sourceIdPriorityList.size()];
+        int iii=0;
         ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
         	justSourcePriorityList.add(sourceId.split("_")[0]);
+        	sourceIdPriorityListString[iii] = sourceId;
+        	iii++;
         }	
         
         // define the synthesis protocol
@@ -842,7 +857,8 @@ public class GraphExplorer extends GraphBase {
         	metadatanode.setProperty("date", date.toString());
 //        	metadatanode.setProperty("synthmethod", arg1);
 //        	metadatanode.setProperty("command", command);
-//        	metadatanode.setProperty("sourcenames",sourceIdPriorityList); //need to make sure that this list is processed correctly
+        	metadatanode.setProperty("sourcenames", sourceIdPriorityListString); //need to make sure that this list is processed correctly
+        	synthMetaIndex.add(metadatanode, "name", synthTreeName);
         	tx.success();
         } catch (Exception ex) {
         	tx.failure();

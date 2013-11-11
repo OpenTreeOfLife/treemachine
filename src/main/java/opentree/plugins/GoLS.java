@@ -96,6 +96,27 @@ public class GoLS extends ServerPlugin {
 		return OpenTreeMachineRepresentationConverter.convert(draftTreeInfo);
 	}
 	
+	@Description("Returns a list of the synthesis tree source information")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getSynthesisSourceList (
+			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		ArrayList<String> sourceList = new ArrayList<String>();
+		try {
+			Node meta = ge.getSynthesisMetaNode();
+			if (meta != null){
+				String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
+				for(int i=0;i<sourcePrimList.length;i++){
+					sourceList.add(sourcePrimList[i]);
+				}
+				
+			}
+		} finally {
+			ge.shutdownDB();
+		}
+		return OpenTreeMachineRepresentationConverter.convert(sourceList);
+	}
+	
 	@Description("Initiate the default synthesis process (and store the synthesized branches) for the subgraph starting from a given root node")
 	@PluginTarget(GraphDatabaseService.class)
 	public String synthesizeSubtree(
