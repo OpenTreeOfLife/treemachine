@@ -186,8 +186,12 @@ public class PhylografterConnector {
 	public static boolean fixNamesFromTrees(List<JadeTree> trees, GraphDatabaseAgent graphDb, boolean prune, MessageLogger logger) throws IOException{
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
-		String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
-		String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
+	//	String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
+	//	String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
+		
+		String urlbasecontext = "http://ec2-54-212-192-235.us-west-2.compute.amazonaws.com/taxomachine/ext/TNRS/graphdb/getContextForNames";
+		String urlbasefetch = "http://ec2-54-212-192-235.us-west-2.compute.amazonaws.com/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
+		
 		logger.message("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
 			JadeTree currTree = trees.get(i);
