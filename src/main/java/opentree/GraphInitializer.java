@@ -320,7 +320,7 @@ public class GraphInitializer extends GraphBase{
 				return;
 			}if (tflag.equals("tattered")){
 				System.out.println("skipping tattered "+name);	
-				return;
+			//	return;
 			}
 		}
 		
