@@ -984,14 +984,14 @@ public class MainRunner {
 			try{
 				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
 				if (good == false){
-					System.out.println("failed to get the names from server fixNamesFromTrees");
+					System.out.println("failed to get the names from server fixNamesFromTrees 1");
 					messageLogger.close();
 					graphDb.shutdownDb();
 					return 0;
 				}
 			}catch(IOException ioe){
 				ioe.printStackTrace();
-				System.out.println("failed to get the names from server fixNamesFromTrees");
+				System.out.println("failed to get the names from server fixNamesFromTrees 2");
 				messageLogger.close();
 				graphDb.shutdownDb();
 				return 0;
@@ -1347,11 +1347,11 @@ public class MainRunner {
 			boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, messageLogger);
 			System.out.println("done fixing name");
 			if (good == false){
-				System.err.println("failed to get the names from server fixNamesFromTrees");
+				System.err.println("failed to get the names from server fixNamesFromTrees 3");
 				return -1;
 			}
 		} catch (IOException ioe){
-			System.err.println("excpeption to get the names from server fixNamesFromTrees");
+			System.err.println("excpeption to get the names from server fixNamesFromTrees 4");
 			throw ioe;
 		}
 		messageLogger.message("Finished with attempts to fix names");
