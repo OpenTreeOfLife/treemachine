@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Stack;
 
+import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
 import opentree.exceptions.MultipleHitsException;
@@ -2099,7 +2100,7 @@ public class GraphExplorer extends GraphBase {
     private JadeTree reconstructSourceTreeHelper(Node metadataNode, Node rootnode, int maxDepth) {
         JadeNode root = new JadeNode();
         if (rootnode.hasProperty("name")) {
-            root.setName((String) rootnode.getProperty("name"));
+            root.setName((String) rootnode.getProperty("name")+"______"+(String)rootnode.getProperty(NodeProperty.TAX_UID.propertyName));
         }
         root.assocObject("nodeid", rootnode.getId());
         boolean printlengths = false;
@@ -2117,7 +2118,7 @@ public class GraphExplorer extends GraphBase {
                 JadeNode jChild = new JadeNode();
                 final long cid = childNode.getId();
                 if (childNode.hasProperty("name")) {
-                    jChild.setName((String) childNode.getProperty("name"));
+                    jChild.setName((String) childNode.getProperty("name")+"______"+(String)childNode.getProperty(NodeProperty.TAX_UID.propertyName));
                 } else {
                     //jChild.setName("_unnamed_node_id_" + String.valueOf(cid));
                 }
@@ -2196,7 +2197,7 @@ public class GraphExplorer extends GraphBase {
                             }
                             JadeNode tchild = new JadeNode();
                             if (tnodechild.hasProperty("name")) {
-                                tchild.setName((String) tnodechild.getProperty("name"));
+                                tchild.setName((String) tnodechild.getProperty("name")+"______"+(String)tnodechild.getProperty(NodeProperty.TAX_UID.propertyName));
                             }
                             tchild.assocObject("nodeid", tnodechild.getId());
                             if (endnode_rel_map.get(tnode).get(i).hasProperty("branch_length")) {
