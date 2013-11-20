@@ -1725,6 +1725,7 @@ public class MainRunner {
 			if (args.length < 2) {
 				System.err.println("ERROR: not the right arguments");
 				printHelp();
+				System.exit(cmdReturnCode);
 			}
 			if (command.compareTo("inittax") == 0) {
 				cmdReturnCode = mr.taxonomyLoadParser(args);
@@ -1794,9 +1795,9 @@ public class MainRunner {
 			} else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
 				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
 			
-			}else if (command.compareTo("pgloadind") == 0) {
+			} else if (command.compareTo("pgloadind") == 0) {
 				cmdReturnCode = mr.pg_loading_ind_studies(args);
-			}else if (command.compareTo("pgdelind") == 0) {
+			} else if (command.compareTo("pgdelind") == 0) {
 				cmdReturnCode = mr.pg_delete_ind_study(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
