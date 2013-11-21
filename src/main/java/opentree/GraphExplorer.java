@@ -114,8 +114,9 @@ public class GraphExplorer extends GraphBase {
      */
     public void setSinkLostChildren(boolean sinkLostChildren) {
     	this.sinkLostChildren = sinkLostChildren;
-    	if (sinkLostChildren)
+    	if (sinkLostChildren) {
     		this.knownIdsInTree = new HashSet<Long>();
+    	}
     }
 
     /**
@@ -197,7 +198,6 @@ public class GraphExplorer extends GraphBase {
     	while (stack.size() > 0) {
 
     		System.out.println(stack.size() + " nodes remaining");
-    		
     		JadeNode treeNode = stack.remove(0);
 
     		// get all the children of the tree leaves (which may be deep graph nodes)
@@ -222,7 +222,6 @@ public class GraphExplorer extends GraphBase {
     		
     		// for each leaf descendant of the current node
     		for (JadeNode curDescendant : treeNodeTreeTipDescendantsMap.get(treeNode)) {
-
     			// testing
     			System.out.println("on descendant " + curDescendant.getName());     			
 
@@ -308,9 +307,7 @@ public class GraphExplorer extends GraphBase {
 						}
 	    			}
 				}
-				
 				treeNode.addChild(childTreeNode);
-				
     		}
     	}
     	
@@ -351,16 +348,17 @@ public class GraphExplorer extends GraphBase {
             outFile.write("{\"nodes\":[");
             for (int i = 0; i < count; i++) {
                 Node tnode = numbernodes.get(i);
-                if (tnode.hasProperty("name"))
+                if (tnode.hasProperty("name")) {
                     outFile.write("{\"name\":\"" + (tnode.getProperty("name")) + "");
-                else
+                } else {
                     outFile.write("{\"name\":\"");
-                // outFile.write("{\"name\":\""+tnode.getProperty("name")+"");
+                }
                 outFile.write("\",\"group\":" + nodenumbers.get(tnode) + "");
-                if (i + 1 < count)
+                if (i + 1 < count) {
                     outFile.write("},");
-                else
+                } else {
                     outFile.write("}");
+                }
             }
             outFile.write("],\"links\":[");
             String outs = "";
@@ -401,14 +399,16 @@ public class GraphExplorer extends GraphBase {
         HashMap<Node, Integer> node_score = new HashMap<Node, Integer>();
         HashSet<Node> allnodes = new HashSet<Node>();
         for (Node friendnode : MRCACHILDOF_TRAVERSAL.traverse(startnode).nodes()) {
-            if (friendnode.hasRelationship(Direction.INCOMING, RelType.MRCACHILDOF) == false)
+            if (friendnode.hasRelationship(Direction.INCOMING, RelType.MRCACHILDOF) == false) {
                 tips.add(friendnode);
+            }
             HashMap<Node, Integer> conflicts_count = new HashMap<Node, Integer>();
             child_parents_map.put(friendnode, new HashSet<Node>());
             int count = 0;
             for (Relationship rel : friendnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
-                if (rel.getProperty("source").equals("taxonomy") == true || rel.getProperty("source").equals("ottol") == true)
+                if (rel.getProperty("source").equals("taxonomy") == true || rel.getProperty("source").equals("ottol") == true) {
                     continue;
+                }
                 if (conflicts_count.containsKey(rel.getEndNode()) == false) {
                     conflicts_count.put(rel.getEndNode(), 0);
                 }
@@ -524,8 +524,9 @@ public class GraphExplorer extends GraphBase {
                 for (Node tnode : hits) {
                     Path tpath = pf.findSinglePath(tnode, focalnode);
                     if (tpath != null) {
-                        if (shortn == null)
+                        if (shortn == null) {
                             shortn = tnode;
+                        }
                         if (tpath.length() < shortest) {
                             shortest = tpath.length();
                             shortn = tnode;
@@ -679,10 +680,11 @@ public class GraphExplorer extends GraphBase {
                 pnode = node_jade_map.get(friendnode.getId());
             } else {
                 pnode = new JadeNode();
-                if (friendnode.hasProperty("name"))
+                if (friendnode.hasProperty("name")) {
                     pnode.setName((String) friendnode.getProperty("name"));
-                else
+                } else {
                     pnode.setName(String.valueOf(friendnode.getId()));
+                }
                 pnode.setName(pnode.getName() + "_" + String.valueOf(node_score.get(friendnode)));
             }
             long[] mrcas = (long[]) friendnode.getProperty("mrca");
@@ -710,7 +712,6 @@ public class GraphExplorer extends GraphBase {
                                     break;
                                 }
                             }
-
                             if (br == false) {
                                 highest = tscore;
                                 bnode = tnode;
@@ -734,16 +735,16 @@ public class GraphExplorer extends GraphBase {
                         tnode1 = new JadeNode(pnode);
                         if (bnode.hasProperty("name")) {
                             tnode1.setName((String) bnode.getProperty("name"));
-                        }
-                        else {
+                        } else {
                             tnode1.setName(String.valueOf(bnode.getId()));
                             tnode1.setName(tnode1.getName() + "_" + String.valueOf(node_score.get(bnode)));
                         }
                     }
                     pnode.addChild(tnode1);
                     node_jade_map.put(bnode.getId(), tnode1);
-                    if (childs_scores.containsKey(bnode))
+                    if (childs_scores.containsKey(bnode)) {
                         st.push(bnode);
+                    }
                 }
                 if (pmrcas.size() == 0 || nomatch == true) {
                     going = false;
@@ -756,12 +757,14 @@ public class GraphExplorer extends GraphBase {
         System.out.println(tree.getRoot().getNewick(false) + ";");
     }
 
+    
+    
     // ===================================== draft tree synthesis methods ======================================
     
-    public Node getSynthesisMetaNode(){
+    public Node getSynthesisMetaNode() {
     	IndexHits<Node> hits = synthMetaIndex.query("name", DRAFTTREENAME);
     	Node nd = null;
-    	if (hits.hasNext()){
+    	if (hits.hasNext()) {
     		nd = hits.next();
     	}
     	hits.close();
@@ -785,10 +788,9 @@ public class GraphExplorer extends GraphBase {
         	sourceIdPriorityList.add(sourceId);
         }
         
-        
         // build the list of ids, have to use generic objects
         String [] sourceIdPriorityListString = new String [sourceIdPriorityList.size()];
-        int iii=0;
+        int iii = 0;
         ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
         	justSourcePriorityList.add(sourceId.split("_")[0]);
@@ -809,7 +811,7 @@ public class GraphExplorer extends GraphBase {
         boolean studyids = false;
         while (hits.hasNext()) {
             Node n = hits.next();
-            if (n.hasProperty("ot:studyId")){
+            if (n.hasProperty("ot:studyId")) {
             	if (justSourcePriorityList.contains(n.getProperty("ot:studyId")) == false) {
             		filteredsources.add((String)n.getProperty("ot:studyId"));
             		studyids = true;
@@ -822,21 +824,22 @@ public class GraphExplorer extends GraphBase {
         }
         System.out.println("filtered: "+filteredsources);
         if (filteredsources.size() > 0) {
-        	if(studyids == true)
+        	if (studyids == true) {
         		rf.addCriterion(new FilterCriterion(Directive.INCLUDE, new SourcePropertySetTest(filteredsources, SetComparison.CONTAINS_ANY, SourceProperty.STUDY_ID, sourceMetaIndex)));
-        	else
+        	} else {
         		rf.addCriterion(new FilterCriterion(Directive.INCLUDE, new SourcePropertySetTest(filteredsources, SetComparison.CONTAINS_ANY, SourceProperty.SOURCE, sourceMetaIndex)));
+        	}
         	draftSynthesisMethod.setFilter(rf);
         }
-        //if(true == true)
+        //if (true == true)
         //	return true;
         // set ranking criteria
         RelationshipRanker rs = new RelationshipRanker();
-        if(studyids == true)
+        if (studyids == true) {
     		rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.STUDY_ID, sourceIdPriorityList, sourceMetaIndex));
-    	else
+        } else {
     		rs.addCriterion(new SourcePropertyPrioritizedRankingCriterion(SourceProperty.SOURCE, sourceIdPriorityList, sourceMetaIndex));
-        
+        }
         //rs.addCriterion(new SourcePropertyRankingCriterion(SourceProperty.YEAR, RankingOrder.DECREASING, sourceMetaIndex));
         draftSynthesisMethod.setRanker(rs);
 
@@ -918,30 +921,30 @@ public class GraphExplorer extends GraphBase {
         	System.out.println("cleaning dead nodes");
         	TLongHashSet vd = new TLongHashSet();
         	int actual = 0;
-        	for(int i=0;i<deadnodes.size();i++){
+        	for(int i=0;i<deadnodes.size();i++) {
         		long cnd = deadnodes.get(i);
-        		if (vd.contains(cnd)){
+        		if (vd.contains(cnd)) {
         			continue;
-        		}else{
+        		} else {
         			vd.add(cnd);
         		}
         		//check to see if this has any other children
         		Node cn = graphDb.getNodeById(cnd);
-        		if(cn.hasRelationship(RelType.STREECHILDOF, Direction.INCOMING) == false){
+        		if (cn.hasRelationship(RelType.STREECHILDOF, Direction.INCOMING) == false) {
         			vd.add(cnd);
-        		}else{
+        		} else {
         			System.out.println("actual: "+cnd);
         			actual++;
         			boolean going = true;
         			Node curnode = cn;
-        			while(going){
-        				if(curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING)== false){
+        			while (going) {
+        				if (curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING)== false) {
         					vd.add(curnode.getId());
         					Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
         					curnode = tr.getEndNode();
         					System.out.println("deleting: "+tr);
         					tr.delete();
-        				}else{
+        				} else {
         					break;
         				}
         			}
@@ -966,10 +969,8 @@ public class GraphExplorer extends GraphBase {
 	        tx = graphDb.beginTx();
 	        try {
 
-	        	
 	        	// uncommented for testing with new synth method
-	        	addMissingChildrenToDraftTreeWhile(startNode,startNode);
-
+	        	addMissingChildrenToDraftTreewhile (startNode,startNode);
 	        	
 	        	tx.success();
 	        } catch (Exception ex) {
@@ -1119,11 +1120,9 @@ public class GraphExplorer extends GraphBase {
 				}
 			}
 		}
-		
 		//System.out.println("i currently equals: " + i);
 		// return the lica
 		return graphDb.getNodeById(referencePathNodeIds.get(i));
-		
 	}
     
     /**
@@ -1168,7 +1167,6 @@ public class GraphExplorer extends GraphBase {
 //                    namesInTree.add(childName);
                     nodesInTree.add(childNode);
 //                    System.out.println("name in tree: " + name);
-
                 } else {
 //                  taxaToAddNamesNodesMap.put(childName, childNode);
                 	nodesToAdd.add(childNode);
@@ -1181,7 +1179,6 @@ public class GraphExplorer extends GraphBase {
             if (nodesInTree.size() > 0) {
                 mrca = getLICAForDraftTreeNodes(nodesInTree);
 //                System.out.println("found mrca: " + mrca);
-
             } else {
 //                System.out.println("zero names in tree!");
                 continue;
@@ -1192,9 +1189,7 @@ public class GraphExplorer extends GraphBase {
             
             // add any children that are not already in tree
             for (Node childNode : nodesToAdd) {
-
-                System.out.println("attempting to add child: " + childNode.getProperty("name")+" "+childNode);
-
+                System.out.println("attempting to add child: " + childNode.getProperty("name") + " " + childNode);
                 Relationship newRel = childNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
                 newRel.setProperty("name", DRAFTTREENAME);
                 newRel.setProperty("supporting_sources", supportingSources);
@@ -1208,7 +1203,7 @@ public class GraphExplorer extends GraphBase {
      * @param startNode
      * @param taxRootNode
      */
-    private void addMissingChildrenToDraftTreeWhile(Node startNode, Node taxRootNode) {
+    private void addMissingChildrenToDraftTreewhile (Node startNode, Node taxRootNode) {
         // to be stored as the 'supporting_sources' property of newly created rels
         String[] supportingSources = new String[1];
         supportingSources[0] = "taxonomy";
@@ -1217,14 +1212,15 @@ public class GraphExplorer extends GraphBase {
         
         System.out.println("have to add "+taxaleft.size());
         
-        while(taxaleft.size() > 0){
+        while (taxaleft.size() > 0) {
         	System.out.print("taxaleft: "+taxaleft.size());
         	long tid = taxaleft.removeAt(0);
         	Node taxNode = graphDb.getNodeById(tid);
         	System.out.println(" working with "+((String)taxNode.getProperty("name")));
             TLongArrayList ttmrca = new TLongArrayList((long [])taxNode.getProperty("mrca"));
-        	if(taxNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF))
+        	if (taxNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
         		continue;
+        	}
         	//if it is a tip, get the parent
         	Node ptaxNode = taxNode.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
             ArrayList<Node> nodesInTree = new ArrayList<Node>();
@@ -1242,17 +1238,17 @@ public class GraphExplorer extends GraphBase {
             	Node mrca = null;
                 mrca = getLICAForDraftTreeNodes(nodesInTree);
                // TLongArrayList tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
-                //while(tmrca.containsAll(ttmrca) == false){
+                //while (tmrca.containsAll(ttmrca) == false) {
                 //	mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
                 //	tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
                 //}
-//                System.out.println("1) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
+//                System.out.println("1) attempting to add child: " + taxNode.getProperty("name") + " " + taxNode);
                 Relationship newRel = taxNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
                 newRel.setProperty("name", DRAFTTREENAME);
                 newRel.setProperty("supporting_sources", supportingSources);
                 knownIdsInTree.add(taxNode.getId());
             } else {
-//            	System.out.println("2) attempting to add child: " + taxNode.getProperty("name")+" "+taxNode);
+//            	System.out.println("2) attempting to add child: " + taxNode.getProperty("name") + " " + taxNode);
             	Relationship newRel = taxNode.createRelationshipTo(ptaxNode, RelType.SYNTHCHILDOF);
             	newRel.setProperty("name", DRAFTTREENAME);
             	newRel.setProperty("supporting_sources", supportingSources);
@@ -1289,7 +1285,7 @@ public class GraphExplorer extends GraphBase {
 
         // add the current node to the tree we're building
         if (parentJadeNode != null) {
-        	if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")){
+        	if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")) {
             	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
             }
         	parentJadeNode.addChild(curNode);
@@ -1303,7 +1299,7 @@ public class GraphExplorer extends GraphBase {
         for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
         	        	
         	// TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
-        	if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name"))))	{
+        	if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
         		// currently just filtering on name
         		synthChildRels.add(synthChildRel);
         	}
@@ -1342,16 +1338,11 @@ public class GraphExplorer extends GraphBase {
         JadeTree tree = new JadeTree(root);
         
         if (sinkLostChildren) {
-
-        	// TODO: find the taxonomy base node to use for sinking children?
-
+// TODO: find the taxonomy base node to use for sinking children?
         	String taxName = null;
-
         	addMissingChildrenToJadeTreeRelaxed(tree, taxName);
         }
-        
         return new JadeTree(root);
-
     }
 
     /**
@@ -1403,11 +1394,11 @@ public class GraphExplorer extends GraphBase {
 
         // for every candidate (incoming childof) relationship
         for (Relationship candRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
-
             if (useTaxonomy == false) {
                 // skip taxonomy relationships if specified
-                if (candRel.getProperty("source").equals("taxonomy"))
+                if (candRel.getProperty("source").equals("taxonomy")) {
                     continue;
+                }
             }
 
             // candidate child node id
@@ -1419,8 +1410,9 @@ public class GraphExplorer extends GraphBase {
 
                 // save this candidate's mrca descendants
                 HashSet<Long> descIds = new HashSet<Long>();
-                for (long descId : (long[]) graphDb.getNodeById(cid).getProperty("mrca"))
+                for (long descId : (long[]) graphDb.getNodeById(cid).getProperty("mrca")) {
                     descIds.add(descId);
+                }
                 candNodeDescendantIdsMap.put(cid, descIds);
 
                 // save the current candidate relationship we used to reach this node
@@ -1434,7 +1426,6 @@ public class GraphExplorer extends GraphBase {
             if (candNodeRankingMap.get(cid) != 0) {
                 String sourceName = (String) candRel.getProperty("source");
                 for (int i = 0; i < sourcesArray.size(); i++) {
-
                     // update if the rank of the sourcetree for the current candidate relationship is better than the last saved rank
                     if (sourceName.compareTo(sourcesArray.get(i)) == 0) {
                         if (candNodeRankingMap.get(cid) > i) {
@@ -1462,13 +1453,15 @@ public class GraphExplorer extends GraphBase {
         // compare all candidate nodes to choose which to remove/keep
         HashSet<Long> nodesToExclude = new HashSet<Long>();
         for (Long cid_i : candidateNodeIds) {
-            if (nodesToExclude.contains(cid_i))
+            if (nodesToExclude.contains(cid_i)) {
                 continue;
+            }
             HashSet<Long> descendantIds_i = candNodeDescendantIdsMap.get(cid_i);
 
             for (Long cid_j : candidateNodeIds) {
-                if (cid_j == cid_i || nodesToExclude.contains(cid_j))
+                if (cid_j == cid_i || nodesToExclude.contains(cid_j)) {
                     continue;
+                }
                 HashSet<Long> descIds_j = candNodeDescendantIdsMap.get(cid_j);
 
                 // get difference of descendant sets for candidates i and j
@@ -1542,7 +1535,6 @@ public class GraphExplorer extends GraphBase {
                 }
             }
         } */
-
 
         // continue recursion
         for (Long cid : candidateNodeIds) {
@@ -1662,8 +1654,9 @@ public class GraphExplorer extends GraphBase {
         for (Relationship rel : curGraphNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 
             if (useTaxonomy == false) {
-                if (rel.getProperty("source").equals("taxonomy"))
+                if (rel.getProperty("source").equals("taxonomy")) {
                     continue;
+                }
             }
 
             Long tnd = rel.getStartNode().getId();
@@ -1690,13 +1683,15 @@ public class GraphExplorer extends GraphBase {
 
         HashSet<Long> deletenodes = new HashSet<Long>();
         for (Long tn : testnodes) {
-            if (deletenodes.contains(tn))
+            if (deletenodes.contains(tn)) {
                 continue;
+            }
             HashSet<Long> mrcas1 = storedmrcas.get(tn);
             int compint1 = testnodes_scores.get(tn);
             for (Long tn2 : testnodes) {
-                if (tn2 == tn || deletenodes.contains(tn2))
+                if (tn2 == tn || deletenodes.contains(tn2)) {
                     continue;
+                }
                 HashSet<Long> mrcas2 = storedmrcas.get(tn2);
                 int compint2 = testnodes_scores.get(tn2);
                 // test intersection
@@ -1839,7 +1834,6 @@ public class GraphExplorer extends GraphBase {
             for (long cid : (long[]) taxNode.getProperty("mrca")) {
                 String name = GeneralUtils.cleanName((String) graphDb.getNodeById(cid).getProperty("name"));
 
-
                 // `knownIdsInTree` should already have been started during original construction of `tree`
                 if (knownIdsInTree.contains(cid)) {
                     namesInTree.add(name);
@@ -1855,7 +1849,6 @@ public class GraphExplorer extends GraphBase {
             if (namesInTree.size() > 0) {
                 mrca = tree.getMRCAAnyDepthDescendants(namesInTree);
 //                System.out.println("found mrca: " + mrca);
-
             } else {
 //                System.out.println("zero names in tree!");
                 continue;
@@ -1874,20 +1867,14 @@ public class GraphExplorer extends GraphBase {
             
             // add any children that are not already in tree
             for (Entry<String, Long> entry: taxaToAdd.entrySet()) {
-
                 String taxName = entry.getKey();
                 Long taxId = entry.getValue();
-
 //                System.out.println("attempting to add child: " + taxName + " to " + mrca.getName());
-
                 JadeNode newChild = new JadeNode();
                 newChild.setName(taxName);
-
                 mrca.addChild(newChild);
-                
                 knownIdsInTree.add(taxId);
             }
-            
             // update the JadeTree, otherwise we won't always find newly added taxa when we look for mrcas
             tree.processRoot();
         }
@@ -1904,8 +1891,9 @@ public class GraphExplorer extends GraphBase {
         ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
         while (hits.hasNext()) {
             Node n = hits.next();
-            if (n.hasProperty("treeID"))
+            if (n.hasProperty("treeID")) {
             	sourceArrayList.add((String) n.getProperty("treeID"));
+            }
         }
         return sourceArrayList;
     }
@@ -1919,10 +1907,10 @@ public class GraphExplorer extends GraphBase {
         ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
         while (hits.hasNext()) {
             Node n = hits.next();
-            try{
+            try {
             	sourceArrayList.add((String) n.getProperty("source"));
-            }catch(Exception e){
-            	System.out.println("source property not found for "+n);
+            } catch(Exception e) {
+            	System.out.println("source property not found for " + n);
             }
         }
         return sourceArrayList;
@@ -1933,12 +1921,14 @@ public class GraphExplorer extends GraphBase {
         ArrayList<String> sourceList = new ArrayList<String>();
         while (hits.hasNext()) {
             Node n = hits.next();
-            if(n.hasProperty("ot:studyPublicationReference") && n.hasProperty("ot:studyId")){
-            	if (sourceList.contains((String)n.getProperty("ot:studyId")+"\t"+(String)n.getProperty("ot:studyPublicationReference")) == false)
-            		sourceList.add((String)n.getProperty("ot:studyId")+"\t"+(String)n.getProperty("ot:studyPublicationReference"));
-            }else{
-            	if (sourceList.contains(n.getProperty("source")) == false)
+            if (n.hasProperty("ot:studyPublicationReference") && n.hasProperty("ot:studyId")) {
+            	if (sourceList.contains((String)n.getProperty("ot:studyId") + "\t" + (String)n.getProperty("ot:studyPublicationReference")) == false) {
+            		sourceList.add((String)n.getProperty("ot:studyId") + "\t" + (String)n.getProperty("ot:studyPublicationReference"));
+            	}
+            } else {
+            	if (sourceList.contains(n.getProperty("source")) == false) {
             		sourceList.add((String) n.getProperty("source"));
+            	}
             }
         }
         return sourceList;
@@ -2021,7 +2011,7 @@ public class GraphExplorer extends GraphBase {
 
     public Node findTreeMetadataNodeFromTreeID(String treeID) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeID(treeID);
-        Node metadataNode = null;
+//        Node metadataNode = null;	// not used
         Iterable<Relationship> it = rootnode.getRelationships(RelType.METADATAFOR, Direction.INCOMING);
         for (Relationship rel : it) {
             Node m = rel.getStartNode();
@@ -2036,7 +2026,7 @@ public class GraphExplorer extends GraphBase {
 
     public Node findTreeMetadataNodeFromTreeSourceName (String sourcename) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeSourceName(sourcename);
-        Node metadataNode = null;
+//        Node metadataNode = null;	// not used
         Iterable<Relationship> it = rootnode.getRelationships(RelType.METADATAFOR, Direction.INCOMING);
         for (Relationship rel : it) {
             Node m = rel.getStartNode();
@@ -2106,6 +2096,7 @@ public class GraphExplorer extends GraphBase {
         boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
         node2JadeNode.put(rootnode, root);
+    // the following is dead code
         if (false) {  // new way  -- does not (yet) ignore cycles, but does only build requested part of the tree. 
             // does not use the sourceRelIndex...
             FilterByPropertyRelIterator stri;
@@ -2118,7 +2109,7 @@ public class GraphExplorer extends GraphBase {
                 JadeNode jChild = new JadeNode();
                 final long cid = childNode.getId();
                 if (childNode.hasProperty("name")) {
-                    jChild.setName((String) childNode.getProperty("name")+"______"+(String)childNode.getProperty(NodeProperty.TAX_UID.propertyName));
+                    jChild.setName((String) childNode.getProperty("name") + "______" + (String)childNode.getProperty(NodeProperty.TAX_UID.propertyName));
                 } else {
                     //jChild.setName("_unnamed_node_id_" + String.valueOf(cid));
                 }
@@ -2162,10 +2153,10 @@ public class GraphExplorer extends GraphBase {
             while (treestack.isEmpty() == false) {
                 Node tnode = treestack.pop();
                 Integer currDepth = depthStack.pop();
-                // if(tnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)){
-                // System.out.println(tnode + " "+tnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
-                // }else{
-                // System.out.println(tnode);
+                // if (tnode.hasRelationship(Direction.OUTGOING, RelTypes.ISCALLED)) {
+                // 	System.out.println(tnode + " " + tnode.getSingleRelationship(RelTypes.ISCALLED, Direction.OUTGOING).getEndNode().getProperty("name"));
+                // } else {
+                // 	System.out.println(tnode);
                 // }
                 // TODO: move down one more node
                 if (endnode_rel_map.containsKey(tnode)) {
@@ -2179,7 +2170,7 @@ public class GraphExplorer extends GraphBase {
                                     if (licas.length > 1) {
                                         for (int k = 1; k < licas.length; k++) {
                                             ignoreCycles.add(graphDb.getNodeById(licas[k]));
-                                            //_LOG.debug("ignoring: "+licas[k]);
+                                            //_LOG.debug("ignoring: " + licas[k]);
                                         }
                                     }
                                 }
@@ -2272,6 +2263,7 @@ public class GraphExplorer extends GraphBase {
         }
         return toReturn;
     }
+    
     private static void decorateJadeNodeWithCoreProperties(JadeNode jNd, Node nd) {
         if (nd.hasProperty("name")) {
             jNd.setName((String) nd.getProperty("name"));
@@ -2307,7 +2299,7 @@ public class GraphExplorer extends GraphBase {
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
         node2JadeNode.put(rootnode, root);
         TraversalDescription synthEdgeTraversal = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
-        //@TEMP should create an evaluator to check the name of the SYNTHCHILDOF rel and not follow paths with the wrong name...
+    //@TEMP should create an evaluator to check the name of the SYNTHCHILDOF rel and not follow paths with the wrong name...
         synthEdgeTraversal = synthEdgeTraversal.depthFirst();
         if (maxDepth >= 0) {
             synthEdgeTraversal = synthEdgeTraversal.evaluator(Evaluators.toDepth(maxDepth));
@@ -2392,7 +2384,7 @@ public class GraphExplorer extends GraphBase {
 
     
     // ================================= methods for trees ====================================
-    public void labelInternalNodesTax(JadeTree tree, MessageLogger logger){
+    public void labelInternalNodesTax(JadeTree tree, MessageLogger logger) {
     	//first get the unequivocal ones
 		ArrayList<JadeNode> nds = tree.getRoot().getTips();
 		for (int j = 0; j < nds.size(); j++) {
@@ -2420,16 +2412,16 @@ public class GraphExplorer extends GraphBase {
 			e.printStackTrace();
 		}
 
-    	for(int i=0;i<al.get(0).getInternalNodeCount();i++){
+    	for (int i = 0; i < al.get(0).getInternalNodeCount(); i++) {
     		ArrayList<JadeNode> tnds = tree.getInternalNode(i).getTips();
     		TLongArrayList nodeSet = new TLongArrayList();
-    		for(int j=0;j<tnds.size();j++){ 
+    		for (int j = 0; j < tnds.size(); j++) { 
     			Long tid = ((Long)tnds.get(j).getObject("ot:ottId"));
     			Node tnd = graphTaxUIDNodeIndex.get("tax_uid", tid).getSingle();
     			nodeSet.add(tnd.getId());
     		}
     		//System.out.println(nodeSet);
-    		if(nodeSet.size() > 1){
+    		if (nodeSet.size() > 1) {
     			Node tnd = LicaUtil.getTaxonomicLICA(nodeSet,graphDb);
     		//	System.out.println(tnd);
     			tree.getInternalNode(i).setName((String)tnd.getProperty("name"));
@@ -2484,8 +2476,9 @@ public class GraphExplorer extends GraphBase {
 	            Integer value = childcount.get(parent);
 	            value += 1;
 	            if (value > 1) {
-	                if (firstparent == null)
+	                if (firstparent == null) {
 	                    firstparent = parent;
+	                }
 	            }
 	            childcount.put(parent, value);
 	        }
