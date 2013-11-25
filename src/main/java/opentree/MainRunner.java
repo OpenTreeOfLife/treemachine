@@ -1523,6 +1523,31 @@ public class MainRunner {
 		return 0;
 	}
 	
+	/**
+	 * maps the compatible relationships
+	 * @param args
+	 * @return
+	 * @throws Exception
+	 */
+	public int mapcompat(String [] args) throws Exception {
+		boolean test = false;
+		String graphname = args[1];
+		if (args.length != 3 && args.length != 4) {
+			System.out.println("the argument has to be graphdb sourcename (test)");
+			System.out.println("\tif you have test at the end, database won't be changed, but everything will be performed");
+			return 1;
+		}
+		if (args.length == 4) {
+			System.err.println("not entering into the database, just testing");
+			test = true;
+		}
+		String treeid = args[2];
+		GraphExplorer ge = new GraphExplorer(graphname);
+		ge.mapcompat(treeid,test);
+		ge.shutdownDB();
+		return 0;
+	}
+	
 	
 	public int nodeInfo(String [] args){
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
@@ -1656,7 +1681,8 @@ public class MainRunner {
 		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
 		System.out.println("\tpgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
-
+		System.out.println("\tmapcompat <graphdbfolder> treeid (maps the compatible nodes)");
+		
 		System.out.println("---graph output---");
 		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
 		System.out.println("\tfulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F] (constructs a newick file from a particular node)");
@@ -1798,6 +1824,8 @@ public class MainRunner {
 				cmdReturnCode = mr.pg_loading_ind_studies(args);
 			}else if (command.compareTo("pgdelind") == 0) {
 				cmdReturnCode = mr.pg_delete_ind_study(args);
+			} else if (command.compareTo("mapcompat") == 0) {
+				cmdReturnCode = mr.mapcompat(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;

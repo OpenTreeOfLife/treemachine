@@ -758,6 +758,25 @@ public class GraphExplorer extends GraphBase {
 
     // ===================================== draft tree synthesis methods ======================================
     
+    /**
+     * This will map the compatible nodes for particular Lica mappings and will make for
+     * better synthesis (or possibly other analyses)
+     * @param treeid
+     */
+    public void mapcompat(String treeid, boolean test){
+		// initialize db access variables
+		Transaction tx = null;
+		IndexHits <Relationship> rels = null;
+		IndexHits <Node> rootnodes = null;
+
+		// first remove the relationships
+		relsToRemove = sourceRelIndex.get("source", treeid);
+
+
+		rootnodes = sourceRootIndex.get("rootnode", treeid);
+    }
+    
+
     public Node getSynthesisMetaNode(){
     	IndexHits<Node> hits = synthMetaIndex.query("name", DRAFTTREENAME);
     	Node nd = null;
