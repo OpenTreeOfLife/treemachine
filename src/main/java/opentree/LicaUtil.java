@@ -119,6 +119,8 @@ public class LicaUtil {
 		return retaln;
 	}
 
+
+	
 	/**
 	 * This should find all the least inclusive common ancestors (LICA) ignoring
 	 * the sampling of the outgroup or other sampling in the source tree. The idea

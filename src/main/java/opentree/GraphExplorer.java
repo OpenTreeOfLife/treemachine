@@ -772,6 +772,63 @@ public class GraphExplorer extends GraphBase {
 		IndexHits <Relationship> rels = null;
 		IndexHits <Node> rootnodes = null;
 		rootnodes = sourceRootIndex.get("rootnode", treeid);
+		//get the tip nodes
+		if (rootnodes.hasNext()){
+			Node sn = rootnodes.next();
+			Node mn = null;
+			for(Relationship rel1 : sn.getRelationships(Direction.INCOMING, RelType.METADATAFOR)){
+				if(rel1.getStartNode().getProperty("source").equals(treeid)){
+					mn = rel1.getStartNode();
+				}
+			}
+			TLongArrayList ndmap = new TLongArrayList((long[]) mn.getProperty("original_taxa_map"));//need to check and see if this is the deeper mapping
+			TLongArrayList skids = new TLongArrayList();
+			TLongArrayList licas = new TLongArrayList();
+			for (int i=0;i<ndmap.size();i++){
+				long tid = ndmap.get(i);
+				System.out.println(tid);
+				Node stnd = graphDb.getNodeById(tid);
+				for(Relationship rel1: Traversal.description().depthFirst().relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(stnd).relationships()) {
+					if(rel1.getProperty("source").equals(treeid) && skids.contains(rel1.getId())==false){
+						skids.add(rel1.getId());
+						TLongArrayList mrcas = new TLongArrayList((long[])rel1.getProperty("exclusive_mrca"));
+						licas.addAll((long[])rel1.getProperty("licas"));
+						if(mrcas.size() == 1){
+							continue;
+						}
+						TLongArrayList rt_mrcas = new TLongArrayList((long[])rel1.getProperty("root_exclusive_mrca"));
+						System.out.println("rel1"+rel1);
+						System.out.println("mrcas:"+mrcas);
+						System.out.println("rt_mrcas:"+rt_mrcas);
+						System.out.println("licas:"+licas);
+						rt_mrcas.removeAll(mrcas);
+						if(rt_mrcas.size() == 0){
+							System.out.println("hit the root");
+							continue;
+						}
+						//search for the additional licas
+						CompatBipartEvaluatorBS ce = new CompatBipartEvaluatorBS();
+						ce.setgraphdb(graphDb);
+						ce.setInset(mrcas);
+						ce.setOutset(rt_mrcas);
+						ce.setVisitedSet(new TLongArrayList());
+						HashSet<Node> lastnodes = new HashSet<Node>();
+						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.MRCACHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
+							if (licas.contains(tnode.getId())==false){
+								System.out.println("\tadding "+tnode);
+								System.out.println("\t\twould connect "+lastnodes+" to "+tnode);
+								lastnodes.clear();
+								lastnodes.add(tnode);
+							}else{
+								lastnodes.add(tnode);
+							}
+							//retaln.add(tnode);
+						}
+					}
+				}
+			}
+		}
+		rootnodes.close();
     }
     
 
