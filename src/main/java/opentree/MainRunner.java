@@ -1025,7 +1025,8 @@ public class MainRunner {
 		if (args.length != 4 && args.length != 5) {
 			System.out.println("arguments should be rootottId listofsources(CSV) graphdbfolder (test)");
 			return 1;
-		}if(args.length == 5){
+		}
+		if (args.length == 5) {
 			System.out.println("test is set, so the synthesis will not be stored");
 			test = true;
 		}
@@ -1052,11 +1053,9 @@ public class MainRunner {
 				e.printStackTrace();
 			}
 			System.out.println("done with synthesis");
-
 		} finally {
 			ge.shutdownDB();
 		}
-
 		return (success ? 0 : -1);
 	}
 	
@@ -1503,9 +1502,9 @@ public class MainRunner {
 	 * @throws Exception
 	 */
 	public int pg_delete_ind_study(String [] args) throws Exception {
-		boolean test = false;
+//		boolean test = false;	// not used
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
-		PrintStream jsonOutputPrintStream = null;
+//		PrintStream jsonOutputPrintStream = null;	// not used
 		if (args.length != 3 && args.length != 4) {
 			graphDb.shutdownDb();
 			System.out.println("the argument has to be graphdb sourcename (test)");
@@ -1514,7 +1513,7 @@ public class MainRunner {
 		}
 		if (args.length == 4) {
 			System.err.println("not entering into the database, just testing");
-			test = true;
+//			test = true;	// not used
 		}
 		String sourcename = args[2];
 		GraphImporter gi = new GraphImporter(graphDb);
@@ -1643,7 +1642,7 @@ public class MainRunner {
 		return 0;
 	}
 	
-	public static void printShortHelp(){
+	public static void printShortHelp() {
 		System.out.println("======================Treemachine======================");
 		System.out.println("usage: java -jar locationOftreemachine.jar command options");
 		System.out.println("For a more comprehensive help message, type java -jar locationOftreemachine.jar help");
@@ -1714,8 +1713,8 @@ public class MainRunner {
 		System.out.println("---synthesis functions---");
 		System.out.println("\tsynthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\tsynthesizedrafttreelist_nodeid <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
-		System.out.println("\textractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
-		System.out.println("\textractdrafttree_nodeid <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
+		System.out.println("\textractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
+		System.out.println("\textractdrafttree_nodeid <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
 		System.out.println("\textractdraftsubtreefornodes <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
 				
 		System.out.println("---temporary functions---");
@@ -1726,6 +1725,9 @@ public class MainRunner {
 		
 		System.out.println("---server functions---");
 		System.out.println("\tgetupdatedlist\n");
+		
+		System.out.println("---general functions---");
+		System.out.println("\thelp (print this help)\n");
 	}
 	
 	/**
@@ -1751,8 +1753,8 @@ public class MainRunner {
 			if (args.length < 2) {
 				System.err.println("ERROR: not the right arguments");
 				printHelp();
-			}
-			if (command.compareTo("inittax") == 0) {
+				System.exit(cmdReturnCode);
+			} else if (command.compareTo("inittax") == 0) {
 				cmdReturnCode = mr.taxonomyLoadParser(args);
 			} else if (command.compareTo("addnewick") == 0
 					|| command.compareTo("addnexson") == 0) {
@@ -1813,16 +1815,15 @@ public class MainRunner {
 			// not sure where this should live
 			} else if (command.compareTo("nexson2newick") == 0) {
 				cmdReturnCode = mr.nexson2newick(args);
-
 			} else if(command.equals("nodeinfo")){
 				cmdReturnCode = mr.nodeInfo(args);
 			// testing functions
 			} else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
 				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
 			
-			}else if (command.compareTo("pgloadind") == 0) {
+			} else if (command.compareTo("pgloadind") == 0) {
 				cmdReturnCode = mr.pg_loading_ind_studies(args);
-			}else if (command.compareTo("pgdelind") == 0) {
+			} else if (command.compareTo("pgdelind") == 0) {
 				cmdReturnCode = mr.pg_delete_ind_study(args);
 			} else if (command.compareTo("mapcompat") == 0) {
 				cmdReturnCode = mr.mapcompat(args);
