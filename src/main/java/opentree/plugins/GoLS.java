@@ -84,12 +84,21 @@ public class GoLS extends ServerPlugin {
 	@Description("Returns identifying information for the current draft tree")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeID (
-			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
+			@Source GraphDatabaseService graphDb,
+			@Description( "The name of the intended starting taxon (default is 'life')")
+			@Parameter(name = "startingTaxonName", optional = true) String startingTaxonName) throws TaxonNotFoundException, MultipleHitsException {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		HashMap<String,String> draftTreeInfo = new HashMap<String,String>();
+		
+		// caller can request an alternate starting point in the tree
+		if (startingTaxonName == null || startingTaxonName.length() == 0) {
+			startingTaxonName = "life";
+		}
+		
 		try {
 			draftTreeInfo.put("draftTreeName",GraphBase.DRAFTTREENAME);
 			draftTreeInfo.put("lifeNodeID", String.valueOf(ge.findTaxNodeByName("life").getId()));
+			draftTreeInfo.put("startingNodeID", String.valueOf(ge.findTaxNodeByName(startingTaxonName).getId()));
 		} finally {
 			ge.shutdownDB();
 		}
