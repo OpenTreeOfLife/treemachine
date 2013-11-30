@@ -798,9 +798,9 @@ public class GraphExplorer extends GraphBase {
 						}
 						TLongArrayList rt_mrcas = new TLongArrayList((long[])rel1.getProperty("root_exclusive_mrca"));
 						System.out.println("rel1"+rel1);
-						System.out.println("mrcas:"+mrcas);
-						System.out.println("rt_mrcas:"+rt_mrcas);
-						System.out.println("licas:"+licas);
+						//System.out.println("mrcas:"+mrcas);
+						//System.out.println("rt_mrcas:"+rt_mrcas);
+						//System.out.println("licas:"+licas);
 						rt_mrcas.removeAll(mrcas);
 						if(rt_mrcas.size() == 0){
 							System.out.println("hit the root");
@@ -817,6 +817,21 @@ public class GraphExplorer extends GraphBase {
 							if (licas.contains(tnode.getId())==false){
 								System.out.println("\tadding "+tnode);
 								System.out.println("\t\twould connect "+lastnodes+" to "+tnode);
+								if(test == false){
+									try{
+										tx = graphDb.beginTx();
+										for(Node ttnode: lastnodes){
+											Relationship trel = ttnode.createRelationshipTo(tnode, RelType.STREECHILDOF);
+											trel.setProperty("compat", "compat");
+											trel.setProperty("source", treeid);
+											sourceRelIndex.add(trel, "source", treeid);
+										}
+										tx.success();
+									}finally{
+										tx.finish();
+									}
+									
+								}
 								lastnodes.clear();
 								lastnodes.add(tnode);
 							}else{
