@@ -3,7 +3,7 @@
   <groupId>org.opentree</groupId>
   <artifactId>opentree-neo4j-plugins</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>opentree-neo4j-plugins</name>
+  <name>treemachine-neo4j-plugins</name>
   <description>Server-side restful plugins for the opentree project.</description>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
