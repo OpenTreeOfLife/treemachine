@@ -135,35 +135,30 @@ public class MainRunner {
 	 * @throws Exception 
 	 * @returns 0 for success, 1 for error, 2 for error with a request that the generic help be displayed
 	 */
-	public int graphImporterParser(String [] args) 
-					throws Exception {
-		boolean readingNewick = false;
-		boolean readingNexson = false;
-		if (args[0].compareTo("addnewick") == 0) {
-			readingNewick = true;
-		} else if (args[0].compareTo("addnexson") == 0) {
-			readingNexson = true;
-		} else {
-			System.out.println("Unrecognized command \"" + args[0] + "\" ");
-			return 2;
-		}
-		String filename;
-		String focalgroup;
-		String sourcename;
-		String graphname;
+// TODO: newicks must be treated differently from nexsons. Former will contain '_', latter will not.
+	public int graphImporterParser(String [] args) throws Exception {
+		
 		if (args.length != 6) {
-			System.out.println("arguments should be: filename  <taxacompletelyoverlap[T|F]> focalgroup sourcename graphdbfolder");
+			System.out.println("arguments should be: filename <taxacompletelyoverlap[T|F]> focalgroup sourcename graphdbfolder");
 			return 1;
 		}
-		filename = args[1];
+		
+		boolean readingNewick = false;
+		if (args[0].compareTo("addnewick") == 0) {
+			readingNewick = true;
+		} 
+		
+		String filename = args[1];
 		String soverlap = args[2];
+		String focalgroup = args[3];
+		String sourcename = args[4];
+		String graphname = args[5];
+		
 		boolean overlap = true;
-		if (soverlap.toLowerCase().equals("f")){
+		if (soverlap.toLowerCase().equals("f")) {
 			overlap = false;
 		}
-		focalgroup = args[3];
-		sourcename = args[4];
-		graphname = args[5];
+
 		int treeCounter = 0;
 		GraphImporter gi = new GraphImporter(graphname);
 		MessageLogger messageLogger = new MessageLogger(args[0] + ":");
@@ -175,7 +170,7 @@ public class MainRunner {
 			System.out.println("adding tree(s) to the graph from file: " + filename);
 			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
 			try {
-				if (readingNewick) { // newick
+				if (readingNewick) { // newick. replace '_' with ' ' in leaf labels to match with existing db
 					System.out.println("Reading newick file...");
 					TreeReader tr = new TreeReader();
 					String ts = "";
@@ -185,12 +180,22 @@ public class MainRunner {
 						if (ts.length() > 1) {
 							++treeNum;
 							JadeTree newestTree = tr.readTree(ts);
+							
+					// change names to match format from nexson (i.e. spaces instead of under_scores)
+							Iterable<JadeNode> terp = newestTree.iterateExternalNodes();
+							for (JadeNode tt : terp) {
+					//			System.out.println("Current name: " + tt.getName());
+								String newName = tt.getName().replaceAll("_", " ");
+								tt.setName(newName);
+					//			System.out.println("\tName changed to: " + tt.getName());
+							}
+							
 							newestTree.assocObject("id", String.valueOf(treeNum));
 							jt.add(newestTree);
 							treeCounter++;
 						}
 					}
-					br.close();
+					br.close();				
 				} else { // nexson
 					System.out.println("Reading nexson file...");
 					for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
@@ -203,7 +208,29 @@ public class MainRunner {
 					}
 				}
 			} catch (IOException ioe) {}
+			
 			System.out.println(treeCounter + " trees read.");
+			
+			// Do TNRS on trees
+			System.out.println("Conducting TNRS on input leaf names...");
+			GraphDatabaseAgent graphDb = new GraphDatabaseAgent("fool"); // does it matter what the name is?!?
+			try {
+				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, messageLogger);
+				if (good == false) {
+					System.out.println("failed to get the names from server fixNamesFromTrees 1");
+					messageLogger.close();
+					graphDb.shutdownDb();
+					return 0;
+				}
+			} catch(IOException ioe) {
+				ioe.printStackTrace();
+				System.out.println("failed to get the names from server fixNamesFromTrees 2");
+				messageLogger.close();
+				graphDb.shutdownDb();
+				return 0;
+			}
+			messageLogger.close();
+			graphDb.shutdownDb();
 			
 			// Go through the trees again and add and update as necessary
 			for (int i = 0; i < jt.size(); i++) {
@@ -243,8 +270,7 @@ public class MainRunner {
 	 * @return 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
 	 * @throws TaxonNotFoundException
 	 */
-	public int graphArgusJSON(String [] args)
-			throws TreeNotFoundException, TaxonNotFoundException {
+	public int graphArgusJSON(String [] args) throws TreeNotFoundException, TaxonNotFoundException {
 		GraphExplorer ge = null;
 		if (args[0].compareTo("argusjson") == 0) {
 			if (args.length != 6) {
@@ -313,8 +339,7 @@ public class MainRunner {
 	 * @throws TaxonNotFoundException
 	 * @throws MultipleHitsException 
 	 */
-	public int graphExplorerParser(String [] args)
-			throws TaxonNotFoundException, MultipleHitsException {
+	public int graphExplorerParser(String [] args) throws TaxonNotFoundException, MultipleHitsException {
 		GraphExplorer gi = null;
 		GraphExporter ge = null;
 		if (args[0].compareTo("jsgol") == 0) {
@@ -468,8 +493,7 @@ public class MainRunner {
 	}
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int justTreeAnalysis(String [] args)
-				throws Exception{
+	public int justTreeAnalysis(String [] args) throws Exception {
 		if (args.length != 5) {
 			System.out.println("arguments should be: filename (taxacompletelyoverlap)T|F rootnodename graphdbfolder");
 			return 1;
@@ -541,11 +565,11 @@ public class MainRunner {
 			namesal.addAll(names);
 			for (int i = 0; i < namesal.size(); i++) {
 				//outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
-				outFile.write((i+2)+"|1|"+namesal.get(i)+"| | | | | | | |\n");
-				//             tid  pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
+				outFile.write((i+2) + "|1|" + namesal.get(i) + "| | | | | | | |\n");
+				//             tid     pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
 			}
 			//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
-			outFile.write("1| |"+rootnodename+"| | | | | | | |\n");
+			outFile.write("1| |" + rootnodename + "| | | | | | | |\n");
 			outFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -563,7 +587,7 @@ public class MainRunner {
 		 * if the taxa are not completely overlapping, we add, add again, then delete the first ones
 		 * this is the first add
 		 */
-		if(overlap==false){
+		if (overlap == false) {
 			// Go through the trees again and add and update as necessary
 			for (int i = 0; i < jt.size(); i++) {
 				String sourcename = "treeinfile";
@@ -597,7 +621,7 @@ public class MainRunner {
 		/*
 		 * If the taxa don't overlap, we delete the second set of trees
 		 */
-		if(overlap == false){
+		if (overlap == false) {
 			for (int i = 0; i < jt.size(); i++) {
 				String sourcename = "treeinfile";
 				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
@@ -946,8 +970,8 @@ public class MainRunner {
 	/*
 	 * these are treeutils that need the database
 	 */
-	public int treeUtilsDB(String [] args){
-		if (args.length != 3){
+	public int treeUtilsDB(String [] args) {
+		if (args.length != 3) {
 			System.out.println("arguments should be treefile graphdbfolder");
 			return 1;
 		}
@@ -958,9 +982,10 @@ public class MainRunner {
 		TreeReader tr = new TreeReader();
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			while ((ts = br.readLine())!=null) {
-				if (ts.length() > 1)
+			while ((ts = br.readLine()) != null) {
+				if (ts.length() > 1) {
 					jt.add(tr.readTree(ts));
+				}
 			}
 			br.close();
 		} catch (IOException ioe) {}
@@ -971,25 +996,25 @@ public class MainRunner {
 		
 		String arg = args[0];
 		MessageLogger messageLogger = new MessageLogger("treeUtilsDB", " ");
-		if (arg.equals("labeltax")){
+		if (arg.equals("labeltax")) {
 			GraphExplorer ge = new GraphExplorer(graphdbn);	
-			for (int i=0;i<jt.size();i++){
+			for (int i = 0; i < jt.size(); i++) {
 				ge.labelInternalNodesTax(jt.get(i), messageLogger);
 				System.out.println(jt.get(i).getRoot().getNewick(false));
 			}
 			messageLogger.close();
 			ge.shutdownDB();
-		}else if(arg.equals("checktax")){
+		} else if (arg.equals("checktax")) {
 			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
-			try{
+			try {
 				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
-				if (good == false){
+				if (good == false) {
 					System.out.println("failed to get the names from server fixNamesFromTrees 1");
 					messageLogger.close();
 					graphDb.shutdownDb();
 					return 0;
 				}
-			}catch(IOException ioe){
+			} catch(IOException ioe) {
 				ioe.printStackTrace();
 				System.out.println("failed to get the names from server fixNamesFromTrees 2");
 				messageLogger.close();
@@ -1303,7 +1328,7 @@ public class MainRunner {
 		List<JadeTree> rawTreeList = null;
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
 		rawTreeList = NexsonReader.readNexson(nexsonContentBR, true, messageLogger);
-		if(treeid != null){
+		if (treeid != null) {
 			System.out.println("loading a specific tree: "+treeid);
 		}
 		int count = 0;
@@ -1345,7 +1370,7 @@ public class MainRunner {
 		try {
 			boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, messageLogger);
 			System.out.println("done fixing name");
-			if (good == false){
+			if (good == false) {
 				System.err.println("failed to get the names from server fixNamesFromTrees 3");
 				return -1;
 			}
@@ -1359,8 +1384,8 @@ public class MainRunner {
 			GraphImporter gi = new GraphImporter(graphDb);
 			boolean doubname = false;
 			String treeJId = (String)j.getObject("id");
-			if(treeid != null){
-				if(treeJId.equals(treeid) == false){
+			if (treeid != null) {
+				if (treeJId.equals(treeid) == false) {
 					System.out.println("skipping tree: "+treeJId);
 					continue;
 				}
@@ -1472,7 +1497,7 @@ public class MainRunner {
 		int rc = 0;
 		try {
 			//set treeid == null if you want to load all of them
-			if (loadPhylografterStudy(graphDb, br, treeid,messageLogger, test) != 0) {
+			if (loadPhylografterStudy(graphDb, br, treeid, messageLogger, test) != 0) {
 				rc = -1;
 			}
 		} catch (IOException e) {
@@ -1548,32 +1573,33 @@ public class MainRunner {
 	}
 	
 	
-	public int nodeInfo(String [] args){
+	public int nodeInfo(String [] args) {
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
 		if (args.length != 3) {
 			graphDb.shutdownDb();
 			return 1;
 		}
 		String node = args[1];
-		System.out.println("Getting information about node "+ node);
+		System.out.println("Getting information about node " + node);
 		Long nodel = Long.valueOf(node);
 		Node tn=graphDb.getNodeById(nodel);
 		System.out.println("properties\n================\n");
-		for(String ts:tn.getPropertyKeys()){
-			if(ts.equals("mrca") || ts.equals("outmrca") || ts.equals("nested_mrca")){
+		for (String ts:tn.getPropertyKeys()){
+			if (ts.equals("mrca") || ts.equals("outmrca") || ts.equals("nested_mrca")) {
 				System.out.print(ts+"\t");
 				long [] m = (long[])tn.getProperty(ts);
-				if(m.length < 100000){
-				for (int i=0;i<m.length;i++){
-					System.out.print(m[i]+" ");
-				}System.out.print("\n");
+				if (m.length < 100000) {
+					for (int i=0;i<m.length;i++) {
+						System.out.print(m[i]+" ");
+					}
+					System.out.print("\n");
 				}
 				System.out.println(m.length);
 				TLongHashSet ths = new TLongHashSet(m);
 				System.out.println(ths.size());
-			}else if(ts.equals("name")){
+			} else if (ts.equals("name")) {
 				System.out.println(ts+"\t"+(String)tn.getProperty(ts));
-			}else{
+			} else {
 				System.out.println(ts+"\t"+(String)tn.getProperty(ts));
 			}
 		}
@@ -1585,8 +1611,7 @@ public class MainRunner {
 	 * Read in nexson-formatted tree, export as newick
 	 */
 	/// @returns 0 for success, 1 for poorly formed command
-	public int nexson2newick(String [] args)
-				throws DataFormatException, TaxonNotFoundException, TreeIngestException {
+	public int nexson2newick(String [] args) throws DataFormatException, TaxonNotFoundException, TreeIngestException {
 		if (args.length > 3 | args.length < 2) {
 			System.out.println("arguments should be: filename.nexson [outname.newick]");
 			return 1;
@@ -1638,7 +1663,6 @@ public class MainRunner {
 		}
 		
 		System.out.println("sucessfully wrote " + treeCounter + " newick trees to file '" + outFilename + "'");		
-		
 		return 0;
 	}
 	
@@ -1678,7 +1702,7 @@ public class MainRunner {
 
 		System.out.println("---graph input---");
 		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("\taddnexson <filename> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
+		System.out.println("\taddnexson <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
 		System.out.println("\tpgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
 		System.out.println("\tmapcompat <graphdbfolder> treeid (maps the compatible nodes)");
 		
@@ -1820,7 +1844,6 @@ public class MainRunner {
 			// testing functions
 			} else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
 				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
-			
 			} else if (command.compareTo("pgloadind") == 0) {
 				cmdReturnCode = mr.pg_loading_ind_studies(args);
 			} else if (command.compareTo("pgdelind") == 0) {
