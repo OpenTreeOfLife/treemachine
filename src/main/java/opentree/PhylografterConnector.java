@@ -44,7 +44,7 @@ public class PhylografterConnector {
 	//this should be autoincremented and this is just the starting number
 	//the current number can be retrieved by graphDb.getGraphProperty("newTaxUIDCurIter")
 	private static Long newtaxidstart = (long) 1000000000;
-	
+
 	/**
 	 * This will get the list of studies that have been updated in phylografter
 	 * since a particular date and to another date
@@ -71,7 +71,7 @@ public class PhylografterConnector {
 			conn.connect();
 			BufferedReader un = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
-	//		String inl;	// not used
+			//		String inl;	// not used
 			JSONObject all = (JSONObject) JSONValue.parse(un);
 			JSONArray root = (JSONArray) all.get("studies");
 			ArrayList<Long> stids = new ArrayList<Long>();
@@ -121,7 +121,7 @@ public class PhylografterConnector {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Same as above, but takes in gzipped nexsons.
 	 * 
@@ -144,13 +144,13 @@ public class PhylografterConnector {
 			URL phurl = new URL(urlbase);
 			HttpURLConnection conn = (HttpURLConnection) phurl.openConnection();
 			conn.connect();
-			
+
 			GZIPInputStream gzip = new GZIPInputStream(conn.getInputStream());
-			
+
 			BufferedReader un = new BufferedReader(new InputStreamReader(gzip));
-			
-//			BufferedReader un = new BufferedReader(new InputStreamReader(
-//					conn.getInputStream()));
+
+			//			BufferedReader un = new BufferedReader(new InputStreamReader(
+			//					conn.getInputStream()));
 			List<JadeTree> trees = NexsonReader.readNexson(un, true, messageLogger);
 			un.close();
 			conn.disconnect();
@@ -185,12 +185,12 @@ public class PhylografterConnector {
 	public static boolean fixNamesFromTrees(List<JadeTree> trees, GraphDatabaseAgent graphDb, boolean prune, MessageLogger logger) throws IOException{
 		// TODO: should probably change these to real json sending but for now
 		// we are testing
-	//	String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
-	//	String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
-		
+		//	String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
+		//	String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
+
 		String urlbasecontext = "http://ec2-54-212-192-235.us-west-2.compute.amazonaws.com/taxomachine/ext/TNRS/graphdb/getContextForNames";
 		String urlbasefetch = "http://ec2-54-212-192-235.us-west-2.compute.amazonaws.com/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
-		
+
 		logger.message("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
 			JadeTree currTree = trees.get(i);
@@ -213,7 +213,7 @@ public class PhylografterConnector {
 			} else {
 				StringBuffer sb = new StringBuffer();
 				// build the parameter string for the context query
-//				sb.append("{\"queryString\":\"");
+				//				sb.append("{\"queryString\":\"");
 				ArrayList<String> namelist = new ArrayList<String>();
 				//sb.append(currTree.getExternalNode(0).getName());
 				for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
@@ -222,7 +222,7 @@ public class PhylografterConnector {
 				}
 				HashMap <String,Object> namemap = new HashMap <String,Object>();
 				namemap.put("names",namelist);
-//				sb.append("\"}");
+				//				sb.append("\"}");
 				String contextQueryParameters = new JSONObject(namemap).toJSONString();
 				System.out.println(contextQueryParameters);
 
@@ -238,7 +238,7 @@ public class PhylografterConnector {
 				}catch(Exception e){
 					System.out.println("PROBLEM CONNECTING TO SERVER");
 				}
-				if(contextResponseJSONStr != null){
+				//if(contextResponseJSONStr != null){
 					JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSONStr);
 					String cn = (String)contextResponse.get("context_name");
 					// Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
@@ -268,93 +268,94 @@ public class PhylografterConnector {
 					c = Client.create(cc);
 					contextQuery = c.resource(urlbasefetch);
 
-				// query for the context
-				String tnrsResponseJSONStr = null;
-				try {
-					tnrsResponseJSONStr = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE)
-													  .type(MediaType.APPLICATION_JSON_TYPE)
-													  .post(String.class, contextQueryParameters);
-				} catch (Exception x) {
-					logger.indentMessageStr(1, "Error in call to tnrs", "params", contextQueryParameters);
-				}
-				if (tnrsResponseJSONStr != null) {
-					contextResponse = (JSONObject) JSONValue.parse(tnrsResponseJSONStr);
-					//System.out.println(contextResponse);
-					JSONArray unm = (JSONArray) contextResponse.get("unmatched_name_ids");
-					logger.indentMessageInt(1, "TNRS unmatched", "total number", unm.size());
-					JSONArray res = (JSONArray) contextResponse.get("results");
-					// if the match is with score 1, then we keep
-					
-					
-		// TODO: casting below is not all necessary
-					for (Object id: res) {
-						JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
-						String origname = (String)((JSONObject)id).get("id");
-						//System.out.println(origname);
-						for (Object tid: tres) {
-							Double score = (Double)((JSONObject)tid).get("score");
-							boolean permat = (Boolean)((JSONObject)tid).get("is_perfect_match");
-					//		String ottId = (String)((JSONObject)tid).get("matched_ott_id");
-							String ottId = String.valueOf(((JSONObject)tid).get("matched_ott_id"));
-							String matchedName = (String)((JSONObject)tid).get("matched_name");
-							//String searchString = (String)((JSONObject)tid).get("searchString");
-							if (score >= 1) {
-								Long tnrsottId = Long.valueOf(ottId);
-								//System.out.println(tnrsottId+ " "+ namenodemap.get(origname));
-								JadeNode fixedNode = namenodemap.get(origname);	
-								logger.indentMessageLongStrStrStr(2, "TNRS resolved ottId", "OTT ID", tnrsottId, "name", matchedName, "searched on", origname, "nexsonid", (String)fixedNode.getObject("nexsonid"));
-								fixedNode.assocObject("ot:ottId", tnrsottId);
-								matchednodes.add(namenodemap.get(origname));
-								namenodemap.remove(origname);
-								break;
+					// query for the context
+					String tnrsResponseJSONStr = null;
+					try {
+						tnrsResponseJSONStr = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE)
+								.type(MediaType.APPLICATION_JSON_TYPE)
+								.post(String.class, contextQueryParameters);
+					} catch (Exception x) {
+						logger.indentMessageStr(1, "Error in call to tnrs", "params", contextQueryParameters);
+					}
+					if (tnrsResponseJSONStr != null) {
+						contextResponse = (JSONObject) JSONValue.parse(tnrsResponseJSONStr);
+						//System.out.println(contextResponse);
+						JSONArray unm = (JSONArray) contextResponse.get("unmatched_name_ids");
+						logger.indentMessageInt(1, "TNRS unmatched", "total number", unm.size());
+						JSONArray res = (JSONArray) contextResponse.get("results");
+						// if the match is with score 1, then we keep
+
+
+						// TODO: casting below is not all necessary
+						for (Object id: res) {
+							JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
+							String origname = (String)((JSONObject)id).get("id");
+							//System.out.println(origname);
+							for (Object tid: tres) {
+								Double score = (Double)((JSONObject)tid).get("score");
+								boolean permat = (Boolean)((JSONObject)tid).get("is_perfect_match");
+								//		String ottId = (String)((JSONObject)tid).get("matched_ott_id");
+								String ottId = String.valueOf(((JSONObject)tid).get("matched_ott_id"));
+								String matchedName = (String)((JSONObject)tid).get("matched_name");
+								//String searchString = (String)((JSONObject)tid).get("searchString");
+								if (score >= 1) {
+									Long tnrsottId = Long.valueOf(ottId);
+									//System.out.println(tnrsottId+ " "+ namenodemap.get(origname));
+									JadeNode fixedNode = namenodemap.get(origname);	
+									logger.indentMessageLongStrStrStr(2, "TNRS resolved ottId", "OTT ID", tnrsottId, "name", matchedName, "searched on", origname, "nexsonid", (String)fixedNode.getObject("nexsonid"));
+									fixedNode.assocObject("ot:ottId", tnrsottId);
+									matchednodes.add(namenodemap.get(origname));
+									namenodemap.remove(origname);
+									break;
+								}
 							}
 						}
 					}
-				}
-				Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
+					Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
 
-				// check to make sure that they aren't already in the new index
-				ArrayList<String> removenames = new ArrayList<String>();
-				for (String name: namenodemap.keySet()) {
-		//			System.out.println("Looking up name: " + name);
-					IndexHits <Node> hits = graphNodeIndex.get("name", name);
-					if (hits.size() == 0) {
-		//				System.out.println("\tNo hits.");
-					} else if (hits.size() == 1) {
-						String uidString = (String) hits.getSingle().getProperty("tax_uid");
-		//				System.out.println("\tResult is: " + uidString);
-						//Long lid = (Long) hits.getSingle().getProperty("tax_uid");
-						Long lid = Long.valueOf(uidString);
-						logger.indentMessageLong(2, "Name previously ingested into graphNamedNodes", name, lid);
-						namenodemap.get(name).assocObject("ot:ottId", Long.valueOf(lid));
-						removenames.add(name);
-					} else if (hits .size() > 1) {
-						logger.indentMessageInt(2, "Name not unique in graphNamedNodes", name, hits.size());
-					}
-					hits.close();
-				}
-				// remove the ones that are added
-				for (String name: removenames) {
-					namenodemap.remove(name);
-				}
-
-				if (namenodemap.size() > 0) {
-					if (prune) {
-						for (String name: namenodemap.keySet()) {
-							JadeNode jnode = namenodemap.get(name);
-							logger.indentMessageStrStr(2, "pruning unmapped", "name", name, "nexsonid", (String)jnode.getObject("nexsonid"));
-							try {
-								currTree.pruneExternalNode(jnode);
-							} catch (Exception x) {
-								logger.indentMessageStr(3, "Error pruning leaf", "name", name);
-								return false;
-							}
+					// check to make sure that they aren't already in the new index
+					ArrayList<String> removenames = new ArrayList<String>();
+					for (String name: namenodemap.keySet()) {
+						//			System.out.println("Looking up name: " + name);
+						IndexHits <Node> hits = graphNodeIndex.get("name", name);
+						if (hits.size() == 0) {
+							//				System.out.println("\tNo hits.");
+						} else if (hits.size() == 1) {
+							String uidString = (String) hits.getSingle().getProperty("tax_uid");
+							//				System.out.println("\tResult is: " + uidString);
+							//Long lid = (Long) hits.getSingle().getProperty("tax_uid");
+							Long lid = Long.valueOf(uidString);
+							logger.indentMessageLong(2, "Name previously ingested into graphNamedNodes", name, lid);
+							namenodemap.get(name).assocObject("ot:ottId", Long.valueOf(lid));
+							removenames.add(name);
+						} else if (hits .size() > 1) {
+							logger.indentMessageInt(2, "Name not unique in graphNamedNodes", name, hits.size());
 						}
-					} else {
-						return false;
+						hits.close();
+					}
+					// remove the ones that are added
+					for (String name: removenames) {
+						namenodemap.remove(name);
+					}
+
+					if (namenodemap.size() > 0) {
+						if (prune) {
+							for (String name: namenodemap.keySet()) {
+								JadeNode jnode = namenodemap.get(name);
+								logger.indentMessageStrStr(2, "pruning unmapped", "name", name, "nexsonid", (String)jnode.getObject("nexsonid"));
+								try {
+									currTree.pruneExternalNode(jnode);
+								} catch (Exception x) {
+									logger.indentMessageStr(3, "Error pruning leaf", "name", name);
+									return false;
+								}
+							}
+						} else {
+							return false;
+						}
 					}
 				}
-			}
+			
 			//now checking for duplicate names or names to point to parents or dubious names
 			if (prune) {
 				//for each tip in the tree, see if there are duplicates
