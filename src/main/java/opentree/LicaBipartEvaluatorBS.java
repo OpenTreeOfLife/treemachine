@@ -102,7 +102,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						//     source tree relationships must have mappings
 						for(Relationship rel: curNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)){
 //							System.out.println(rel);
-							if(visitedrels.contains(rel.getId())){
+							if(visitedrels.contains(rel.getId()) || rel.hasProperty("compat")){
 								continue;
 							}
 							TLongArrayList inids = new TLongArrayList((long []) rel.getProperty("inclusive_relids"));
