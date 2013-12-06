@@ -32,6 +32,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 
 	TLongBitArray ingroupNodeIds; // this can be larger than smInIdSet and includes the mrca for the matched nodes in the tree (so the dbnodes of the children)
 	TLongBitArray outgroupNodeIds; // this is the other part of the bipartition
+	TLongArrayList rootnodes;
 	GraphDatabaseAgent graphdb = null;
 
 	public CompatBipartEvaluatorBS() {
@@ -47,6 +48,10 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 
 	public void setVisitedSet(TLongArrayList fids) {
 		visited = fids;
+	}
+	
+	public void setStopNodes(TLongArrayList fids){
+		rootnodes = fids;
 	}
 
 	public void setgraphdb(GraphDatabaseAgent gb) {
@@ -69,7 +74,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 		TLongBitArray curNodeMRCAIds = new TLongBitArray((long[]) curNode.getProperty("mrca"));
 		TLongBitArray curNodeOutMRCAIds = null; // never set for taxon nodes
 		
-		System.out.println(curNode + " inIdSet "+ingroupNodeIds.size() + " outIdSet "+outgroupNodeIds.size()+ " mrca: "+curNodeMRCAIds.size());
+		//System.out.println(curNode + " inIdSet "+ingroupNodeIds.size() + " outIdSet "+outgroupNodeIds.size()+ " mrca: "+curNodeMRCAIds.size());
 
 		// NOTE: in order to cut down on size, taxnodes outmrca are assumed to be "the rest"
 		// they are denoted with not having an outmrca
@@ -90,7 +95,11 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 				if (curNodeOutMRCAIds.containsAny(ingroupNodeIds) == false) {
 					if (curNodeMRCAIds.containsAny(ingroupNodeIds) == true) {
 						System.out.println("    Potential compat found " + curNode);
-						return Evaluation.INCLUDE_AND_CONTINUE;
+						if(rootnodes.contains(curNode.getId())==false){
+							return Evaluation.INCLUDE_AND_CONTINUE;
+						}else{
+							return Evaluation.INCLUDE_AND_PRUNE;
+						}
 					}
 				}
 			} else{
@@ -100,10 +109,18 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 		} else { // this is a taxonomy node, so the tests are simpler
 			if (curNodeMRCAIds.containsAny(outgroupNodeIds) == false) { // if the node does not contain any of the outgroup
 				if (curNodeMRCAIds.containsAll(ingroupNodeIds)) { // and it does contain all of the ingroup
-					return Evaluation.INCLUDE_AND_CONTINUE;
+					if(rootnodes.contains(curNode.getId())==false){
+						return Evaluation.INCLUDE_AND_CONTINUE;
+					}else{
+						return Evaluation.INCLUDE_AND_PRUNE;
+					}
 				}
 			}
 		}
-		return Evaluation.EXCLUDE_AND_CONTINUE;
+		if(rootnodes.contains(curNode.getId())==false){
+			return Evaluation.EXCLUDE_AND_CONTINUE;
+		}else{
+			return Evaluation.EXCLUDE_AND_PRUNE;
+		}
 	}
 }

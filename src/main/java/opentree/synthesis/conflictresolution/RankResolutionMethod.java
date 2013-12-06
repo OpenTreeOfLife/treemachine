@@ -45,7 +45,8 @@ public class RankResolutionMethod implements ResolutionMethod {
 		//this will not always be the full set from the mrca of the node -- unless it is taxonomy relationship
 		//need to verify that the exclusive mrca is correct in this conflict
 		//it should be the mapped tip mrcas subtending this node
-		if(((String)rel.getProperty("source")).equals("taxonomy") == false){
+		if(((String)rel.getProperty("source")).equals("taxonomy") == false
+				&& rel.hasProperty("compat")==false){
 			TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
 			descendantIds.retainAll(exclusiveIds);
 		}

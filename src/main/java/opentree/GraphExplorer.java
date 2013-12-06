@@ -772,9 +772,14 @@ public class GraphExplorer extends GraphBase {
 		IndexHits <Relationship> rels = null;
 		IndexHits <Node> rootnodes = null;
 		rootnodes = sourceRootIndex.get("rootnode", treeid);
+		TLongArrayList rootnodesTLAL = new TLongArrayList();
+		while(rootnodes.hasNext()){
+			rootnodesTLAL.add(rootnodes.next().getId());
+		}
+		System.out.println(rootnodesTLAL);
 		//get the tip nodes
-		if (rootnodes.hasNext()){
-			Node sn = rootnodes.next();
+		for(int tll=0;tll<rootnodesTLAL.size();tll++){
+			Node sn = graphDb.getNodeById(rootnodesTLAL.get(tll));
 			Node mn = null;
 			for(Relationship rel1 : sn.getRelationships(Direction.INCOMING, RelType.METADATAFOR)){
 				if(rel1.getStartNode().getProperty("source").equals(treeid)){
@@ -782,14 +787,40 @@ public class GraphExplorer extends GraphBase {
 				}
 			}
 			TLongArrayList ndmap = new TLongArrayList((long[]) mn.getProperty("original_taxa_map"));//need to check and see if this is the deeper mapping
+			//if we have exemplar, remove the regular and add these
+			TLongArrayList remndmap = new TLongArrayList();
+			for (int i=0;i<ndmap.size();i++){
+				long tid = ndmap.get(i);
+				Node stnd = graphDb.getNodeById(tid);
+				if (stnd.hasRelationship(Direction.OUTGOING, RelType.STREEEXEMPLAROF)==true){
+					for(Relationship ttrel: stnd.getRelationships(Direction.OUTGOING, RelType.STREEEXEMPLAROF)){
+						if (((String)ttrel.getProperty("source")).equals(treeid)){
+							remndmap.add(tid);
+							ndmap.add(ttrel.getEndNode().getId());
+						}
+					}
+				}
+			}
+			ndmap.removeAll(remndmap);
 			TLongArrayList skids = new TLongArrayList();
 			TLongArrayList licas = new TLongArrayList();
+			HashSet<Node> allnodes = new HashSet<Node>();
 			for (int i=0;i<ndmap.size();i++){
 				long tid = ndmap.get(i);
 				System.out.println(tid);
 				Node stnd = graphDb.getNodeById(tid);
-				for(Relationship rel1: Traversal.description().depthFirst().relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(stnd).relationships()) {
-					if(rel1.getProperty("source").equals(treeid) && skids.contains(rel1.getId())==false){
+//				for(Relationship rel1: Traversal.description().depthFirst().relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(stnd).relationships()) {
+				for(Node nd1: Traversal.description().depthFirst().relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
+					Relationship rel1 = null;
+					for(Relationship relt: nd1.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
+						if(relt.getProperty("source").equals(treeid) && skids.contains(relt.getId())==false && relt.hasProperty("compat") == false){
+							rel1 = relt;
+						}
+					}
+					//System.out.println("traversing "+rel1);
+					if (rel1 == null)
+						continue;
+					if(rel1.getProperty("source").equals(treeid) && skids.contains(rel1.getId())==false && rel1.hasProperty("compat") == false){
 						skids.add(rel1.getId());
 						TLongArrayList mrcas = new TLongArrayList((long[])rel1.getProperty("exclusive_mrca"));
 						licas.addAll((long[])rel1.getProperty("licas"));
@@ -797,7 +828,7 @@ public class GraphExplorer extends GraphBase {
 							continue;
 						}
 						TLongArrayList rt_mrcas = new TLongArrayList((long[])rel1.getProperty("root_exclusive_mrca"));
-						System.out.println("rel1"+rel1);
+						System.out.println("rel1 "+rel1);
 						//System.out.println("mrcas:"+mrcas);
 						//System.out.println("rt_mrcas:"+rt_mrcas);
 						//System.out.println("licas:"+licas);
@@ -811,33 +842,76 @@ public class GraphExplorer extends GraphBase {
 						ce.setgraphdb(graphDb);
 						ce.setInset(mrcas);
 						ce.setOutset(rt_mrcas);
+						ce.setStopNodes(rootnodesTLAL);
 						ce.setVisitedSet(new TLongArrayList());
 						HashSet<Node> lastnodes = new HashSet<Node>();
 						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.MRCACHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
 							if (licas.contains(tnode.getId())==false){
-								System.out.println("\tadding "+tnode);
-								System.out.println("\t\twould connect "+lastnodes+" to "+tnode);
+								System.out.println("\tadding "+tnode +" as compatible with " + nd1);
+								//System.out.println("\t\twould connect "+lastnodes+" to "+tnode);
 								if(test == false){
 									try{
 										tx = graphDb.beginTx();
-										for(Node ttnode: lastnodes){
-											Relationship trel = ttnode.createRelationshipTo(tnode, RelType.STREECHILDOF);
-											trel.setProperty("compat", "compat");
-											trel.setProperty("source", treeid);
-											sourceRelIndex.add(trel, "source", treeid);
-										}
+										Relationship trel = nd1.createRelationshipTo(tnode, RelType.STREECHILDOF);
+										System.out.println("\t\tadding "+trel);
+										trel.setProperty("compat", "compat");
+										trel.setProperty("compattype", "fromlicatocompat");
+										trel.setProperty("lica", nd1.getId());
+										trel.setProperty("source", treeid);
+										sourceRelIndex.add(trel, "source", treeid);
+										
+										//check if this is the one before the root
+										//if(rootnodesTLAL.contains(rel1.getEndNode().getId())){
+											Relationship trel2 = tnode.createRelationshipTo(rel1.getEndNode(), RelType.STREECHILDOF);
+											System.out.println("\t\tadding to root "+trel2);
+											trel2.setProperty("compat", "compat");
+											trel2.setProperty("compattype", "fromcompattoparent");
+											trel2.setProperty("lica",nd1.getId());
+											trel2.setProperty("source", treeid);
+											sourceRelIndex.add(trel2, "source", treeid);
+											allnodes.add(tnode);
+										//}
 										tx.success();
 									}finally{
 										tx.finish();
 									}
 									
 								}
-								lastnodes.clear();
-								lastnodes.add(tnode);
+								//play with the clear
+								//lastnodes.clear();
+								//lastnodes.add(tnode);
 							}else{
-								lastnodes.add(tnode);
+								//lastnodes.add(tnode);
 							}
 							//retaln.add(tnode);
+						}
+					}
+				}
+			}
+			System.out.println(allnodes);
+			for(Node tnode: allnodes){
+				HashSet<Node> already = new HashSet<Node> ();
+				System.out.println("\t"+tnode);
+				for(Relationship trel: tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
+					if(already.contains(trel.getEndNode())){
+						continue;
+					}else{
+						already.add(trel.getEndNode());
+						if (allnodes.contains(trel.getEndNode())){
+							if(trel.hasProperty("compat") && trel.getProperty("source").equals(treeid))
+								continue;
+							try{
+								tx = graphDb.beginTx();
+							Relationship ttrel = tnode.createRelationshipTo(trel.getEndNode(), RelType.STREECHILDOF);
+							System.out.println("\t\tadding "+ttrel+" from "+tnode+" to "+ttrel.getEndNode());
+							ttrel.setProperty("compat", "compat");
+							ttrel.setProperty("compattype", "connector");
+							ttrel.setProperty("source", treeid);
+							sourceRelIndex.add(ttrel, "source", treeid);
+								tx.success();
+							}finally{
+								tx.finish();
+							}
 						}
 					}
 				}
