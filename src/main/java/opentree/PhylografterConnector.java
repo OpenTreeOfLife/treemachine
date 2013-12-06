@@ -58,8 +58,7 @@ public class PhylografterConnector {
 	 *            should be like 2013-03-19
 	 * @return list of study ids
 	 */
-	public static ArrayList<Long> getUpdateStudyList(String datefrom,
-			String dateto) {
+	public static ArrayList<Long> getUpdateStudyList(String datefrom, String dateto) {
 		String urlbase = "http://www.reelab.net/phylografter/study/modified_list.json/url?from="
 				+ datefrom + "T00:00:00&to=" + dateto + "T10:00:00";
 		System.out.println("Grabbing list of updated studies from: " + urlbase);
@@ -72,7 +71,7 @@ public class PhylografterConnector {
 			conn.connect();
 			BufferedReader un = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
-			String inl;
+	//		String inl;	// not used
 			JSONObject all = (JSONObject) JSONValue.parse(un);
 			JSONArray root = (JSONArray) all.get("studies");
 			ArrayList<Long> stids = new ArrayList<Long>();
@@ -269,42 +268,45 @@ public class PhylografterConnector {
 					c = Client.create(cc);
 					contextQuery = c.resource(urlbasefetch);
 
-					// query for the context
-					String tnrsResponseJSONStr = null;
-					try {
-						tnrsResponseJSONStr = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE)
-								.type(MediaType.APPLICATION_JSON_TYPE)
-								.post(String.class, contextQueryParameters);
-					} catch (Exception x) {
-						logger.indentMessageStr(1, "Error in call to tnrs", "params", contextQueryParameters);
-					}
-					if (tnrsResponseJSONStr != null) {
-						contextResponse = (JSONObject) JSONValue.parse(tnrsResponseJSONStr);
-						//System.out.println(contextResponse);
-						JSONArray unm = (JSONArray) contextResponse.get("unmatched_name_ids");
-						logger.indentMessageInt(1, "TNRS unmatched", "total number", unm.size());
-						JSONArray res = (JSONArray) contextResponse.get("results");
-						// if the match is with score 1, then we keep
-						for (Object id: res) {
-							JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
-							String origname = (String)((JSONObject)id).get("id");
-							//System.out.println(origname);
-							for (Object tid: tres) {
-								Double score = (Double)((JSONObject)tid).get("score");
-								boolean permat = (Boolean)((JSONObject)tid).get("is_perfect_match");
-								String ottId = (String)((JSONObject)tid).get("matched_ott_id");
-								String matchedName = (String)((JSONObject)tid).get("matched_name");
-								//String searchString = (String)((JSONObject)tid).get("searchString");
-								if (score >= 1) {
-									Long tnrsottId = Long.valueOf(ottId);
-									//System.out.println(tnrsottId+ " "+ namenodemap.get(origname));
-									JadeNode fixedNode = namenodemap.get(origname);	
-									logger.indentMessageLongStrStrStr(2, "TNRS resolved ottId", "OTT ID", tnrsottId, "name", matchedName, "searched on", origname, "nexsonid", (String)fixedNode.getObject("nexsonid"));
-									fixedNode.assocObject("ot:ottId", tnrsottId);
-									matchednodes.add(namenodemap.get(origname));
-									namenodemap.remove(origname);
-									break;
-								}
+				// query for the context
+				String tnrsResponseJSONStr = null;
+				try {
+					tnrsResponseJSONStr = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE)
+													  .type(MediaType.APPLICATION_JSON_TYPE)
+													  .post(String.class, contextQueryParameters);
+				} catch (Exception x) {
+					logger.indentMessageStr(1, "Error in call to tnrs", "params", contextQueryParameters);
+				}
+				if (tnrsResponseJSONStr != null) {
+					contextResponse = (JSONObject) JSONValue.parse(tnrsResponseJSONStr);
+					//System.out.println(contextResponse);
+					JSONArray unm = (JSONArray) contextResponse.get("unmatched_name_ids");
+					logger.indentMessageInt(1, "TNRS unmatched", "total number", unm.size());
+					JSONArray res = (JSONArray) contextResponse.get("results");
+					// if the match is with score 1, then we keep
+					
+					
+		// TODO: casting below is not all necessary
+					for (Object id: res) {
+						JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
+						String origname = (String)((JSONObject)id).get("id");
+						//System.out.println(origname);
+						for (Object tid: tres) {
+							Double score = (Double)((JSONObject)tid).get("score");
+							boolean permat = (Boolean)((JSONObject)tid).get("is_perfect_match");
+					//		String ottId = (String)((JSONObject)tid).get("matched_ott_id");
+							String ottId = String.valueOf(((JSONObject)tid).get("matched_ott_id"));
+							String matchedName = (String)((JSONObject)tid).get("matched_name");
+							//String searchString = (String)((JSONObject)tid).get("searchString");
+							if (score >= 1) {
+								Long tnrsottId = Long.valueOf(ottId);
+								//System.out.println(tnrsottId+ " "+ namenodemap.get(origname));
+								JadeNode fixedNode = namenodemap.get(origname);	
+								logger.indentMessageLongStrStrStr(2, "TNRS resolved ottId", "OTT ID", tnrsottId, "name", matchedName, "searched on", origname, "nexsonid", (String)fixedNode.getObject("nexsonid"));
+								fixedNode.assocObject("ot:ottId", tnrsottId);
+								matchednodes.add(namenodemap.get(origname));
+								namenodemap.remove(origname);
+								break;
 							}
 						}
 					}
