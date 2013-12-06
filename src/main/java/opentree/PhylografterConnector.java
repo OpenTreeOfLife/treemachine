@@ -238,7 +238,7 @@ public class PhylografterConnector {
 				}catch(Exception e){
 					System.out.println("PROBLEM CONNECTING TO SERVER");
 				}
-				//if(contextResponseJSONStr != null){
+				if(contextResponseJSONStr != null){
 					JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSONStr);
 					String cn = (String)contextResponse.get("context_name");
 					// Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
@@ -355,7 +355,7 @@ public class PhylografterConnector {
 						}
 					}
 				}
-			
+			}
 			//now checking for duplicate names or names to point to parents or dubious names
 			if (prune) {
 				//for each tip in the tree, see if there are duplicates
