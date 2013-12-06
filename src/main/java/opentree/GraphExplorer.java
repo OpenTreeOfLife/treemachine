@@ -845,7 +845,7 @@ public class GraphExplorer extends GraphBase {
 						ce.setStopNodes(rootnodesTLAL);
 						ce.setVisitedSet(new TLongArrayList());
 						HashSet<Node> lastnodes = new HashSet<Node>();
-						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.MRCACHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
+						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
 							if (licas.contains(tnode.getId())==false){
 								System.out.println("\tadding "+tnode +" as compatible with " + nd1);
 								//System.out.println("\t\twould connect "+lastnodes+" to "+tnode);
@@ -862,13 +862,15 @@ public class GraphExplorer extends GraphBase {
 										
 										//check if this is the one before the root
 										//if(rootnodesTLAL.contains(rel1.getEndNode().getId())){
+										/*
 											Relationship trel2 = tnode.createRelationshipTo(rel1.getEndNode(), RelType.STREECHILDOF);
 											System.out.println("\t\tadding to root "+trel2);
 											trel2.setProperty("compat", "compat");
 											trel2.setProperty("compattype", "fromcompattoparent");
 											trel2.setProperty("lica",nd1.getId());
 											trel2.setProperty("source", treeid);
-											sourceRelIndex.add(trel2, "source", treeid);
+											sourceRelIndex.add(trel2, "source", treeid);*/
+										allnodes.add(rel1.getEndNode());
 											allnodes.add(tnode);
 										//}
 										tx.success();
