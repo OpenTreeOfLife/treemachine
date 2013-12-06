@@ -168,7 +168,7 @@ public class GoLS extends ServerPlugin {
 			@Parameter(name = "format", optional = true) String format,
 			@Description( "The nodeid of the a node in the tree that should serve as the root of the tree returned")
 			@Parameter(name = "subtreeNodeID", optional = true) String subtreeNodeIDStr, 
-			@Description( "An integer controlling the max number of edges between the leaves and the node. The default is -1; a negative number corresponds to no pruning of the tree.")
+			@Description( "An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is -1 (no limit).")
 			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException {
 
 		// set defaults
@@ -229,7 +229,7 @@ public class GoLS extends ServerPlugin {
 			@Parameter(name = "format", optional = true) String format,
 			@Description( "The nodeid of the a node in the tree that should serve as the root of the tree returned")
 			@Parameter(name = "subtreeNodeID", optional = true) String subtreeNodeIDStr, 
-			@Description( "An integer controlling the max number of edges between the leaves and the node. The default is 5. A negative number corresponds to no pruning of the tree.")
+			@Description( "An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is 5.")
 			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException, TaxonNotFoundException {
 
 		// set default param values
