@@ -244,6 +244,8 @@ public class NexsonReader {
 							}
 						} else if (propname.equals("ot:originalLabel")){
 							// ignoring originalLabel, but not emitting the unknown property warning
+						} else if (propname.equals("ot:treebaseOTUId")){
+							// ignoring treebaseOTUId, but not emitting the unknown property warning
 						} else {
 							msgLogger.indentMessageStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);
 						}
