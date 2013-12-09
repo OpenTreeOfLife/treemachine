@@ -233,12 +233,12 @@ public class PhylografterConnector {
 
 				// query for the context
 				String contextResponseJSONStr = null;
-				try{
-					contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
-				}catch(Exception e){
+				try {
+					contextResponseJSONStr = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE).type(MediaType.APPLICATION_JSON_TYPE).post(String.class, contextQueryParameters);
+				} catch(Exception e) {
 					System.out.println("PROBLEM CONNECTING TO SERVER");
 				}
-				if(contextResponseJSONStr != null){
+				if (contextResponseJSONStr != null) {
 					JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSONStr);
 					String cn = (String)contextResponse.get("context_name");
 					// Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
