@@ -415,8 +415,7 @@ public class MainRunner {
 	        try {
 	            outFile = new PrintWriter(new FileWriter(name + ".tre"));
 	            boolean reportBranchLength = false;
-	            outFile.write(synthTree.getRoot().getNewick(reportBranchLength));
-	            outFile.write(";\n");
+	            outFile.write(synthTree.getRoot().getNewick(reportBranchLength) + ";\n");
 	            outFile.close();
 	        } catch (IOException e) {
 	            e.printStackTrace();
@@ -477,8 +476,7 @@ public class MainRunner {
 	        PrintWriter outFile;
 	        try {
 	            outFile = new PrintWriter(new FileWriter(name + ".tre"));
-	            outFile.write(synthTree.getRoot().getNewick(true));
-	            outFile.write(";\n");
+	            outFile.write(synthTree.getRoot().getNewick(true) + ";\n");
 	            outFile.close();
 	        } catch (IOException e) {
 	            e.printStackTrace();
@@ -1164,7 +1162,7 @@ public class MainRunner {
 		PrintWriter outFile = null;
 		try {
 			outFile = new PrintWriter(new FileWriter(outFileName));
-			outFile.write(synthTree.getRoot().getNewick(false));
+			outFile.write(synthTree.getRoot().getNewick(false) + ";\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -1203,7 +1201,7 @@ public class MainRunner {
 		PrintWriter outFile = null;
 		try {
 			outFile = new PrintWriter(new FileWriter(outFileName));
-			outFile.write(synthTreeRootNode.getNewick(true));
+			outFile.write(synthTreeRootNode.getNewick(true) + ";\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -1270,8 +1268,7 @@ public class MainRunner {
         try {
             outFile = new PrintWriter(new FileWriter(completeTreePath));
             boolean reportBranchLength = false;
-            outFile.write(randomTree.getNewick(reportBranchLength));
-            outFile.write(";\n");
+            outFile.write(randomTree.getNewick(reportBranchLength) + ";\n");
             outFile.close();
         
         } catch (IOException e) {
