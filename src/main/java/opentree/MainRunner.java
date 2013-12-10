@@ -38,6 +38,7 @@ import opentree.exceptions.StoredEntityNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 import opentree.exceptions.TreeNotFoundException;
+import opentree.GeneralUtils;
 import opentree.testing.TreeUtils;
 import jade.MessageLogger;
 import jade.JSONMessageLogger;
@@ -54,15 +55,15 @@ public class MainRunner {
 		String filename = args[1];
 		String graphname = "";
 		String synfilename = "";
-		if(args.length == 4){
+		if (args.length == 4) {
 			synfilename = args[2];
 			graphname = args[3];
 			System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
-		}else if(args.length==3){
+		} else if(args.length == 3) {
 			graphname = args[2];
 			System.out.println("initializing taxonomy from " + filename + " to " + graphname);
 
-		}else{
+		} else {
 			System.out.println("you have the wrong number of arguments. should be : filename (optional:synonym) graphdbfolder");
 			return 1;
 		}
@@ -107,28 +108,6 @@ public class MainRunner {
 			gi.shutdownDB();
 		}
 		return 0;
-	}
-	
-	/*
-	 Peek at tree flavour, report back, reset reader for subsequent processing
-	 @param r a tree file reader
-	 @return treeFormat a string indicating recognized tree format
-	*/
-	public String divineTreeFormat(Reader r) throws java.io.IOException, DataFormatException {
-		String treeFormat = "";
-		r.mark(1);
-		char c = (char)r.read();
-		r.reset();
-		if (c == '(') {
-			treeFormat = "newick";
-		} else if (c == '{') {
-			treeFormat = "nexson";
-		} else if (c == '#') {
-			throw new DataFormatException("Appears to be a nexus tree file, which is not currently supported.");
-		} else {
-			throw new DataFormatException("We don't know what format this tree is in.");
-		}
-		return treeFormat;
 	}
 	
 	/**
@@ -512,7 +491,7 @@ public class MainRunner {
 		MessageLogger messageLogger = new MessageLogger("justTreeAnalysis:");
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			if (divineTreeFormat(br).compareTo("newick") == 0) { // newick
+			if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
 				System.out.println("Reading newick file...");
 				TreeReader tr = new TreeReader();
 				while ((ts = br.readLine()) != null) {
@@ -1628,7 +1607,7 @@ public class MainRunner {
 		MessageLogger messageLogger = new MessageLogger("nexson2newick:");
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			if (divineTreeFormat(br).compareTo("nexson") != 0) {
+			if (GeneralUtils.divineTreeFormat(br).compareTo("nexson") != 0) {
 				System.out.println("tree does not appear to be in nexson format");
 				return 1;
 			} else { // nexson

@@ -1,20 +1,13 @@
 package opentree;
 
+import java.io.Reader;
 import java.util.*;
 
-/* 
- * Is this used anywhere?
- * 
- * Is so, what are the properties of the list being passed in?
- * 1. Is it guaranteed to start at 1 (or 0)?
- * 2. Is it consecutive from start to length(list)?
- * 
- */
+import opentree.exceptions.DataFormatException;
 
 public class GeneralUtils {
 
     // all common non-alphanumeric chars except "_" and "-", for use when cleaning strings
-//    public final static String badchars = "`!@#$%^&*()+=;':\",.<>/\\?|\b\t\n\f\r";
 
     public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
 
@@ -40,4 +33,27 @@ public class GeneralUtils {
 	    String cleanName = dirtyName.replaceAll(offendingChars, "_");
 	    return cleanName;
 	}
+	
+	/*
+	 Peek at tree flavour, report back, reset reader for subsequent processing
+	 @param r a tree file reader
+	 @return treeFormat a string indicating recognized tree format
+	*/
+	public static String divineTreeFormat(Reader r) throws java.io.IOException, DataFormatException {
+		String treeFormat = "";
+		r.mark(1);
+		char c = (char)r.read();
+		r.reset();
+		if (c == '(') {
+			treeFormat = "newick";
+		} else if (c == '{') {
+			treeFormat = "nexson";
+		} else if (c == '#') {
+			throw new DataFormatException("Appears to be a nexus tree file, which is not currently supported.");
+		} else {
+			throw new DataFormatException("We don't know what format this tree is in.");
+		}
+		return treeFormat;
+	}
+
 }
