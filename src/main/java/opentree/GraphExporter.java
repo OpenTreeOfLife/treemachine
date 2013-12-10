@@ -24,7 +24,6 @@ import java.util.LinkedList;
 import java.util.Stack;
 
 //import opentree.RelTypes;
-
 import opentree.constants.RelType;
 import opentree.exceptions.TaxonNotFoundException;
 

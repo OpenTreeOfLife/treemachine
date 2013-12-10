@@ -141,11 +141,12 @@ public class GraphImporter extends GraphBase {
 
 		this.runTestOnly = runTestOnly;
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
-		System.out.println("all trees have all taxa: "+this.allTreesHaveAllTaxa);
-		if(this.allTreesHaveAllTaxa)
+		System.out.println("all trees have all taxa: " + this.allTreesHaveAllTaxa);
+		if (this.allTreesHaveAllTaxa) {
 			System.out.println("\tusing complete mapping technique");
-		else
+		} else {
 			System.out.println("\tusing bipartition technique");
+		}
 		this.logger = msgLogger;
 		this.sourceName = sourceName;
 
@@ -154,9 +155,9 @@ public class GraphImporter extends GraphBase {
 
 		// now remap them
 		//should not do this if all trees have taxa
-		if(this.allTreesHaveAllTaxa == false)
+		if (this.allTreesHaveAllTaxa == false) {
 			remapTipsToDeepestExemplifiedTaxa(); // remove this line to return to the old method of exact taxon mapping
-		
+		}
 		loadTree();
 	}
 	
@@ -182,11 +183,12 @@ public class GraphImporter extends GraphBase {
 
 		this.runTestOnly = false;
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
-		System.out.println("all trees have all taxa: "+this.allTreesHaveAllTaxa);
-		if(this.allTreesHaveAllTaxa)
+		System.out.println("all trees have all taxa: " + this.allTreesHaveAllTaxa);
+		if (this.allTreesHaveAllTaxa) {
 			System.out.println("\tusing complete mapping technique");
-		else
+		} else {
 			System.out.println("\tusing bipartition technique");
+		}
 		this.logger = msgLogger;
 		this.sourceName = sourceName;
 
@@ -195,9 +197,9 @@ public class GraphImporter extends GraphBase {
 		
 		// now remap them
 		//should not do this if all trees have taxa
-		if(this.allTreesHaveAllTaxa == false)
+		if (this.allTreesHaveAllTaxa == false) {
 			remapTipsToDeepestExemplifiedTaxa(); // remove this line to return to the old method of exact taxon mapping
-		
+		}
 		loadTree();
 	}
 	
@@ -443,13 +445,11 @@ public class GraphImporter extends GraphBase {
 			long [] mrcaArray = (long[])matchedGraphNode.getProperty("mrca");
 			ArrayList<Long> descendantIdsForCurMatchedGraphNode = new ArrayList<Long>(); 
 			for (int k = 0; k < mrcaArray.length; k++) {
-	
 				graphDescendantNodeIdsForInputLeaves.add(mrcaArray[k]);
 				descendantIdsForCurMatchedGraphNode.add(mrcaArray[k]);
 			}
 			jadeNodeToDescendantGraphNodeIdsMap.put(curLeaf, descendantIdsForCurMatchedGraphNode);
 			graphNodeIdsForInputLeaves.add(matchedGraphNode.getId());
-	
 		}
 		graphDescendantNodeIdsForInputLeaves.sort();
 		graphNodeIdsForInputLeaves.sort();		
@@ -543,7 +543,6 @@ public class GraphImporter extends GraphBase {
 						
 			// add all the ids for the mrca descendants of the mapped node to the 'exclusive_mrca' field
 			curJadeNode.assocObject("exclusive_mrca", mrcaDescendantIds.toArray());
-
 			
 		} else { // this is an internal node
 
@@ -650,7 +649,7 @@ public class GraphImporter extends GraphBase {
 			
 			// find all the compatible lica mappings for this jade node to existing graph nodes
 			HashSet<Node> licaMatches = null;
-			if(allTreesHaveAllTaxa == true) { // use a simpler calculation if we can assume that all trees have completely overlapping taxon sampling (including taxonomy)
+			if (allTreesHaveAllTaxa == true) { // use a simpler calculation if we can assume that all trees have completely overlapping taxon sampling (including taxonomy)
 				licaMatches = LicaUtil.getAllLICAt4j(graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						licaDescendantIdsForCurrentJadeNode,
 						licaOutgroupDescendantIdsForCurrentJadeNode);
@@ -1017,7 +1016,7 @@ public class GraphImporter extends GraphBase {
 //			setTree(inputTree,trees);
 			setTree(inputTree);
 			try {
-				addSetTreeToGraph("life",source,false, null);
+				addSetTreeToGraph("life", source, false, null);
 			} catch (TaxonNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

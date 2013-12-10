@@ -1567,19 +1567,19 @@ public class MainRunner {
 	
 	
 	public int nodeInfo(String [] args) {
-		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
 		if (args.length != 3) {
-			graphDb.shutdownDb();
+			System.out.println("arguments should be: node graphdb");
 			return 1;
 		}
 		String node = args[1];
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
 		System.out.println("Getting information about node " + node);
 		Long nodel = Long.valueOf(node);
-		Node tn=graphDb.getNodeById(nodel);
+		Node tn = graphDb.getNodeById(nodel);
 		System.out.println("properties\n================\n");
 		for (String ts:tn.getPropertyKeys()) {
 			if (ts.equals("mrca") || ts.equals("outmrca") || ts.equals("nested_mrca")) {
-				System.out.print(ts+"\t");
+				System.out.print(ts + "\t");
 				long [] m = (long[])tn.getProperty(ts);
 				if (m.length < 100000) {
 					for (int i = 0; i < m.length; i++) {
@@ -1768,11 +1768,12 @@ public class MainRunner {
 		int cmdReturnCode = 0;
 		try {
 			MainRunner mr = new MainRunner();
-			if (args.length < 2) {
-				System.err.println("ERROR: not the right arguments");
-				printHelp();
-				System.exit(cmdReturnCode);
-			} else if (command.compareTo("inittax") == 0) {
+	//		if (args.length < 2) {
+	//			System.err.println("ERROR: not the right arguments");
+	//			printHelp();
+	//			System.exit(cmdReturnCode);
+	//		} else
+			if (command.compareTo("inittax") == 0) {
 				cmdReturnCode = mr.taxonomyLoadParser(args);
 			} else if (command.compareTo("addnewick") == 0
 					|| command.compareTo("addnexson") == 0) {
@@ -1824,14 +1825,9 @@ public class MainRunner {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForNodeId(args);
 			} else if (command.compareTo("extractdrafttree_ottid") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForOttId(args);
-			}
-			
-			else if (command.compareTo("deleteDraftTree") == 0) {
+			} else if (command.compareTo("deleteDraftTree") == 0) {
 				cmdReturnCode = mr.deleteDraftTree(args);
-			}
-			
-			
-			else if (command.compareTo("extractdrafttree_ottid_JSON") == 0) {
+			} else if (command.compareTo("extractdrafttree_ottid_JSON") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForOttidJSON(args);
 			} else if (command.compareTo("extractdrafttree_nodeid") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForNodeId(args);
@@ -1840,7 +1836,7 @@ public class MainRunner {
 			// not sure where this should live
 			} else if (command.compareTo("nexson2newick") == 0) {
 				cmdReturnCode = mr.nexson2newick(args);
-			} else if(command.equals("nodeinfo")){
+			} else if (command.equals("nodeinfo")) {
 				cmdReturnCode = mr.nodeInfo(args);
 			// testing functions
 			} else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
