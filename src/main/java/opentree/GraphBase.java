@@ -54,7 +54,9 @@ public abstract class GraphBase {
 	protected static Index<Node> graphTaxUIDNodeIndex; //tax_uid is the key, the uid from the taxonomy points to this node
 	protected static Index<Node> synTaxUIDNodeIndex; //tax_uid is the key, this points to the synonymn node, to get the tax that this points to you need to travel synonymof
 	protected static Index<Node> graphTaxNewNodes;
+	
 	protected static Index<Node> synthMetaIndex;
+	protected static Index<Relationship> synthRelIndex;
 
 	// this is clunky, might be a better way to do this
 	public static final String DRAFTTREENAME = (String) GeneralConstants.DRAFT_TREE_NAME.value;
@@ -316,6 +318,54 @@ public abstract class GraphBase {
 		}
 	}	
 	
+	/**
+	 * Removes the synthetic tree from the graph.
+	 * @param source
+	 */
+	public void deleteSynthesisTree() {
+		System.out.println("deleting synthetic tree from db...");
+
+		// initialize db access variables
+		Transaction tx = null;
+		IndexHits <Relationship> relsToRemove = null;
+		IndexHits <Node> nodesToRemove = null;
+
+		// first remove the relationships
+		try {
+			relsToRemove = synthRelIndex.get("draftTreeID", DRAFTTREENAME);
+			tx = graphDb.beginTx();
+			try {
+				for (Relationship itrel : relsToRemove) {
+					itrel.delete();
+					synthRelIndex.remove(itrel, "draftTreeID", DRAFTTREENAME);
+				}
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		} finally {
+			relsToRemove.close();
+		}
+
+		// then remove the metadata nodes
+		try {
+			nodesToRemove = synthMetaIndex.get("name", DRAFTTREENAME);
+			tx = graphDb.beginTx();
+			try {
+				for (Node itnode : nodesToRemove) {
+					synthMetaIndex.remove(itnode, "name", DRAFTTREENAME);
+					itnode.getRelationships(RelType.SYNTHMETADATAFOR).iterator().next().delete();
+					itnode.delete();
+				}
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		} finally {
+			nodesToRemove.close();
+		}
+	}
+	
     /**
      * Just initialize the standard GoL indexes used for searching.
      */
@@ -329,6 +379,9 @@ public abstract class GraphBase {
     	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes");
     	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
     	graphTaxNewNodes = graphDb.getNodeIndex(""); // not sure what the name of this one is in the graphdb. it doesn't seem to be used (for now)
+    	
+    // synthetic tree indices
     	synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes");
+    	synthRelIndex = graphDb.getRelIndex("synthRels");
 	}
 }

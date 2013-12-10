@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 //import org.apache.log4j.PropertyConfigurator;
@@ -34,6 +33,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import opentree.exceptions.DataFormatException;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttIdNotFoundException;
+
 import opentree.exceptions.StoredEntityNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
@@ -1125,7 +1125,6 @@ public class MainRunner {
 		GraphExplorer ge = new GraphExplorer(graphname);
 		
 		// find the start node
-//        Node firstNode = ge.findGraphTaxNodeByUID(ottId);
 		Node firstNode = ge.graphDb.getNodeById(startNodeId);
 //        if (firstNode == null) {
 //            throw new opentree.exceptions.OttIdNotFoundException(ottId);
@@ -1151,6 +1150,24 @@ public class MainRunner {
 		
 		return 0;
 	}
+	
+	/// @returns 0 for success, 1 for poorly formed command
+	public int deleteDraftTree(String [] args) {
+		GraphImporter gi = null;
+		if (args.length != 2) {
+			System.out.println("arguments should be: graphdbfolder");
+			return 1;
+		}
+		String graphname = args[1];
+		gi = new GraphImporter(graphname);
+		try {
+			gi.deleteSynthesisTree();
+		} finally {
+			gi.shutdownDB();
+		}
+		return 0;
+	}
+	
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftSubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
@@ -1560,13 +1577,13 @@ public class MainRunner {
 		Long nodel = Long.valueOf(node);
 		Node tn=graphDb.getNodeById(nodel);
 		System.out.println("properties\n================\n");
-		for (String ts:tn.getPropertyKeys()){
+		for (String ts:tn.getPropertyKeys()) {
 			if (ts.equals("mrca") || ts.equals("outmrca") || ts.equals("nested_mrca")) {
 				System.out.print(ts+"\t");
 				long [] m = (long[])tn.getProperty(ts);
 				if (m.length < 100000) {
-					for (int i=0;i<m.length;i++) {
-						System.out.print(m[i]+" ");
+					for (int i = 0; i < m.length; i++) {
+						System.out.print(m[i] + " ");
 					}
 					System.out.print("\n");
 				}
@@ -1574,9 +1591,9 @@ public class MainRunner {
 				TLongHashSet ths = new TLongHashSet(m);
 				System.out.println(ths.size());
 			} else if (ts.equals("name")) {
-				System.out.println(ts+"\t"+(String)tn.getProperty(ts));
+				System.out.println(ts + "\t" + (String)tn.getProperty(ts));
 			} else {
-				System.out.println(ts+"\t"+(String)tn.getProperty(ts));
+				System.out.println(ts + "\t" + (String)tn.getProperty(ts));
 			}
 		}
 		graphDb.shutdownDb();
@@ -1638,7 +1655,7 @@ public class MainRunner {
 			outFile.close();
 		}
 		
-		System.out.println("sucessfully wrote " + treeCounter + " newick trees to file '" + outFilename + "'");		
+		System.out.println("Sucessfully wrote " + treeCounter + " newick trees to file '" + outFilename + "'");		
 		return 0;
 	}
 	
@@ -1715,7 +1732,8 @@ public class MainRunner {
 		System.out.println("\tsynthesizedrafttreelist_nodeid <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("\textractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
 		System.out.println("\textractdrafttree_nodeid <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("\textractdraftsubtreefornodes <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node\n");
+		System.out.println("\textractdraftsubtreefornodes <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
+		System.out.println("\tdeleteDraftTree <graphdbfolder> deletes the synthesized tree (if any) from the graph\n");
 				
 		System.out.println("---temporary functions---");
 		System.out.println("\taddtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");
@@ -1806,7 +1824,14 @@ public class MainRunner {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForNodeId(args);
 			} else if (command.compareTo("extractdrafttree_ottid") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForOttId(args);
-			} else if (command.compareTo("extractdrafttree_ottid_JSON") == 0) {
+			}
+			
+			else if (command.compareTo("deleteDraftTree") == 0) {
+				cmdReturnCode = mr.deleteDraftTree(args);
+			}
+			
+			
+			else if (command.compareTo("extractdrafttree_ottid_JSON") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForOttidJSON(args);
 			} else if (command.compareTo("extractdrafttree_nodeid") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForNodeId(args);

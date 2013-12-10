@@ -984,7 +984,7 @@ public class GraphExplorer extends GraphBase {
             	}
             }
         }
-        System.out.println("filtered: "+filteredsources);
+        System.out.println("filtered: " + filteredsources);
         if (filteredsources.size() > 0) {
         	if (studyids == true) {
         		rf.addCriterion(new FilterCriterion(Directive.INCLUDE, new SourcePropertySetTest(filteredsources, SetComparison.CONTAINS_ANY, SourceProperty.STUDY_ID, sourceMetaIndex)));
@@ -1012,9 +1012,10 @@ public class GraphExplorer extends GraphBase {
         // user feedback
         System.out.println("\n" + draftSynthesisMethod.getDescription());
         
+        
         //make the metadatanode
         Transaction tx = graphDb.beginTx();
-        String synthTreeName = DRAFTTREENAME;//needs to be changed to the name that gets passed
+        String synthTreeName = DRAFTTREENAME; // needs to be changed to the name that gets passed
         try {
         	Node metadatanode = graphDb.createNode();
         	metadatanode.createRelationshipTo(startNode, RelType.SYNTHMETADATAFOR);
@@ -1051,7 +1052,12 @@ public class GraphExplorer extends GraphBase {
             	if (parentNode != null && test == false) {
             		Relationship newRel = curNode.createRelationshipTo(parentNode, RelType.SYNTHCHILDOF);
             		newRel.setProperty("name", synthTreeName);
-
+            		
+            		
+            	// add to synthesis index
+            		synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
+            		
+            		
             		// get all the sources supporting this relationship
             		HashSet<String> sources = new HashSet<String>();
             		for (Relationship rel2 : curNode.getRelationships(RelType.STREECHILDOF)) {
@@ -1073,38 +1079,41 @@ public class GraphExplorer extends GraphBase {
             	// remember the ids of taxa we add, this is when sinking lost children
                 knownIdsInTree.add(curNode.getId());
         	}
-        	System.out.println("number of potential dead nodes "+draftSynthesisMethod.getDeadNodes().size());
+        	System.out.println("number of potential dead nodes " + draftSynthesisMethod.getDeadNodes().size());
         	TLongArrayList deadnodes = new TLongArrayList(draftSynthesisMethod.getDeadNodes());
-        	//System.out.println("dead nodes "+deadnodes);
-        	//should do this cleaner
+        	// System.out.println("dead nodes " + deadnodes);
+        	// should do this cleaner
         	/*
         	 * This cleans up dead nodes
         	 */
         	System.out.println("cleaning dead nodes");
         	TLongHashSet vd = new TLongHashSet();
         	int actual = 0;
-        	for(int i=0;i<deadnodes.size();i++) {
+        	for (int i = 0; i < deadnodes.size(); i++) {
         		long cnd = deadnodes.get(i);
         		if (vd.contains(cnd)) {
         			continue;
         		} else {
         			vd.add(cnd);
         		}
-        		//check to see if this has any other children
+        		// check to see if this has any other children
         		Node cn = graphDb.getNodeById(cnd);
         		if (cn.hasRelationship(RelType.STREECHILDOF, Direction.INCOMING) == false) {
         			vd.add(cnd);
         		} else {
-        			System.out.println("actual: "+cnd);
+        			System.out.println("actual: " + cnd);
         			actual++;
         			boolean going = true;
         			Node curnode = cn;
         			while (going) {
-        				if (curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING)== false) {
+        				if (curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING) == false) {
         					vd.add(curnode.getId());
         					Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
         					curnode = tr.getEndNode();
-        					System.out.println("deleting: "+tr);
+        					System.out.println("deleting: " + tr);
+        					
+        					synthRelIndex.remove(tr, "draftTreeID", DRAFTTREENAME);
+        					
         					tr.delete();
         				} else {
         					break;
@@ -1112,7 +1121,7 @@ public class GraphExplorer extends GraphBase {
         			}
         		}
         	}
-        	System.out.println("number of actual deadnodes:"+actual);
+        	System.out.println("number of actual deadnodes:" + actual);
         	/*
         	 * end the cleaning
         	 */
@@ -1130,7 +1139,6 @@ public class GraphExplorer extends GraphBase {
         if (!test) {
 	        tx = graphDb.beginTx();
 	        try {
-
 	        	// uncommented for testing with new synth method
 	        	addMissingChildrenToDraftTreewhile (startNode,startNode);
 	        	
@@ -1145,6 +1153,13 @@ public class GraphExplorer extends GraphBase {
         System.out.println("exiting the sythesis");
         return true;
     }
+    
+    
+    
+    
+    
+    
+    
     
     /**
      * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
@@ -1353,6 +1368,9 @@ public class GraphExplorer extends GraphBase {
             for (Node childNode : nodesToAdd) {
                 System.out.println("attempting to add child: " + childNode.getProperty("name") + " " + childNode);
                 Relationship newRel = childNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
+                
+                synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
+                
                 newRel.setProperty("name", DRAFTTREENAME);
                 newRel.setProperty("supporting_sources", supportingSources);
                 knownIdsInTree.add(childNode.getId());
@@ -1378,7 +1396,7 @@ public class GraphExplorer extends GraphBase {
         	System.out.print("taxaleft: "+taxaleft.size());
         	long tid = taxaleft.removeAt(0);
         	Node taxNode = graphDb.getNodeById(tid);
-        	System.out.println(" working with "+((String)taxNode.getProperty("name")));
+        	System.out.println(" working with " + ((String)taxNode.getProperty("name")));
             TLongArrayList ttmrca = new TLongArrayList((long [])taxNode.getProperty("mrca"));
         	if (taxNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
         		continue;
@@ -1406,12 +1424,18 @@ public class GraphExplorer extends GraphBase {
                 //}
 //                System.out.println("1) attempting to add child: " + taxNode.getProperty("name") + " " + taxNode);
                 Relationship newRel = taxNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
+                
+                synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
+                
                 newRel.setProperty("name", DRAFTTREENAME);
                 newRel.setProperty("supporting_sources", supportingSources);
                 knownIdsInTree.add(taxNode.getId());
             } else {
 //            	System.out.println("2) attempting to add child: " + taxNode.getProperty("name") + " " + taxNode);
             	Relationship newRel = taxNode.createRelationshipTo(ptaxNode, RelType.SYNTHCHILDOF);
+            	
+            	synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
+            	
             	newRel.setProperty("name", DRAFTTREENAME);
             	newRel.setProperty("supporting_sources", supportingSources);
             	//knownIdsInTree.add(taxNode.getId());
@@ -1473,8 +1497,84 @@ public class GraphExplorer extends GraphBase {
         }
         
         return curNode;
-
     }
+    
+    
+/*
+    public void deleteSyntheticTree(Node startNode, String synthTreeName) {
+    	
+        // empty parameters for initial recursion
+    	//JadeNode parentJadeNode = null;
+        Relationship incomingRel = null;
+        
+        System.out.println("Attempting to delete existing synthetic tree...");
+        
+        deleteStoredSyntheticTreeRecur(startNode, incomingRel, DRAFTTREENAME);
+    }
+    
+    public void deleteStoredSyntheticTreeRecur(Node curGraphNode, Relationship incomingRel, String synthTreeName) {
+    	
+        // get the immediate synth children of the current node
+        LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
+        for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+        	if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
+        		synthChildRels.add(synthChildRel);
+        	}
+        	synthChildRel.delete();
+        }
+
+        // recursively add the children to the tree we're building
+    	for (Relationship synthChildRel : synthChildRels) {
+    		deleteStoredSyntheticTreeRecur(synthChildRel.getStartNode(), synthChildRel, synthTreeName);
+        }
+        
+    }
+*/
+
+/*
+    public void deleteSyntheticTreeRecur(Node curGraphNode) {
+		System.out.println("Attempting to delete existing synthetic tree...");
+
+		// initialize db access variables
+		Transaction tx = null;
+		IndexHits <Relationship> relsToRemove = null;
+		IndexHits <Node> nodesToRemove = null;
+
+		// first remove the relationships
+		try {
+			relsToRemove = sourceRelIndex.get("source", source);
+			tx = graphDb.beginTx();
+			try {
+				for (Relationship itrel : relsToRemove) {
+					itrel.delete();
+					sourceRelIndex.remove(itrel, "source", source);
+				}
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		} finally {
+			relsToRemove.close();
+		}
+    }
+*/
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     // =============================== Synthesis methods using source metadata decisions ONLY ===============================
     
