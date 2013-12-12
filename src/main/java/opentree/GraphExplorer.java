@@ -891,6 +891,7 @@ public class GraphExplorer extends GraphBase {
 				}
 			}
 			System.out.println(allnodes);
+			
 			for(Node tnode: allnodes){
 				HashSet<Node> already = new HashSet<Node> ();
 				System.out.println("\t"+tnode);
@@ -918,6 +919,7 @@ public class GraphExplorer extends GraphBase {
 					}
 				}
 			}
+			
 		}
 		rootnodes.close();
     }
