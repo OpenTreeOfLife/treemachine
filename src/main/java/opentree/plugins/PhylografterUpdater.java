@@ -42,7 +42,7 @@ public class PhylografterUpdater extends ServerPlugin {
 				continue;
 			}
 			try {
-				List<JadeTree> jt = PhylografterConnector.fetchTreesFromStudy(k, messageLogger);
+				List<JadeTree> jt = PhylografterConnector.fetchGzippedTreesFromStudy(k, messageLogger);
 				for (JadeTree j : jt) {
 					System.out.println(k + ": " + j.getExternalNodeCount());
 				}
