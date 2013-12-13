@@ -2,6 +2,7 @@ package opentree;
 
 import jade.tree.JadeNode;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -34,7 +35,8 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 	TLongBitArray outgroupNodeIds; // this is the other part of the bipartition
 	TLongArrayList rootnodes;
 	GraphDatabaseAgent graphdb = null;
-
+	ArrayList<Relationship> parentRels = null;
+	
 	public CompatBipartEvaluatorBS() {
 	}
 
@@ -58,8 +60,48 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 		graphdb = gb;
 	}
 	
+	public void setParentRels(ArrayList<Relationship> parentRels){
+		this.parentRels = parentRels;
+	}
+	
 	public TLongArrayList getVisitedSet() {
 		return visited;
+	}
+	
+	/**
+	 * if the parent is also compatible, we don't do the child
+	 * @return
+	 */
+	private boolean checkAgainstParents(TLongBitArray curNodeMRCAIds,TLongBitArray curNodeOutMRCAIds,boolean isTaxNode){
+		boolean fail = false;
+		if(parentRels == null)
+			return fail;
+		for(Relationship rel1: parentRels){
+			//System.out.println(rel1+ " " + rel1.getStartNode()+" -> "+ rel1.getEndNode());
+			TLongBitArray pingroupNodeIds = new TLongBitArray((long[])rel1.getProperty("exclusive_mrca"));
+			TLongBitArray poutgroupNodeIds = new TLongBitArray((long[])rel1.getProperty("root_exclusive_mrca"));			
+			//basically the same test as below but without the Evaluation
+			if (isTaxNode == false) {
+				if (curNodeMRCAIds.containsAny(poutgroupNodeIds) == false) {
+					if (curNodeOutMRCAIds.containsAny(pingroupNodeIds) == false) {
+						if (curNodeMRCAIds.containsAny(pingroupNodeIds) == true) {
+							System.out.println("parent matches, so no match");
+							fail = true;
+							break;
+						}
+					}
+				}
+			} else { // this is a taxonomy node, so the tests are simpler
+				if (curNodeMRCAIds.containsAny(poutgroupNodeIds) == false) { // if the node does not contain any of the outgroup
+					if (curNodeMRCAIds.containsAll(pingroupNodeIds)) { // and it does contain all of the ingroup
+						System.out.println("parent matches, so no match");
+						fail = true;
+						break;
+					}
+				}
+			}
+		}
+		return fail;
 	}
 
 	@Override
@@ -96,8 +138,14 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 					if (curNodeMRCAIds.containsAny(ingroupNodeIds) == true) {
 						System.out.println("    Potential compat found " + curNode);
 						if(rootnodes.contains(curNode.getId())==false){
+							//check the parent
+							if(checkAgainstParents(curNodeMRCAIds,curNodeOutMRCAIds,isTaxNode)==true)
+								return Evaluation.EXCLUDE_AND_PRUNE;
 							return Evaluation.INCLUDE_AND_CONTINUE;
 						}else{
+							//check the parent
+							if(checkAgainstParents(curNodeMRCAIds,curNodeOutMRCAIds,isTaxNode)==true)
+								return Evaluation.EXCLUDE_AND_PRUNE;
 							return Evaluation.INCLUDE_AND_PRUNE;
 						}
 					}
@@ -110,8 +158,14 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 			if (curNodeMRCAIds.containsAny(outgroupNodeIds) == false) { // if the node does not contain any of the outgroup
 				if (curNodeMRCAIds.containsAll(ingroupNodeIds)) { // and it does contain all of the ingroup
 					if(rootnodes.contains(curNode.getId())==false){
+						//check the parent
+						if(checkAgainstParents(curNodeMRCAIds,curNodeOutMRCAIds,isTaxNode)==true)
+							return Evaluation.EXCLUDE_AND_PRUNE;
 						return Evaluation.INCLUDE_AND_CONTINUE;
 					}else{
+						//check the parent
+						if(checkAgainstParents(curNodeMRCAIds,curNodeOutMRCAIds,isTaxNode)==true)
+							return Evaluation.EXCLUDE_AND_PRUNE;
 						return Evaluation.INCLUDE_AND_PRUNE;
 					}
 				}

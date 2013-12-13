@@ -837,15 +837,24 @@ public class GraphExplorer extends GraphBase {
 							System.out.println("hit the root");
 							continue;
 						}
+						//get the parent rels
+						ArrayList<Relationship> parentRels = new ArrayList<Relationship>();
+						for(Relationship prel: nd1.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
+							if(prel.getProperty("source").equals(treeid) && prel.hasProperty("compat") == false){
+								parentRels.add(prel);
+							}
+						}
 						//search for the additional licas
 						CompatBipartEvaluatorBS ce = new CompatBipartEvaluatorBS();
 						ce.setgraphdb(graphDb);
 						ce.setInset(mrcas);
 						ce.setOutset(rt_mrcas);
 						ce.setStopNodes(rootnodesTLAL);
+						ce.setParentRels(parentRels);
 						ce.setVisitedSet(new TLongArrayList());
 						HashSet<Node> lastnodes = new HashSet<Node>();
 						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
+							//end the check of the parent
 							if (licas.contains(tnode.getId())==false){
 								System.out.println("\tadding "+tnode +" as compatible with " + nd1);
 								//System.out.println("\t\twould connect "+lastnodes+" to "+tnode);
