@@ -828,7 +828,7 @@ public class GraphExplorer extends GraphBase {
 							continue;
 						}
 						TLongArrayList rt_mrcas = new TLongArrayList((long[])rel1.getProperty("root_exclusive_mrca"));
-						System.out.println("rel1 "+rel1);
+						//System.out.println("rel1 "+rel1);
 						//System.out.println("mrcas:"+mrcas);
 						//System.out.println("rt_mrcas:"+rt_mrcas);
 						//System.out.println("licas:"+licas);

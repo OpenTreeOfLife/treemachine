@@ -85,7 +85,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 				if (curNodeMRCAIds.containsAny(poutgroupNodeIds) == false) {
 					if (curNodeOutMRCAIds.containsAny(pingroupNodeIds) == false) {
 						if (curNodeMRCAIds.containsAny(pingroupNodeIds) == true) {
-							System.out.println("parent matches, so no match");
+							//System.out.println("parent matches, so no match");
 							fail = true;
 							break;
 						}
@@ -94,7 +94,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 			} else { // this is a taxonomy node, so the tests are simpler
 				if (curNodeMRCAIds.containsAny(poutgroupNodeIds) == false) { // if the node does not contain any of the outgroup
 					if (curNodeMRCAIds.containsAll(pingroupNodeIds)) { // and it does contain all of the ingroup
-						System.out.println("parent matches, so no match");
+						//System.out.println("parent matches, so no match");
 						fail = true;
 						break;
 					}
@@ -151,7 +151,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 					}
 				}
 			} else{
-				System.out.println("stopping the movement!");
+				//System.out.println("stopping the movement!");
 				return Evaluation.EXCLUDE_AND_PRUNE;
 			}
 		} else { // this is a taxonomy node, so the tests are simpler
