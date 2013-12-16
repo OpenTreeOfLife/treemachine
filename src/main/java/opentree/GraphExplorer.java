@@ -856,7 +856,10 @@ public class GraphExplorer extends GraphBase {
 						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
 							//end the check of the parent
 							if (licas.contains(tnode.getId())==false){
-								System.out.println("\tadding "+tnode +" as compatible with " + nd1);
+								if(tnode.hasProperty(NodeProperty.TAX_UID.propertyName)==false)
+									System.out.println("\tadding "+tnode +" as compatible with " + nd1);
+								else
+									System.out.println("\tadding "+tnode+" "+(String)tnode.getProperty(NodeProperty.NAME.propertyName) +" "+(String)tnode.getProperty(NodeProperty.TAX_UID.propertyName) +" as compatible with " + nd1);
 								//System.out.println("\t\twould connect "+lastnodes+" to "+tnode);
 								if(test == false){
 									try{
@@ -912,17 +915,19 @@ public class GraphExplorer extends GraphBase {
 						if (allnodes.contains(trel.getEndNode())){
 							if(trel.hasProperty("compat") && trel.getProperty("source").equals(treeid))
 								continue;
-							try{
-								tx = graphDb.beginTx();
-							Relationship ttrel = tnode.createRelationshipTo(trel.getEndNode(), RelType.STREECHILDOF);
-							System.out.println("\t\tadding "+ttrel+" from "+tnode+" to "+ttrel.getEndNode());
-							ttrel.setProperty("compat", "compat");
-							ttrel.setProperty("compattype", "connector");
-							ttrel.setProperty("source", treeid);
-							sourceRelIndex.add(ttrel, "source", treeid);
-								tx.success();
-							}finally{
-								tx.finish();
+							if(test == false){
+								try{
+									tx = graphDb.beginTx();
+									Relationship ttrel = tnode.createRelationshipTo(trel.getEndNode(), RelType.STREECHILDOF);
+									System.out.println("\t\tadding "+ttrel+" from "+tnode+" to "+ttrel.getEndNode());
+									ttrel.setProperty("compat", "compat");
+									ttrel.setProperty("compattype", "connector");
+									ttrel.setProperty("source", treeid);
+									sourceRelIndex.add(ttrel, "source", treeid);
+									tx.success();
+								}finally{
+									tx.finish();
+								}
 							}
 						}
 					}
