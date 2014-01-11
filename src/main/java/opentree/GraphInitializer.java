@@ -318,6 +318,15 @@ public class GraphInitializer extends GraphBase{
 			}if (tflag.equals("not_otu")){
 				System.out.println("skipping not_otu "+name);	
 				return;
+			}if (tflag.equals("incertae_sedis")){
+				System.out.println("skipping incertae_sedis "+name);	
+				return;
+			}if (tflag.equals("incertae_sedis_direct")){
+				System.out.println("skipping incertae_sedis_direct "+name);	
+				return;
+			}if (tflag.equals("incertae_sedis_inherited")){
+				System.out.println("skipping incertae_sedis_inherited "+name);	
+				return;
 			}if (tflag.equals("tattered")){
 				System.out.println("skipping tattered "+name);	
 			//	return;
