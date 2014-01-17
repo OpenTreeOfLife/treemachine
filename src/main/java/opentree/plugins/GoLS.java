@@ -105,7 +105,7 @@ public class GoLS extends ServerPlugin {
 			draftTreeInfo.put("draftTreeName",GraphBase.DRAFTTREENAME);
 //			draftTreeInfo.put("lifeNodeID", String.valueOf(ge.findTaxNodeByName("life").getId()));
 			draftTreeInfo.put("startNodeTaxName", String.valueOf(startNode.getProperty(NodeProperty.NAME.propertyName)));
-			draftTreeInfo.put("startNodeOTTId", (Long) startNode.getProperty(NodeProperty.TAX_UID.propertyName));
+			draftTreeInfo.put("startNodeOTTId", Long.valueOf((String) startNode.getProperty(NodeProperty.TAX_UID.propertyName))); //TODO: the taxuids should be stored as longs, not strings... fix this where it happens
 			draftTreeInfo.put("startNodeID", startNode.getId());
 
 		} finally {
