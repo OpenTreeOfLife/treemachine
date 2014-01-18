@@ -327,6 +327,9 @@ public class GraphInitializer extends GraphBase{
 			}if (tflag.equals("incertae_sedis_inherited")){
 				System.out.println("skipping incertae_sedis_inherited "+name);	
 				return;
+			}if (tflag.equals("hidden")){
+				System.out.println("skipping hidden "+name);	
+				return;
 			}if (tflag.equals("tattered")){
 				System.out.println("skipping tattered "+name);	
 			//	return;
