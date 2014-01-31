@@ -183,14 +183,8 @@ public class PhylografterConnector {
 	 * @throws IOException
 	 */
 	public static boolean fixNamesFromTrees(List<JadeTree> trees, GraphDatabaseAgent graphDb, boolean prune, MessageLogger logger) throws IOException{
-		// TODO: should probably change these to real json sending but for now
-		// we are testing
-		//	String urlbasecontext = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/getContextForNames";
-		//	String urlbasefetch = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
-		
 		String urlbasecontext = "http://ec2-54-203-194-13.us-west-2.compute.amazonaws.com/taxomachine/ext/TNRS/graphdb/getContextForNames";
 		String urlbasefetch = "http://ec2-54-203-194-13.us-west-2.compute.amazonaws.com/taxomachine/ext/TNRS/graphdb/contextQueryForNames";
-
 		logger.message("conducting TNRS on trees");
 		for (int i = 0; i < trees.size(); i++) {
 			JadeTree currTree = trees.get(i);
@@ -211,20 +205,15 @@ public class PhylografterConnector {
 			if (searchnds.size() == 0) {
 				logger.indentMessage(1, "all nodes have ottIds");
 			} else {
-				StringBuffer sb = new StringBuffer();
 				// build the parameter string for the context query
-				//				sb.append("{\"queryString\":\"");
 				ArrayList<String> namelist = new ArrayList<String>();
-				//sb.append(currTree.getExternalNode(0).getName());
 				for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
-					//sb.append("," + currTree.getExternalNode(j).getName());
 					namelist.add(currTree.getExternalNode(j).getName());
 				}
 				HashMap <String,Object> namemap = new HashMap <String,Object>();
 				namemap.put("names",namelist);
-				//				sb.append("\"}");
 				String contextQueryParameters = new JSONObject(namemap).toJSONString();
-				System.out.println(contextQueryParameters);
+				//System.out.println(contextQueryParameters);
 
 				// set up the connection to the TNRS context query
 				ClientConfig cc = new DefaultClientConfig();
@@ -241,23 +230,13 @@ public class PhylografterConnector {
 				if (contextResponseJSONStr != null) {
 					JSONObject contextResponse = (JSONObject) JSONValue.parse(contextResponseJSONStr);
 					String cn = (String)contextResponse.get("context_name");
-					// Long cnid = Long.valueOf((String)contextResponse.get("content_rootnode_ottol_id"));
-					//  System.out.println(contextResponse);
-					//getting the names for each of the speices
-					//				sb = new StringBuffer();
-
-					// build the parameter string for the context query
-					//				sb.append("{\"queryString\":\"");
-					//				sb.append(searchnds.get(0).getName());
+					//System.out.println(contextResponse);
 					ArrayList<String> namelist2 = new ArrayList<String>();
 					for (int j = 0; j < searchnds.size(); j++) {
 						if (searchnds.get(j).getObject("ot:ottId") == null) {
-							//sb.append("," + searchnds.get(j).getName());
 							namelist2.add(searchnds.get(j).getName());
 						}
 					}
-					//				sb.append("\",\"contextName\":\"" + cn + "\"}");
-					//				contextQueryParameters = sb.toString();
 					HashMap <String,Object> namemap2 = new HashMap <String,Object>();
 					namemap2.put("names", namelist2);
 					namemap2.put("contextName", cn);
@@ -290,17 +269,14 @@ public class PhylografterConnector {
 						for (Object id: res) {
 							JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
 							String origname = (String)((JSONObject)id).get("id");
-							//System.out.println(origname);
 							for (Object tid: tres) {
 								Double score = (Double)((JSONObject)tid).get("score");
 								boolean permat = (Boolean)((JSONObject)tid).get("is_perfect_match");
-								//		String ottId = (String)((JSONObject)tid).get("matched_ott_id");
 								String ottId = String.valueOf(((JSONObject)tid).get("matched_ott_id"));
 								String matchedName = (String)((JSONObject)tid).get("matched_name");
-								//String searchString = (String)((JSONObject)tid).get("searchString");
 								if (score >= 1) {
 									Long tnrsottId = Long.valueOf(ottId);
-									//System.out.println(tnrsottId+ " "+ namenodemap.get(origname));
+									System.out.println(tnrsottId+ " "+ namenodemap.get(origname));
 									JadeNode fixedNode = namenodemap.get(origname);	
 									logger.indentMessageLongStrStrStr(2, "TNRS resolved ottId", "OTT ID", tnrsottId, "name", matchedName, "searched on", origname, "nexsonid", (String)fixedNode.getObject("nexsonid"));
 									fixedNode.assocObject("ot:ottId", tnrsottId);
@@ -316,14 +292,11 @@ public class PhylografterConnector {
 					// check to make sure that they aren't already in the new index
 					ArrayList<String> removenames = new ArrayList<String>();
 					for (String name: namenodemap.keySet()) {
-						//			System.out.println("Looking up name: " + name);
 						IndexHits <Node> hits = graphNodeIndex.get("name", name);
 						if (hits.size() == 0) {
-							//				System.out.println("\tNo hits.");
 						} else if (hits.size() == 1) {
 							String uidString = (String) hits.getSingle().getProperty("tax_uid");
 							//				System.out.println("\tResult is: " + uidString);
-							//Long lid = (Long) hits.getSingle().getProperty("tax_uid");
 							Long lid = Long.valueOf(uidString);
 							logger.indentMessageLong(2, "Name previously ingested into graphNamedNodes", name, lid);
 							namenodemap.get(name).assocObject("ot:ottId", Long.valueOf(lid));
