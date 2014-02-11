@@ -126,6 +126,11 @@ public class MainRunner {
 		if (args[0].compareTo("addnewick") == 0) {
 			readingNewick = true;
 		} 
+		boolean readingNewickTNRS = false;
+		if (args[0].compareTo("addnewickTNRS") == 0) {
+			readingNewick = true;
+			readingNewickTNRS = true;
+		} 
 		
 		String filename = args[1];
 		String soverlap = args[2];
@@ -191,25 +196,27 @@ public class MainRunner {
 			System.out.println(treeCounter + " trees read.");
 			
 			// Do TNRS on trees
-			System.out.println("Conducting TNRS on input leaf names...");
-			GraphDatabaseAgent graphDb = new GraphDatabaseAgent("fool"); // does it matter what the name is?!?
-			try {
-				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, messageLogger);
-				if (good == false) {
-					System.out.println("failed to get the names from server fixNamesFromTrees 1");
+			if(readingNewickTNRS == true){
+				System.out.println("Conducting TNRS on input leaf names...");
+				GraphDatabaseAgent graphDb = new GraphDatabaseAgent("fool"); // does it matter what the name is?!?
+				try {
+					boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, messageLogger);
+					if (good == false) {
+						System.out.println("failed to get the names from server fixNamesFromTrees 1");
+						messageLogger.close();
+						graphDb.shutdownDb();
+						return 0;
+					}
+				} catch(IOException ioe) {
+					ioe.printStackTrace();
+					System.out.println("failed to get the names from server fixNamesFromTrees 2");
 					messageLogger.close();
 					graphDb.shutdownDb();
 					return 0;
 				}
-			} catch(IOException ioe) {
-				ioe.printStackTrace();
-				System.out.println("failed to get the names from server fixNamesFromTrees 2");
 				messageLogger.close();
 				graphDb.shutdownDb();
-				return 0;
 			}
-			messageLogger.close();
-			graphDb.shutdownDb();
 			
 			// Go through the trees again and add and update as necessary
 			for (int i = 0; i < jt.size(); i++) {
@@ -1695,6 +1702,7 @@ public class MainRunner {
 
 		System.out.println("---graph input---");
 		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnewickTNRS <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
 		System.out.println("\taddnexson <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
 		System.out.println("\tpgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
 		System.out.println("\tmapcompat <graphdbfolder> treeid (maps the compatible nodes)");
@@ -1776,7 +1784,8 @@ public class MainRunner {
 			if (command.compareTo("inittax") == 0) {
 				cmdReturnCode = mr.taxonomyLoadParser(args);
 			} else if (command.compareTo("addnewick") == 0
-					|| command.compareTo("addnexson") == 0) {
+					|| command.compareTo("addnewickTNRS") == 0
+							||command.compareTo("addnexson") == 0) {
 				cmdReturnCode = mr.graphImporterParser(args);
 			} else if (command.compareTo("argusjson") == 0) {
 				cmdReturnCode = mr.graphArgusJSON(args);
