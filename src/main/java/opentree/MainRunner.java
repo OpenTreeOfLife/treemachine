@@ -154,7 +154,7 @@ public class MainRunner {
 			System.out.println("adding tree(s) to the graph from file: " + filename);
 			ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
 			try {
-				if (readingNewick) { // newick. replace '_' with ' ' in leaf labels to match with existing db
+				if (readingNewickTNRS) { // newick. replace '_' with ' ' in leaf labels to match with existing db
 					System.out.println("Reading newick file...");
 					TreeReader tr = new TreeReader();
 					String ts = "";
@@ -180,7 +180,23 @@ public class MainRunner {
 						}
 					}
 					br.close();				
-				} else { // nexson
+				} else if(readingNewick == true && readingNewickTNRS == false){
+					System.out.println("Reading newick file...");
+					TreeReader tr = new TreeReader();
+					String ts = "";
+					BufferedReader br = new BufferedReader(new FileReader(filename));
+					int treeNum = 0;
+					while ((ts = br.readLine()) != null) {
+						if (ts.length() > 1) {
+							++treeNum;
+							JadeTree newestTree = tr.readTree(ts);
+							newestTree.assocObject("id", String.valueOf(treeNum));
+							jt.add(newestTree);
+							treeCounter++;
+						}
+					}
+					br.close();
+				}else { // nexson
 					System.out.println("Reading nexson file...");
 					for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 						if (tree == null) {
