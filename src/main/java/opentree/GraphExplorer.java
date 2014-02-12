@@ -2500,6 +2500,135 @@ public class GraphExplorer extends GraphBase {
         return false;
     }
 
+    /**
+     * This will get information and taxonomy for a tree and the taxonomy
+     *      
+     **/
+    public void getInformationAndMonophylyTreeVsTaxonomy(String sourcename) throws TreeNotFoundException {
+    	Node rootnode = getRootNodeByTreeSourceName(sourcename);
+    	Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
+    	JadeNode root = new JadeNode();
+    	if (rootnode.hasProperty("name")) {
+    		root.setName((String) rootnode.getProperty("name")+"______"+(String)rootnode.getProperty(NodeProperty.TAX_UID.propertyName));
+    	}
+    	root.assocObject("nodeid", rootnode.getId());
+    	boolean printlengths = false;
+    	HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
+    	node2JadeNode.put(rootnode, root);
+    	// the following is dead code
+
+    	// OLD version - deals with cycles via an ignoreCycles set of logic. Need to add this to the FilterByPropertyRelIterator
+    	// OLD version build the entire tree (though we could easily prune it to return a subtree of the desired start node and depth)
+    	//TraversalDescription
+    	IndexHits<Relationship> hitsr = sourceRelIndex.get("source", sourcename);
+    	// System.out.println(hitsr.size());
+    	HashMap<Node, ArrayList<Relationship>> startnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
+    	HashMap<Node, ArrayList<Relationship>> endnode_rel_map = new HashMap<Node, ArrayList<Relationship>>();
+    	while (hitsr.hasNext()) {
+    		Relationship trel = hitsr.next();
+    		if (startnode_rel_map.containsKey(trel.getStartNode()) == false) {
+    			ArrayList<Relationship> trels = new ArrayList<Relationship>();
+    			startnode_rel_map.put(trel.getStartNode(), trels);
+    		}
+    		if (endnode_rel_map.containsKey(trel.getEndNode()) == false) {
+    			ArrayList<Relationship> trels = new ArrayList<Relationship>();
+    			endnode_rel_map.put(trel.getEndNode(), trels);
+    		}
+    		// System.out.println(trel.getStartNode()+" "+trel.getEndNode());
+    		startnode_rel_map.get(trel.getStartNode()).add(trel);
+    		endnode_rel_map.get(trel.getEndNode()).add(trel);
+    	}
+    	hitsr.close();
+    	Stack<Node> treestack = new Stack<Node>();
+    	Stack<Integer> depthStack = new Stack<Integer>();
+    	treestack.push(rootnode);
+    	depthStack.push(new Integer(0));
+    	HashSet<Node> ignoreCycles = new HashSet<Node>();
+    	HashSet<Node> done = new HashSet<Node>();
+    	while (treestack.isEmpty() == false) {
+    		Node tnode = treestack.pop();
+    		if (done.contains(tnode)){
+    			continue;
+    		}
+    		done.add(tnode);
+    		// TODO: move down one more node
+    		if (endnode_rel_map.containsKey(tnode)) {
+    			for (int i = 0; i < endnode_rel_map.get(tnode).size(); i++) {
+    				Node childNode = endnode_rel_map.get(tnode).get(i).getStartNode();
+    				if (endnode_rel_map.containsKey(childNode)) {
+    					ArrayList<Relationship> rels = endnode_rel_map.get(childNode);
+    					for (int j = 0; j < rels.size(); j++) {
+    						if (rels.get(j).hasProperty("licas")) {
+    							long[] licas = (long[]) rels.get(j).getProperty("licas");
+    							if (licas.length > 1) {
+    								for (int k = 1; k < licas.length; k++) {
+    									ignoreCycles.add(graphDb.getNodeById(licas[k]));
+    									//_LOG.debug("ignoring: " + licas[k]);
+    								}
+    							}
+    						}
+    					}
+    				}
+    			}
+    		}
+    		if (endnode_rel_map.containsKey(tnode)) {
+    			//CHECK IF IT IS TAXONOMY
+    			boolean mn_taxonomy = false;
+    			TLongHashSet lhs = new TLongHashSet((long [])tnode.getProperty("mrca"));
+    			ArrayList<Node> taxon_child = new ArrayList<Node> ();
+    			if (tnode.hasProperty("name")){
+    				mn_taxonomy = true;
+    				for(Relationship rel1: tnode.getRelationships(Direction.INCOMING, RelType.TAXCHILDOF)){
+    					Node tttn = rel1.getStartNode();
+    					boolean match = false;
+    					for(Relationship ttrel1: tttn.getRelationships(Direction.OUTGOING,RelType.STREECHILDOF)){
+    						if(((String)ttrel1.getProperty("source")).equalsIgnoreCase(sourcename)){
+    							match = true;
+    							break;
+    						}
+    					}
+    					if(match == false)
+    						taxon_child.add(tttn);
+    				}
+    			}
+    			HashSet<Node> donechilds = new HashSet<Node> ();
+    			for (int i = 0; i < endnode_rel_map.get(tnode).size(); i++) {
+    				if (ignoreCycles.contains(endnode_rel_map.get(tnode).get(i).getStartNode()) == false) {
+    					Node tnodechild = endnode_rel_map.get(tnode).get(i).getStartNode();
+    					if(donechilds.contains(tnodechild)==true)
+    						continue;
+    					donechilds.add(tnodechild);
+    					treestack.push(tnodechild);
+    					JadeNode tchild = new JadeNode();
+    					if (tnodechild.hasProperty("name")) {
+    						tchild.setName((String) tnodechild.getProperty("name")+"______"+(String)tnodechild.getProperty(NodeProperty.TAX_UID.propertyName));
+    					}else{
+    						//GET INFORMATION HERE and NON MONOPHYLY
+    						TLongHashSet tlhs = new TLongHashSet((long [])tnodechild.getProperty("mrca"));
+    						System.out.println("information: ("+tnode+"->"+tnodechild+") "+tlhs.size()+","+lhs.size());
+    						for(Node ttn: taxon_child){
+    							TLongHashSet tlhs1 = new TLongHashSet((long [])ttn.getProperty("mrca"));
+    							int origsize = tlhs1.size();
+    							tlhs1.removeAll(tlhs);
+    							if(tlhs1.size() < origsize){
+    								System.out.println("nonmono: "+ttn.getProperty("tax_uid")+","+ttn.getProperty("name"));
+    							}
+    						}
+    					}
+    					tchild.assocObject("nodeid", tnodechild.getId());
+    					if (endnode_rel_map.get(tnode).get(i).hasProperty("branch_length")) {
+    						printlengths = true;
+    						tchild.setBL((Double) endnode_rel_map.get(tnode).get(i).getProperty("branch_length"));
+    					}
+    					node2JadeNode.get(tnode).addChild(tchild);
+    					node2JadeNode.put(tnodechild, tchild);
+    					// System.out.println("pushing: "+endnode_rel_map.get(tnode).get(i).getStartNode());
+    				}
+    			}
+    		}
+    	}
+    }
+    
     ///@TODO @TEMP inefficient recursive impl as a placeholder...
     public static ArrayList<String> getNamesOfRepresentativeDescendants(Node subtreeRoot, RelType relType, String treeID) {
         ArrayList<String> toReturn = new ArrayList<String>();

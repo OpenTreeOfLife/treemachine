@@ -687,7 +687,7 @@ public class MainRunner {
 		String graphname = null;
 		String rootNodeID = null;
 		int maxDepth = -1;
-		if (args[0].equalsIgnoreCase("sourceexplorer")) {
+		if (args[0].equalsIgnoreCase("sourceexplorer") || args[0].equalsIgnoreCase("sourceexplorer_inf_mono")) {
 			if (args.length == 3) {
 				sourcename = args[1];
 				graphname = args[2];
@@ -702,7 +702,7 @@ public class MainRunner {
 				System.out.println("arguments should be: <sourcename> <graphdbfolder>");
 				return 1;
 			}
-		} else {
+		}else {
 			if (args.length == 5) {
 				sourcename = args[1];
 				rootNodeID = args[2];
@@ -724,10 +724,13 @@ public class MainRunner {
 		}
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
-			JadeTree tree;
+			JadeTree tree = null;
 			if (rootNodeID == null) {
 				if (treeID == null) {
-					tree = ge.reconstructSource(sourcename, maxDepth);
+					if(args[0].equalsIgnoreCase("sourceexplorer"))
+						tree = ge.reconstructSource(sourcename, maxDepth);
+					else if(args[0].equalsIgnoreCase("sourceexplorer_inf_mono"))
+						ge.getInformationAndMonophylyTreeVsTaxonomy(sourcename);
 				} else {
 					tree = ge.reconstructSourceByTreeID(treeID, maxDepth);
 				}
@@ -739,8 +742,10 @@ public class MainRunner {
 					tree = ge.reconstructSourceByTreeID(treeID, rootNodeIDParsed, maxDepth);
 				}
 			}
-			final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
-			System.out.println(newick + ";");
+			if(args[0].equalsIgnoreCase("sourceexplorer_inf_mono")==false){
+				final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
+				System.out.println(newick + ";");
+			}
 		} finally {
 			ge.shutdownDB();
 		}
@@ -1816,7 +1821,8 @@ public class MainRunner {
 			} else if (command.compareTo("justtrees") == 0) {
 				cmdReturnCode = mr.justTreeAnalysis(args);
 			} else if (command.compareTo("sourceexplorer") == 0
-					|| command.equalsIgnoreCase("sourcepruner")) {
+					|| command.equalsIgnoreCase("sourcepruner")
+					|| command.equalsIgnoreCase("sourceexplorer_inf_mono")) {
 				cmdReturnCode = mr.sourceTreeExplorer(args);
 			} else if (command.compareTo("listsources") == 0
 					|| command.compareTo("getsourcetreeids") == 0) {

@@ -693,6 +693,13 @@ public class GraphImporter extends GraphBase {
 				nar.add(newLicaNode);
 				curJadeNode.assocObject("dbnodes", nar);
 				newLicaNode.setProperty("mrca", licaDescendantIdsForCurrentJadeNode.toArray());
+				/**
+				 * Get some information about this new node
+				 */
+				
+				/**
+				 * END get some information
+				 */
 				//System.out.println("\t\tmrca: "+childndids);
 
 				// set outmrcas
