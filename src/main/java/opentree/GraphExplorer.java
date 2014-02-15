@@ -776,8 +776,8 @@ public class GraphExplorer extends GraphBase {
 		while(rootnodes.hasNext()){
 			rootnodesTLAL.add(rootnodes.next().getId());
 		}
-		System.out.println(rootnodesTLAL);
-		//get the tip nodes
+		//System.out.println(rootnodesTLAL);
+		//for each of the root nodes, get the tip nodes
 		for(int tll=0;tll<rootnodesTLAL.size();tll++){
 			Node sn = graphDb.getNodeById(rootnodesTLAL.get(tll));
 			Node mn = null;
@@ -802,24 +802,30 @@ public class GraphExplorer extends GraphBase {
 				}
 			}
 			ndmap.removeAll(remndmap);
-			TLongArrayList skids = new TLongArrayList();
+			TLongArrayList skids = new TLongArrayList();//already visiited relationship ids
 			TLongArrayList licas = new TLongArrayList();
 			HashSet<Node> allnodes = new HashSet<Node>();
+			//for each of the original taxa map nodes
 			for (int i=0;i<ndmap.size();i++){
 				long tid = ndmap.get(i);
-				System.out.println(tid);
+				System.out.println("currently at tip: "+tid);
 				Node stnd = graphDb.getNodeById(tid);
 //				for(Relationship rel1: Traversal.description().depthFirst().relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(stnd).relationships()) {
+				//traverse the tip down
+				//nd1 will be the current node while walking from a tip to the root
 				for(Node nd1: Traversal.description().depthFirst().relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
 					Relationship rel1 = null;
 					for(Relationship relt: nd1.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
+						System.out.println("\t"+relt+" "+relt.getProperty("source")+" "+treeid+" "+skids.contains(relt.getId())+" "+relt.hasProperty("compat"));
 						if(relt.getProperty("source").equals(treeid) && skids.contains(relt.getId())==false && relt.hasProperty("compat") == false){
 							rel1 = relt;
 						}
 					}
-					//System.out.println("traversing "+rel1);
+					System.out.println("at nd1: "+nd1);
+					System.out.println("traversing "+rel1);
 					if (rel1 == null)
 						continue;
+					//this is a repeat of the above for some reason, but basically if the relationship is from the tree
 					if(rel1.getProperty("source").equals(treeid) && skids.contains(rel1.getId())==false && rel1.hasProperty("compat") == false){
 						skids.add(rel1.getId());
 						TLongArrayList mrcas = new TLongArrayList((long[])rel1.getProperty("exclusive_mrca"));
@@ -827,8 +833,13 @@ public class GraphExplorer extends GraphBase {
 						if(mrcas.size() == 1){
 							continue;
 						}
-						TLongArrayList rt_mrcas = new TLongArrayList((long[])rel1.getProperty("root_exclusive_mrca"));
-						//System.out.println("rel1 "+rel1);
+						TLongArrayList rt_mrcas = new TLongArrayList((long[])rel1.getProperty("root_exclusive_mrca"));//need to blow these out
+						TLongArrayList blowout = new TLongArrayList();
+						for(int j=0;j<rt_mrcas.size();j++){
+							blowout.add((long[])graphDb.getNodeById(rt_mrcas.get(j)).getProperty("mrca"));
+						}
+						rt_mrcas.addAll(blowout);
+						System.out.println("current rel1 "+rel1);
 						//System.out.println("mrcas:"+mrcas);
 						//System.out.println("rt_mrcas:"+rt_mrcas);
 						//System.out.println("licas:"+licas);
@@ -837,9 +848,10 @@ public class GraphExplorer extends GraphBase {
 							System.out.println("hit the root");
 							continue;
 						}
-						//get the parent rels
+						//get the parent rels for the current node nd1
 						ArrayList<Relationship> parentRels = new ArrayList<Relationship>();
-						for(Relationship prel: nd1.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
+						for(Relationship prel: rel1.getEndNode().getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
+//							for(Relationship prel: nd1.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
 							if(prel.getProperty("source").equals(treeid) && prel.hasProperty("compat") == false){
 								parentRels.add(prel);
 							}
@@ -847,20 +859,22 @@ public class GraphExplorer extends GraphBase {
 						//search for the additional licas
 						CompatBipartEvaluatorBS ce = new CompatBipartEvaluatorBS();
 						ce.setgraphdb(graphDb);
+						ce.setCurTreeNode(nd1);
 						ce.setInset(mrcas);
 						ce.setOutset(rt_mrcas);
 						ce.setStopNodes(rootnodesTLAL);
 						ce.setParentRels(parentRels);
 						ce.setVisitedSet(new TLongArrayList());
 						HashSet<Node> lastnodes = new HashSet<Node>();
+						//traverse from the tip node back through the taxchild ofs
 						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
+							System.out.println("ce visiting: "+tnode);
 							//end the check of the parent
 							if (licas.contains(tnode.getId())==false){
 								if(tnode.hasProperty(NodeProperty.TAX_UID.propertyName)==false)
 									System.out.println("\tadding "+tnode +" as compatible with " + nd1);
 								else
 									System.out.println("\tadding "+tnode+" "+(String)tnode.getProperty(NodeProperty.NAME.propertyName) +" "+(String)tnode.getProperty(NodeProperty.TAX_UID.propertyName) +" as compatible with " + nd1);
-								//System.out.println("\t\twould connect "+lastnodes+" to "+tnode);
 								if(test == false){
 									try{
 										tx = graphDb.beginTx();
@@ -874,14 +888,14 @@ public class GraphExplorer extends GraphBase {
 										
 										//check if this is the one before the root
 										//if(rootnodesTLAL.contains(rel1.getEndNode().getId())){
-										/*
 											Relationship trel2 = tnode.createRelationshipTo(rel1.getEndNode(), RelType.STREECHILDOF);
 											System.out.println("\t\tadding to root "+trel2);
 											trel2.setProperty("compat", "compat");
 											trel2.setProperty("compattype", "fromcompattoparent");
 											trel2.setProperty("lica",nd1.getId());
 											trel2.setProperty("source", treeid);
-											sourceRelIndex.add(trel2, "source", treeid);*/
+											sourceRelIndex.add(trel2, "source", treeid);
+										//}
 										allnodes.add(rel1.getEndNode());
 											allnodes.add(tnode);
 										//}
