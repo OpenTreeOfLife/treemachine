@@ -636,7 +636,8 @@ public class GraphImporter extends GraphBase {
 			}
 			
 			// things that are in the ingroup of any child of this node are in the ingroup of this node (even if they're in the outgroup of another child)
-			licaOutgroupDescendantIdsForCurrentJadeNode.removeAll(licaDescendantIdsForCurrentJadeNode);
+			while(licaOutgroupDescendantIdsForCurrentJadeNode.removeAll(licaDescendantIdsForCurrentJadeNode)==true)
+				continue;
 			licaOutgroupDescendantIdsForCurrentJadeNode.sort();
 
 			// =================
@@ -799,7 +800,8 @@ public class GraphImporter extends GraphBase {
 				}
 			}
 			childndids.sort();
-			outndids.removeAll(childndids);
+			while(outndids.removeAll(childndids)==true)
+				continue;
 			outndids.sort();
 
 			HashSet<Node> ancestors = null;

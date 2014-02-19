@@ -592,7 +592,8 @@ public class GraphExplorer extends GraphBase {
         // get the licas
         if (inode.getChildCount() > 0) {
             ArrayList<JadeNode> nds = inode.getTips();
-            nds.removeAll(skiptips);
+            while(nds.removeAll(skiptips)==true)
+            	continue;
             ArrayList<Node> hit_nodes = new ArrayList<Node>();
             ArrayList<Node> hit_nodes_search = new ArrayList<Node>();
             // store the hits for each of the nodes in the tips
@@ -727,7 +728,8 @@ public class GraphExplorer extends GraphBase {
                     for (int i = 0; i < mrcas1.length; i++) {
                         curmrcas.add(mrcas1[i]);
                     }
-                    pmrcas.removeAll(curmrcas);
+                    while(pmrcas.removeAll(curmrcas)==true)
+                    	continue;
                     JadeNode tnode1 = null;
                     if (node_jade_map.containsKey(bnode.getId())) {
                         tnode1 = node_jade_map.get(bnode.getId());
@@ -801,7 +803,8 @@ public class GraphExplorer extends GraphBase {
 					}
 				}
 			}
-			ndmap.removeAll(remndmap);
+			while(ndmap.removeAll(remndmap)==true)
+				continue;
 			TLongArrayList skids = new TLongArrayList();//already visiited relationship ids
 			TLongArrayList licas = new TLongArrayList();
 			HashSet<Node> allnodes = new HashSet<Node>();
@@ -1418,7 +1421,8 @@ public class GraphExplorer extends GraphBase {
         String[] supportingSources = new String[1];
         supportingSources[0] = "taxonomy";
         TLongArrayList taxaleft = new TLongArrayList ((long [])startNode.getProperty("mrca"));
-        taxaleft.removeAll(knownIdsInTree);
+        while (taxaleft.removeAll(knownIdsInTree)==true)
+        	continue;
         
         System.out.println("have to add "+taxaleft.size());
         
@@ -2623,7 +2627,8 @@ public class GraphExplorer extends GraphBase {
     						for(Node ttn: taxon_child){
     							TLongHashSet tlhs1 = new TLongHashSet((long [])ttn.getProperty("mrca"));
     							int origsize = tlhs1.size();
-    							tlhs1.removeAll(tlhs);
+    							while(tlhs1.removeAll(tlhs)==true)
+    								continue;
     							if(tlhs1.size() < origsize){
     								System.out.println("nonmono: "+ttn.getProperty("tax_uid")+","+ttn.getProperty("name"));
     							}
