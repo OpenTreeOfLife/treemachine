@@ -808,7 +808,7 @@ public class GraphExplorer extends GraphBase {
 			//for each of the original taxa map nodes
 			for (int i=0;i<ndmap.size();i++){
 				long tid = ndmap.get(i);
-				System.out.println("currently at tip: "+tid);
+//				System.out.println("currently at tip: "+tid);
 				Node stnd = graphDb.getNodeById(tid);
 //				for(Relationship rel1: Traversal.description().depthFirst().relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(stnd).relationships()) {
 				//traverse the tip down
@@ -816,36 +816,36 @@ public class GraphExplorer extends GraphBase {
 				for(Node nd1: Traversal.description().depthFirst().relationships(RelType.STREECHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
 					Relationship rel1 = null;
 					for(Relationship relt: nd1.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
-						System.out.println("\t"+relt+" "+relt.getProperty("source")+" "+treeid+" "+skids.contains(relt.getId())+" "+relt.hasProperty("compat"));
+						//System.out.println("\t"+relt+" "+relt.getProperty("source")+" "+treeid+" "+skids.contains(relt.getId())+" "+relt.hasProperty("compat"));
 						if(relt.getProperty("source").equals(treeid) && skids.contains(relt.getId())==false && relt.hasProperty("compat") == false){
 							rel1 = relt;
 						}
 					}
-					System.out.println("at nd1: "+nd1);
-					System.out.println("traversing "+rel1);
+//					System.out.println("at nd1: "+nd1);
+//					System.out.println("traversing "+rel1);
 					if (rel1 == null)
 						continue;
 					//this is a repeat of the above for some reason, but basically if the relationship is from the tree
 					if(rel1.getProperty("source").equals(treeid) && skids.contains(rel1.getId())==false && rel1.hasProperty("compat") == false){
 						skids.add(rel1.getId());
-						TLongArrayList mrcas = new TLongArrayList((long[])rel1.getProperty("exclusive_mrca"));
+						TLongBitArray mrcas = new TLongBitArray((long[])rel1.getProperty("exclusive_mrca"));
 						licas.addAll((long[])rel1.getProperty("licas"));
 						if(mrcas.size() == 1){
 							continue;
 						}
-						TLongArrayList rt_mrcas = new TLongArrayList((long[])rel1.getProperty("root_exclusive_mrca"));//need to blow these out
-						TLongArrayList blowout = new TLongArrayList();
+						TLongBitArray rt_mrcas = new TLongBitArray((long[])rel1.getProperty("root_exclusive_mrca"));//need to blow these out
+						TLongBitArray blowout = new TLongBitArray();
 						for(int j=0;j<rt_mrcas.size();j++){
-							blowout.add((long[])graphDb.getNodeById(rt_mrcas.get(j)).getProperty("mrca"));
+							blowout.addAll((long[])graphDb.getNodeById(rt_mrcas.get(j)).getProperty("mrca"));
 						}
 						rt_mrcas.addAll(blowout);
-						System.out.println("current rel1 "+rel1);
-						//System.out.println("mrcas:"+mrcas);
-						//System.out.println("rt_mrcas:"+rt_mrcas);
-						//System.out.println("licas:"+licas);
 						rt_mrcas.removeAll(mrcas);
+//						System.out.println("current rel1 "+rel1);
+//						System.out.println("mrcas:"+mrcas);
+//						System.out.println("rt_mrcas:"+rt_mrcas.size()+": "+rt_mrcas);
+//						System.out.println("licas:"+licas);
 						if(rt_mrcas.size() == 0){
-							System.out.println("hit the root");
+//							System.out.println("hit the root");
 							continue;
 						}
 						//get the parent rels for the current node nd1
@@ -868,7 +868,7 @@ public class GraphExplorer extends GraphBase {
 						HashSet<Node> lastnodes = new HashSet<Node>();
 						//traverse from the tip node back through the taxchild ofs
 						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(stnd).nodes()) {
-							System.out.println("ce visiting: "+tnode);
+//							System.out.println("ce visiting: "+tnode);
 							//end the check of the parent
 							if (licas.contains(tnode.getId())==false){
 								if(tnode.hasProperty(NodeProperty.TAX_UID.propertyName)==false)
@@ -916,11 +916,11 @@ public class GraphExplorer extends GraphBase {
 					}
 				}
 			}
-			System.out.println(allnodes);
+			//System.out.println(allnodes);
 			
 			for(Node tnode: allnodes){
 				HashSet<Node> already = new HashSet<Node> ();
-				System.out.println("\t"+tnode);
+				//System.out.println("\t"+tnode);
 				for(Relationship trel: tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
 					if(already.contains(trel.getEndNode())){
 						continue;

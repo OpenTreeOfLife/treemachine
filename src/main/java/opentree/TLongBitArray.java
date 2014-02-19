@@ -237,7 +237,8 @@ public class TLongBitArray implements Iterable<Long> {
 	 */
 	public void removeAll(long[] toRemove) {
 		for (long l : toRemove) {
-			tl.remove(l);
+			while(tl.remove(l)==true)
+				continue;
 		}
 		updateBitSet();
 	}
@@ -248,7 +249,8 @@ public class TLongBitArray implements Iterable<Long> {
 	 */
 	public void removeAll(Iterable<Long> toRemove) {
 		for (Long l : toRemove) {
-			tl.remove(l);
+			while(tl.remove(l)==true)
+				continue;
 		}
 		updateBitSet();
 	}
@@ -269,7 +271,8 @@ public class TLongBitArray implements Iterable<Long> {
 	 * @param toRemove
 	 */
 	public void removeAll(TLongArrayList toRemove) {
-		tl.removeAll(toRemove);
+		while(tl.removeAll(toRemove) == true)
+			continue;
 		updateBitSet();
 	}
 

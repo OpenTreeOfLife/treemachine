@@ -42,11 +42,11 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 	public CompatBipartEvaluatorBS() {
 	}
 
-	public void setOutset(TLongArrayList fids) {
+	public void setOutset(TLongBitArray fids) {
 		outgroupNodeIds = new TLongBitArray(fids);
 	}
 	
-	public void setInset(TLongArrayList fids) {
+	public void setInset(TLongBitArray fids) {
 		ingroupNodeIds = new TLongBitArray(fids);
 	}
 	
@@ -88,7 +88,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 		if(parentRels == null)
 			return fail;
 		for(Relationship rel1: parentRels){
-			System.out.println(rel1+ " " + rel1.getStartNode()+" -> "+ rel1.getEndNode());
+			//System.out.println("check against parent: "+rel1+ " " + rel1.getStartNode()+" -> "+ rel1.getEndNode());
 			TLongBitArray pingroupNodeIds = new TLongBitArray((long[])rel1.getProperty("exclusive_mrca"));
 			TLongBitArray poutgroupNodeIds = new TLongBitArray((long[])rel1.getProperty("root_exclusive_mrca"));
 			TLongArrayList blowout = new TLongArrayList();
@@ -110,7 +110,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 			} else { // this is a taxonomy node, so the tests are simpler
 				if (curNodeMRCAIds.containsAny(poutgroupNodeIds) == false) { // if the node does not contain any of the outgroup
 					if (curNodeMRCAIds.containsAll(pingroupNodeIds)) { // and it does contain all of the ingroup
-						System.out.println("parent matches, so no match");
+						//System.out.println("parent matches, so no match");
 						fail = true;
 						break;
 					}
@@ -126,7 +126,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 		if (curNode.getId() == curTreeNode.getId()){
 			return Evaluation.EXCLUDE_AND_CONTINUE;
 		}
-		System.out.println("path: "+inPath);
+		//System.out.println("path: "+inPath);
 		if (visited.contains(curNode.getId())) {
 			return Evaluation.EXCLUDE_AND_PRUNE;
 		}
@@ -135,7 +135,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 		TLongBitArray curNodeMRCAIds = new TLongBitArray((long[]) curNode.getProperty("mrca"));
 		TLongBitArray curNodeOutMRCAIds = null; // never set for taxon nodes
 		
-		System.out.println(curNode + " inIdSet "+ingroupNodeIds.size() + " outIdSet "+outgroupNodeIds.size()+ " mrca: "+curNodeMRCAIds.size());
+		//System.out.println(curNode + " inIdSet "+ingroupNodeIds.size() + " outIdSet "+outgroupNodeIds.size()+ " mrca: "+curNodeMRCAIds.size()+" "+curNodeMRCAIds.getIntersection(outgroupNodeIds).tl);
 		// NOTE: in order to cut down on size, taxnodes outmrca are assumed to be "the rest"
 		// they are denoted with not having an outmrca
 		boolean isTaxNode = false;
@@ -175,7 +175,7 @@ public class CompatBipartEvaluatorBS implements Evaluator {
 		} else { // this is a taxonomy node, so the tests are simpler
 			if (curNodeMRCAIds.containsAny(outgroupNodeIds) == false) { // if the node does not contain any of the outgroup
 				if (curNodeMRCAIds.containsAll(ingroupNodeIds)==true) { // and it does contain all of the ingroup
-					System.out.println("    Potential compat found " + curNode);
+					//System.out.println("    Potential compat found " + curNode);
 					if(rootnodes.contains(curNode.getId())==false){
 						//check the parent
 						if(checkAgainstParents(curNodeMRCAIds,curNodeOutMRCAIds,isTaxNode)==true)
