@@ -7,18 +7,18 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+
 import jade.tree.JadeTree;
 import jade.JSONMessageLogger;
-
 import opentree.GraphBase;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.MainRunner;
+import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttIdNotFoundException;
@@ -85,23 +85,33 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeID (
 			@Source GraphDatabaseService graphDb,
-			@Description( "The name of the intended starting taxon (default is 'life')")
-			@Parameter(name = "startingTaxonName", optional = true) String startingTaxonName) throws TaxonNotFoundException, MultipleHitsException {
+			@Description( "The OTT id of the intended starting taxon. If not specified, then the deepest node in the graph will be used.")
+//			@Parameter(name = "startingTaxonName", optional = true) String startingTaxonName) throws TaxonNotFoundException, MultipleHitsException {
+			@Parameter(name = "startingTaxonOTTId", optional = true) String startingTaxonOTTId) throws TaxonNotFoundException, MultipleHitsException {
+
 		GraphExplorer ge = new GraphExplorer(graphDb);
-		HashMap<String,String> draftTreeInfo = new HashMap<String,String>();
-		
-		// caller can request an alternate starting point in the tree
-		if (startingTaxonName == null || startingTaxonName.length() == 0) {
-			startingTaxonName = "life";
-		}
-		
+		HashMap<String, Object> draftTreeInfo = null;
+		Node startNode = null;
 		try {
+
+			// caller can request an alternate starting point in the tree
+			if (startingTaxonOTTId == null || startingTaxonOTTId.length() == 0) {
+				startNode = ge.getGraphRootNode();
+			} else {
+				startNode = ge.findGraphTaxNodeByUID(startingTaxonOTTId);
+			}
+
+			draftTreeInfo = new HashMap<String, Object>();
 			draftTreeInfo.put("draftTreeName",GraphBase.DRAFTTREENAME);
-			draftTreeInfo.put("lifeNodeID", String.valueOf(ge.findTaxNodeByName("life").getId()));
-			draftTreeInfo.put("startingNodeID", String.valueOf(ge.findTaxNodeByName(startingTaxonName).getId()));
+//			draftTreeInfo.put("lifeNodeID", String.valueOf(ge.findTaxNodeByName("life").getId()));
+			draftTreeInfo.put("startNodeTaxName", String.valueOf(startNode.getProperty(NodeProperty.NAME.propertyName)));
+			draftTreeInfo.put("startNodeOTTId", Long.valueOf((String) startNode.getProperty(NodeProperty.TAX_UID.propertyName))); //TODO: the taxuids should be stored as longs, not strings... fix this where it happens
+			draftTreeInfo.put("startNodeID", startNode.getId());
+
 		} finally {
 			ge.shutdownDB();
 		}
+
 		return OpenTreeMachineRepresentationConverter.convert(draftTreeInfo);
 	}
 	
