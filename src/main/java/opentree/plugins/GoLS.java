@@ -85,18 +85,24 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeID (
 			@Source GraphDatabaseService graphDb,
-			@Description( "The OTT id of the intended starting taxon. If not specified, then the deepest node in the graph will be used.")
+			@Description( "The OTT id of the intended starting taxon. If not specified, the the root of the draft tree will be used if it is set. If it not set then this will return null.")
 //			@Parameter(name = "startingTaxonName", optional = true) String startingTaxonName) throws TaxonNotFoundException, MultipleHitsException {
 			@Parameter(name = "startingTaxonOTTId", optional = true) String startingTaxonOTTId) throws TaxonNotFoundException, MultipleHitsException {
 
-		GraphExplorer ge = new GraphExplorer(graphDb);
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
+		GraphExplorer ge = new GraphExplorer(gdb);
 		HashMap<String, Object> draftTreeInfo = null;
 		Node startNode = null;
 		try {
 
 			// caller can request an alternate starting point in the tree
 			if (startingTaxonOTTId == null || startingTaxonOTTId.length() == 0) {
-				startNode = ge.getGraphRootNode();
+				Long draftTreeRootNodeId = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
+				if (draftTreeRootNodeId != null) {
+					startNode = gdb.getNodeById(draftTreeRootNodeId);
+				} else {
+					return null;
+				}
 			} else {
 				startNode = ge.findGraphTaxNodeByUID(startingTaxonOTTId);
 			}

@@ -82,6 +82,12 @@ public class GraphExplorer extends GraphBase {
         setDefaultParameters();
         finishInitialization();
     }
+    
+    public GraphExplorer(GraphDatabaseAgent gdb) {
+    	super(gdb);
+    	setDefaultParameters();
+    	finishInitialization();
+    }
 
     private void finishInitialization() {
         cne = new ChildNumberEvaluator();
@@ -1059,6 +1065,9 @@ public class GraphExplorer extends GraphBase {
 //        	metadatanode.setProperty("command", command);
         	metadatanode.setProperty("sourcenames", sourceIdPriorityListString); //need to make sure that this list is processed correctly
         	synthMetaIndex.add(metadatanode, "name", synthTreeName);
+        	
+        	this.graphDb.setGraphProperty("draftTreeRootNodeId", startNode.getId());
+        	
         	tx.success();
         } catch (Exception ex) {
         	tx.failure();
