@@ -241,7 +241,7 @@ public class PhylografterConnector {
 					namemap2.put("names", namelist2);
 					namemap2.put("contextName", cn);
 					contextQueryParameters = new JSONObject(namemap2).toJSONString();
-
+					
 					// set up the connection to the TNRS context query
 					cc = new DefaultClientConfig();
 					c = Client.create(cc);
@@ -253,8 +253,10 @@ public class PhylografterConnector {
 						tnrsResponseJSONStr = contextQuery.accept(MediaType.APPLICATION_JSON_TYPE)
 								.type(MediaType.APPLICATION_JSON_TYPE)
 								.post(String.class, contextQueryParameters);
+						
 					} catch (Exception x) {
 						logger.indentMessageStr(1, "Error in call to tnrs", "params", contextQueryParameters);
+						x.printStackTrace();
 					}
 					if (tnrsResponseJSONStr != null) {
 						contextResponse = (JSONObject) JSONValue.parse(tnrsResponseJSONStr);
@@ -269,16 +271,22 @@ public class PhylografterConnector {
 						for (Object id: res) {
 							JSONArray tres = (JSONArray)((JSONObject)id).get("matches");
 							String origname = (String)((JSONObject)id).get("id");
-							for (Object tid: tres) {
+							
+							for (Object tid: tres) { // possibly this is legacy code; tres should only be of length 1
 								Double score = (Double)((JSONObject)tid).get("score");
-								boolean permat = (Boolean)((JSONObject)tid).get("is_perfect_match");
+						//		boolean permat = (Boolean)((JSONObject)tid).get("is_perfect_match"); // not used
 								String ottId = String.valueOf(((JSONObject)tid).get("matched_ott_id"));
 								String matchedName = (String)((JSONObject)tid).get("matched_name");
-								if (score >= 1) {
+								boolean approxMatch = (Boolean)((JSONObject)tid).get("is_approximate_match");
+								
+						//		System.out.println("name = " + origname + "; score = " + score);
+								
+						//		if (score >= 1) {
+								if ((tres.size() == 1) && (!approxMatch)) { // will accept Genus sp. taxa, matched by pruning sp.
 									Long tnrsottId = Long.valueOf(ottId);
-									System.out.println(tnrsottId+ " "+ namenodemap.get(origname));
-									JadeNode fixedNode = namenodemap.get(origname);	
-									logger.indentMessageLongStrStrStr(2, "TNRS resolved ottId", "OTT ID", tnrsottId, "name", matchedName, "searched on", origname, "nexsonid", (String)fixedNode.getObject("nexsonid"));
+								//	System.out.println(tnrsottId + " " + namenodemap.get(origname));
+									JadeNode fixedNode = namenodemap.get(origname);
+									logger.indentMessageLongStrStrStr(2, "TNRS resolved ottId", "OTT ID", tnrsottId, "name", matchedName, "searched on", origname, " nexsonid", (String)fixedNode.getObject("nexsonid"));
 									fixedNode.assocObject("ot:ottId", tnrsottId);
 									matchednodes.add(namenodemap.get(origname));
 									namenodemap.remove(origname);
@@ -362,7 +370,7 @@ public class PhylografterConnector {
 				}
 				//for each tip see if there are tips that map to parents of other tips
 				//do this by seeing if there is any overlap between the mrcas from different 
-				for (int j = 0; j < currTree.getExternalNodeCount(); j++){
+				for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
 					JadeNode currNdJ = currTree.getExternalNode(j);
 					if(pru.contains(currNdJ)) {
 						continue;
@@ -386,14 +394,14 @@ public class PhylografterConnector {
 							pru.add(currNdK);
 						} else {
 							TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
-							if (LicaUtil.containsAnyt4jUnsorted(t1, t2)){
+							if (LicaUtil.containsAnyt4jUnsorted(t1, t2)) {
 								logger.indentMessage(2, "overlapping tips");
-								if(t2.size() < t1.size()){
+								if (t2.size() < t1.size()) {
 									pru.add(currNdJ);
 									logger.indentMessageStrStr(3, "overlapping retained", "name", currNdK.getName(), "nexsonid", (String)currNdK.getObject("nexsonid"));
 									logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdJ.getName(), "nexsonid", (String)currNdJ.getObject("nexsonid"));
 									break;
-								}else{
+								} else {
 									pru.add(currNdK);
 									logger.indentMessageStrStr(3, "overlapping retained", "name", currNdJ.getName(), "nexsonid", (String)currNdJ.getObject("nexsonid"));
 									logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdK.getName(), "nexsonid", (String)currNdK.getObject("nexsonid"));
