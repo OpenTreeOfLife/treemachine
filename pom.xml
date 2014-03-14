@@ -10,13 +10,18 @@
   </properties>
   <dependencies>
     <dependency>
-        <groupId>org.neo4j</groupId>
-        <artifactId>neo4j</artifactId>
-        <version>1.9.5</version>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j</artifactId>
+      <version>1.9.5</version>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>server-api</artifactId>
+      <version>1.9.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j.app</groupId>
+      <artifactId>neo4j-server</artifactId>
       <version>1.9.5</version>
     </dependency>
     <dependency>
