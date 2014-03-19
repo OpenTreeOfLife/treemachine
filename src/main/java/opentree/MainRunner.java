@@ -551,12 +551,14 @@ public class MainRunner {
 		/*
 			 The number of expected properties in "tax.temp" has changed:
 			  String tid = st.nextToken().trim();
-			  String pid = st.nextToken().trim();
+			  String parent_uid = st.nextToken().trim();
 			  String name = st.nextToken().trim();
 			  String rank = st.nextToken().trim();
-			  String srce = st.nextToken().trim();
+			  String sourceinfo = st.nextToken().trim();
 			  String uniqname = st.nextToken().trim();
-			 "tax.temp" is updated below. Note use of " " vs. original "\t" for easier reading
+			  String flags = st.nextToken().trim();
+			  uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|	
+			  No header is printed to the temporary taxonomy
 		 */	
 		PrintWriter outFile;
 		try {
@@ -564,12 +566,9 @@ public class MainRunner {
 			ArrayList<String> namesal = new ArrayList<String>();
 			namesal.addAll(names);
 			for (int i = 0; i < namesal.size(); i++) {
-				//outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\n");
-				outFile.write((i+2) + "|1|" + namesal.get(i) + "| | | | | | | |\n");
-				//             tid     pid    name       rank+src+srce_id+srce_pid+uniqname (all empty)
+				outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\t|\t\t|\t\t|\t\t|\t\n");
 			}
-			//outFile.write("1\t|\t0\t|\tlife\t|\t\n");
-			outFile.write("1| |" + rootnodename + "| | | | | | | |\n");
+			outFile.write("1" + "\t|\t\t|\t" + rootnodename + "\t|\t\t|\t\t|\t\t|\t\t|\t\n");
 			outFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
