@@ -238,7 +238,8 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 				
 				for (SourceProperty p : SourceProperty.values()) {
 					if (metadataNode.hasProperty(p.propertyName)) {
-						studyMetadata.put(p.propertyName, p.type.cast(metadataNode.getProperty(p.propertyName)));
+                        if (!p.propertyName.equals("newick"))
+                            studyMetadata.put(p.propertyName, p.type.cast(metadataNode.getProperty(p.propertyName)));
 					}
 				}
 				HashMap<String, Map<String, Object>> studyMetadataContainer = new HashMap<String, Map<String, Object>>();
