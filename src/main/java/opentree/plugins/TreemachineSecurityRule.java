@@ -16,13 +16,14 @@ public class TreemachineSecurityRule implements SecurityRule {
     public static final String REALM = "WallyWorld"; // as per RFC2617 :-)
  
     // List from webapp/private/config.example in opentree repository
-    static Pattern ok = Pattern.compile(".*(" +
+    static Pattern ok = Pattern.compile("/db/data/ext/(" +
                                         "GoLS/graphdb/getDraftTreeID|" +
                                         "GoLS/graphdb/getSyntheticTree|" +
                                         "GoLS/graphdb/getSourceTree|" +
                                         "GoLS/graphdb/getDraftTreeForottId|" +
                                         "GoLS/graphdb/getDraftTreeForNodeID|" +
                                         "GoLS/graphdb/getNodeIDForottId|" +
+                                        "GoLS/graphdb/getSourceTreeIDs|" +
                                         "GoLS/graphdb/getSynthesisSourceList|" +
                                         "GetJsons/node)"
                                         );
