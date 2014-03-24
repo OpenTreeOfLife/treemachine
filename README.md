@@ -10,7 +10,7 @@ sudo apt-get install maven
 ```
 On Mac OS, Maven v.3 can be installed with [Homebrew](http://brew.sh):
 ```
-brew install maven30
+brew install maven
 ```
 
 Once Maven v.3 is installed, you can 
