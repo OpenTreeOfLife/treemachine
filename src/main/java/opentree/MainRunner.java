@@ -59,14 +59,14 @@ public class MainRunner {
 			synfilename = args[2];
 			graphname = args[3];
 			System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
-		} else if(args.length == 3) {
+		} else if (args.length == 3) {
 			graphname = args[2];
 			System.out.println("initializing taxonomy from " + filename + " to " + graphname);
-
 		} else {
 			System.out.println("you have the wrong number of arguments. should be : filename (optional:synonym) graphdbfolder");
 			return 1;
 		}
+		
 		GraphInitializer tl = new GraphInitializer(graphname);
 		try {
 			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename);
@@ -501,7 +501,7 @@ public class MainRunner {
 		String filename = args[1];
 		String soverlap = args[2];
 		boolean overlap = true;
-		if (soverlap.toLowerCase().equals("f")){
+		if (soverlap.toLowerCase().equals("f")) {
 			overlap = false;
 		}
 		String rootnodename = args[3];
@@ -535,10 +535,19 @@ public class MainRunner {
 				}
 			}
 			br.close();
-		} catch (IOException ioe) {}
+		} catch (FileNotFoundException e) {
+			//e.printStackTrace();
+			System.err.println("Could not open the file \"" + args[1] + "\" Exiting...");
+			return -1;
+		} catch (IOException ioe) {
+			
+		}
+		
+		if (treeCounter == 0) {
+			System.err.println("No valid trees found in file \"" + args[1] + "\" Exiting...");
+			return -1;
+		}
 		System.out.println(treeCounter + " trees read.");
-		
-		
 		// Should abort here if no valid trees read
 		
 
