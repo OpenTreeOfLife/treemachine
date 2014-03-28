@@ -19,11 +19,13 @@
       <artifactId>server-api</artifactId>
       <version>1.9.5</version>
     </dependency>
+<!--
     <dependency>
       <groupId>org.neo4j.app</groupId>
       <artifactId>neo4j-server</artifactId>
       <version>1.9.5</version>
     </dependency>
+-->
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
