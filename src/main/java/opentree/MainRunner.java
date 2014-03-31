@@ -1133,6 +1133,37 @@ public class MainRunner {
 		return (success ? 0 : -1);
 	}
 
+	public int getSynthesisInfo(String [] args){
+		boolean success = true;
+		if (args.length != 2 && args.length!= 3) {
+			System.out.println("arguments should be graphdbfolder or ottolID graphdbfolder");
+			return 1;
+		}
+		String graphname = null;
+		Node startnode = null;
+
+		GraphExplorer ge; 
+		if (args.length == 2){
+			graphname = args[1];
+			ge = new GraphExplorer(graphname);
+		}else{
+			graphname = args[2];
+			ge = new GraphExplorer(graphname);
+			try {
+				startnode = ge.findGraphTaxNodeByUID(args[1]);
+			} catch (MultipleHitsException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (TaxonNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+		System.out.println(ge.getNumberSynthesisTips(startnode));
+		return (success ? 0 : -1);
+	}
+	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForOttId(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 
@@ -1862,6 +1893,8 @@ public class MainRunner {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForTaxUID(args);
 			} else if (command.compareTo("synthesizedrafttreelist_nodeid") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForNodeId(args);
+			} else if (command.compareTo("synthesisinfo") == 0) {
+				cmdReturnCode = mr.getSynthesisInfo(args);
 			} else if (command.compareTo("extractdrafttree_ottid") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForOttId(args);
 			} else if (command.compareTo("deleteDraftTree") == 0) {

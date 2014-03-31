@@ -2938,4 +2938,47 @@ public class GraphExplorer extends GraphBase {
 	        e.printStackTrace();
 	    }
 	}
+
+	public int getNumberSynthesisTips(Node startNode) {
+		int tcount = 0;
+		int ncount = 0;
+		int onlytax = 0;
+		int onlytree = 0;
+		int bothtaxtree = 0;
+		Node lifeNode = startNode;
+		if (lifeNode == null)
+			lifeNode = this.getSynthesisMetaNode()
+				.getSingleRelationship(RelType.SYNTHMETADATAFOR, Direction.OUTGOING).getEndNode();
+		TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description()
+	            .relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
+		for (Node friendnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(lifeNode).nodes()) {
+			ncount += 1;
+			boolean tax = false;
+			boolean tree = false;
+			if(friendnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING)==false){
+				tcount += 1;
+			}
+			if(friendnode.hasRelationship(RelType.TAXCHILDOF, Direction.OUTGOING)==true){
+				tax = true;
+			}
+			for(Relationship rel: friendnode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)){
+				if(rel.getProperty("source").equals("taxonomy")==false){
+					tree = true;
+					break;
+				}
+			}
+			if(tax == true && tree == false)
+				onlytax += 1;
+			if(tax == false && tree == true)
+				onlytree += 1;
+			if(tax == true && tree == true)
+				bothtaxtree += 1;
+		}
+		System.out.println("number of tips: "+tcount);
+		System.out.println("number of nodes: "+ncount);
+		System.out.println("number of edges supported only by tax: "+onlytax);
+		System.out.println("number of edges supported only by tree: "+onlytree);
+		System.out.println("number of edges supported both by tax and tree: "+bothtaxtree);
+		return tcount;
+	}
 }
