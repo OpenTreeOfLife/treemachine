@@ -341,6 +341,9 @@ public class NexsonReader {
 			JSONObject j = (JSONObject)meta;
 			// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
 			String propname = (String)j.get("@property");
+			if (propname == null) {
+				propname = (String)j.get("@rel");
+			}
 			if (propname != null) {
 				// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
 				// looking for either "$" or "@href" (former is more frequent)
