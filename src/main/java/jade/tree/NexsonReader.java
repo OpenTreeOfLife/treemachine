@@ -77,7 +77,7 @@ public class NexsonReader {
 	// TODO: tree(s) may be deprecated. Need to check this. May result in no trees to return.
 	public static List<JadeTree> readNexson(Reader r, Boolean verbose, MessageLogger msgLogger) throws java.io.IOException {
 		JSONObject all = (JSONObject)JSONValue.parse(r);
-
+		
 		/*
 		  The format of the file, roughly speaking (some noise omitted):
 		  {"nexml": {
@@ -110,6 +110,8 @@ public class NexsonReader {
 		JSONObject otus = (JSONObject)root.get("otus");
 		JSONArray otuList = (JSONArray)otus.get("otu");
 		msgLogger.messageInt("OTUs", "number", otuList.size());
+		
+		//System.exit(0);
 
 		// Make an index by id of the OTUs. We'll need to be able to find them when we built the trees.
 		Map<String,JSONObject> otuMap = new HashMap<String,JSONObject>();
@@ -314,16 +316,20 @@ public class NexsonReader {
 	// works for both study-wide and tree-specific metadata
 	private static Boolean checkDeprecated (List<Object> metaData) {
 		Boolean deprecated = false;
+		
 		for (Object meta : metaData) {
 			JSONObject j = (JSONObject)meta;
-			if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
-				if ((j.get("$")) != null) {
-					String currentTag = (String)j.get("$");
-					if (currentTag.startsWith("del")) {
-						return true;
+			
+			if (j.get("@property") != null) { // was dying if @property was not present
+				if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
+					if ((j.get("$")) != null) {
+						String currentTag = (String)j.get("$");
+						if (currentTag.startsWith("del")) {
+							return true;
+						}
+					} else {
+						throw new RuntimeException("missing property value for name: " + j);
 					}
-				} else {
-					throw new RuntimeException("missing property value for name: " + j);
 				}
 			}
 		}
