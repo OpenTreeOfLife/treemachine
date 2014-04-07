@@ -85,7 +85,7 @@ public class GraphExporter extends GraphBase {
 	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) 
 				throws TaxonNotFoundException {
 		Node firstNode = findTaxNodeByName(taxname);
-		String tofile = getGraphML(firstNode,useTaxonomy);
+		String tofile = getGraphML(firstNode,useTaxonomy,0);
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(outfile));
@@ -95,7 +95,112 @@ public class GraphExporter extends GraphBase {
 			e.printStackTrace();
 		}
 	}
+	
+	public void writeGraphMLDepth_ottolid(String ottolid, String outfile, boolean useTaxonomy, int depth) 
+			throws TaxonNotFoundException {
+	Node firstNode = findGraphTaxNodeByUID(ottolid);
+	String tofile = getGraphMLSimple(firstNode,useTaxonomy,depth);
+	PrintWriter outFile;
+	try {
+		outFile = new PrintWriter(new FileWriter(outfile));
+		outFile.write(tofile);
+		outFile.close();
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+}
 
+	/**
+	 * creates a graphml for viewing in gephi Because gephi cannot view parallel lines, this will not output parallel edges. The properties that we have are
+	 * node taxon edge sourcename (this is more complicated because of not outputting parallel edges) 
+	 * 
+	 * 
+	 * @param startnode
+	 * @return
+	 */
+
+	private String getGraphMLSimple(Node startnode,boolean taxonomy,int depth){
+		StringBuffer retstring = new StringBuffer("<graphml>\n");
+		retstring.append("<key id=\"d0\" for=\"node\" attr.name=\"taxon\" attr.type=\"string\">\n");
+		retstring.append("<default></default>\n");
+		retstring.append("</key>\n");
+		retstring.append("<key id=\"d1\" for=\"edge\" attr.name=\"sourcename\" attr.type=\"string\">\n");
+		retstring.append("<default></default>\n");
+		retstring.append("</key>\n");
+		retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
+		// get the list of nodes
+		HashSet<Node> nodes = new HashSet<Node>();
+		if(depth > 0){
+		for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
+				.traverse(startnode).nodes()) {
+			nodes.add(tnode);
+		}
+		}else{
+			for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
+					.traverse(startnode).nodes()) {
+				nodes.add(tnode);
+			}
+		}
+		HashMap<Long, ArrayList<String>> sourcelists = new HashMap<Long, ArrayList<String>>();// number of sources for each node
+		// do most of the calculations
+		/*
+		 * calculations here are effective parents and effective children
+		 */
+		for (Node tnode : nodes) {
+			HashMap<Long, Integer> parcount = new HashMap<Long, Integer>();
+			ArrayList<String> slist = new ArrayList<String>();
+			for (Relationship rel : tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
+				if (taxonomy == true || ((String) rel.getProperty("source")).compareTo("taxonomy") != 0) {
+					if (parcount.containsKey(rel.getEndNode().getId()) == false) {
+						parcount.put(rel.getEndNode().getId(), 0);
+					}
+					Integer tint = parcount.get(rel.getEndNode().getId()) + 1;
+					parcount.put(rel.getEndNode().getId(), tint);
+					slist.add((String) rel.getProperty("source"));
+				}
+			}
+			sourcelists.put(tnode.getId(), slist);
+		}
+		// calculate node support
+		/*
+		 * node support here is calculated as the number of outgoing edges divided by the total number of sources in the subtree obtained by getting the number
+		 * of unique sources at each tip
+		 */
+		System.out.println("nodes traversed");
+		Transaction tx = null;
+		//nothing calculated beyond, this is just for writing the file
+		for(Node tnode: nodes){
+			try{
+				tx = graphDb.beginTx();
+
+				retstring.append("<node id=\"n"+tnode.getId()+"\">\n");
+				if(tnode.hasProperty("name")){
+					retstring.append("<data key=\"d0\">"+((String)tnode.getProperty("name")).replace("&", "_")+"</data>\n");
+				}
+				retstring.append("</node>\n");
+				tx.success();
+			}finally{
+				tx.finish();
+			}
+		}
+		for (Node tnode : nodes) {
+			for(Relationship rel: tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
+				if(nodes.contains(rel.getEndNode())){
+					retstring.append("<edge source=\"n" + tnode.getId() + "\" target=\"n" + rel.getEndNode().getId() + "\">\n");
+					//retstring.append("<data key=\"d3\">" + tedgesupport.get(tl) + "</data>\n");
+					retstring.append("<data key=\"d1\">"+((String)rel.getProperty("source")).replace("&", "_")+"</data>\n");
+					retstring.append("</edge>\n");
+				}
+			}
+		}
+		System.out.println("nodes written");
+		retstring.append("</graph>\n</graphml>\n");
+		return retstring.toString();
+	}
+
+	
+	
+	
 	/**
 	 * creates a graphml for viewing in gephi Because gephi cannot view parallel lines, this will not output parallel edges. The properties that we have are
 	 * node taxon edge sourcename (this is more complicated because of not outputting parallel edges) node support edge support node effective parents node
@@ -107,7 +212,7 @@ public class GraphExporter extends GraphBase {
 	 * @return
 	 */
 
-	private String getGraphML(Node startnode,boolean taxonomy){
+	private String getGraphML(Node startnode,boolean taxonomy,int depth){
 		StringBuffer retstring = new StringBuffer("<graphml>\n");
 		retstring.append("<key id=\"d0\" for=\"node\" attr.name=\"taxon\" attr.type=\"string\">\n");
 		retstring.append("<default></default>\n");
@@ -136,9 +241,16 @@ public class GraphExporter extends GraphBase {
 		retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
 		// get the list of nodes
 		HashSet<Node> nodes = new HashSet<Node>();
-		for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
+		if(depth > 0){
+		for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
 				.traverse(startnode).nodes()) {
 			nodes.add(tnode);
+		}
+		}else{
+			for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
+					.traverse(startnode).nodes()) {
+				nodes.add(tnode);
+			}
 		}
 		HashMap<Long, Double> nodesupport = new HashMap<Long, Double>();
 		HashMap<Long, HashMap<Long, Double>> edgesupport = new HashMap<Long, HashMap<Long, Double>>();

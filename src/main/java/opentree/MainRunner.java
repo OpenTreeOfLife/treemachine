@@ -829,7 +829,7 @@ public class MainRunner {
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExporter(String [] args) throws TaxonNotFoundException {
 		String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
-		if (args.length > 5) {
+		if (args.length != 5) {
 			System.out.println(usageString);
 			return 1;
 		}
@@ -849,6 +849,38 @@ public class MainRunner {
 		GraphExporter ge = new GraphExporter(graphname);
 		try {
 			ge.writeGraphML(taxon, outfile, useTaxonomy);
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
+	}
+	
+	public int graphExporter_ottolid(String [] args) throws TaxonNotFoundException {
+		String usageString = "arguments should be ottolid outfile usetaxonomy[T|F] graphdbfolder [depth]";
+		if (args.length != 5 && args.length != 6) {
+			System.out.println(usageString);
+			return 1;
+		}
+		String ottolid = args[1];
+		String outfile = args[2];
+		String _useTaxonomy = args[3];
+		String graphname = args[4];
+		int depth = 0;
+		if(args.length == 6){
+			depth = Integer.valueOf(args[5]);
+		}
+		
+		boolean useTaxonomy = false;
+		if (_useTaxonomy.equals("T")) {
+			useTaxonomy = true;
+		} else if (!(_useTaxonomy.equals("F"))) {
+			System.out.println(usageString);
+			return 1;
+		}
+		
+		GraphExporter ge = new GraphExporter(graphname);
+		try {
+			ge.writeGraphMLDepth_ottolid(ottolid, outfile, useTaxonomy, depth);
 		} finally {
 			ge.shutdownDB();
 		}
@@ -1868,6 +1900,8 @@ public class MainRunner {
 				cmdReturnCode = mr.listSources(args);
 			} else if (command.compareTo("graphml") == 0) {
 				cmdReturnCode = mr.graphExporter(args);
+			} else if (command.compareTo("graphml_ottolid") == 0) {
+				cmdReturnCode = mr.graphExporter_ottolid(args);
 			} else if (command.compareTo("biparts") == 0) {
 				cmdReturnCode = mr.graphExplorerBiparts(args);
 			} else if (command.compareTo("mapsupport") == 0) {
