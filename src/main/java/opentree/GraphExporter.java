@@ -146,6 +146,7 @@ public class GraphExporter extends GraphBase {
 		/*
 		 * calculations here are effective parents and effective children
 		 */
+		HashSet<Node> removenodes = new HashSet<Node> ();//remove for taxonomy
 		for (Node tnode : nodes) {
 			HashMap<Long, Integer> parcount = new HashMap<Long, Integer>();
 			ArrayList<String> slist = new ArrayList<String>();
@@ -159,37 +160,34 @@ public class GraphExporter extends GraphBase {
 					slist.add((String) rel.getProperty("source"));
 				}
 			}
+			if(slist.size()==0 && tnode!=startnode)
+				removenodes.add(tnode);
 			sourcelists.put(tnode.getId(), slist);
 		}
+		nodes.removeAll(removenodes);
 		// calculate node support
 		/*
 		 * node support here is calculated as the number of outgoing edges divided by the total number of sources in the subtree obtained by getting the number
 		 * of unique sources at each tip
 		 */
 		System.out.println("nodes traversed");
-		Transaction tx = null;
 		//nothing calculated beyond, this is just for writing the file
 		for(Node tnode: nodes){
-			try{
-				tx = graphDb.beginTx();
-
-				retstring.append("<node id=\"n"+tnode.getId()+"\">\n");
-				if(tnode.hasProperty("name")){
-					retstring.append("<data key=\"d0\">"+((String)tnode.getProperty("name")).replace("&", "_")+"</data>\n");
-				}
-				retstring.append("</node>\n");
-				tx.success();
-			}finally{
-				tx.finish();
+			retstring.append("<node id=\"n"+tnode.getId()+"\">\n");
+			if(tnode.hasProperty("name")){
+				retstring.append("<data key=\"d0\">"+((String)tnode.getProperty("name")).replace("&", "_")+"</data>\n");
 			}
+			retstring.append("</node>\n");
 		}
 		for (Node tnode : nodes) {
 			for(Relationship rel: tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
-				if(nodes.contains(rel.getEndNode())){
-					retstring.append("<edge source=\"n" + tnode.getId() + "\" target=\"n" + rel.getEndNode().getId() + "\">\n");
-					//retstring.append("<data key=\"d3\">" + tedgesupport.get(tl) + "</data>\n");
-					retstring.append("<data key=\"d1\">"+((String)rel.getProperty("source")).replace("&", "_")+"</data>\n");
-					retstring.append("</edge>\n");
+				if (taxonomy == true || ((String) rel.getProperty("source")).compareTo("taxonomy") != 0) {
+					if(nodes.contains(rel.getEndNode())){
+						retstring.append("<edge source=\"n" + tnode.getId() + "\" target=\"n" + rel.getEndNode().getId() + "\">\n");
+						//retstring.append("<data key=\"d3\">" + tedgesupport.get(tl) + "</data>\n");
+						retstring.append("<data key=\"d1\">"+((String)rel.getProperty("source")).replace("&", "_")+"</data>\n");
+						retstring.append("</edge>\n");
+					}
 				}
 			}
 		}
