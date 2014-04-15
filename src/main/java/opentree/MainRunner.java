@@ -735,10 +735,11 @@ public class MainRunner {
 			JadeTree tree = null;
 			if (rootNodeID == null) {
 				if (treeID == null) {
-					if(args[0].equalsIgnoreCase("sourceexplorer"))
+					if(args[0].equalsIgnoreCase("sourceexplorer")) {
 						tree = ge.reconstructSource(sourcename, maxDepth);
-					else if(args[0].equalsIgnoreCase("sourceexplorer_inf_mono"))
+					} else if(args[0].equalsIgnoreCase("sourceexplorer_inf_mono")) {
 						ge.getInformationAndMonophylyTreeVsTaxonomy(sourcename);
+					}
 				} else {
 					tree = ge.reconstructSourceByTreeID(treeID, maxDepth);
 				}
@@ -750,7 +751,7 @@ public class MainRunner {
 					tree = ge.reconstructSourceByTreeID(treeID, rootNodeIDParsed, maxDepth);
 				}
 			}
-			if(args[0].equalsIgnoreCase("sourceexplorer_inf_mono")==false){
+			if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono")==false) {
 				final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
 				System.out.println(newick + ";");
 			}
@@ -1178,7 +1179,7 @@ public class MainRunner {
 		if (args.length == 2){
 			graphname = args[1];
 			ge = new GraphExplorer(graphname);
-		}else{
+		} else {
 			graphname = args[2];
 			ge = new GraphExplorer(graphname);
 			try {
@@ -1190,7 +1191,6 @@ public class MainRunner {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
 		}
 		System.out.println(ge.getNumberSynthesisTips(startnode));
 		return (success ? 0 : -1);
@@ -1198,7 +1198,10 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForOttId(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
-
+		if (args.length != 4) {
+			System.out.println("arguments should be rootNodeOttId outfilename graphdbfolder");
+			return 1;
+		}
 		// open the graph
 		String graphname = args[3];
 		GraphExplorer ge = new GraphExplorer(graphname);
@@ -1208,7 +1211,7 @@ public class MainRunner {
 		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottId).getId());
 		args[1] = startNodeIdStr;
 		ge.shutdownDB();
-		// do the synth
+		
 		return extractDraftTreeForNodeId(args);
 	}
 	
@@ -1250,24 +1253,6 @@ public class MainRunner {
 		return 0;
 	}
 	
-	/// @returns 0 for success, 1 for poorly formed command
-	public int deleteDraftTree(String [] args) {
-		GraphImporter gi = null;
-		if (args.length != 2) {
-			System.out.println("arguments should be: graphdbfolder");
-			return 1;
-		}
-		String graphname = args[1];
-		gi = new GraphImporter(graphname);
-		try {
-			gi.deleteSynthesisTree();
-		} finally {
-			gi.shutdownDB();
-		}
-		return 0;
-	}
-	
-
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftSubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
@@ -1330,6 +1315,23 @@ public class MainRunner {
 		} finally {
 			outFile.close();
 			ge.shutdownDB();
+		}
+		return 0;
+	}
+	
+	/// @returns 0 for success, 1 for poorly formed command
+	public int deleteDraftTree(String [] args) {
+		GraphImporter gi = null;
+		if (args.length != 2) {
+			System.out.println("arguments should be: graphdbfolder");
+			return 1;
+		}
+		String graphname = args[1];
+		gi = new GraphImporter(graphname);
+		try {
+			gi.deleteSynthesisTree();
+		} finally {
+			gi.shutdownDB();
 		}
 		return 0;
 	}

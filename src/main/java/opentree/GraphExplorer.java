@@ -412,6 +412,8 @@ public class GraphExplorer extends GraphBase {
             child_parents_map.put(friendnode, new HashSet<Node>());
             int count = 0;
             for (Relationship rel : friendnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
+            	
+            // TODO: I don't believe that "ottol" exists anywhere anymore
                 if (rel.getProperty("source").equals("taxonomy") == true || rel.getProperty("source").equals("ottol") == true) {
                     continue;
                 }
@@ -1205,7 +1207,7 @@ public class GraphExplorer extends GraphBase {
     
     /**
      * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
-     * External function that uses the ottol id to find the root node in the db.
+     * External function that uses the ottid to find the root node in the db.
      * 
      * @param nodeId
      * @throws OttIdNotFoundException 
@@ -1508,7 +1510,6 @@ public class GraphExplorer extends GraphBase {
         
         if (curGraphNode.hasProperty("name")) {
             curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
-//            curNode.setName(GeneralUtils.cleanName(curNode.getName()));
         }
         curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
 
@@ -2605,11 +2606,11 @@ public class GraphExplorer extends GraphBase {
     			ArrayList<Node> taxon_child = new ArrayList<Node> ();
     			if (tnode.hasProperty("name")){
     				mn_taxonomy = true;
-    				for(Relationship rel1: tnode.getRelationships(Direction.INCOMING, RelType.TAXCHILDOF)){
+    				for(Relationship rel1: tnode.getRelationships(Direction.INCOMING, RelType.TAXCHILDOF)) {
     					Node tttn = rel1.getStartNode();
     					boolean match = false;
-    					for(Relationship ttrel1: tttn.getRelationships(Direction.OUTGOING,RelType.STREECHILDOF)){
-    						if(((String)ttrel1.getProperty("source")).equalsIgnoreCase(sourcename)){
+    					for (Relationship ttrel1: tttn.getRelationships(Direction.OUTGOING,RelType.STREECHILDOF)) {
+    						if (((String)ttrel1.getProperty("source")).equalsIgnoreCase(sourcename)) {
     							match = true;
     							break;
     						}
@@ -2622,14 +2623,15 @@ public class GraphExplorer extends GraphBase {
     			for (int i = 0; i < endnode_rel_map.get(tnode).size(); i++) {
     				if (ignoreCycles.contains(endnode_rel_map.get(tnode).get(i).getStartNode()) == false) {
     					Node tnodechild = endnode_rel_map.get(tnode).get(i).getStartNode();
-    					if(donechilds.contains(tnodechild)==true)
+    					if (donechilds.contains(tnodechild)==true) {
     						continue;
+    					}
     					donechilds.add(tnodechild);
     					treestack.push(tnodechild);
     					JadeNode tchild = new JadeNode();
     					if (tnodechild.hasProperty("name")) {
     						tchild.setName((String) tnodechild.getProperty("name")+"______"+(String)tnodechild.getProperty(NodeProperty.TAX_UID.propertyName));
-    					}else{
+    					} else {
     						//GET INFORMATION HERE and NON MONOPHYLY
     						TLongHashSet tlhs = new TLongHashSet((long [])tnodechild.getProperty("mrca"));
     						System.out.println("information: ("+tnode+"->"+tnodechild+") "+tlhs.size()+","+lhs.size());
