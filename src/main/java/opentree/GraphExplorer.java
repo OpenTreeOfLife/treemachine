@@ -1509,7 +1509,8 @@ public class GraphExplorer extends GraphBase {
 //    	}
         
         if (curGraphNode.hasProperty("name")) {
-            curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+            curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name")))
+            		+ "_ott" + String.valueOf(curGraphNode.getProperty("tax_uid")));
         }
         curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
 
