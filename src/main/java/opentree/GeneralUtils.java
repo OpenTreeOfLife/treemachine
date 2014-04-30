@@ -26,11 +26,24 @@ public class GeneralUtils {
 	 * Replaces non-alphanumeric characters (excluding "_" and "-") in `dirtyName` with "_" and returns the cleaned name.
 	 * 
 	 * @param dirtyName
-	 * @return cleaned name
+	 * @return cleanName
 	 */
 	public static String cleanName(String dirtyName) {
 	    String cleanName = dirtyName.replaceAll(offendingChars, "_");
 	    return cleanName;
+	}
+	
+	/**
+	 * Replaces single quotes in `origName` with "''" and puts a pair of single quotes around the entire string.
+	 * This conforms with valid newick usage (http://evolution.genetics.washington.edu/phylip/newick_doc.html).
+	 * 
+	 * @param origName
+	 * @return newickName
+	 */
+	public static String newickName(String origName) {
+		String newickName = origName.replaceAll("'", "''");
+		newickName = "'" + newickName + "'";
+		return newickName;
 	}
 	
 	/*

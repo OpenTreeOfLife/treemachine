@@ -1508,9 +1508,16 @@ public class GraphExplorer extends GraphBase {
 //    		System.out.println("parent jade node: " + parentJadeNode.toString());
 //    	}
         
+        
+        // set the names for the newick string
         if (curGraphNode.hasProperty("name")) {
-            curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name")))
-            		+ "_ott" + String.valueOf(curGraphNode.getProperty("tax_uid")));
+            String name = GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name")))
+            		+ "_ott" + String.valueOf(curGraphNode.getProperty("tax_uid"));
+            // quotes are special characters in newick strings, so have to be dealt with properly
+            if (name.contains("'")) {
+            	name = GeneralUtils.newickName(name);
+            }
+        	curNode.setName(name);
         }
         curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
 
