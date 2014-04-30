@@ -24,6 +24,7 @@ public class GeneralUtils {
 
 	/**
 	 * Replaces non-alphanumeric characters (excluding "_" and "-") in `dirtyName` with "_" and returns the cleaned name.
+	 * Meant for cleaning names on newick tree input.
 	 * 
 	 * @param dirtyName
 	 * @return cleanName
@@ -34,15 +35,33 @@ public class GeneralUtils {
 	}
 	
 	/**
+	 * Make sure name conforms to valid newick usage (http://evolution.genetics.washington.edu/phylip/newick_doc.html).
+	 * 
 	 * Replaces single quotes in `origName` with "''" and puts a pair of single quotes around the entire string.
-	 * This conforms with valid newick usage (http://evolution.genetics.washington.edu/phylip/newick_doc.html).
+	 * Puts quotes around name if any illegal characters are present.
 	 * 
 	 * @param origName
 	 * @return newickName
 	 */
 	public static String newickName(String origName) {
-		String newickName = origName.replaceAll("'", "''");
-		newickName = "'" + newickName + "'";
+		Boolean needQuotes = false;
+		String newickName = origName;
+		
+		// replace all spaces with underscore
+		newickName = newickName.replaceAll(" ", "_");
+		
+		// newick standard way of dealing with single quotes in taxon names
+		if (newickName.contains("'")) {
+			newickName = newickName.replaceAll("'", "''");
+			needQuotes = true;
+        }
+		// if offending characters are present, quotes are needed
+		if (newickName.matches(offendingChars)) {
+			needQuotes = true;
+		}
+		if (needQuotes) {
+			newickName = "'" + newickName + "'";
+		}
 		return newickName;
 	}
 	
