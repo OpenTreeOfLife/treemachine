@@ -9,6 +9,7 @@ public class GeneralUtils {
 
     // all common non-alphanumeric chars except "_" and "-", for use when cleaning strings
     public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
+    public static final String newickIllegal = "[:;/[]{}(),]+";
 
     public static int sum_ints(List<Integer> list){
 		if (list == null || list.size() < 1) {
@@ -56,7 +57,7 @@ public class GeneralUtils {
 			needQuotes = true;
         }
 		// if offending characters are present, quotes are needed
-		if (newickName.matches(offendingChars)) {
+		if (newickName.matches(newickIllegal)) {
 			needQuotes = true;
 		}
 		if (needQuotes) {
