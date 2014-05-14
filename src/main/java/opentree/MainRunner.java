@@ -5,6 +5,7 @@ import jade.tree.JadeNode;
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -16,9 +17,14 @@ import java.io.PrintWriter;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
+import java.util.StringTokenizer;
+
+
 
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
@@ -30,10 +36,13 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
+
+
+
+
 import opentree.exceptions.DataFormatException;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttIdNotFoundException;
-
 import opentree.exceptions.StoredEntityNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
@@ -1009,8 +1018,137 @@ public class MainRunner {
 			System.out.println(jt.get(0).getRoot().getNewick(true) + ";");
 			return 0;
 		}
+		if(args[0].equals("convertfigtree")){
+			//the idea here is to generate another newick that will have internal labels the width of the branch
+			//polytomies will have one node and it will have this width
+			HashMap<String,String> source_mp = new HashMap<String,String>();
+			if (args.length == 4){
+				try {
+					BufferedReader brt = new BufferedReader(new FileReader(args[3]));
+					while ((ts = brt.readLine()) != null) {
+						StringTokenizer st = new StringTokenizer(ts,"\t|\t");
+						String tid = st.nextToken();
+						String par = st.nextToken();
+						st.nextToken();
+						st.nextToken();
+						String source = st.nextToken();
+						source_mp.put(tid, source);
+					}
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				getNCBICountsFigtreeNewick(jt.get(0).getRoot(),source_mp);
+			}
+			try {
+				ArrayList<JadeNode> destroy = new ArrayList<JadeNode>();
+				for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
+					JadeNode t = jt.get(0).getInternalNode(i);
+					if(args.length != 4){
+						t.assocObject("tipcount", Math.log10(t.getTipCount()));
+					}
+					for(int j=0;j<t.getChildCount();j++){
+						if(t.getChild(j).getChildCount()<2 || t.getChild(j).getTipCount() < 500){// || t.getChild(j).getName().split("_").length>2){
+							destroy.add(t.getChild(j));
+						}
+					}
+				}
+				for(int i=0;i<destroy.size();i++){
+					if(destroy.get(i).getParent().getName().length() < 2)
+						destroy.get(i).getParent().setName(destroy.get(i).getName());
+					destroy.get(i).getParent().removeChild(destroy.get(i));
+				}
+				destroy.clear();
+				//now we take out the polytomies
+				for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
+					JadeNode t = jt.get(0).getInternalNode(i);
+					if(t.getChildCount() > 2){
+						for(int j=0;j<t.getChildCount();j++){
+							if(t.getChild(j).getChildCount()<1){//sometimes I do 2
+								destroy.add(t.getChild(j));
+							}
+						}
+					}
+				}
+				for(int i=0;i<destroy.size();i++){
+					if(destroy.get(i).getParent().getName().length() < 2)
+						destroy.get(i).getParent().setName(destroy.get(i).getName());
+					//Double v = (Double)destroy.get(i).getParent().getObject("value");
+					//Double tv = (Double)destroy.get(i).getObject("value");
+					destroy.get(i).getParent().removeChild(destroy.get(i));
+				}
+				FileWriter fw = new FileWriter(args[2]);
+				fw.write("#nexus\nbegin trees;\ntree a = ");
+				fw.write(getSynthMinorFigtreeNewick(jt.get(0).getRoot())+";");
+				fw.write("\nend;\n");
+				fw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return 0;
+		}
 		System.err.println("Unrecognized command argument \"" + args[0] + "\"");
 		return 2;
+	}
+	
+	/**
+	 * this will just fill out the ncbi counts
+	 * @param innode
+	 * @param id_childs
+	 * @param source_mp
+	 */
+	private double getNCBICountsFigtreeNewick(JadeNode innode,HashMap<String,String> source_mp){
+		double childcount = 0;
+		for(int i=0;i<innode.getChildCount();i++){
+			childcount += getNCBICountsFigtreeNewick(innode.getChild(i),source_mp);
+		}
+		double count = 0;
+		if(innode.isExternal()){
+			String nm = innode.getName().split("_")[innode.getName().split("_").length-1].replace("ott", "");
+			if(source_mp.containsKey(nm)){
+				if(source_mp.get(nm).contains("ncbi")){
+					count = 1;
+				}
+			}
+		}
+		count += childcount;
+		//innode.assocObject("tipcount", Math.log10(count));
+		innode.assocObject("tipcount",count/innode.getTipCount());
+		return count;
+	}
+	
+	/**
+	 * similar to the getNewick but doesn't go to the tips and adds a &label for thickness of the branches
+	 * @param bl
+	 * @return
+	 */
+	private String getSynthMinorFigtreeNewick(JadeNode innode) {
+		StringBuffer ret = new StringBuffer("");
+		for (int i = 0; i < innode.getChildCount(); i++) {
+			if (i == 0) {
+				ret.append("(");
+			}
+			ret.append(getSynthMinorFigtreeNewick(innode.getChild(i)));
+			double value = (Double)innode.getObject("tipcount");
+			ret.append("[&tipcount=".concat(String.valueOf(value)).concat("]"));
+			
+			if (i == innode.getChildCount()-1) {
+				ret.append(")");
+			} else {
+				ret.append(",");
+			}
+		}
+		if (innode.getName() != null) {
+			String [] spls = innode.getName().split("_");
+			String tname = spls[0];
+			for(int i=1;i<spls.length;i++){
+				tname += "_" +spls[i];
+			}
+			ret.append(GeneralUtils.cleanName(tname));
+		}
+		return ret.toString();
 	}
 	
 	/*
@@ -1828,6 +1966,7 @@ public class MainRunner {
 		System.out.println("\tlabeltax <filename.tre> <graphdbfolder>");
 		System.out.println("\tchecktax <filename.tre> <graphdbfolder>");
 		System.out.println("\tnexson2newick <filename.nexson> [filename.newick]\n");
+		System.out.println("\tconvertfigtree <filename.tre> <outfile.tre>");
 		
 		System.out.println("---synthesis functions---");
 		System.out.println("\tsynthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
@@ -1918,7 +2057,8 @@ public class MainRunner {
 				cmdReturnCode = mr.getLicaNames(args);
 			} else if (command.compareTo("counttips") == 0
 					|| command.compareTo("diversity") == 0
-					|| command.compareTo("labeltips") == 0) {
+					|| command.compareTo("labeltips") == 0 
+					|| command.compareTo("convertfigtree") == 0){
 				cmdReturnCode = mr.treeUtils(args);
 			} else if (command.compareTo("labeltax") == 0
 					|| command.compareTo("checktax") == 0) {
