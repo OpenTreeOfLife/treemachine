@@ -95,6 +95,16 @@ public class JadeNode {
     	return leaves;
     }
     
+    public int getDescendantLeavesNumbers() {
+        int leaves = 0;
+    	for (JadeNode descendant : getDescendants(NodeOrder.PREORDER)) {
+    		if (descendant.isExternal()) {
+    			leaves+= 1;
+    		}
+    	}
+    	return leaves;
+    }
+    
     public Iterable<JadeNode> getDescendantLeaves() {
     	return getDescendantLeaves(NodeOrder.PREORDER);
     }

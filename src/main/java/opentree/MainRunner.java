@@ -2,6 +2,7 @@ package opentree;
 
 import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
+import jade.tree.JadeNode.NodeOrder;
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
@@ -26,6 +27,9 @@ import java.util.StringTokenizer;
 
 
 
+
+
+
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 //import org.apache.log4j.PropertyConfigurator;
@@ -35,6 +39,9 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
+
+
+
 
 
 
@@ -1049,7 +1056,7 @@ public class MainRunner {
 						t.assocObject("tipcount", Math.log10(t.getTipCount()));
 					}
 					for(int j=0;j<t.getChildCount();j++){
-						if(t.getChild(j).getChildCount()<2 || t.getChild(j).getTipCount() < 500){// || t.getChild(j).getName().split("_").length>2){
+						if(t.getChild(j).getTipCount() < 500){// ||t.getChild(j).getChildCount()<2){//  || t.getChild(j).getName().split("_").length>2){
 							destroy.add(t.getChild(j));
 						}
 					}
@@ -1131,8 +1138,7 @@ public class MainRunner {
 				ret.append("(");
 			}
 			ret.append(getSynthMinorFigtreeNewick(innode.getChild(i)));
-			double value = (Double)innode.getObject("tipcount");
-			ret.append("[&tipcount=".concat(String.valueOf(value)).concat("]"));
+			
 			
 			if (i == innode.getChildCount()-1) {
 				ret.append(")");
@@ -1148,6 +1154,8 @@ public class MainRunner {
 			}
 			ret.append(GeneralUtils.cleanName(tname));
 		}
+		double value = (Double)innode.getObject("tipcount");
+		ret.append("[&tipcount=".concat(String.valueOf(value)).concat("]"));
 		return ret.toString();
 	}
 	
@@ -1839,6 +1847,98 @@ public class MainRunner {
 		return 0;
 	}
 	
+	public int convertTaxonomy(String []args){
+		if (args.length != 3) {
+			System.out.println("arguments should be: node graphdb");
+			return 1;
+		}
+		JadeTree tree = null;
+		JadeNode root = null;
+		String taxonomyfile = args[1];
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(taxonomyfile));
+			String str;
+			int count = 0;
+			String cellular = "93302";
+			HashMap<String,JadeNode> id_node_map = new HashMap<String,JadeNode>();
+			HashMap<String,ArrayList<String>> id_childs = new HashMap<String,ArrayList<String>>();
+			while ((str = br.readLine()) != null) {
+				// check the first line to see if it the file has a header that we should skip
+				if (count == 0) {
+					if (str.startsWith("uid")) { // file contains a header. skip line
+						System.out.println("Skipping taxonomy header line: " + str);
+						continue;
+					}
+				}
+				
+				// collect sets of lines until we reach the transaction frequency
+				count += 1;
+				StringTokenizer st = new StringTokenizer(str,"|");
+				String tid = null;
+				String pid = null;
+				String name = null;
+				String rank = null;
+				String srce = null;
+				String uniqname = null;
+				String flag = null; 
+				tid = st.nextToken().trim();
+				pid = st.nextToken().trim();
+				name = st.nextToken().trim();
+				rank = st.nextToken().trim();
+				srce = st.nextToken().trim();
+				uniqname = st.nextToken().trim();
+				flag = st.nextToken().trim(); //for dubious
+				if(id_childs.containsKey(pid)==false){
+					id_childs.put(pid, new ArrayList<String>());
+				}id_childs.get(pid).add(tid);
+				JadeNode tnode = new JadeNode();
+				tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
+				tnode.assocObject("id", tid);
+				id_node_map.put(tid, tnode);
+			}
+			count = 0;
+			//construct tree
+			Stack <JadeNode> nodes = new Stack<JadeNode>();
+			root = id_node_map.get(cellular);
+			nodes.add(root);
+			while(nodes.empty()==false){
+				JadeNode tnode = nodes.pop();
+				count += 1;
+				ArrayList<String> childs = id_childs.get((String)tnode.getObject("id"));
+				for(int i=0;i<childs.size();i++){
+					JadeNode ttnode = id_node_map.get(childs.get(i));
+					tnode.addChild(ttnode);
+					if(id_childs.containsKey(childs.get(i))){
+						nodes.add(ttnode);
+					}
+				}
+				if(count%10000 == 0){
+					System.out.println(count);
+				}
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		tree = new JadeTree(root);
+		tree.processRoot();
+		String outfile = args[2];
+		FileWriter fw;
+		try {
+			fw = new FileWriter(outfile);
+			fw.write(tree.getRoot().getNewick(false)+";");
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return 0;
+	}
+	
 	/*
 	 * Read in nexson-formatted tree, export as newick
 	 */
@@ -2060,7 +2160,9 @@ public class MainRunner {
 					|| command.compareTo("labeltips") == 0 
 					|| command.compareTo("convertfigtree") == 0){
 				cmdReturnCode = mr.treeUtils(args);
-			} else if (command.compareTo("labeltax") == 0
+			} else if (command.compareTo("converttaxonomy")==0){
+				cmdReturnCode = mr.convertTaxonomy(args);
+			}else if (command.compareTo("labeltax") == 0
 					|| command.compareTo("checktax") == 0) {
 				cmdReturnCode = mr.treeUtilsDB(args);
 			} else if (command.compareTo("synthesizedrafttree") == 0) {
