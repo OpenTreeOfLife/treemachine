@@ -102,7 +102,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 				}
 				
 				if (children.size() > 0) {
-					serializer.putList("children", OpenTreeMachineRepresentationConverter.getListRepresentation(children));
+					serializer.putList("children", OTRepresentationConverter.getListRepresentation(children));
 				}
 				
 				// if you want branch lengths
@@ -140,7 +140,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 //					ret.append(", ");
 //					JSONExporter.escapePropertyColon(ret, "pathToRoot");
 //					JSONExporter.writeListOfNodesAsJSONSummary(ret, pathToRoot);
-					serializer.putList("pathToRoot", OpenTreeMachineRepresentationConverter.getListRepresentation(pathToRootRepresentation));
+					serializer.putList("pathToRoot", OTRepresentationConverter.getListRepresentation(pathToRootRepresentation));
 				}
 				
 				if (inNode.getObject("hasChildren") != null) {
@@ -158,7 +158,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 					for (int i = 0; i < dnl.length; i++) {
 						dnlList.add(dnl[i]);
 					}
-					serializer.putList("descendantNameList", OpenTreeMachineRepresentationConverter.getListRepresentation(dnlList));
+					serializer.putList("descendantNameList", OTRepresentationConverter.getListRepresentation(dnlList));
 				}
 
 				// report tree IDs supporting each clade as supportedBy list of strings
@@ -170,7 +170,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 					for (int i = 0; i < sup.length; i++) {
 						supList.add(sup[i]);
 					}
-					serializer.putList("supportedBy", OpenTreeMachineRepresentationConverter.getListRepresentation(supList));
+					serializer.putList("supportedBy", OTRepresentationConverter.getListRepresentation(supList));
 
 				}
 								
