@@ -66,7 +66,7 @@ public class OpenTreeMachineRepresentationConverter {
      * @return
      */
     public static MappingRepresentation getMapRepresentation(Map data) {
-        return GeneralizedMappingRepresentation.getMapRepresentation(data);
+        return GeneralizedMappingRepresentationDEPRECATED.getMapRepresentation(data);
     }
 
     /**

@@ -1041,7 +1041,6 @@ public class MainRunner {
 						String source = st.nextToken();
 						source_mp.put(tid, source);
 					}
-					brt.close();
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
@@ -1897,7 +1896,6 @@ public class MainRunner {
 				tnode.assocObject("id", tid);
 				id_node_map.put(tid, tnode);
 			}
-			br.close();
 			count = 0;
 			//construct tree
 			Stack <JadeNode> nodes = new Stack<JadeNode>();

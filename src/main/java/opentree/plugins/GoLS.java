@@ -37,7 +37,7 @@ import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.ArgusonRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
-import org.neo4j.server.rest.repr.OpenTreeMachineRepresentationConverter;
+import org.neo4j.server.rest.repr.OTRepresentationConverter;
 
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
@@ -53,9 +53,50 @@ public class GoLS extends ServerPlugin {
 		} finally {
 			ge.shutdownDB();
 		}
-		return OpenTreeMachineRepresentationConverter.convert(sourceArrayList);
+		return OTRepresentationConverter.convert(sourceArrayList);
 	}
 
+	@Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input.")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getMRCAForNodes(
+			@Source GraphDatabaseService graphDb,
+			@Description("A set of node ids") @Parameter(name="nodeIds", optional=true) long[] nodeIds,
+			@Description("A set of ott ids") @Parameter(name="ottIds", optional=true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
+		
+		if (nodeIds.length < 1 && ottIds.length < 1) {
+			throw new IllegalArgumentException("You must supply at least one node or ott id.");
+		}
+		
+		ArrayList<Node> tips = new ArrayList<Node>();
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		
+		if (nodeIds != null && nodeIds.length > 0) {
+			for (long nodeId : nodeIds) {
+				Node n = graphDb.getNodeById(nodeId);
+				if (n != null) {
+					tips.add(n);
+				}
+			}
+		}
+		
+		if (ottIds != null && ottIds.length > 0) {
+			for (long ottId : ottIds) {
+				Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				if (n != null) {
+					tips.add(n);
+				}
+			}
+		}
+
+		if (tips.size() < 1) {
+			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
+		} else {
+			HashMap<String, Object> vals = new HashMap<String, Object>();
+			vals.put("mrca_node_id", ge.getDraftTreeMRCAForNodes(tips).getId());
+			return OTRepresentationConverter.convert(vals);
+		}
+	}
+	
 	@Description("Return a JSON obj that represents the error and warning messages associated with attempting to ingest a NexSON blob")
 	@PluginTarget (GraphDatabaseService.class)
 	public Representation getStudyIngestMessagesForNexSON(
@@ -78,7 +119,7 @@ public class GoLS extends ServerPlugin {
 			outputPrintStream.close();
 		}
 		String jsonResponse = outputJSONStream.toString();
-		return OpenTreeMachineRepresentationConverter.convert(jsonResponse); // TODO: still double wrapping string. Need to figure out a thin String->Representation wrapper.
+		return OTRepresentationConverter.convert(jsonResponse); // TODO: still double wrapping string. Need to figure out a thin String->Representation wrapper.
 	}
 
 	@Description("Returns identifying information for the current draft tree")
@@ -118,7 +159,7 @@ public class GoLS extends ServerPlugin {
 			ge.shutdownDB();
 		}
 
-		return OpenTreeMachineRepresentationConverter.convert(draftTreeInfo);
+		return OTRepresentationConverter.convert(draftTreeInfo);
 	}
 	
 	@Description("Returns a list of the synthesis tree source information")
@@ -139,7 +180,7 @@ public class GoLS extends ServerPlugin {
 		} finally {
 			ge.shutdownDB();
 		}
-		return OpenTreeMachineRepresentationConverter.convert(sourceList);
+		return OTRepresentationConverter.convert(sourceList);
 	}
 	
 	@Description("Initiate the default synthesis process (and store the synthesized branches) for the subgraph starting from a given root node")
@@ -225,7 +266,7 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> responseMap = new HashMap<String, Object>();
 			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()));
 			responseMap.put("treeID", treeID);
-			return OpenTreeMachineRepresentationConverter.convert(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
 
 		} else { // emit arguson
 			return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
@@ -285,7 +326,7 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> responseMap = new HashMap<String, Object>();
 			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()));
 			responseMap.put("treeID", treeID);
-			return OpenTreeMachineRepresentationConverter.convert(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
 			
 		} else { // emit arguson
 			return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
@@ -309,7 +350,7 @@ public class GoLS extends ServerPlugin {
 		HashMap<String, String> response = new HashMap<String, String>();
 		response.put("tree", tree.getRoot().getNewick(true));
 
-		return OpenTreeMachineRepresentationConverter.convert(response);
+		return OTRepresentationConverter.convert(response);
 	}
 
 	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `nodeID`.")
@@ -327,7 +368,7 @@ public class GoLS extends ServerPlugin {
 		HashMap<String, String> response = new HashMap<String, String>();
 		response.put("tree", tree.getRoot().getNewick(true));
 
-		return OpenTreeMachineRepresentationConverter.convert(response);
+		return OTRepresentationConverter.convert(response);
 	}
 
 	@Description("Returns the the node id of the named node identified by `ottId`.")
@@ -360,7 +401,7 @@ public class GoLS extends ServerPlugin {
         	}
         }
 
-		return OpenTreeMachineRepresentationConverter.convert(childIds);
+		return OTRepresentationConverter.convert(childIds);
 	}
 	
 }

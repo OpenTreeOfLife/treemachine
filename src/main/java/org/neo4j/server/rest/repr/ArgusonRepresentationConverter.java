@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import org.neo4j.graphdb.Node;
+import org.neo4j.server.rest.repr.GeneralizedMappingRepresentation;
 
 import opentree.constants.SourceProperty;
 
