@@ -2107,6 +2107,7 @@ public class MainRunner {
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tsourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
+		System.out.println("\tgettaxonomy <graphdbfolder> (return the name of the taxonomy used to initialize the graph)");
 		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
 		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
 		System.out.println("\tgetlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)\n");
