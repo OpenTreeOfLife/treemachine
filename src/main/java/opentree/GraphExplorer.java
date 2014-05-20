@@ -352,6 +352,9 @@ public class GraphExplorer extends GraphBase {
 
     			LinkedList<JadeNode> childTreeTipDescendants = childToAdd.getValue();
     			
+    			System.out.println("childTreeTipDescendants");
+    			System.out.println(Arrays.toString(childTreeTipDescendants.toArray()));
+    			
     			// if there is just one descendant, just add it to the current tree node
     			if (childTreeTipDescendants.size() == 1) {
     				treeNode.addChild(childTreeTipDescendants.get(0));
@@ -376,19 +379,29 @@ public class GraphExplorer extends GraphBase {
 				} else {
 					
 					System.out.println(treeNode.getName() + " has more than two children, checking if it is a polytomy");
-
+					System.out.println("treeTipRootPathMap");
+//					System.out.println(Arrays.toString(treeTipRootPathMap.keySet().toArray()));
+					
+					Node graphNodeForTip = treeNodeGraphNodeMap.get(childTreeTipDescendants.get(0));
+					
 					// get the *shallowest* ancestor for an arbitrary descendant of this child
-	    			ArrayList<Node> startNodeAncestors = treeTipRootPathMap.get(childTreeTipDescendants.get(0));
+	    			ArrayList<Node> startNodeAncestors = treeTipRootPathMap.get(graphNodeForTip);
 	    			Node startShallowestAncestor = null;
 	    			
-	    			if (startNodeAncestors != null && startNodeAncestors.size() > 0) {
+	    			System.out.println("startNodeAncestors");
+	    			System.out.println(Arrays.toString(startNodeAncestors.toArray()));
+	    			
+	    			if (startNodeAncestors.size() > 0) {
 	    				startShallowestAncestor = startNodeAncestors.get(startNodeAncestors.size() - 1);
 	    			}
 
 					// if all the descendants have the same *shallowest* ancestor, then this is a polytomy
 	    			boolean isPolytomy = true;
 	    			for (JadeNode treeTip : childTreeTipDescendants) {
-	    				ArrayList<Node> curAncestors = treeTipRootPathMap.get(treeTip);
+	    				
+	    				Node graphTip = treeNodeGraphNodeMap.get(treeTip);
+	    				
+	    				ArrayList<Node> curAncestors = treeTipRootPathMap.get(graphTip);
 	    				Node curShallowestAncestor = curAncestors.get(curAncestors.size() - 1);
 	    				
 	    				if (! startShallowestAncestor.equals(curShallowestAncestor)) {
