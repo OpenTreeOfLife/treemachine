@@ -380,11 +380,8 @@ public class GraphExplorer extends GraphBase {
 					// get the *shallowest* ancestor for an arbitrary descendant of this child
 	    			ArrayList<Node> startNodeAncestors = treeTipRootPathMap.get(childTreeTipDescendants.get(0));
 	    			Node startShallowestAncestor = null;
-	    			if (startNodeAncestors == null) {
-	    				continue; // skip taxa that aren't in the tree, this check might need to go elsewhere...
-	    			}
 	    			
-	    			if (startNodeAncestors.size() > 0) {
+	    			if (startNodeAncestors != null && startNodeAncestors.size() > 0) {
 	    				startShallowestAncestor = startNodeAncestors.get(startNodeAncestors.size() - 1);
 	    			}
 
