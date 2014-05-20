@@ -259,16 +259,16 @@ public class LicaUtil {
 		return retaln;
 	}
 	
-	/**
+	/*
 	 * This will return the MRCA using the current draft tree relationships. This only
 	 * requires the nodes that we are looking for.
 	 * 
 	 * @param inNodes
 	 * @return
-	 */
+	 *
 	public static Node getDraftTreeLICA(Iterable<Node> inNodes) {
 		return getSynthTreeLICA(inNodes, (String) GeneralConstants.DRAFT_TREE_NAME.value);
-	}
+	} */
 
 	protected static void checkNodeId(Node n) {
 		// eventually need bitset that accepts long ids
