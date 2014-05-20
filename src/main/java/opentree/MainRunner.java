@@ -2083,7 +2083,7 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("commands");
 		System.out.println("---initialize---");
-		System.out.println("\tinittax <filename> <synonymfilename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
+		System.out.println("\tinittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
 		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
