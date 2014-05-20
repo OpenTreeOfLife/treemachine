@@ -364,6 +364,7 @@ public class GraphImporter extends GraphBase {
 					Relationship exemplarRel = originalMatchedNode.createRelationshipTo(newMatch, RelType.STREEEXEMPLAROF);
 					sourceRelIndex.add(exemplarRel, "source", sourceName);
 					exemplarRel.setProperty("source", sourceName);
+					exemplarRel.setProperty("source_tree_id", treeID);
 	
 					System.out.println("\t" + curLeaf.getName() + " was remapped to " + getIdString(newMatch));
 				}
@@ -908,6 +909,8 @@ public class GraphImporter extends GraphBase {
 
 					// METADATA ENTRY
 					rel.setProperty("source", sourceName);
+					rel.setProperty("source_tree_id", treeID);
+					
 					// TODO this if will cause us to drop 0 length branches. We probably need a "has branch length" flag in JadeNode...
 					if (childJadeNode.getBL() > 0.0) {
 						rel.setProperty("branch_length", childJadeNode.getBL());
