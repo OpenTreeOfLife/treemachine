@@ -25,11 +25,6 @@ import java.util.List;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
-
-
-
-
-
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 //import org.apache.log4j.PropertyConfigurator;
@@ -39,13 +34,6 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
-
-
-
-
-
-
-
 
 import opentree.exceptions.DataFormatException;
 import opentree.exceptions.MultipleHitsException;
@@ -62,6 +50,7 @@ import jade.JSONMessageLogger;
 public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
 
+/*
 	/// @returns 0 for success, 1 for poorly formed command
 	public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
 		if (args.length < 3) {
@@ -91,6 +80,45 @@ public class MainRunner {
 		}
 		return 0;
 	}
+*/
+	
+	
+	// note a slightly different ordering of arguments from above.
+	public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
+		if (args.length < 4) {
+			System.out.println("arguments should be: filename (optional:synfilename) taxonomyversion graphdbfolder");
+			return 1;
+		}
+		
+		String filename = args[1];
+		String graphname = "";
+		String synfilename = "";
+		String taxonomyversion = "";
+		if (args.length == 5) {
+			synfilename = args[2];
+			taxonomyversion = args[3];
+			graphname = args[4];
+			System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename + " to "
+					+ graphname + " for taxonomy '" + taxonomyversion + "'.");
+		} else if (args.length == 4) {
+			taxonomyversion = args[2];
+			graphname = args[3];
+			System.out.println("initializing taxonomy from " + filename + " to " + graphname + " for taxonomy '" + taxonomyversion + "'.");
+		} else {
+			System.out.println("you have the wrong number of arguments. should be : filename (optional:synonym) taxonomyversion graphdbfolder");
+			return 1;
+		}
+		
+		GraphInitializer tl = new GraphInitializer(graphname);
+		try {
+			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename, taxonomyversion);
+		} finally {
+			tl.shutdownDB();
+		}
+		return 0;
+	}
+	
+	
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphReloadTrees(String [] args) throws Exception {
@@ -601,7 +629,8 @@ public class MainRunner {
 		
 		GraphInitializer gin = new GraphInitializer(graphname);
 		// make a temp file to be loaded into the tax loader, a hack for now
-		gin.addInitialTaxonomyTableIntoGraph("tax.temp", "");
+		// "justtrees" is the name of the taxonomy
+		gin.addInitialTaxonomyTableIntoGraph("tax.temp", "", "justtrees");
 		// Use the taxonomy as the first tree in the composite tree
 		gin.shutdownDB();
 		
@@ -808,6 +837,28 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
+	// Report which taxonomy (e.g. version of OTT) was used to initialize the graph
+	/// @returns 0 for success, 1 for poorly formed command
+		public int getTaxonomyVersion(String [] args) {
+			String graphname;
+			
+			if (args.length != 2) {
+				System.out.println("arguments should be: <graphdbfolder>");
+				return 1;
+			}
+			graphname = args[1];
+			
+			GraphExplorer ge = new GraphExplorer(graphname);
+			try {
+				String taxVersion = "";
+				taxVersion = ge.getTaxonomyVersion();
+				System.out.println("The graph was initialized with the taxonomy '" + taxVersion + "'.");
+			} finally {
+				ge.shutdownDB();
+			}
+			return 0;
+		}
 
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExplorerBiparts(String [] args) {
@@ -2068,7 +2119,7 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("commands");
 		System.out.println("---initialize---");
-		System.out.println("\tinittax <filename> <synonymfilename> <graphdbfolder> (initializes the tax graph with a tax list)\n");
+		System.out.println("\tinittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
 		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
@@ -2092,6 +2143,7 @@ public class MainRunner {
 		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tsourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explores the different source files)");
 		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
+		System.out.println("\tgettaxonomy <graphdbfolder> (return the name of the taxonomy used to initialize the graph)");
 		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
 		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
 		System.out.println("\tgetlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)\n");
@@ -2238,6 +2290,8 @@ public class MainRunner {
 				cmdReturnCode = mr.pg_delete_ind_study(args);
 			} else if (command.compareTo("mapcompat") == 0) {
 				cmdReturnCode = mr.mapcompat(args);
+			} else if (command.compareTo("gettaxonomy") == 0) {
+				cmdReturnCode = mr.getTaxonomyVersion(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;

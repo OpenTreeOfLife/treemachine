@@ -148,7 +148,7 @@ public abstract class GraphBase {
 		}
 		return firstNode;
 	}
-
+    
     /**
      * A wrapper for the index call to find the life node.
      * @return rootnode
@@ -157,10 +157,17 @@ public abstract class GraphBase {
     	return graphDb.getNodeById((Long) graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName));
     }
     
+    
+    
+    public String getTaxonomyVersion () {
+    	return (String)graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_TAXONOMY.propertyName);
+    }
+    
+    
     /**
      * Used to set graph properties identifying the root node, so that is will always be known.
      */
-    public void setGraphRootNode(Node rootNode) {
+    public void setGraphRootNode(Node rootNode, String taxonomyversion) {
     	
     	System.out.println("setting root node");
     	System.out.println("name: " + rootNode.getProperty(NodeProperty.NAME.propertyName));
@@ -168,7 +175,13 @@ public abstract class GraphBase {
     	
     	System.out.println("id: " + rootNode.getId());
     	graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName, rootNode.getId());
+    	
+    	System.out.println("setting taxonomy version: " + taxonomyversion);
+    	graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_TAXONOMY.propertyName, taxonomyversion);
     }
+    
+    
+    
     
     /**
      * Return a HashSet containing the nodes corresponding to the passed long array nodeIDArr.
