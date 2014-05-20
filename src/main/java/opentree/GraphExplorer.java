@@ -296,7 +296,8 @@ public class GraphExplorer extends GraphBase {
         	}
         	
         	// get the mrca from the graph and record it
-    		Node graphNode = LicaUtil.getDraftTreeLICA(allDescendantGraphTips);
+//    		Node graphNode = LicaUtil.getDraftTreeLICA(allDescendantGraphTips);
+        	Node graphNode = getDraftTreeMRCAForNodes(allDescendantGraphTips);
     		treeNode.assocObject("graphNode", graphNode);
     		if (graphNode.hasProperty("name")) {
     			treeNode.setName((String) graphNode.getProperty("name"));
