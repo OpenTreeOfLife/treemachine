@@ -96,7 +96,7 @@ public class GraphInitializer extends GraphBase{
 	 * @param synonymfile file that has the synonyms as dumped by ottol dump
 	 * @throws TaxonNotFoundException 
 	 */
-	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile) throws TaxonNotFoundException {
+	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile, String taxonomyversion) throws TaxonNotFoundException {
 		
 		initContainersForTaxLoading();
 		
@@ -135,7 +135,7 @@ public class GraphInitializer extends GraphBase{
 			}
 			System.out.println("synonyms: " + synonymHash.size());
 		}
-		//finished processing synonym file
+		// finished processing synonym file
 
 		Transaction tx;
 		ArrayList<String> templines = new ArrayList<String>();
@@ -164,7 +164,7 @@ public class GraphInitializer extends GraphBase{
 					tx = graphDb.beginTx();
 					try {
 						for (int i = 0; i < templines.size(); i++) {
-							processTaxInputLine(templines.get(i)); // replaced repeated code with function call
+							processTaxInputLine(templines.get(i), taxonomyversion); // replaced repeated code with function call
 						}
 						tx.success();
 					} finally {
@@ -179,7 +179,7 @@ public class GraphInitializer extends GraphBase{
 			tx = graphDb.beginTx();
 			try {
 				for (int i = 0; i < templines.size(); i++) {
-					processTaxInputLine(templines.get(i)); // replaced repeated code with function call
+					processTaxInputLine(templines.get(i), taxonomyversion); // replaced repeated code with function call
 				}
 				tx.success();
 			} finally {
@@ -252,7 +252,7 @@ public class GraphInitializer extends GraphBase{
 	 * Called during taxonomy loading to process each line of input from the taxonomy file
 	 * @param line
 	 */
-	private void processTaxInputLine(String line) {
+	private void processTaxInputLine(String line, String taxonomyversion) {
 		
 		StringTokenizer st = new StringTokenizer(line,"|");
 		String tid = null;
@@ -285,58 +285,74 @@ public class GraphInitializer extends GraphBase{
 		 */
 		//the flag can be comma delimited
 		StringTokenizer stfl = new StringTokenizer(flag,",");
-		while(stfl.hasMoreTokens()){
+		while (stfl.hasMoreTokens()){
 			String tflag = stfl.nextToken();
 			//if flag == D
 			if (tflag.equals("major_rank_conflict")){
 				System.out.println("skipping major_rank_conflict "+name);	
 				return;
-			}if (tflag.equals("major_rank_conflict_direct")){
+			}
+			if (tflag.equals("major_rank_conflict_direct")){
 				System.out.println("skipping major_rank_confict_direct "+name);	
 				return;
-			}if (tflag.equals("major_rank_conflict_inherited")){
+			}
+			if (tflag.equals("major_rank_conflict_inherited")){
 				System.out.println("skipping major_rank_conflict_inherited "+name);	
 				return;
-			}if (tflag.equals("environmental")){
+			}
+			if (tflag.equals("environmental")){
 				System.out.println("skipping environmental "+name);	
 				return;
-			}if (tflag.equals("unclassified_inherited")){
+			}
+			if (tflag.equals("unclassified_inherited")){
 				System.out.println("skipping unclassified_inherited "+name);	
 				return;
-			}if (tflag.equals("unclassified_direct")){
+			}
+			if (tflag.equals("unclassified_direct")){
 				System.out.println("skipping unclassified_direct "+name);	
 				return;
-			}if (tflag.equals("viral")){
+			}
+			if (tflag.equals("viral")){
 				System.out.println("skipping viral "+name);	
 				return;
-			}if (tflag.equals("nootu")){
+			}
+			if (tflag.equals("nootu")){
 				System.out.println("skipping nootu "+name);	
 				return;
-			}if (tflag.equals("barren")){
+			}
+			if (tflag.equals("barren")){
 				System.out.println("skipping barren "+name);	
 				return;
-			}if (tflag.equals("not_otu")){
+			}
+			if (tflag.equals("not_otu")){
 				System.out.println("skipping not_otu "+name);	
 				return;
-			}if (tflag.equals("incertae_sedis")){
+			}
+			if (tflag.equals("incertae_sedis")){
 				System.out.println("skipping incertae_sedis "+name);	
 				return;
-			}if (tflag.equals("incertae_sedis_direct")){
+			}
+			if (tflag.equals("incertae_sedis_direct")){
 				System.out.println("skipping incertae_sedis_direct "+name);	
 				return;
-			}if (tflag.equals("incertae_sedis_inherited")){
+			}
+			if (tflag.equals("incertae_sedis_inherited")){
 				System.out.println("skipping incertae_sedis_inherited "+name);	
 				return;
-			}if (tflag.equals("extinct_inherited")){
+			}
+			if (tflag.equals("extinct_inherited")){
 				System.out.println("skipping extinct_inherited "+name);	
 				return;
-			}if (tflag.equals("extinct_direct")){
+			}
+			if (tflag.equals("extinct_direct")){
 				System.out.println("skipping extinct_direct "+name);	
 				return;
-			}if (tflag.equals("hidden")){
+			}
+			if (tflag.equals("hidden")){
 				System.out.println("skipping hidden "+name);	
 				return;
-			}if (tflag.equals("tattered")){
+			}
+			if (tflag.equals("tattered")){
 				System.out.println("skipping tattered "+name);	
 			//	return;
 			}
@@ -351,16 +367,18 @@ public class GraphInitializer extends GraphBase{
 		tnode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uniqname);
 		
 		// add index entries
-		graphNodeIndex.add( tnode, NodeProperty.NAME.propertyName, name );
+		graphNodeIndex.add(tnode, NodeProperty.NAME.propertyName, name);
 		graphTaxUIDNodeIndex.add(tnode, NodeProperty.TAX_UID.propertyName, tid);
 		
 		if (pid.length() > 0) {
 			childNodeIDToParentNodeIDMap.put(tid, pid);
-
+		
 		} else { // root node
-
+			
+			// set taxonomy version here
+			
 			System.out.println("found root node: " + tnode.getProperty("name"));
-			setGraphRootNode(tnode);
+			setGraphRootNode(tnode, taxonomyversion);
 			
 			// set the source metadata
 			Node mdnode = graphDb.createNode();
