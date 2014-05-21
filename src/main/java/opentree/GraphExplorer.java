@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
 
@@ -46,8 +47,6 @@ import opentree.synthesis.ranking.RankingOrder;
 import opentree.synthesis.ranking.RelationshipRanker;
 import opentree.synthesis.ranking.SourcePropertyPrioritizedRankingCriterion;
 import opentree.synthesis.ranking.SourcePropertyRankingCriterion;
-
-
 import jade.MessageLogger;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -62,6 +61,8 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.Traversal;
+
+import scala.actors.threadpool.Arrays;
 
 public class GraphExplorer extends GraphBase {
     //static Logger _LOG = Logger.getLogger(GraphExplorer.class);
@@ -151,42 +152,151 @@ public class GraphExplorer extends GraphBase {
     }
 
     /**
+     * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
+     * used to calculate mrca and associated procedures.
+     * 
+     * @param tips
+     * @return
+     */
+    private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips) {
+    	return getTreeTipRootPathMap(tips, null);
+    }
+
+    /**
+     * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
+     * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
+     * won't record the path.
+     * 
+     * @param tips
+     * @param stopNode
+     * @return
+     */
+    private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips, Node stopNode) {
+
+    	if (stopNode != null) {
+    		System.out.println("setting stop node to " + stopNode);
+    	}
+    	
+    	// TODO: probably more efficient to use neo4j paths directly instead of java collections to hold the paths
+    	HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<Node, ArrayList<Node>>();
+    	
+    	// populate the tip hash with the paths to the root of the tree
+    	for (Node curTip : tips) {
+    		
+			// testing
+			System.out.println("\ngetting rootward path for " + curTip + (curTip.hasProperty("name") ? curTip.getProperty("name") : ""));
+	
+			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
+			for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curTip).nodes()) {
+	
+				if (stopNode != null && m.equals(stopNode)) { // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
+					System.out.println("found stop node " + stopNode);
+					break;
+				}
+				
+				// testing
+				if (m.hasProperty("name")) {
+					System.out.println(m.getProperty("name"));
+				}
+				
+				graphPathToRoot.add(0, m);
+			}    		
+			
+    		if (graphPathToRoot.size() < 1) {
+    			throw new UnsupportedOperationException("The node " + curTip + " does not seem to be in the draft tree.");
+    		}
+    		
+			treeTipRootPathMap.put(curTip, graphPathToRoot);
+		
+    	}
+    	
+    	return treeTipRootPathMap;
+    	
+    }
+
+    /**
+     * Get the MRCA of one or more nodes (interpreted as tips in some theoretical tree) according to the
+     * topology of the draft tree. If only one tip is provided, then the tip itself is returned.
+     * @param tips
+     * @return
+     */
+    public Node getDraftTreeMRCAForNodes(Iterable<Node> tips) {
+    	Map<Node, ArrayList<Node>> treeTipRootPathMap = getTreeTipRootPathMap(tips);
+    	
+    	if (treeTipRootPathMap.size() < 1) {
+    		throw new IllegalArgumentException("Cannot find the ancestor of zero tips");
+    	} else if (treeTipRootPathMap.size() < 2) {
+    		return (Node) treeTipRootPathMap.keySet().toArray()[0];
+    	}
+    	
+    	Node lastSharedAncestor = null;
+    	Node curTestAncestor = null;
+
+    	int i = 0;
+    	boolean found = false;
+
+    	// starting at the deepest level, look for different ancestors
+    	outer:
+    	while (!found) {
+    		
+    		// reset at each level
+        	curTestAncestor = null;
+
+        	for (Node tip : treeTipRootPathMap.keySet()) {
+	    		
+	    		List<Node> rootPath = treeTipRootPathMap.get(tip);
+
+	    		// if this is a new level, then just get the ancestor of the first lineage and move on to the next
+    			if (curTestAncestor == null) {
+	    			curTestAncestor = rootPath.get(i);
+	    			continue;
+	    		}
+	    		
+    			// if we already have an ancestor at this level and it differs from the ancestor of the current lineage, then the last one was the mrca
+	    		if (curTestAncestor.getId() != rootPath.get(i).getId()) {
+	    			found = true;
+	    			break outer;
+	    		}
+	    	}
+	    	
+	    	// this ancestor is shared by all. record it and check the next
+	    	lastSharedAncestor = curTestAncestor;
+	    	i++;
+		}
+    	
+    	return lastSharedAncestor;
+    }
+    
+    /**
      * Get a subtree out of the draft tree topology for the indicated tips.
      * @param tips
      * @return draftSubtree
      */
     public JadeNode extractDraftSubtreeForTipNodes(Iterable<Node> tips) {
     	
-    	HashMap<JadeNode, ArrayList<Node>> treeTipRootPathMap = new HashMap<JadeNode, ArrayList<Node>>();
+    	// get the mrca
+    	Node mrca = getDraftTreeMRCAForNodes(tips);
+
+    	System.out.println("Identified mrca " + mrca);
+    	
+    	// get all the paths from the tips to the mrca
+    	Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = getTreeTipRootPathMap(tips, mrca);
+
     	HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<Node, JadeNode>();
+    	HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<JadeNode, Node>();
     	HashMap<JadeNode, LinkedList<Node>> treeTipGraphMRCADescendantsMap = new HashMap<JadeNode, LinkedList<Node>>();
     	
-    	// populate the tip hash with the paths to the root of the tree
-    	for (Node curTip : tips) {
+    	for (Node tipNode : treeTipToMRCAPathMap.keySet()) {
     		
     		JadeNode treeTip = new JadeNode();
-    		treeTip.assocObject("graphNode", curTip);
-    		treeTip.setName((String) curTip.getProperty("name"));
-    		graphNodeTreeNodeMap.put(curTip, treeTip);
-
-    		// testing
-    		System.out.println("\ngetting rootward path for " + curTip.getProperty("name"));
-
-    		ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
-    		for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curTip).nodes()) {
-
-    			// testing
-    			if (m.hasProperty("name")) {
-    				System.out.println(m.getProperty("name"));
-    			}
-    			
-    			graphPathToRoot.add(0, m);
-    		}    		
-    		treeTipRootPathMap.put(treeTip, graphPathToRoot);
+			treeTip.assocObject("graphNode", tipNode);
+			treeTip.setName((String) tipNode.getProperty("name"));
+			graphNodeTreeNodeMap.put(tipNode, treeTip);
+			treeNodeGraphNodeMap.put(treeTip, tipNode);
 
     		// add this node's MRCA descendants to the hashmap
     		LinkedList<Node> tipDescendants = new LinkedList<Node>();
-    		for (long nid : (long[]) curTip.getProperty("mrca")) {
+    		for (long nid : (long[]) tipNode.getProperty("mrca")) {
     			tipDescendants.add(graphDb.getNodeById(nid));
     		}
     		treeTipGraphMRCADescendantsMap.put(treeTip, tipDescendants);
@@ -199,8 +309,8 @@ public class GraphExplorer extends GraphBase {
     	// set start conditions (add root to stack)
     	JadeNode root = new JadeNode();
     	stack.add(root);
-    	treeNodeTreeTipDescendantsMap.put(root, new LinkedList<JadeNode>(treeTipRootPathMap.keySet()));
-
+    	treeNodeTreeTipDescendantsMap.put(root, new LinkedList<JadeNode>(graphNodeTreeNodeMap.values()));    	
+    	
     	while (stack.size() > 0) {
 
     		System.out.println(stack.size() + " nodes remaining");
@@ -214,7 +324,8 @@ public class GraphExplorer extends GraphBase {
         	}
         	
         	// get the mrca from the graph and record it
-    		Node graphNode = LicaUtil.getDraftTreeLICA(allDescendantGraphTips);
+//    		Node graphNode = LicaUtil.getDraftTreeLICA(allDescendantGraphTips);
+        	Node graphNode = getDraftTreeMRCAForNodes(allDescendantGraphTips);
     		treeNode.assocObject("graphNode", graphNode);
     		if (graphNode.hasProperty("name")) {
     			treeNode.setName((String) graphNode.getProperty("name"));
@@ -227,15 +338,25 @@ public class GraphExplorer extends GraphBase {
     		HashMap<Node, LinkedList<JadeNode>> childNodeTreeTipDescendantsMap = new HashMap<Node, LinkedList<JadeNode>>();
     		
     		// for each leaf descendant of the current node
-    		for (JadeNode curDescendant : treeNodeTreeTipDescendantsMap.get(treeNode)) {
+    		for (JadeNode curDescendantTreeNode : treeNodeTreeTipDescendantsMap.get(treeNode)) {
     			// testing
-    			System.out.println("on descendant " + curDescendant.getName());     			
+    			System.out.println("on descendant " + curDescendantTreeNode.getName());     			
 
+    			Node curDescendantGraphNode = treeNodeGraphNodeMap.get(curDescendantTreeNode);
+    			
     			// get the deepest remaining ancestor of this leaf, if none remain then use the current node
     			Node curDeepestAncestor = null;
-    			if (treeTipRootPathMap.get(curDescendant).size() > 0) {
+    			
+    			/*
+    			System.out.println(Arrays.toString(treeTipRootPathMap.keySet().toArray()));
+    			System.out.println(curDescendantTreeNode);
+    			System.out.println(treeTipRootPathMap.get(curDescendantGraphNode)); 
+    			System.out.println(Arrays.toString(treeTipRootPathMap.get(curDescendantGraphNode).toArray())); 
+    			*/
+
+    			if (treeTipToMRCAPathMap.get(curDescendantGraphNode).size() > 0) {
     				// remove this ancestor so we don't see it again
-    				curDeepestAncestor = treeTipRootPathMap.get(curDescendant).remove(0);
+    				curDeepestAncestor = treeTipToMRCAPathMap.get(curDescendantGraphNode).remove(0);
     			} else {
     				curDeepestAncestor = (Node) treeNode.getObject("graphNode");
     			}
@@ -251,13 +372,16 @@ public class GraphExplorer extends GraphBase {
     			}
 
     			// queue this leaf to be added under the appropriate ancestor
-    			childNodeTreeTipDescendantsMap.get(curDeepestAncestor).add(curDescendant);
+    			childNodeTreeTipDescendantsMap.get(curDeepestAncestor).add(curDescendantTreeNode);
     		}
     		
     		// for each child node in the set to be added
     		for (Entry<Node, LinkedList<JadeNode>> childToAdd : childNodeTreeTipDescendantsMap.entrySet()) {
 
     			LinkedList<JadeNode> childTreeTipDescendants = childToAdd.getValue();
+    			
+    			System.out.println("childTreeTipDescendants");
+    			System.out.println(Arrays.toString(childTreeTipDescendants.toArray()));
     			
     			// if there is just one descendant, just add it to the current tree node
     			if (childTreeTipDescendants.size() == 1) {
@@ -283,10 +407,18 @@ public class GraphExplorer extends GraphBase {
 				} else {
 					
 					System.out.println(treeNode.getName() + " has more than two children, checking if it is a polytomy");
-
+					System.out.println("treeTipRootPathMap");
+//					System.out.println(Arrays.toString(treeTipRootPathMap.keySet().toArray()));
+					
+					Node graphNodeForTip = treeNodeGraphNodeMap.get(childTreeTipDescendants.get(0));
+					
 					// get the *shallowest* ancestor for an arbitrary descendant of this child
-	    			ArrayList<Node> startNodeAncestors = treeTipRootPathMap.get(childTreeTipDescendants.get(0));
+	    			ArrayList<Node> startNodeAncestors = treeTipToMRCAPathMap.get(graphNodeForTip);
 	    			Node startShallowestAncestor = null;
+	    			
+	    			System.out.println("startNodeAncestors");
+	    			System.out.println(Arrays.toString(startNodeAncestors.toArray()));
+	    			
 	    			if (startNodeAncestors.size() > 0) {
 	    				startShallowestAncestor = startNodeAncestors.get(startNodeAncestors.size() - 1);
 	    			}
@@ -294,7 +426,10 @@ public class GraphExplorer extends GraphBase {
 					// if all the descendants have the same *shallowest* ancestor, then this is a polytomy
 	    			boolean isPolytomy = true;
 	    			for (JadeNode treeTip : childTreeTipDescendants) {
-	    				ArrayList<Node> curAncestors = treeTipRootPathMap.get(treeTip);
+	    				
+	    				Node graphTip = treeNodeGraphNodeMap.get(treeTip);
+	    				
+	    				ArrayList<Node> curAncestors = treeTipToMRCAPathMap.get(graphTip);
 	    				Node curShallowestAncestor = curAncestors.get(curAncestors.size() - 1);
 	    				
 	    				if (! startShallowestAncestor.equals(curShallowestAncestor)) {
