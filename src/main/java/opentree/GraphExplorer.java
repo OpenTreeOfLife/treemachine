@@ -159,7 +159,24 @@ public class GraphExplorer extends GraphBase {
      * @return
      */
     private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips) {
+    	return getTreeTipRootPathMap(tips, null);
+    }
 
+    /**
+     * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
+     * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
+     * won't record the path.
+     * 
+     * @param tips
+     * @param stopNode
+     * @return
+     */
+    private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips, Node stopNode) {
+
+    	if (stopNode != null) {
+    		System.out.println("setting stop node to " + stopNode);
+    	}
+    	
     	// TODO: probably more efficient to use neo4j paths directly instead of java collections to hold the paths
     	HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<Node, ArrayList<Node>>();
     	
@@ -172,6 +189,11 @@ public class GraphExplorer extends GraphBase {
 			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
 			for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curTip).nodes()) {
 	
+				if (stopNode != null && m.equals(stopNode)) { // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
+					System.out.println("found stop node " + stopNode);
+					break;
+				}
+				
 				// testing
 				if (m.hasProperty("name")) {
 					System.out.println(m.getProperty("name"));
@@ -252,13 +274,19 @@ public class GraphExplorer extends GraphBase {
      */
     public JadeNode extractDraftSubtreeForTipNodes(Iterable<Node> tips) {
     	
-    	Map<Node, ArrayList<Node>> treeTipRootPathMap = getTreeTipRootPathMap(tips);
+    	// get the mrca
+    	Node mrca = getDraftTreeMRCAForNodes(tips);
+
+    	System.out.println("Identified mrca " + mrca);
+    	
+    	// get all the paths from the tips to the mrca
+    	Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = getTreeTipRootPathMap(tips, mrca);
 
     	HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<Node, JadeNode>();
     	HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<JadeNode, Node>();
     	HashMap<JadeNode, LinkedList<Node>> treeTipGraphMRCADescendantsMap = new HashMap<JadeNode, LinkedList<Node>>();
     	
-    	for (Node tipNode : treeTipRootPathMap.keySet()) {
+    	for (Node tipNode : treeTipToMRCAPathMap.keySet()) {
     		
     		JadeNode treeTip = new JadeNode();
 			treeTip.assocObject("graphNode", tipNode);
@@ -281,8 +309,8 @@ public class GraphExplorer extends GraphBase {
     	// set start conditions (add root to stack)
     	JadeNode root = new JadeNode();
     	stack.add(root);
-    	treeNodeTreeTipDescendantsMap.put(root, new LinkedList<JadeNode>(graphNodeTreeNodeMap.values()));
-
+    	treeNodeTreeTipDescendantsMap.put(root, new LinkedList<JadeNode>(graphNodeTreeNodeMap.values()));    	
+    	
     	while (stack.size() > 0) {
 
     		System.out.println(stack.size() + " nodes remaining");
@@ -326,9 +354,9 @@ public class GraphExplorer extends GraphBase {
     			System.out.println(Arrays.toString(treeTipRootPathMap.get(curDescendantGraphNode).toArray())); 
     			*/
 
-    			if (treeTipRootPathMap.get(curDescendantGraphNode).size() > 0) {
+    			if (treeTipToMRCAPathMap.get(curDescendantGraphNode).size() > 0) {
     				// remove this ancestor so we don't see it again
-    				curDeepestAncestor = treeTipRootPathMap.get(curDescendantGraphNode).remove(0);
+    				curDeepestAncestor = treeTipToMRCAPathMap.get(curDescendantGraphNode).remove(0);
     			} else {
     				curDeepestAncestor = (Node) treeNode.getObject("graphNode");
     			}
@@ -385,7 +413,7 @@ public class GraphExplorer extends GraphBase {
 					Node graphNodeForTip = treeNodeGraphNodeMap.get(childTreeTipDescendants.get(0));
 					
 					// get the *shallowest* ancestor for an arbitrary descendant of this child
-	    			ArrayList<Node> startNodeAncestors = treeTipRootPathMap.get(graphNodeForTip);
+	    			ArrayList<Node> startNodeAncestors = treeTipToMRCAPathMap.get(graphNodeForTip);
 	    			Node startShallowestAncestor = null;
 	    			
 	    			System.out.println("startNodeAncestors");
@@ -401,7 +429,7 @@ public class GraphExplorer extends GraphBase {
 	    				
 	    				Node graphTip = treeNodeGraphNodeMap.get(treeTip);
 	    				
-	    				ArrayList<Node> curAncestors = treeTipRootPathMap.get(graphTip);
+	    				ArrayList<Node> curAncestors = treeTipToMRCAPathMap.get(graphTip);
 	    				Node curShallowestAncestor = curAncestors.get(curAncestors.size() - 1);
 	    				
 	    				if (! startShallowestAncestor.equals(curShallowestAncestor)) {
