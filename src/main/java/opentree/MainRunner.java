@@ -1076,11 +1076,12 @@ public class MainRunner {
 			System.out.println(jt.get(0).getRoot().getNewick(true) + ";");
 			return 0;
 		}
-		if(args[0].equals("convertfigtree")){
+		if(args[0].equals("convertfigtree") || args[0].equals("convertfigtree2")){
 			//the idea here is to generate another newick that will have internal labels the width of the branch
 			//polytomies will have one node and it will have this width
 			HashMap<String,String> source_mp = new HashMap<String,String>();
-			if (args.length == 4){
+			HashMap<String,Double> id_counts = new HashMap<String,Double>();
+			if (args.length == 4 && args[0].equals("convertfigtree")){
 				try {
 					BufferedReader brt = new BufferedReader(new FileReader(args[3]));
 					while ((ts = brt.readLine()) != null) {
@@ -1099,6 +1100,24 @@ public class MainRunner {
 				}
 				getNCBICountsFigtreeNewick(jt.get(0).getRoot(),source_mp);
 			}
+			if (args.length == 4 && args[0].equals("convertfigtree2")){
+				try {
+					BufferedReader brt = new BufferedReader(new FileReader(args[3]));
+					while ((ts = brt.readLine()) != null) {
+					    String tid = ts.trim();
+					    if (id_counts.containsKey(tid) == false){
+						id_counts.put(tid,0.);
+					    }
+					    id_counts.put(tid,id_counts.get(tid)+1);
+					}
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				getOTTCountsFigtreeNewick(jt.get(0).getRoot(),id_counts);
+			}
+
 			try {
 				ArrayList<JadeNode> destroy = new ArrayList<JadeNode>();
 				for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
@@ -1174,6 +1193,30 @@ public class MainRunner {
 		count += childcount;
 		//innode.assocObject("tipcount", Math.log10(count));
 		innode.assocObject("tipcount",count/innode.getTipCount());
+		return count;
+	}
+
+/**
+	 * this will just fill out the ott counts
+	 * @param innode
+	 * @param id_childs
+	 */
+	private double getOTTCountsFigtreeNewick(JadeNode innode,HashMap<String,Double> id_counts){
+		double childcount = 0;
+		for(int i=0;i<innode.getChildCount();i++){
+			childcount += getOTTCountsFigtreeNewick(innode.getChild(i),id_counts);
+		}
+		double count = 0;
+		String nm = innode.getName().split("_")[innode.getName().split("_").length-1].replace("ott", "");
+		if(id_counts.containsKey(nm)){
+		    count = id_counts.get(nm);
+		}
+		count += childcount;
+		//innode.assocObject("tipcount", Math.log10(count));
+		if(count >0)
+		    innode.assocObject("tipcount",1.);
+		if(count == 0)
+		    innode.assocObject("tipcount",0.);
 		return count;
 	}
 	
@@ -2249,9 +2292,10 @@ public class MainRunner {
 			} else if (command.compareTo("getlicanames") == 0) {
 				cmdReturnCode = mr.getLicaNames(args);
 			} else if (command.compareTo("counttips") == 0
-					|| command.compareTo("diversity") == 0
-					|| command.compareTo("labeltips") == 0 
-					|| command.compareTo("convertfigtree") == 0){
+				   || command.compareTo("diversity") == 0
+				   || command.compareTo("labeltips") == 0 
+				   || command.compareTo("convertfigtree") == 0
+				   || command.compareTo("convertfigtree2")==0){
 				cmdReturnCode = mr.treeUtils(args);
 			} else if (command.compareTo("converttaxonomy")==0){
 				cmdReturnCode = mr.convertTaxonomy(args);
