@@ -1499,7 +1499,7 @@ public class MainRunner {
 			return 1;
 		}
 
-		System.out.println(args[1]);
+//		System.out.println(args[1]);
 		String[] nodeIds = args[1].trim().split("\\,");
 		String outFileName = args[2];
 		String graphname = args[3];
@@ -1507,10 +1507,10 @@ public class MainRunner {
 
 		ArrayList<Node> tipNodes = new ArrayList<Node>();
 		for (String nodeId : nodeIds) {
-			System.out.println(nodeId);
+//			System.out.println(nodeId);
 			Node tip = ge.graphDb.getNodeById(Long.valueOf(nodeId));
 			if (tip != null) {
-				System.out.println("id = " + tip.getId());
+//				System.out.println("id = " + tip.getId());
 				tipNodes.add(tip);
 			}
 		}
@@ -1538,7 +1538,7 @@ public class MainRunner {
 			return 1;
 		}
 
-		System.out.println(args[1]);
+//		System.out.println(args[1]);
 		String[] OTTids = args[1].trim().split("\\,");
 		String outFileName = args[2];
 		String graphname = args[3];
@@ -1546,10 +1546,10 @@ public class MainRunner {
 
 		ArrayList<Node> tipNodes = new ArrayList<Node>();
 		for (String OTTid : OTTids) {
-			System.out.println(OTTid);
+//			System.out.println(OTTid);
 			Node tip = ge.findGraphTaxNodeByUID(OTTid);
 			if (tip != null) {
-				System.out.println("id = " + tip.getId());
+//				System.out.println("id = " + tip.getId());
 				tipNodes.add(tip);
 			}
 		}
