@@ -368,7 +368,8 @@ public class GoLS extends ServerPlugin {
 
 		if (emitNewick) {
 			HashMap<String, Object> responseMap = new HashMap<String, Object>();
-			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()));
+//			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths())); // commented because it seems to be failing with newer versions of the jade code
+			responseMap.put("newick", tree.getRoot().getNewick(false));
 			responseMap.put("treeID", treeID);
 			return OTRepresentationConverter.convert(responseMap);
 			

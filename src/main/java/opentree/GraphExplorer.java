@@ -2980,7 +2980,7 @@ public class GraphExplorer extends GraphBase {
         if (!mentionedSources.isEmpty()) {
             root.assocObject("sourceMetaList", mentionedSources);
         }
-        tree.setHasBranchLengths(printlengths);
+//        tree.setHasBranchLengths(printlengths); // commented out because it seems to be failing with newer version of jade dependency.. not sure why
         return tree;
     }
 
