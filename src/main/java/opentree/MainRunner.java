@@ -650,6 +650,7 @@ public class MainRunner {
 				sourcename += "t_" + String.valueOf(i);
 	
 				System.out.println("adding tree '" + sourcename + "' to the graph");
+				jt.get(i).assocObject("id", String.valueOf(i));
 				gi.setTree(jt.get(i));
 				gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
 				//gi.deleteTreeBySource(sourcename);
@@ -668,6 +669,7 @@ public class MainRunner {
 			sourcename += "_" + String.valueOf(i);
 
 			System.out.println("adding tree '" + sourcename + "' to the graph");
+			jt.get(i).assocObject("id", String.valueOf(i));
 			gi.setTree(jt.get(i));
 			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
 		}
