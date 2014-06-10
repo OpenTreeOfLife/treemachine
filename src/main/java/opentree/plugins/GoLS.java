@@ -20,6 +20,9 @@ import opentree.GraphExplorer;
 import opentree.MainRunner;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
+
+import opentree.constants.GeneralConstants;
+
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
@@ -324,8 +327,8 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSyntheticTree(
 			@Source GraphDatabaseService graphDb,
-			@Description( "The identifier for the synthesis (e.g. \"otol.draft.22\")")
-			@Parameter(name = "treeID", optional = false) String treeID,
+			@Description( "The identifier for the synthesis (e.g. \"otol.draft.22\") (default is most current synthetic tree)")
+			@Parameter(name = "treeID", optional = true) String treeID,
 			@Description( "The name of the return format (default is newick)")
 			@Parameter(name = "format", optional = true) String format,
 			@Description( "The nodeid of the a node in the tree that should serve as the root of the tree returned")
@@ -337,6 +340,7 @@ public class GoLS extends ServerPlugin {
 		int maxDepth = 5;
 		long subtreeNodeID = 0;
 		boolean emitNewick = false;
+		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
 
 		// override defaults if user-specified
 		if (maxDepthArg != null) {
@@ -352,15 +356,20 @@ public class GoLS extends ServerPlugin {
 		} else if (!format.equalsIgnoreCase("arguson")) {
 			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
 		}
+		
+		// synthetic tree identifier
+		if (treeID != null) {
+			synthTreeID = treeID;
+		}
 
 		// get the subtree for export
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		JadeTree tree = null;
 		try {
 			if (subtreeNodeIDStr == null) {
-				tree = ge.reconstructSyntheticTree(treeID, maxDepth);
+				tree = ge.reconstructSyntheticTree(synthTreeID, maxDepth);
 			} else {
-				tree = ge.reconstructSyntheticTree(treeID, subtreeNodeID, maxDepth);
+				tree = ge.reconstructSyntheticTree(synthTreeID, subtreeNodeID, maxDepth);
 			}
 		} finally {
 			ge.shutdownDB();
@@ -370,7 +379,7 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> responseMap = new HashMap<String, Object>();
 //			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths())); // commented because it seems to be failing with newer versions of the jade code
 			responseMap.put("newick", tree.getRoot().getNewick(false));
-			responseMap.put("treeID", treeID);
+			responseMap.put("treeID", synthTreeID);
 			return OTRepresentationConverter.convert(responseMap);
 			
 		} else { // emit arguson
