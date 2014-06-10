@@ -2238,7 +2238,7 @@ public class MainRunner {
 			System.exit(1);
 		}
 		String command = args[0];
-		if (command.compareTo("help") == 0) {
+		if (command.compareTo("help") == 0 || args[0].equals("-h") || args[0].equals("--help")) {
 			printHelp();
 			System.exit(0);
 		}
