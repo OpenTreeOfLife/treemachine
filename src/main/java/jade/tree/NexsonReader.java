@@ -94,7 +94,7 @@ public class NexsonReader {
 		List<JadeTree> result = new ArrayList<JadeTree>();
 		
 		// The XML root element
-		JSONObject root = (JSONObject)all.get("nexml");
+		JSONObject root = (JSONObject)((JSONObject)all.get("data")).get("nexml");
 
 		// All of the <meta> elements from root (i.e. study-wide). Trees may have their own meta elements (e.g. inGroupClade)
 		List<Object> studyMetaList = getMetaList(root);
@@ -216,12 +216,12 @@ public class NexsonReader {
 					msgLogger.indentMessageStr(2, "Error. Node with otuID of unknown OTU", "@otu", otuId);
 					return null;
 				}
-				String label = (String)otu.get("@label");
-				jn.setName(label);
 
 				// Get taxon id (usually present) and maybe other metadata (rarely present)
 				List<Object> metaList2 = getMetaList(otu);
 				if (metaList2 != null) {
+					String origlabel = null;
+					String ottlabel = null;
 					for (Object meta : metaList2) {
 						JSONObject m = (JSONObject)meta;
 						String propname = (String)m.get("@property");
@@ -245,16 +245,21 @@ public class NexsonReader {
 								throw new RuntimeException("Invalid ottId value: " + value);
 							}
 						} else if (propname.equals("ot:originalLabel")){
+							origlabel = (String)value;
 							// ignoring originalLabel, but not emitting the unknown property warning
 						} else if (propname.equals("ot:treebaseOTUId")){
 							// ignoring treebaseOTUId, but not emitting the unknown property warning
 						}  else if (propname.equals("ot:ottTaxonName")){
+							ottlabel = (String)value;
+							jn.setName(ottlabel);
 							// ignoring ot:ottTaxonName, but not emitting the unknown property warning
 						} else {
 							msgLogger.indentMessageStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);
 						}
 						jn.assocObject(propname, value);
 					}
+					if(ottlabel == null && origlabel != null)
+						jn.setName(origlabel);
 				}
 			}
 		}
@@ -368,7 +373,8 @@ public class NexsonReader {
 						msgLogger.indentMessageStr(1, "property added", propname, value.toString());
 					}
 				} else {
-					throw new RuntimeException("missing property value for name: " + j);
+					System.err.println("missing property value for name: " + j);
+					//throw new RuntimeException("missing property value for name: " + j);
 				}
 			} else {
 				throw new RuntimeException("missing property name: " + j);

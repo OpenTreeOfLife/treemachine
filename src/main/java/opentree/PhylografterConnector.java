@@ -451,4 +451,176 @@ public class PhylografterConnector {
 		}
 		return true;
 	}
+	/**
+	 * There are three possibilities 1. the ottol id is present 2. there is no
+	 * ottol id but the TNRS gets one with high probability 3. there is no ottol
+	 * id and the TNRS is no help
+	 * 
+	 * For 3 (the problematic one), we will add an entry in an index and add a
+	 * name to the taxonomy. This is a special case when adding things from
+	 * phylografter
+	 * 
+	 * The names that are added need to be searched if there were not matches in 
+	 * the TNRS
+	 * 
+	 * this is similar to fixNamesFromTrees but it will not add the taxon if not found.
+	 * it will try and prune
+	 * @param studyid
+	 * @param trees
+	 * @param graphDb
+	 * @throws IOException
+	 */
+	public static boolean fixNamesFromTreesNOTNRS(List<JadeTree> trees, GraphDatabaseAgent graphDb, boolean prune, MessageLogger logger) throws IOException{
+		logger.message("fixing names in trees");
+		for (int i = 0; i < trees.size(); i++) {
+			JadeTree currTree = trees.get(i);
+			logger.indentMessageStr(1, "name fixing on tree", "tree id", (String)currTree.getObject("id"));
+			// get the names that don't have ids
+			// if the number is 0 then break
+			ArrayList<JadeNode> searchnds = new ArrayList<JadeNode>();
+			HashMap<String,JadeNode> namenodemap = new HashMap<String,JadeNode>();
+			ArrayList<JadeNode> matchednodes = new ArrayList<JadeNode>();
+			for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
+				JadeNode ndJ = currTree.getExternalNode(j);
+				if (ndJ.getObject("ot:ottId") == null) {
+					logger.indentMessageStrStr(2, "OTT ID missing", "name", ndJ.getName(), "nexsonid", (String)ndJ.getObject("nexsonid"));
+					searchnds.add(ndJ);
+					namenodemap.put(ndJ.getName(), ndJ);
+				}
+			}
+			if (searchnds.size() == 0) {
+				logger.indentMessage(1, "all nodes have ottIds");
+			} else {
+				// build the parameter string for the context query
+				ArrayList<String> namelist = new ArrayList<String>();
+				for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
+					namelist.add(currTree.getExternalNode(j).getName());
+				}
+
+				if (namenodemap.size() > 0) {
+					for (String name: namenodemap.keySet()) {
+						JadeNode jnode = namenodemap.get(name);
+						logger.indentMessageStrStr(2, "pruning unmapped", "name", name, "nexsonid", (String)jnode.getObject("nexsonid"));
+						try {
+							currTree.pruneExternalNode(jnode);
+						} catch (Exception x) {
+							logger.indentMessageStr(3, "Error pruning leaf", "name", name);
+							return false;
+						}
+					}
+				}	
+			}
+			//now checking for duplicate names or names to point to parents or dubious names
+			//for each tip in the tree, see if there are duplicates
+			TLongHashSet tipottols = new TLongHashSet();
+			HashSet<JadeNode> pru = new HashSet<JadeNode> ();
+			for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
+				JadeNode currNd = currTree.getExternalNode(j);
+				Long tid = (Long)currNd.getObject("ot:ottId");
+				if (tid == null) {
+					logger.indentMessage(2, "Null OTT ID in tree");
+					logger.indentMessageStrStr(3, "null", "name", currNd.getName(), "nexsonid", (String)currNd.getObject("nexsonid"));
+					pru.add(currNd);
+				} else if (tipottols.contains(tid)) {
+					//prune
+					logger.indentMessage(2, "OTT ID reused in tree");
+					logger.indentMessageStrStr(3, "duplicate", "name", currNd.getName(), "nexsonid", (String)currNd.getObject("nexsonid"));
+					logger.indentMessageLong(3, "duplicate", "OTT ID", tid);
+					pru.add(currNd);
+				} else {
+					IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+					if (hits.size() == 0) {
+						logger.indentMessage(2, "OTT ID not in database (probably dubious)");
+						logger.indentMessageStrStr(3, "dubious", "name", currNd.getName(), "nexsonid", (String)currNd.getObject("nexsonid"));
+						logger.indentMessageLong(3, "dubious", "OTT ID", tid);
+						pru.add(currNd);
+					} else {
+						tipottols.add(tid);
+					}
+					hits.close();
+				}
+			}
+			//for each tip see if there are tips that map to parents of other tips
+			//do this by seeing if there is any overlap between the mrcas from different 
+			for (int j = 0; j < currTree.getExternalNodeCount(); j++) {
+				JadeNode currNdJ = currTree.getExternalNode(j);
+				if(pru.contains(currNdJ)) {
+					continue;
+				}
+				Long tid = (Long)currNdJ.getObject("ot:ottId");
+				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+				Node firstNode = hits.getSingle();
+				hits.close();
+				TLongArrayList t1 = new TLongArrayList((long [])firstNode.getProperty("mrca"));
+				for (int k = 0; k < currTree.getExternalNodeCount(); k++) {
+					JadeNode currNdK = currTree.getExternalNode(k);
+					if (pru.contains(currNdK) || k == j) {
+						continue;
+					}
+					Long tid2 = (Long)currNdK.getObject("ot:ottId");
+					IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid2));
+					Node secondNode = hits2.getSingle();
+					hits2.close();
+					if (secondNode == null) {
+						logger.indentMessageStr(2, "null node in graphTaxUIDNodes", "tax_uid", String.valueOf(tid2));
+						pru.add(currNdK);
+					} else {
+						TLongArrayList t2 = new TLongArrayList((long [])secondNode.getProperty("mrca"));
+						if (LicaUtil.containsAnyt4jUnsorted(t1, t2)) {
+							logger.indentMessage(2, "overlapping tips");
+							if (t2.size() < t1.size()) {
+								pru.add(currNdJ);
+								logger.indentMessageStrStr(3, "overlapping retained", "name", currNdK.getName(), "nexsonid", (String)currNdK.getObject("nexsonid"));
+								logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdJ.getName(), "nexsonid", (String)currNdJ.getObject("nexsonid"));
+								break;
+							} else {
+								pru.add(currNdK);
+								logger.indentMessageStrStr(3, "overlapping retained", "name", currNdJ.getName(), "nexsonid", (String)currNdJ.getObject("nexsonid"));
+								logger.indentMessageStrStr(3, "overlapping pruned", "name", currNdK.getName(), "nexsonid", (String)currNdK.getObject("nexsonid"));
+							}
+						}
+					}
+				}
+			}
+			for (JadeNode tn: pru) {
+				logger.indentMessageStrStr(2, "pruning dups and overlapping", "name", tn.getName(), "nexsonid", (String)tn.getObject("nexsonid"));
+				try {
+					currTree.pruneExternalNode(tn);
+				} catch (Exception x) {
+					logger.indentMessageStr(3, "Error pruning leaf", "name", tn.getName());
+					return false;
+				}
+			}
+			currTree.processRoot();
+			if (prune == true) {
+				logger.indentMessageStr(1, "postpruning newick", "tree", currTree.getRoot().getNewick(false));
+			}
+			
+			//final mapping of the taxonomy
+			logger.indentMessage(1, "taxon mapping summary");
+			for (int k = 0; k < currTree.getExternalNodeCount(); k++) {
+				JadeNode ndK = currTree.getExternalNode(k);
+				Long tid = (Long)ndK.getObject("ot:ottId");
+				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+				Node firstNode = hits.getSingle();
+				hits.close();
+				Node cnode = firstNode;
+				if (cnode == null) {
+					logger.indentMessageLongStrStr(2, "Error ottId indexed to a null node!", "OTT ID", tid, "original name", ndK.getName(), "nexsonid", (String)ndK.getObject("nexsonid"));
+				} else {
+					String cnodeName = (String) cnode.getProperty("name");
+					StringBuffer sb = new StringBuffer();
+					sb.append(cnodeName == null ? "{null name}" : cnodeName);
+					while (cnode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+						cnode = cnode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+						cnodeName = (String) cnode.getProperty("name");
+						sb.append("->");
+						sb.append(cnodeName == null ? "{null name}" : cnodeName);
+					}
+					logger.indentMessageLongStrStr(2, "taxon mapping", "OTT ID", tid, "taxonomy", sb.toString(), "nexsonid", (String)ndK.getObject("nexsonid"));
+				}
+			}
+		}
+		return true;
+	}
 }

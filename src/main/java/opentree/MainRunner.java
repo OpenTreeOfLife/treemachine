@@ -1742,7 +1742,7 @@ public class MainRunner {
 		}
 		
 		try {
-			boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, true, messageLogger);
+			boolean good = PhylografterConnector.fixNamesFromTreesNOTNRS(jt, graphDb, true, messageLogger);
 			System.out.println("done fixing name");
 			if (good == false) {
 				System.err.println("failed to get the names from server fixNamesFromTrees 3");
