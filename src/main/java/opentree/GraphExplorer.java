@@ -1155,7 +1155,10 @@ public class GraphExplorer extends GraphBase {
         int iii = 0;
         ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
         for (String sourceId : preferredSourceIds) {
-        	justSourcePriorityList.add(sourceId.split("_")[0]);
+        	if (sourceId.startsWith("pg"))
+        		justSourcePriorityList.add("pg_"+sourceId.split("_")[1]);
+        	else
+        		justSourcePriorityList.add(sourceId.split("_")[0]);
         	sourceIdPriorityListString[iii] = sourceId;
         	iii++;
         }	
