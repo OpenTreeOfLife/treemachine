@@ -351,7 +351,11 @@ public class GraphInitializer extends GraphBase{
 			if (tflag.equals("hidden")){
 				System.out.println("skipping hidden "+name);	
 				return;
+			}if (tflag.equals("unclassified")){
+				System.out.println("skipping unclassified "+name);	
+				return;
 			}
+			
 			if (tflag.equals("tattered")){
 				System.out.println("skipping tattered "+name);	
 			//	return;
