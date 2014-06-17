@@ -8,8 +8,8 @@ import opentree.exceptions.DataFormatException;
 public class GeneralUtils {
 
     // all common non-alphanumeric chars except "_" and "-", for use when cleaning strings
-    public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
-    public static final String newickIllegal = "[\\Q:;/[]{}(),\\E]+";
+    public static final String offendingChars = "[\\Q\"~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
+    public static final String newickIllegal = ".*[\\Q:;/[]{}(),\\E]+.*";
 
     public static int sum_ints(List<Integer> list){
 		if (list == null || list.size() < 1) {
@@ -51,6 +51,8 @@ public class GeneralUtils {
 		// replace all spaces with underscore
 		newickName = newickName.replaceAll(" ", "_");
 		
+		System.out.print("original: " + newickName);
+		
 		// newick standard way of dealing with single quotes in taxon names
 		if (newickName.contains("'")) {
 			newickName = newickName.replaceAll("'", "''");
@@ -63,6 +65,9 @@ public class GeneralUtils {
 		if (needQuotes) {
 			newickName = "'" + newickName + "'";
 		}
+		
+		System.out.println("; final: " + newickName);
+		
 		return newickName;
 	}
 	
