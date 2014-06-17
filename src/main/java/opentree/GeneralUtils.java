@@ -51,8 +51,6 @@ public class GeneralUtils {
 		// replace all spaces with underscore
 		newickName = newickName.replaceAll(" ", "_");
 		
-		System.out.print("original: " + newickName);
-		
 		// newick standard way of dealing with single quotes in taxon names
 		if (newickName.contains("'")) {
 			newickName = newickName.replaceAll("'", "''");
@@ -65,8 +63,6 @@ public class GeneralUtils {
 		if (needQuotes) {
 			newickName = "'" + newickName + "'";
 		}
-		
-		System.out.println("; final: " + newickName);
 		
 		return newickName;
 	}
