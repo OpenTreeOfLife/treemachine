@@ -842,25 +842,25 @@ public class MainRunner {
 	
 	// Report which taxonomy (e.g. version of OTT) was used to initialize the graph
 	/// @returns 0 for success, 1 for poorly formed command
-		public int getTaxonomyVersion(String [] args) {
-			String graphname;
-			
-			if (args.length != 2) {
-				System.out.println("arguments should be: <graphdbfolder>");
-				return 1;
-			}
-			graphname = args[1];
-			
-			GraphExplorer ge = new GraphExplorer(graphname);
-			try {
-				String taxVersion = "";
-				taxVersion = ge.getTaxonomyVersion();
-				System.out.println("The graph was initialized with the taxonomy '" + taxVersion + "'.");
-			} finally {
-				ge.shutdownDB();
-			}
-			return 0;
+	public int getTaxonomyVersion(String [] args) {
+		String graphname;
+		
+		if (args.length != 2) {
+			System.out.println("arguments should be: <graphdbfolder>");
+			return 1;
 		}
+		graphname = args[1];
+		
+		GraphExplorer ge = new GraphExplorer(graphname);
+		try {
+			String taxVersion = "";
+			taxVersion = ge.getTaxonomyVersion();
+			System.out.println("The graph was initialized with the taxonomy '" + taxVersion + "'.");
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
+	}
 
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExplorerBiparts(String [] args) {
