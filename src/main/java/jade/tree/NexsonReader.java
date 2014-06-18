@@ -373,7 +373,8 @@ public class NexsonReader {
 						msgLogger.indentMessageStr(1, "property added", propname, value.toString());
 					}
 				} else {
-					System.err.println("missing property value for name: " + j);
+	// temporarily turning off this error. involves nexson 'messages'
+	//				System.err.println("missing property value for name: " + j);
 					//throw new RuntimeException("missing property value for name: " + j);
 				}
 			} else {
