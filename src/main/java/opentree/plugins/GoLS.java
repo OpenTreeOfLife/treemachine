@@ -348,12 +348,8 @@ public class GoLS extends ServerPlugin {
 		}
 		
 		
-		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		
-		return OTRepresentationConverter.convert(gdb.getGraphProperty("draftTreeRootNodeId"));
-/*		
-		
-		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0 || subtreeNodeIDStr.equals(null)) { // get root of draft tree
+		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0) { // get root of draft tree
 			GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 			subtreeNodeID = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
 		} else {
@@ -376,11 +372,7 @@ public class GoLS extends ServerPlugin {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		JadeTree tree = null;
 		try {
-			if (subtreeNodeIDStr == null) {
-				tree = ge.reconstructSyntheticTree(synthTreeID, maxDepth);
-			} else {
-				tree = ge.reconstructSyntheticTree(synthTreeID, subtreeNodeID, maxDepth);
-			}
+			tree = ge.reconstructSyntheticTree(synthTreeID, subtreeNodeID, maxDepth);
 		} finally {
 			ge.shutdownDB();
 		}
@@ -395,9 +387,6 @@ public class GoLS extends ServerPlugin {
 		} else { // emit arguson
 			return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
 		}
-		
-		
-*/
 	}
 	
 	@Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
