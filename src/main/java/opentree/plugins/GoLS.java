@@ -349,7 +349,7 @@ public class GoLS extends ServerPlugin {
 		
 		
 		
-		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0) { // get root of draft tree
+		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0 || subtreeNodeIDStr.equals(null)) { // get root of draft tree
 			GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 			subtreeNodeID = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
 		} else {
