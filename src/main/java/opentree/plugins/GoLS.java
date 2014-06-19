@@ -348,9 +348,9 @@ public class GoLS extends ServerPlugin {
 		}
 		
 		
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		
-		
-		return OTRepresentationConverter.convert(subtreeNodeIDStr);
+		return OTRepresentationConverter.convert(gdb.getGraphProperty("draftTreeRootNodeId"));
 /*		
 		
 		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0 || subtreeNodeIDStr.equals(null)) { // get root of draft tree
