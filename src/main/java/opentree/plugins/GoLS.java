@@ -338,7 +338,7 @@ public class GoLS extends ServerPlugin {
 
 		// set default param values
 		int maxDepth = 5;
-		long subtreeNodeID = 0; // hmm. this should default to the root of the synthetic tree
+		long subtreeNodeID = 0;
 		boolean emitNewick = false;
 		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
 
@@ -346,11 +346,14 @@ public class GoLS extends ServerPlugin {
 		if (maxDepthArg != null) {
 			maxDepth = maxDepthArg;
 		}
-		if (subtreeNodeIDStr != null) {
-			subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
-		} else { // get root of draft tree
+		
+		
+		
+		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0) { // get root of draft tree
 			GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 			subtreeNodeID = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
+		} else {
+			subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
 		}
 
 		// determine output format
