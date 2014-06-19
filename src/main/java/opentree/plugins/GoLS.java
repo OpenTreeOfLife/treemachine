@@ -63,8 +63,8 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeMRCAForNodes(
 			@Source GraphDatabaseService graphDb,
-			@Description("A set of node ids") @Parameter(name="nodeIds", optional=true) long[] nodeIds,
-			@Description("A set of ott ids") @Parameter(name="ottIds", optional=true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
+			@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
+			@Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
 		
 		if (nodeIds.length < 1 && ottIds.length < 1) {
 			throw new IllegalArgumentException("You must supply at least one node or ott id.");
@@ -106,8 +106,8 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeSubtreeForNodes(
 			@Source GraphDatabaseService graphDb,
-			@Description("A set of node ids") @Parameter(name="nodeIds", optional=true) long[] nodeIds,
-			@Description("A set of ott ids") @Parameter(name="ottIds", optional=true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
+			@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
+			@Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
 		
 		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
 			throw new IllegalArgumentException("You must supply at least one node or ott id.");
@@ -148,7 +148,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget (GraphDatabaseService.class)
 	public Representation getStudyIngestMessagesForNexSON(
 				@Source GraphDatabaseService graphDbs,
-				@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+				@Description("The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
 				@Parameter(name = "nexsonBlob", optional = true) String nexsonBlob)
 				throws Exception {
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
@@ -222,7 +222,6 @@ public class GoLS extends ServerPlugin {
 				for(int i=0;i<sourcePrimList.length;i++){
 					sourceList.add(sourcePrimList[i]);
 				}
-				
 			}
 		} finally {
 			ge.shutdownDB();
@@ -234,7 +233,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public String synthesizeSubtree(
 			@Source GraphDatabaseService graphDb,
-			@Description( "The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+			@Description("The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
 			@Parameter(name = "rootottId", optional = true) String rootottId) throws Exception {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
@@ -266,13 +265,13 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSourceTree(
 			@Source GraphDatabaseService graphDb,
-			@Description( "The identifier for the source tree to return")
+			@Description("The identifier for the source tree to return")
 			@Parameter(name = "treeID", optional = false) String treeID,
-			@Description( "The name of the return format (default is newick)")
+			@Description("The name of the return format (default is newick)")
 			@Parameter(name = "format", optional = true) String format,
-			@Description( "The nodeid of the a node in the tree that should serve as the root of the tree returned")
+			@Description("The nodeid of the a node in the tree that should serve as the root of the tree returned")
 			@Parameter(name = "subtreeNodeID", optional = true) String subtreeNodeIDStr, 
-			@Description( "An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is -1 (no limit).")
+			@Description("An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is -1 (no limit).")
 			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException {
 
 		// set defaults
@@ -327,13 +326,13 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSyntheticTree(
 			@Source GraphDatabaseService graphDb,
-			@Description( "The identifier for the synthesis (e.g. \"otol.draft.22\") (default is most current synthetic tree)")
+			@Description("The identifier for the synthesis (e.g. \"otol.draft.22\") (default is most current synthetic tree)")
 			@Parameter(name = "treeID", optional = true) String treeID,
-			@Description( "The name of the return format (default is newick)")
+			@Description("The name of the return format (default is newick)")
 			@Parameter(name = "format", optional = true) String format,
-			@Description( "The nodeid of the a node in the tree that should serve as the root of the tree returned")
+			@Description("The nodeid of the a node in the tree that should serve as the root of the tree returned")
 			@Parameter(name = "subtreeNodeID", optional = true) String subtreeNodeIDStr, 
-			@Description( "An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is 5.")
+			@Description("An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is 5.")
 			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException, TaxonNotFoundException {
 
 		// set default param values
@@ -346,8 +345,6 @@ public class GoLS extends ServerPlugin {
 		if (maxDepthArg != null) {
 			maxDepth = maxDepthArg;
 		}
-		
-		
 		
 		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0) { // get root of draft tree
 			GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
@@ -383,7 +380,6 @@ public class GoLS extends ServerPlugin {
 			responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
 			responseMap.put("treeID", synthTreeID);
 			return OTRepresentationConverter.convert(responseMap);
-			
 		} else { // emit arguson
 			return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
 		}
@@ -393,9 +389,9 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeForottId( // TODO: should be renamed getDraftTreeNewickForottId, will need to be updated in argus
 			@Source GraphDatabaseService graphDb,
-			@Description( "The ottol id of the taxon to be used as the root for the tree.")
+			@Description("The ottol id of the taxon to be used as the root for the tree.")
 			@Parameter(name = "ottId", optional = false) String ottId) throws TaxonNotFoundException, MultipleHitsException { //,
-//			@Description( "DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
+//			@Description("DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
 //			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) { // TODO: Remove this parameter if it is unused
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
@@ -413,7 +409,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeForNodeID( // TODO: should be renamed getDraftTreeNewickForNodeID, will need to be updated in argus
 			@Source GraphDatabaseService graphDb,
-			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
+			@Description("The Neo4j node id of the node to be used as the root for the tree.")
 			@Parameter(name = "nodeID", optional = false) Long nodeID) {
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
@@ -431,7 +427,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Long getNodeIDForottId(
 			@Source GraphDatabaseService graphDb,
-			@Description( "The ottol id of the taxon to be used as the root for the tree.")
+			@Description("The ottol id of the taxon to be used as the root for the tree.")
 			@Parameter(name = "ottId", optional = false) String ottId) throws TaxonNotFoundException, MultipleHitsException {
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
@@ -444,7 +440,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeChildNodesForNodeID(
 			@Source GraphDatabaseService graphDb,
-			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
+			@Description("The Neo4j node id of the node to be used as the root for the tree.")
 			@Parameter(name = "nodeID", optional = false) Long nodeID) {
 				
 		Node startNode = graphDb.getNodeById(nodeID);
@@ -456,9 +452,7 @@ public class GoLS extends ServerPlugin {
         		childIds.add(synthChildRel.getStartNode().getId());
         	}
         }
-
 		return OTRepresentationConverter.convert(childIds);
 	}
-	
 }
 
