@@ -347,7 +347,8 @@ public class GoLS extends ServerPlugin {
 			maxDepth = maxDepthArg;
 		}
 		
-		
+		return OTRepresentationConverter.convert(subtreeNodeIDStr);
+/*		
 		
 		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0 || subtreeNodeIDStr.equals(null)) { // get root of draft tree
 			GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
@@ -391,6 +392,9 @@ public class GoLS extends ServerPlugin {
 		} else { // emit arguson
 			return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
 		}
+		
+		
+*/
 	}
 	
 	@Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
