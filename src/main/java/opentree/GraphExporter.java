@@ -23,6 +23,8 @@ import java.util.LinkedList;
 //import java.util.Iterator;
 import java.util.Stack;
 
+
+import opentree.constants.NodeProperty;
 //import opentree.RelTypes;
 import opentree.constants.RelType;
 import opentree.exceptions.TaxonNotFoundException;
@@ -522,7 +524,7 @@ public class GraphExporter extends GraphBase {
 		}
 		String retstring = String.valueOf(tids.size()) + " " + String.valueOf(nodeids.size()) + "\n";
 		for (Long nd : tids) {
-			retstring += (String) graphDb.getNodeById(nd).getProperty("name");
+			retstring += (String) graphDb.getNodeById(nd).getProperty(NodeProperty.TAX_UID.propertyName);
 			retstring += "\t";
 			for (Long nnid : nodeids) {
 				if (mrpmap.get(nd).contains(nnid)) {

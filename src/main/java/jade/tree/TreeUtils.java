@@ -1,5 +1,8 @@
 package jade.tree;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 public class TreeUtils {
 	/**
 	 * Sets the DistanceFromTip for each node in the tree to be the max distance
@@ -83,5 +86,6 @@ public class TreeUtils {
 
 		}
 	}
+	
 	
 }

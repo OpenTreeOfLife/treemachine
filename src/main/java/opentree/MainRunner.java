@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
+
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 //import org.apache.log4j.PropertyConfigurator;
@@ -34,6 +35,7 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
+
 
 import opentree.exceptions.DataFormatException;
 import opentree.exceptions.MultipleHitsException;
@@ -118,6 +120,31 @@ public class MainRunner {
 		return 0;
 	}
 	
+	private static void getMRPmatrix(JadeTree tree){
+		HashMap<JadeNode,StringBuffer> taxafinal = new HashMap<JadeNode,StringBuffer>();
+		for(int i=0;i<tree.getExternalNodeCount();i++){
+			taxafinal.put(tree.getExternalNode(i), new StringBuffer(""));
+		}
+		for (int i=0;i<tree.getInternalNodeCount();i++){
+			ArrayList<JadeNode> nds = new ArrayList<JadeNode>();
+			for (JadeNode n: tree.getInternalNode(i).getDescendantLeaves()){
+				nds.add(n);
+			}
+			for(int j=0;j<tree.getExternalNodeCount();j++){
+				if (nds.contains(tree.getExternalNode(j)))
+					taxafinal.get(tree.getExternalNode(j)).append("1");
+				else
+					taxafinal.get(tree.getExternalNode(j)).append("0");
+			}
+		}
+		System.err.println("AADSSDFAASDF");
+		for(int i=0;i<tree.getExternalNodeCount();i++){
+			System.out.print(String.valueOf((Long)tree.getExternalNode(i).getObject("ot:ottId")));
+			System.out.print("\t");
+			System.out.print(taxafinal.get(tree.getExternalNode(i)).toString());
+			System.out.print("\n");
+		}
+	}
 	
 	
 	/// @returns 0 for success, 1 for poorly formed command
@@ -1796,10 +1823,11 @@ public class MainRunner {
 				}
 				if (onlyTestTheInput) {
 					messageLogger.indentMessageStr(1, "Checking if tree could be added to graph", "tree id", treeJId);
+					getMRPmatrix(j);
 				} else {
 					messageLogger.indentMessageStr(1, "Adding tree to graph", "tree id", treeJId);
+					gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger);
 				}
-				gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger);
 			}
 			++treeIndex;
 		}
@@ -2204,6 +2232,7 @@ public class MainRunner {
 		System.out.println("\tchecktax <filename.tre> <graphdbfolder>");
 		System.out.println("\tnexson2newick <filename.nexson> [filename.newick]\n");
 		System.out.println("\tconvertfigtree <filename.tre> <outfile.tre>");
+		System.out.println("\tnexson2mrp <filename.nexson>\n");
 		
 		System.out.println("---synthesis functions---");
 		System.out.println("\tsynthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
