@@ -137,7 +137,8 @@ public class MainRunner {
 					taxafinal.get(tree.getExternalNode(j)).append("0");
 			}
 		}
-		System.err.println("AADSSDFAASDF");
+		System.out.println("MRP");
+		System.out.println(tree.getExternalNodeCount()+"\t"+tree.getInternalNodeCount());
 		for(int i=0;i<tree.getExternalNodeCount();i++){
 			System.out.print(String.valueOf((Long)tree.getExternalNode(i).getObject("ot:ottId")));
 			System.out.print("\t");
