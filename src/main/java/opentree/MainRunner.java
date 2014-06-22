@@ -22,8 +22,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
+
+
+
 
 
 //import org.apache.log4j.Logger;
@@ -37,6 +41,10 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
 
+
+
+
+import opentree.constants.NodeProperty;
 import opentree.exceptions.DataFormatException;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttIdNotFoundException;
@@ -120,10 +128,11 @@ public class MainRunner {
 		return 0;
 	}
 	
-	private static void getMRPmatrix(JadeTree tree){
-		HashMap<JadeNode,StringBuffer> taxafinal = new HashMap<JadeNode,StringBuffer>();
+	private static void getMRPmatrix(JadeTree tree, GraphDatabaseAgent graphDb){
+		
+		HashMap<JadeNode,StringBuffer> taxastart = new HashMap<JadeNode,StringBuffer>();
 		for(int i=0;i<tree.getExternalNodeCount();i++){
-			taxafinal.put(tree.getExternalNode(i), new StringBuffer(""));
+		taxastart.put(tree.getExternalNode(i), new StringBuffer(""));
 		}
 		for (int i=0;i<tree.getInternalNodeCount();i++){
 			ArrayList<JadeNode> nds = new ArrayList<JadeNode>();
@@ -132,21 +141,41 @@ public class MainRunner {
 			}
 			for(int j=0;j<tree.getExternalNodeCount();j++){
 				if (nds.contains(tree.getExternalNode(j)))
-					taxafinal.get(tree.getExternalNode(j)).append("1");
+					taxastart.get(tree.getExternalNode(j)).append("1");
 				else
-					taxafinal.get(tree.getExternalNode(j)).append("0");
+					taxastart.get(tree.getExternalNode(j)).append("0");
+			}
+		}
+		HashMap<String,StringBuffer> taxafinal = new HashMap<String,StringBuffer>();
+		for (JadeNode jd: taxastart.keySet()){
+			Long taxUID = (Long)jd.getObject("ot:ottId");
+			IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
+			Node startnode = null;
+			try {
+				startnode = hts.getSingle();
+	        } catch (NoSuchElementException ex) {
+	        	throw new MultipleHitsException(taxUID);
+	        } finally {
+	        	hts.close();
+	        }
+			long[] dbnodei = (long[]) startnode.getProperty("mrca");
+			if(dbnodei.length>0){
+				for (long temp : dbnodei) {
+					taxafinal.put(String.valueOf(((Node)graphDb.getNodeById(temp)).getProperty("tax_uid")), taxastart.get(jd));
+				}
+			}else{
+				taxafinal.put(String.valueOf(taxUID), taxastart.get(jd));
 			}
 		}
 		System.out.println("MRP");
 		System.out.println(tree.getExternalNodeCount()+"\t"+tree.getInternalNodeCount());
-		for(int i=0;i<tree.getExternalNodeCount();i++){
-			System.out.print(String.valueOf((Long)tree.getExternalNode(i).getObject("ot:ottId")));
+		for(String st: taxafinal.keySet()){
+			System.out.print(st);
 			System.out.print("\t");
-			System.out.print(taxafinal.get(tree.getExternalNode(i)).toString());
+			System.out.print(taxafinal.get(st));
 			System.out.print("\n");
 		}
 	}
-	
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphReloadTrees(String [] args) throws Exception {
@@ -1106,6 +1135,25 @@ public class MainRunner {
 			System.out.println(jt.get(0).getRoot().getNewick(true) + ";");
 			return 0;
 		}
+		if (args[0].equals("labeltipsottol")) {
+			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
+			for(int i=0;i<jt.get(0).getExternalNodeCount();i++){
+				JadeNode jd = jt.get(0).getExternalNode(i);
+				Long taxUID = Long.valueOf(jd.getName().replaceAll("\\s+",""));
+				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
+				Node startnode = null;
+				try {
+					startnode = hts.getSingle();
+		        } catch (NoSuchElementException ex) {
+		        	throw new MultipleHitsException(taxUID);
+		        } finally {
+		        	hts.close();
+		        }
+				jd.setName((String)startnode.getProperty("name")+"_"+String.valueOf(taxUID));
+			}
+			System.out.println(jt.get(0).getRoot().getNewick(false) + ";");
+			return 0;
+		}
 		if(args[0].equals("convertfigtree") || args[0].equals("convertfigtree2")){
 			//the idea here is to generate another newick that will have internal labels the width of the branch
 			//polytomies will have one node and it will have this width
@@ -1824,7 +1872,7 @@ public class MainRunner {
 				}
 				if (onlyTestTheInput) {
 					messageLogger.indentMessageStr(1, "Checking if tree could be added to graph", "tree id", treeJId);
-					getMRPmatrix(j);
+					getMRPmatrix(j,graphDb);
 				} else {
 					messageLogger.indentMessageStr(1, "Adding tree to graph", "tree id", treeJId);
 					gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger);
@@ -2326,6 +2374,7 @@ public class MainRunner {
 			} else if (command.compareTo("counttips") == 0
 				   || command.compareTo("diversity") == 0
 				   || command.compareTo("labeltips") == 0 
+				   || command.compareTo("labeltipsottol") == 0
 				   || command.compareTo("convertfigtree") == 0
 				   || command.compareTo("convertfigtree2")==0){
 				cmdReturnCode = mr.treeUtils(args);

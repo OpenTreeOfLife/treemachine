@@ -10,6 +10,7 @@ package opentree;
  * write json
  */
 
+import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 
@@ -22,7 +23,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 //import java.util.Iterator;
 import java.util.Stack;
-
 
 import opentree.constants.NodeProperty;
 //import opentree.RelTypes;
@@ -484,15 +484,7 @@ public class GraphExporter extends GraphBase {
 
 	public void mrpDump(String taxname, String outfile) throws TaxonNotFoundException  {
 		Node firstNode = findTaxNodeByName(taxname);
-		String tofile = getMRPDump(firstNode);
-		PrintWriter outFile;
-		try {
-			outFile = new PrintWriter(new FileWriter(outfile));
-			outFile.write(tofile);
-			outFile.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		getMRPDump(firstNode,outfile);
 	}
 
 	/**
@@ -501,15 +493,15 @@ public class GraphExporter extends GraphBase {
 	 * @param startnode
 	 * @return string of the mrp matrix
 	 */
-	private String getMRPDump(Node startnode) {
-		HashSet<Long> tids = new HashSet<Long>();
-		HashSet<Long> nodeids = new HashSet<Long>();
-		HashMap<Long, HashSet<Long>> mrpmap = new HashMap<Long, HashSet<Long>>(); // key is the id for the taxon and the hashset is the list of nodes to which
+	private void getMRPDump(Node startnode,String outfile) {
+		TLongHashSet tids = new TLongHashSet();
+		TLongHashSet nodeids = new TLongHashSet();
+		HashMap<Long, TLongHashSet> mrpmap = new HashMap<Long, TLongHashSet>(); // key is the id for the taxon and the hashset is the list of nodes to which
 																				  // the taxon is a member
 		long[] dbnodei = (long[]) startnode.getProperty("mrca");
 		for (long temp : dbnodei) {
 			tids.add(temp);
-			mrpmap.put(temp, new HashSet<Long>());
+			mrpmap.put(temp, new TLongHashSet());
 		}
 		TraversalDescription STREECHILDOF_TRAVERSAL = Traversal.description()
 				.relationships(RelType.STREECHILDOF, Direction.INCOMING);
@@ -522,20 +514,29 @@ public class GraphExporter extends GraphBase {
 			}
 			nodeids.add(tnd.getId());
 		}
-		String retstring = String.valueOf(tids.size()) + " " + String.valueOf(nodeids.size()) + "\n";
-		for (Long nd : tids) {
-			retstring += (String) graphDb.getNodeById(nd).getProperty(NodeProperty.TAX_UID.propertyName);
-			retstring += "\t";
-			for (Long nnid : nodeids) {
-				if (mrpmap.get(nd).contains(nnid)) {
-					retstring += "1";
-				} else {
-					retstring += "0";
+		try {
+			FileWriter fw = new FileWriter(outfile);
+			String retstring = String.valueOf(tids.size()) + " " + String.valueOf(nodeids.size()) + "\n";
+			fw.write(retstring);
+			for (Long nd : tids.toArray()) {
+				StringBuffer retstring2 = new StringBuffer("");
+				retstring2.append((String) graphDb.getNodeById(nd).getProperty(NodeProperty.TAX_UID.propertyName));
+				retstring2.append("\t");
+				for (Long nnid : nodeids.toArray()) {
+					if (mrpmap.get(nd).contains(nnid)) {
+						retstring2.append("1");
+					} else {
+						retstring2.append("0");
+					}
 				}
+				retstring2.append("\n");
+				fw.write(retstring2.toString());
 			}
-			retstring += "\n";
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		return retstring;
 	}
 
 	/*
