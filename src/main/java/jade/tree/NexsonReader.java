@@ -287,12 +287,8 @@ public class NexsonReader {
 			try{
 				length = (Double)j.get("@length");
 			}catch(java.lang.ClassCastException c){
-			}
-			if(length == null){
-				try{
-					length = Double.valueOf((Long)j.get("@length"));
-				}catch(java.lang.ClassCastException c){
-				}
+				length = 0.;
+				continue;
 			}
 			if (length != null) {
 				target.setBL(length);
