@@ -944,6 +944,7 @@ public class MainRunner {
 		String graphname = args[3];
 		GraphExplorer ge = new GraphExplorer(graphname);
 		JadeNode root =  null;
+		List<String> taxonList = new ArrayList<String>();;
 		try {
 			Node tnode = ge.findGraphTaxNodeByUID(startuid);
 			root = new JadeNode();
@@ -959,7 +960,7 @@ public class MainRunner {
 				JadeNode tn = new JadeNode(pa);
 				pa.addChild(tn);
 				tn.setParent(pa);
-				//System.out.println(root.getName());
+				taxonList.add((String)m.getProperty(NodeProperty.TAX_UID.propertyName));
 				tn.setName((String)m.getProperty(NodeProperty.TAX_UID.propertyName));
 				nodemp.put(m, tn);
 			}
@@ -973,7 +974,19 @@ public class MainRunner {
 			ge.shutdownDB();
 		}
 		JadeTree tt = new JadeTree(root);
-
+		
+		// list of taxa
+		try {
+			FileWriter fw = new FileWriter(outfile + "_taxonList");
+			for (String i : taxonList) {
+				fw.write(i+"\n");
+			}
+			fw.write(tt.getRoot().getNewick(false)+";");
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		try {
 			FileWriter fw = new FileWriter(outfile);
 			fw.write(tt.getRoot().getNewick(false)+";");
