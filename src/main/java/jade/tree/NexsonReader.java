@@ -283,7 +283,17 @@ public class NexsonReader {
 				msgLogger.indentMessageStr(2, "Error. Edge with target property not found in map", "@target", (String)j.get("@target"));
 				return null;
 			}
-			Double length = (Double)j.get("@length");
+			Double length = null;
+			try{
+				length = (Double)j.get("@length");
+			}catch(java.lang.ClassCastException c){
+			}
+			if(length == null){
+				try{
+					length = Double.valueOf((Long)j.get("@length"));
+				}catch(java.lang.ClassCastException c){
+				}
+			}
 			if (length != null) {
 				target.setBL(length);
 			}
