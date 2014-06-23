@@ -959,7 +959,8 @@ public class MainRunner {
 				JadeNode tn = new JadeNode(pa);
 				pa.addChild(tn);
 				tn.setParent(pa);
-				System.out.println(root.getName());
+				//System.out.println(root.getName());
+				tn.setName((String)m.getProperty(NodeProperty.TAX_UID.propertyName));
 				nodemp.put(m, tn);
 			}
 		} catch (MultipleHitsException e) {
