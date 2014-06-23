@@ -981,7 +981,6 @@ public class MainRunner {
 			for (String i : taxonList) {
 				fw.write(i+"\n");
 			}
-			fw.write(tt.getRoot().getNewick(false)+";");
 			fw.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
