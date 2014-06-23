@@ -981,6 +981,7 @@ public class MainRunner {
 			for (String i : taxonList) {
 				fw.write(i+"\n");
 			}
+			fw.write(startuid+"\n");
 			fw.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
