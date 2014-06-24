@@ -182,6 +182,7 @@ public class GraphExplorer extends GraphBase {
     		System.out.println("setting stop node to " + stopNode);
     	}
     	HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<Node, ArrayList<Node>>();
+    	HashSet<Node> removeTips = new HashSet<Node>();
     	// populate the tip hash with the paths to the root of the tree
     	for (Node curTip : tips) {
 			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
@@ -191,11 +192,18 @@ public class GraphExplorer extends GraphBase {
 					break;
 				}
 				graphPathToRoot.add(0, m);
+				if (m != curTip){
+					removeTips.add(m);
+				}
 			}    		
     		if (graphPathToRoot.size() < 1) {
     			throw new UnsupportedOperationException("The node " + curTip + " does not seem to be in the draft tree.");
     		}
 			treeTipRootPathMap.put(curTip, graphPathToRoot);
+    	}
+    	for (Node curtip: tips){
+    		if (removeTips.contains(curtip))
+    			treeTipRootPathMap.remove(curtip);
     	}
     	return treeTipRootPathMap;
     }
@@ -218,7 +226,6 @@ public class GraphExplorer extends GraphBase {
     	
     	// TODO: probably more efficient to use neo4j paths directly instead of java collections to hold the paths
     	HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<Node, ArrayList<Node>>();
-    	
     	// populate the tip hash with the paths to the root of the tree
     	for (Node curTip : tips) {
     		
@@ -237,7 +244,6 @@ public class GraphExplorer extends GraphBase {
 //				if (m.hasProperty("name")) {
 //					System.out.println(m.getProperty("name"));
 //				}
-				
 				graphPathToRoot.add(0, m);
 			}    		
 			
