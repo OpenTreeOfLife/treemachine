@@ -96,7 +96,7 @@ public class GoLS extends ServerPlugin {
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
-			vals.put("mrca_node_id", ge.getDraftTreeMRCAForNodes(tips).getId());
+			vals.put("mrca_node_id", ge.getDraftTreeMRCAForNodes(tips,false).getId());
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
@@ -139,7 +139,7 @@ public class GoLS extends ServerPlugin {
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
-			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(true) + ";\n");
+			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips,false).getNewick(true) + ";\n");
 			return OTRepresentationConverter.convert(vals);
 		}
 	}

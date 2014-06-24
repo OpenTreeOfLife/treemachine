@@ -162,6 +162,45 @@ public class GraphExplorer extends GraphBase {
     	return getTreeTipRootPathMap(tips, null);
     }
 
+    private Map<Node, ArrayList<Node>> getTreeTipRootPathTaxonomyMap(Iterable<Node> tips) {
+    	return getTreeTipRootPathTaxonomyMap(tips, null);
+    }
+
+    
+    /**
+     * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
+     * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
+     * won't record the path.
+     * Unlike getTreeTipRootPathMap, this traverses taxonomy
+     * 
+     * @param tips
+     * @param stopNode
+     * @return
+     */
+    private Map<Node, ArrayList<Node>> getTreeTipRootPathTaxonomyMap(Iterable<Node> tips, Node stopNode) {
+    	if (stopNode != null) {
+    		System.out.println("setting stop node to " + stopNode);
+    	}
+    	HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<Node, ArrayList<Node>>();
+    	// populate the tip hash with the paths to the root of the tree
+    	for (Node curTip : tips) {
+			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
+			for (Node m : Traversal.description().relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(curTip).nodes()) {
+				if (stopNode != null && m.equals(stopNode)) { // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
+//					System.out.println("found stop node " + stopNode);
+					break;
+				}
+				graphPathToRoot.add(0, m);
+			}    		
+    		if (graphPathToRoot.size() < 1) {
+    			throw new UnsupportedOperationException("The node " + curTip + " does not seem to be in the draft tree.");
+    		}
+			treeTipRootPathMap.put(curTip, graphPathToRoot);
+    	}
+    	return treeTipRootPathMap;
+    }
+
+    
     /**
      * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
      * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
@@ -216,12 +255,17 @@ public class GraphExplorer extends GraphBase {
 
     /**
      * Get the MRCA of one or more nodes (interpreted as tips in some theoretical tree) according to the
-     * topology of the draft tree. If only one tip is provided, then the tip itself is returned.
+     * topology of the draft tree. If only one tip is provided, then the tip itself is returned. If taxonomy
+     * is true it will only traverse taxonomy relationships
      * @param tips
      * @return
      */
-    public Node getDraftTreeMRCAForNodes(Iterable<Node> tips) {
-    	Map<Node, ArrayList<Node>> treeTipRootPathMap = getTreeTipRootPathMap(tips);
+    public Node getDraftTreeMRCAForNodes(Iterable<Node> tips, boolean taxonomy) {
+    	Map<Node, ArrayList<Node>> treeTipRootPathMap = null;
+    	if (taxonomy ==false)
+    		treeTipRootPathMap = getTreeTipRootPathMap(tips);
+    	else
+    		treeTipRootPathMap = getTreeTipRootPathTaxonomyMap(tips);
     	
     	if (treeTipRootPathMap.size() < 1) {
     		throw new IllegalArgumentException("Cannot find the ancestor of zero tips");
@@ -268,19 +312,24 @@ public class GraphExplorer extends GraphBase {
     }
     
     /**
-     * Get a subtree out of the draft tree topology for the indicated tips.
+     * Get a subtree out of the draft tree topology for the indicated tips. If taxonomy is true
+     * it will traverse only taxonomy relationships
      * @param tips
      * @return draftSubtree
      */
-    public JadeNode extractDraftSubtreeForTipNodes(Iterable<Node> tips) {
+    public JadeNode extractDraftSubtreeForTipNodes(Iterable<Node> tips, boolean taxonomy) {
     	
     	// get the mrca
-    	Node mrca = getDraftTreeMRCAForNodes(tips);
+    	Node mrca = getDraftTreeMRCAForNodes(tips,taxonomy);
 
     	System.out.println("identified mrca " + mrca);
     	
     	// get all the paths from the tips to the mrca
-    	Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = getTreeTipRootPathMap(tips, mrca);
+    	Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = null;
+    	if (taxonomy == false)
+    		treeTipToMRCAPathMap = getTreeTipRootPathMap(tips, mrca);
+    	else
+    		treeTipToMRCAPathMap = getTreeTipRootPathTaxonomyMap(tips,mrca);
 
     	HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<Node, JadeNode>();
     	HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<JadeNode, Node>();
@@ -329,7 +378,7 @@ public class GraphExplorer extends GraphBase {
         	
         	// get the mrca from the graph and record it
 //    		Node graphNode = LicaUtil.getDraftTreeLICA(allDescendantGraphTips);
-        	Node graphNode = getDraftTreeMRCAForNodes(allDescendantGraphTips);
+        	Node graphNode = getDraftTreeMRCAForNodes(allDescendantGraphTips,taxonomy);
     		treeNode.assocObject("graphNode", graphNode);
     		if (graphNode.hasProperty("name")) {
     			treeNode.setName((String) graphNode.getProperty("name"));

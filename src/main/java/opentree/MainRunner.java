@@ -1672,7 +1672,7 @@ public class MainRunner {
 			}
 		}
 		
-		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes);
+		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes,false);
 
 		PrintWriter outFile = null;
 		try {
@@ -1711,7 +1711,7 @@ public class MainRunner {
 			}
 		}
 		
-		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes);
+		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes,false);
 
 		PrintWriter outFile = null;
 		try {
@@ -1726,6 +1726,45 @@ public class MainRunner {
 		
 		return 0;
     }
+	
+	public int extractTaxonomySubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+		if (args.length != 4) {
+			System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
+			return 1;
+		}
+
+//		System.out.println(args[1]);
+		String[] OTTids = args[1].trim().split("\\,");
+		String outFileName = args[2];
+		String graphname = args[3];
+		GraphExplorer ge = new GraphExplorer(graphname);
+
+		ArrayList<Node> tipNodes = new ArrayList<Node>();
+		for (String OTTid : OTTids) {
+//			System.out.println(OTTid);
+			Node tip = ge.findGraphTaxNodeByUID(OTTid);
+			if (tip != null) {
+//				System.out.println("id = " + tip.getId());
+				tipNodes.add(tip);
+			}
+		}
+		
+		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes,true);
+
+		PrintWriter outFile = null;
+		try {
+			outFile = new PrintWriter(new FileWriter(outFileName));
+			outFile.write(synthTreeRootNode.getNewick(true) + ";\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			outFile.close();
+			ge.shutdownDB();
+		}
+		
+		return 0;
+    }
+	
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForOttidJSON(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException{
@@ -2369,6 +2408,7 @@ public class MainRunner {
 		System.out.println("  extractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
 		System.out.println("  extractdrafttree_nodeid <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
 		System.out.println("  extractdraftsubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
+		System.out.println("  extracttaxonomysubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
 		System.out.println("  extractdraftsubtreefornodeids <tipNodeId1>,<tipNodeId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
 		System.out.println("  deleteDraftTree <graphdbfolder> deletes the synthesized tree (if any) from the graph\n");
 				
@@ -2481,7 +2521,9 @@ public class MainRunner {
 				cmdReturnCode = mr.extractDraftTreeForNodeId(args);
 			} else if (command.compareTo("extractdraftsubtreeforottids") == 0) {
 				cmdReturnCode = mr.extractDraftSubTreeForOttIDs(args);
-			} else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
+			} else if (command.compareTo("extracttaxonomysubtreeforottids") == 0) {
+				cmdReturnCode = mr.extractTaxonomySubTreeForOttIDs(args);
+			}else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
 				cmdReturnCode = mr.extractDraftSubTreeForNodeIDs(args);
 			// not sure where this should live
 			} else if (command.compareTo("nexson2newick") == 0) {
