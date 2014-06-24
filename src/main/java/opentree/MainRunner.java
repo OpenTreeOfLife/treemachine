@@ -1230,6 +1230,24 @@ public class MainRunner {
 		        }
 				jd.setName((String)startnode.getProperty("name")+"_"+String.valueOf(taxUID));
 			}
+			for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
+				JadeNode jd = jt.get(0).getInternalNode(i);
+				try{
+					Long taxUID = Long.valueOf(jd.getName().replaceAll("\\s+",""));
+					IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
+					Node startnode = null;
+					try {
+						startnode = hts.getSingle();
+					} catch (NoSuchElementException ex) {
+						throw new MultipleHitsException(taxUID);
+					} finally {
+						hts.close();
+					}
+					jd.setName((String)startnode.getProperty("name")+"_"+String.valueOf(taxUID));
+				}catch(Exception ex2){
+					continue;
+				}
+			}
 			System.out.println(jt.get(0).getRoot().getNewick(false) + ";");
 			return 0;
 		}
