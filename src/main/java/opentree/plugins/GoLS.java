@@ -139,7 +139,7 @@ public class GoLS extends ServerPlugin {
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
-			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips,false).getNewick(true) + ";\n");
+			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(true) + ";\n");
 			return OTRepresentationConverter.convert(vals);
 		}
 	}

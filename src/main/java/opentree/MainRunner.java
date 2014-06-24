@@ -1672,7 +1672,7 @@ public class MainRunner {
 			}
 		}
 		
-		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes,false);
+		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes);
 
 		PrintWriter outFile = null;
 		try {
@@ -1711,7 +1711,7 @@ public class MainRunner {
 			}
 		}
 		
-		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes,false);
+		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes);
 
 		PrintWriter outFile = null;
 		try {
@@ -1749,7 +1749,7 @@ public class MainRunner {
 			}
 		}
 		
-		JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes,true);
+		JadeNode synthTreeRootNode = ge.extractTaxonomySubtreeForTipNodes(tipNodes);
 
 		PrintWriter outFile = null;
 		try {
