@@ -2034,22 +2034,22 @@ public class MainRunner {
 		boolean test = false;
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 		PrintStream jsonOutputPrintStream = null;
-		if (args.length != 5 && args.length != 6) {
+		if (args.length != 7 && args.length != 6) {
 			graphDb.shutdownDb();
-			System.out.println("the argument has to be graphdb filename treeid (test)");
+			System.out.println("the argument has to be graphdb filename treeid SHA (test)");
 			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
 		}
-		if (args.length == 5) {
+		if (args.length == 6) {
 			if (!args[3].matches("\\d+")) { // check for missing treeid
 				graphDb.shutdownDb();
 				System.out.println("Missing treeid argument");
-				System.out.println("the argument has to be graphdb filename treeid (test)");
+				System.out.println("the argument has to be graphdb filename treeid SHA (test)");
 				System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 				return 1;
 			}
 		}
-		if (args.length == 6) {
+		if (args.length == 7) {
 			System.err.println("not entering into the database, just testing");
 			test = true;
 			if (args[3].endsWith(".json")) {
@@ -2065,7 +2065,7 @@ public class MainRunner {
 		File file = new File(filen);
 		System.err.println("file " + file);
 		String treeid = args[3];
-		String SHA = args[4];//git commit SHA
+		String SHA = args[4];// git commit SHA
 		treeid.concat(SHA);
 		BufferedReader br= null;
 		MessageLogger messageLogger;
@@ -2086,7 +2086,7 @@ public class MainRunner {
 		int rc = 0;
 		try {
 			//set treeid == null if you want to load all of them
-			if (loadPhylografterStudy(graphDb, br, treeid, SHA,messageLogger, test) != 0) {
+			if (loadPhylografterStudy(graphDb, br, treeid, SHA, messageLogger, test) != 0) {
 				rc = -1;
 			}
 		} catch (IOException e) {
