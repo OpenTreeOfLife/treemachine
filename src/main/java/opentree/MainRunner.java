@@ -2358,7 +2358,7 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("INPUT TAXONOMY AND TREES");
 		System.out.println("  Initializes the graph with a tax list in the format");
-		System.out.println("    \033[1minittax\033[0m <filename> (optional:synonymfilename) <graphdbfolder>");
+		System.out.println("    \033[1minittax\033[0m <filename> (optional:synonymfilename) <taxonomyversion> <graphdbfolder>");
 		System.out.println("  Add a newick tree to the graph");
 		System.out.println("    \033[1maddnewick\033[0m <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder>");
 		System.out.println("  Export a source tree from that graph with taxonomy mapped");
