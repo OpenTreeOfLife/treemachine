@@ -2108,6 +2108,117 @@ public class MainRunner {
 		return rc;
 	}
 	
+	public int pg_loading_ind_studies_newick(String [] args) throws Exception {
+		boolean test = false;
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+		PrintStream jsonOutputPrintStream = null;
+		if (args.length != 3 && args.length != 4) {
+			graphDb.shutdownDb();
+			System.out.println("the argument has to be graphdb filename (test)");
+			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
+			return 1;
+		}
+		if (args.length == 4) {
+			System.err.println("not entering into the database, just testing");
+			test = true;
+		}
+		String filen = args[2];
+		File file = new File(filen);
+		System.err.println("file " + file);
+		BufferedReader br= null;
+		MessageLogger messageLogger = new MessageLogger("pgloadindnewick", " ");
+		String treeString = "";
+		try {
+			br = new BufferedReader(new FileReader(file));
+			treeString  = br.readLine();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			graphDb.shutdownDb();
+			return -1;
+		}
+		int rc = 0;
+		try {
+			TreeReader tr = new TreeReader();
+			JadeTree tree = tr.readTree(treeString);
+			//set treeid == null if you want to load all of them
+			if (loadNewickStudy(graphDb, tree, filen,messageLogger, test) != 0) {
+				rc = -1;
+			}
+		} catch (IOException e) {
+			rc = -1;
+		} catch (java.lang.NullPointerException e){
+			rc = -1;
+		} catch (TaxonNotFoundException e) {
+			rc = -1;
+		} catch (TreeIngestException e) {
+			rc = -1;
+		}
+		messageLogger.close();
+		try {
+			br.close();
+		} catch (IOException e) {
+			rc = -1;
+		}
+		graphDb.shutdownDb();
+		return rc;
+	}
+	
+	public static int loadNewickStudy(GraphDatabaseAgent graphDb, 
+			JadeTree tree, String treeid,
+			MessageLogger messageLogger,
+			boolean onlyTestTheInput) 
+					throws Exception {
+		int count = 0;
+		String sourcename = null;
+		if (tree == null) {
+			messageLogger.indentMessage(1, "Skipping null tree...");
+			return -1;
+		} else {
+			// kick out early if tree is already in graph
+			sourcename = treeid;
+			if (!checkTreeNewToGraph(sourcename, graphDb)) {
+				messageLogger.indentMessageStrStr(1, "Source tree already added:", "","","source", sourcename);
+			} else {
+				System.err.println("\ttree " + count + ": " + tree.getExternalNodeCount());
+				count += 1;
+			}
+		}
+
+		GraphImporter gi = new GraphImporter(graphDb);
+		boolean doubname = false;
+		String treeJId = sourcename;
+		tree.assocObject("id", sourcename);
+		HashSet<Long> ottols = new HashSet<Long>();
+		messageLogger.indentMessageStr(1, "Checking for uniqueness of OTT IDs", "tree id", treeJId);
+		for (int m = 0; m < tree.getExternalNodeCount(); m++) {
+			Long ottID = Long.parseLong(tree.getExternalNode(m).getName());
+			tree.getExternalNode(m).assocObject("ot:ottId", ottID);
+			if (ottols.contains(ottID) == true) {
+				messageLogger.indentMessageLongStr(2, "duplicate OTT ID for node", "OTT ID", ottID, "name", tree.getExternalNode(m).getName());
+				doubname = true;
+				break;
+			} else {
+				ottols.add((Long)tree.getExternalNode(m).getObject("ot:ottId"));
+			}
+		}
+			//check for any duplicate ottol:id
+			if (doubname == true){
+				messageLogger.indentMessageStr(1, "null or duplicate names. Skipping tree", "tree id", treeJId);
+			} else {
+				gi.setTree(tree);
+				if (onlyTestTheInput) {
+					messageLogger.indentMessageStr(1, "Checking if tree could be added to graph", "tree id", treeJId);
+					getMRPmatrix(tree,graphDb);
+				} else {
+					messageLogger.indentMessageStr(1, "Adding tree to graph", "tree id", treeJId);
+					gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger);
+				}
+			}
+		return 0;
+	}
+	
+	
 	/**
 	 *  arguments are 
 	 * database sourcename (test)
@@ -2354,7 +2465,7 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("Here are some common commands with descriptions.");
 		System.out.println("INPUT SET OF TREES (bootstrap, posterior probability)");
-		System.out.println("  \033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
+		System.out.println("    \033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
 		System.out.println("");
 		System.out.println("INPUT TAXONOMY AND TREES");
 		System.out.println("  Initializes the graph with a tax list in the format");
@@ -2553,6 +2664,8 @@ public class MainRunner {
 				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
 			} else if (command.compareTo("pgloadind") == 0) {
 				cmdReturnCode = mr.pg_loading_ind_studies(args);
+			} else if (command.compareTo("pgloadindnew") == 0){
+				cmdReturnCode = mr.pg_loading_ind_studies_newick(args);
 			} else if (command.compareTo("pgdelind") == 0) {
 				cmdReturnCode = mr.pg_delete_ind_study(args);
 			} else if (command.compareTo("mapcompat") == 0) {
