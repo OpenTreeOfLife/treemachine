@@ -2034,13 +2034,13 @@ public class MainRunner {
 		boolean test = false;
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 		PrintStream jsonOutputPrintStream = null;
-		if (args.length != 7 && args.length != 6) {
+		if (args.length != 5 && args.length != 6) {
 			graphDb.shutdownDb();
 			System.out.println("the argument has to be graphdb filename treeid SHA (test)");
 			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
 		}
-		if (args.length == 6) {
+		if (args.length == 5) {
 			if (!args[3].matches("\\d+")) { // check for missing treeid
 				graphDb.shutdownDb();
 				System.out.println("Missing treeid argument");
@@ -2049,7 +2049,7 @@ public class MainRunner {
 				return 1;
 			}
 		}
-		if (args.length == 7) {
+		if (args.length == 6) {
 			System.err.println("not entering into the database, just testing");
 			test = true;
 			if (args[3].endsWith(".json")) {

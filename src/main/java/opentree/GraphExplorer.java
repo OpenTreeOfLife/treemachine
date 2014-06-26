@@ -321,9 +321,11 @@ public class GraphExplorer extends GraphBase {
     	Node mrca = getDraftTreeMRCAForNodes(tips,true);
     	System.out.println("identified mrca " + mrca);
     	HashMap<Node,JadeNode> mapnodes = new HashMap<Node,JadeNode>();
+    	HashMap<JadeNode,Node> mapjnodes = new HashMap<JadeNode,Node>();
     	JadeNode jn = new JadeNode();
     	jn.setName((String)mrca.getProperty(NodeProperty.TAX_UID.propertyName));
     	mapnodes.put(mrca, jn);
+    	HashSet<Node> givennodes = new HashSet<Node>();
     	for(Node curtip: tips){
     		Node lastnode = null;
 			for (Node m : Traversal.description().relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(curtip).nodes()) {
@@ -340,13 +342,40 @@ public class GraphExplorer extends GraphBase {
 					JadeNode tjn = new JadeNode();
 					tjn.setName((String)m.getProperty(NodeProperty.TAX_UID.propertyName));
 					mapnodes.put(m, tjn);
+					mapjnodes.put(tjn,m);
 					if(lastnode != null){
 						mapnodes.get(m).addChild(mapnodes.get(lastnode));
 						mapnodes.get(lastnode).setParent(mapnodes.get(m));
 					}
 					lastnode = m;
 				}
-			} 
+			}
+			givennodes.add(curtip);
+    	}
+    	boolean going = true;
+    	while(going==true){
+    		boolean found = false;
+    		for(JadeNode tjn: jn.getDescendantLeaves()){
+    			JadeNode p = tjn;
+    			while(p != jn){
+    				//knee and not in the set of taxa
+    				if (p.getChildCount()==1 && givennodes.contains(mapjnodes.get(p))==false){
+    					JadeNode pp = p.getParent();
+    					JadeNode ch = p.getChild(0);
+    					pp.removeChild(p);
+    					p.removeChild(ch);
+    					pp.addChild(ch);
+    					ch.setParent(pp);
+    					break;
+    				}else{
+    					p = p.getParent();
+    				}
+    			}
+    		}
+    		if (found == false){
+    			going = false;
+    			break;
+    		}
     	}
     	System.out.println("\n" + jn.getNewick(false) + ";\n");
 
