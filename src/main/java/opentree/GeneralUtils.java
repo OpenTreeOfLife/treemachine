@@ -58,7 +58,7 @@ public class GeneralUtils {
 		if (newickName.contains("'")) {
 			newickName = newickName.replaceAll("'", "''");
 			needQuotes = true;
-        }
+		}
 		// if offending characters are present, quotes are needed
 		if (newickName.matches(newickIllegal)) {
 			needQuotes = true;
