@@ -391,6 +391,8 @@ public class GoLS extends ServerPlugin {
 		}
 	}
 
+	// BROKE
+	/*
 	// TODO: try sending gzipped version of the tree for faster data transfer. (JWB)
 	// subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
 	@Description("Returns a synthetic tree if format is \"newick\" then return JSON will have two fields: newick and treeID." +
@@ -479,6 +481,8 @@ public class GoLS extends ServerPlugin {
 	    return compressedMessage.toByteArray();
 
 	}
+	
+	*/
 	
 	@Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
 	@PluginTarget(GraphDatabaseService.class)
