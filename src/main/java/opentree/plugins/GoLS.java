@@ -400,8 +400,6 @@ public class GoLS extends ServerPlugin {
 			@Source GraphDatabaseService graphDb,
 			@Description("The identifier for the synthesis (e.g. \"otol.draft.22\") (default is most current synthetic tree)")
 			@Parameter(name = "treeID", optional = true) String treeID,
-			@Description("The name of the return format (default is newick)")
-			@Parameter(name = "format", optional = true) String format,
 			@Description("The nodeid of the a node in the tree that should serve as the root of the tree returned")
 			@Parameter(name = "subtreeNodeID", optional = true) String subtreeNodeIDStr, 
 			@Description("An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is 5.")
@@ -425,13 +423,6 @@ public class GoLS extends ServerPlugin {
 			subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
 		}
 
-		// determine output format
-		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
-			emitNewick = true;
-		} else if (!format.equalsIgnoreCase("arguson")) {
-			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
-		}
-		
 		// synthetic tree identifier
 		if (treeID != null) {
 			synthTreeID = treeID;
