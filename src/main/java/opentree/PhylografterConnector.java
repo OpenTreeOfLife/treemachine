@@ -36,7 +36,7 @@ import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 // for gzipped nexsons
-import java.util.zip.*;
+import java.util.zip.GZIPInputStream;
 
 public class PhylografterConnector {
 
