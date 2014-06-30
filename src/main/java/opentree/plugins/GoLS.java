@@ -42,6 +42,11 @@ import org.neo4j.server.rest.repr.ArgusonRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
 
+//for gzipped nexsons
+import java.util.zip.GZIPOutputStream;
+import java.io.OutputStream;
+import java.io.InputStream;
+
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
 
@@ -321,6 +326,7 @@ public class GoLS extends ServerPlugin {
 
 
 	/* should this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh */
+		// avoiding code duplication? what is the advantage of having separate queries?
 	// subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
 	@Description("Returns a synthetic tree if format is \"newick\" then return JSON will have two fields: newick and treeID. If format = \"arguson\" then the return object will be the form of JSON expected by argus")
 	@PluginTarget(GraphDatabaseService.class)
@@ -383,6 +389,104 @@ public class GoLS extends ServerPlugin {
 		} else { // emit arguson
 			return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
 		}
+	}
+
+	// TODO: try sending gzipped version of the tree for faster data transfer. (JWB)
+	// subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
+	@Description("Returns a synthetic tree if format is \"newick\" then return JSON will have two fields: newick and treeID." +
+			"If format = \"arguson\" then the return object will be the form of JSON expected by argus")
+	@PluginTarget(GraphDatabaseService.class)
+	public static byte[] getGzippedSyntheticTree(
+			@Source GraphDatabaseService graphDb,
+			@Description("The identifier for the synthesis (e.g. \"otol.draft.22\") (default is most current synthetic tree)")
+			@Parameter(name = "treeID", optional = true) String treeID,
+			@Description("The name of the return format (default is newick)")
+			@Parameter(name = "format", optional = true) String format,
+			@Description("The nodeid of the a node in the tree that should serve as the root of the tree returned")
+			@Parameter(name = "subtreeNodeID", optional = true) String subtreeNodeIDStr, 
+			@Description("An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is 5.")
+			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException, TaxonNotFoundException {
+
+		// set default param values
+		int maxDepth = 5;
+		long subtreeNodeID = 0;
+		boolean emitNewick = false;
+		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
+
+		// override defaults if user-specified
+		if (maxDepthArg != null) {
+			maxDepth = maxDepthArg;
+		}
+		
+		if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0) { // get root of draft tree
+			GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
+			subtreeNodeID = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
+		} else {
+			subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
+		}
+
+		// determine output format
+		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
+			emitNewick = true;
+		} else if (!format.equalsIgnoreCase("arguson")) {
+			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
+		}
+		
+		// synthetic tree identifier
+		if (treeID != null) {
+			synthTreeID = treeID;
+		}
+
+		// get the subtree for export
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		JadeTree tree = null;
+		try {
+			tree = ge.reconstructSyntheticTree(synthTreeID, subtreeNodeID, maxDepth);
+		} finally {
+			ge.shutdownDB();
+		}
+
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+//			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths())); // commented because it seems to be failing with newer versions of the jade code
+		responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
+		responseMap.put("treeID", synthTreeID);
+		
+		Representation foo = OTRepresentationConverter.convert(responseMap);
+		String bar = foo.toString();
+		
+		// GZIP compress message.
+	    ByteArrayInputStream compressMe = null;
+		try {
+			compressMe = new ByteArrayInputStream(bar.getBytes("UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    ByteArrayOutputStream compressedMessage = new ByteArrayOutputStream();
+	    GZIPOutputStream out = null;
+		try {
+			out = new GZIPOutputStream(compressedMessage);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    for (int c = compressMe.read(); c != -1; c = compressMe.read()) {
+	        try {
+				out.write(c);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	    }
+	    try {
+			out.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	    return compressedMessage.toByteArray();
+
 	}
 	
 	@Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
