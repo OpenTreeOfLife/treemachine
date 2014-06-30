@@ -32,6 +32,7 @@ import java.util.StringTokenizer;
 
 
 
+
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.Direction;
@@ -1430,6 +1431,8 @@ public class MainRunner {
 	
 	/*
 	 * these are treeutils that need the database
+	 * 
+	 * checktaxhier - takes a tree with ottid
 	 */
 	public int treeUtilsDB(String [] args) {
 		if (args.length != 3) {
@@ -1466,7 +1469,7 @@ public class MainRunner {
 			messageLogger.close();
 			ge.shutdownDB();
 		} else if (arg.equals("checktax")) {
-			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphdbn);
 			try {
 				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
 				if (good == false) {
@@ -1483,6 +1486,39 @@ public class MainRunner {
 				return 0;
 			}
 			messageLogger.close();
+			graphDb.shutdownDb();
+		} else if(arg.equals("checktaxhier")){
+			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphdbn);
+			HashSet<Node> nodes = new HashSet<Node>();
+			for(int i=0;i<jt.get(0).getExternalNodeCount();i++){
+				Long taxUID = Long.valueOf(jt.get(0).getExternalNode(i).getName());
+				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
+				Node startnode = null;
+				try {
+					startnode = hts.getSingle();
+		        } catch (NoSuchElementException ex) {
+		        	throw new MultipleHitsException(taxUID);
+		        } finally {
+		        	hts.close();
+		        }
+				nodes.add(startnode);
+			}
+			HashSet<String> toprune= new HashSet<String>();
+			for(Node nd: nodes){
+				Node tnd = nd; 
+				while(tnd.hasRelationship(RelType.TAXCHILDOF, Direction.OUTGOING)){
+					tnd = tnd.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+					if (nodes.contains(tnd)){
+						toprune.add((String) tnd.getProperty(NodeProperty.TAX_UID.propertyName));
+					}
+				}
+			}
+			for(String s: toprune){
+				JadeNode c = jt.get(0).getExternalNode(s);
+				JadeNode p = c.getParent();
+				p.removeChild(c);
+			}
+			System.out.println(jt.get(0).getRoot().getNewick(false));
 			graphDb.shutdownDb();
 		}
 		return (success ? 0 : -1);
@@ -2630,7 +2666,8 @@ public class MainRunner {
 			} else if (command.compareTo("converttaxonomy")==0){
 				cmdReturnCode = mr.convertTaxonomy(args);
 			}else if (command.compareTo("labeltax") == 0
-					|| command.compareTo("checktax") == 0) {
+					|| command.compareTo("checktax") == 0 
+					|| command.compareTo("checktaxhier") == 0) {
 				cmdReturnCode = mr.treeUtilsDB(args);
 			} else if (command.compareTo("synthesizedrafttree") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTree(args);
