@@ -71,7 +71,7 @@ public class GoLS extends ServerPlugin {
 			@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
 			@Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
 		
-		if (nodeIds.length < 1 && ottIds.length < 1) {
+		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
 			throw new IllegalArgumentException("You must supply at least one node or ott id.");
 		}
 		
