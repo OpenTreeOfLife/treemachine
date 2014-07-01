@@ -153,7 +153,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget (GraphDatabaseService.class)
 	public Representation getStudyIngestMessagesForNexSON(
 				@Source GraphDatabaseService graphDbs,
-				@Description("The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+				@Description("The ottId of the node to use as the root for synthesis. If omitted then the root of all life is used.")
 				@Parameter(name = "nexsonBlob", optional = true) String nexsonBlob)
 				throws Exception {
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
@@ -238,7 +238,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public String synthesizeSubtree(
 			@Source GraphDatabaseService graphDb,
-			@Description("The OTToL id of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+			@Description("The ottId of the node to use as the root for synthesis. If omitted then the root of all life is used.")
 			@Parameter(name = "rootottId", optional = true) String rootottId) throws Exception {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
@@ -488,7 +488,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeForottId( // TODO: should be renamed getDraftTreeNewickForottId, will need to be updated in argus
 			@Source GraphDatabaseService graphDb,
-			@Description("The ottol id of the taxon to be used as the root for the tree.")
+			@Description("The ottId of the taxon to be used as the root for the tree.")
 			@Parameter(name = "ottId", optional = false) String ottId) throws TaxonNotFoundException, MultipleHitsException { //,
 //			@Description("DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
 //			@Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) { // TODO: Remove this parameter if it is unused
@@ -526,7 +526,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Long getNodeIDForottId(
 			@Source GraphDatabaseService graphDb,
-			@Description("The ottol id of the taxon to be used as the root for the tree.")
+			@Description("The ottId of the taxon to be used as the root for the tree.")
 			@Parameter(name = "ottId", optional = false) String ottId) throws TaxonNotFoundException, MultipleHitsException {
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
