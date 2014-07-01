@@ -70,11 +70,6 @@ public class GoLS extends ServerPlugin {
 			@Source GraphDatabaseService graphDb,
 			@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
 			@Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
-		
-		if (ottIds == null || ottIds.length < 1) {
-			throw new IllegalArgumentException("You must supply at least one node or ott id.");
-		}
-		
 		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
 			throw new IllegalArgumentException("You must supply at least one node or ott id.");
 		}
