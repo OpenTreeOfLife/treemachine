@@ -868,6 +868,7 @@ public class GraphImporter extends GraphBase {
 				for (Node childGoLNode : allChildGoLNodes) {
 					
 					if (childGoLNode.getId() == currGoLNode.getId()) {
+						System.out.println(childJadeNode.getNewick(false));
 						throw new IllegalStateException("this child is mapped the same graph node (" + currGoLNode + ") as its parent " + Arrays.toString(namesList.toArray()));
 					}
 					
