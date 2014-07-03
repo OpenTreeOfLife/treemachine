@@ -22,20 +22,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
 
-
-
-
-
-
-
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
-import org.neo4j.graphdb.Direction;
 //import org.apache.log4j.PropertyConfigurator;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -45,13 +37,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
 
-
-
-
-import org.neo4j.kernel.Traversal;
-
-import opentree.constants.NodeProperty;
-import opentree.constants.RelType;
+import opentree.constants.GraphProperty;
 import opentree.exceptions.DataFormatException;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttIdNotFoundException;
@@ -60,7 +46,6 @@ import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 import opentree.exceptions.TreeNotFoundException;
 import opentree.GeneralUtils;
-import opentree.synthesis.DraftTreePathExpander;
 import opentree.testing.TreeUtils;
 import jade.MessageLogger;
 import jade.JSONMessageLogger;
@@ -136,62 +121,7 @@ public class MainRunner {
 		return 0;
 	}
 	
-	private static void getMRPmatrix(JadeTree tree, GraphDatabaseAgent graphDb){
-		
-		HashMap<JadeNode,StringBuffer> taxastart = new HashMap<JadeNode,StringBuffer>();
-		for(int i=0;i<tree.getExternalNodeCount();i++){
-			taxastart.put(tree.getExternalNode(i), new StringBuffer(""));
-		}
-		for (int i=0;i<tree.getInternalNodeCount();i++){
-			ArrayList<JadeNode> nds = new ArrayList<JadeNode>();
-			for (JadeNode n: tree.getInternalNode(i).getDescendantLeaves()){
-				nds.add(n);
-			}
-			for(int j=0;j<tree.getExternalNodeCount();j++){
-				if (nds.contains(tree.getExternalNode(j)))
-					taxastart.get(tree.getExternalNode(j)).append("1");
-				else
-					taxastart.get(tree.getExternalNode(j)).append("0");
-			}
-		}
-		HashMap<String,StringBuffer> taxafinal = new HashMap<String,StringBuffer>();
-		HashMap<JadeNode,String> orignames = new HashMap<JadeNode,String>();
-		for (JadeNode jd: taxastart.keySet()){
-			Long taxUID = (Long)jd.getObject("ot:ottId");
-			IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
-			Node startnode = null;
-			try {
-				startnode = hts.getSingle();
-	        } catch (NoSuchElementException ex) {
-	        	throw new MultipleHitsException(taxUID);
-	        } finally {
-	        	hts.close();
-	        }
-			long[] dbnodei = (long[]) startnode.getProperty("mrca");
-			if(dbnodei.length>0){
-				for (long temp : dbnodei) {
-					taxafinal.put(String.valueOf(((Node)graphDb.getNodeById(temp)).getProperty("tax_uid")), taxastart.get(jd));
-				}
-			}else{
-				taxafinal.put(String.valueOf(taxUID), taxastart.get(jd));
-			}
-			orignames.put(jd, jd.getName());
-			jd.setName(String.valueOf(taxUID));
-		}
-		System.out.println("TREEUID");
-		System.out.println(tree.getRoot().getNewick(false)+";");
-		for(int i=0;i<tree.getExternalNodeCount();i++){
-			tree.getExternalNode(i).setName(orignames.get(tree.getExternalNode(i)));
-		}
-		System.out.println("MRP");
-		System.out.println(tree.getExternalNodeCount()+"\t"+tree.getInternalNodeCount());
-		for(String st: taxafinal.keySet()){
-			System.out.print(st);
-			System.out.print("\t");
-			System.out.print(taxafinal.get(st));
-			System.out.print("\n");
-		}
-	}
+	
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphReloadTrees(String [] args) throws Exception {
@@ -409,7 +339,7 @@ public class MainRunner {
 			String nodeID = args[3];
 			long subtreeID = 0;
 			if (nodeID.length() == 0) {
-				nodeID = null;
+				subtreeID = (Long) ge.graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_NAME.propertyName);
 			} else {
 				try {
 					subtreeID = Long.parseLong(nodeID, 10);
@@ -433,11 +363,7 @@ public class MainRunner {
 			ge = new GraphExplorer(graphname);
 			try {
 				JadeTree tree;
-				if (nodeID == null) {
-					tree = ge.reconstructSyntheticTree(treeID, maxDepth);
-				} else {
-					tree = ge.reconstructSyntheticTree(treeID, subtreeID, maxDepth);
-				}
+				tree = ge.reconstructSyntheticTree(treeID, subtreeID, maxDepth);
 				StringBuffer retB = new StringBuffer("[");
 				retB.append(tree.getRoot().getJSON(false));
 				retB.append("]");
@@ -935,70 +861,6 @@ public class MainRunner {
 		return 0;
 	}
 
-	public int getTaxonomyTreeExport(String [] args){
-		if (args.length != 4) {
-			System.out.println("arguments should be: uid outfile graphdbfolder");
-			return 1;
-		}
-		String startuid = args[1];
-		String outfile = args[2];
-		String graphname = args[3];
-		GraphExplorer ge = new GraphExplorer(graphname);
-		JadeNode root =  null;
-		List<String> taxonList = new ArrayList<String>();;
-		try {
-			Node tnode = ge.findGraphTaxNodeByUID(startuid);
-			root = new JadeNode();
-			root.setName((String)tnode.getProperty(NodeProperty.TAX_UID.propertyName));
-			System.out.println(root.getName());
-			HashMap<Node,JadeNode> nodemp = new HashMap<Node,JadeNode>();
-			nodemp.put(tnode, root);
-			for (Node m : Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING).traverse(tnode).nodes()) {
-				if (m == tnode)
-					continue;
-				Node p = m.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
-				JadeNode pa = nodemp.get(p);
-				JadeNode tn = new JadeNode(pa);
-				pa.addChild(tn);
-				tn.setParent(pa);
-				taxonList.add((String)m.getProperty(NodeProperty.TAX_UID.propertyName));
-				tn.setName((String)m.getProperty(NodeProperty.TAX_UID.propertyName));
-				nodemp.put(m, tn);
-			}
-		} catch (MultipleHitsException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (TaxonNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			ge.shutdownDB();
-		}
-		JadeTree tt = new JadeTree(root);
-		
-		// list of taxa
-		try {
-			FileWriter fw = new FileWriter(outfile + "_taxonList");
-			for (String i : taxonList) {
-				fw.write(i+"\n");
-			}
-			fw.write(startuid+"\n");
-			fw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		try {
-			FileWriter fw = new FileWriter(outfile);
-			fw.write(tt.getRoot().getNewick(false)+";");
-			fw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return 0;
-	}
-	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExplorerBiparts(String [] args) {
 		if (args.length != 2) {
@@ -1215,43 +1077,6 @@ public class MainRunner {
 			System.out.println(jt.get(0).getRoot().getNewick(true) + ";");
 			return 0;
 		}
-		if (args[0].equals("labeltipsottol")) {
-			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
-			for(int i=0;i<jt.get(0).getExternalNodeCount();i++){
-				JadeNode jd = jt.get(0).getExternalNode(i);
-				Long taxUID = Long.valueOf(jd.getName().replaceAll("\\s+",""));
-				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
-				Node startnode = null;
-				try {
-					startnode = hts.getSingle();
-		        } catch (NoSuchElementException ex) {
-		        	throw new MultipleHitsException(taxUID);
-		        } finally {
-		        	hts.close();
-		        }
-				jd.setName((String)startnode.getProperty("name")+"_"+String.valueOf(taxUID));
-			}
-			for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
-				JadeNode jd = jt.get(0).getInternalNode(i);
-				try{
-					Long taxUID = Long.valueOf(jd.getName().replaceAll("\\s+",""));
-					IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
-					Node startnode = null;
-					try {
-						startnode = hts.getSingle();
-					} catch (NoSuchElementException ex) {
-						throw new MultipleHitsException(taxUID);
-					} finally {
-						hts.close();
-					}
-					jd.setName((String)startnode.getProperty("name")+"_"+String.valueOf(taxUID));
-				}catch(Exception ex2){
-					continue;
-				}
-			}
-			System.out.println(jt.get(0).getRoot().getNewick(false) + ";");
-			return 0;
-		}
 		if(args[0].equals("convertfigtree") || args[0].equals("convertfigtree2")){
 			//the idea here is to generate another newick that will have internal labels the width of the branch
 			//polytomies will have one node and it will have this width
@@ -1431,8 +1256,6 @@ public class MainRunner {
 	
 	/*
 	 * these are treeutils that need the database
-	 * 
-	 * checktaxhier - takes a tree with ottid
 	 */
 	public int treeUtilsDB(String [] args) {
 		if (args.length != 3) {
@@ -1469,7 +1292,7 @@ public class MainRunner {
 			messageLogger.close();
 			ge.shutdownDB();
 		} else if (arg.equals("checktax")) {
-			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphdbn);
+			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
 			try {
 				boolean good = PhylografterConnector.fixNamesFromTrees(jt, graphDb, false, messageLogger);
 				if (good == false) {
@@ -1486,39 +1309,6 @@ public class MainRunner {
 				return 0;
 			}
 			messageLogger.close();
-			graphDb.shutdownDb();
-		} else if(arg.equals("checktaxhier")){
-			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphdbn);
-			HashSet<Node> nodes = new HashSet<Node>();
-			for(int i=0;i<jt.get(0).getExternalNodeCount();i++){
-				Long taxUID = Long.valueOf(jt.get(0).getExternalNode(i).getName());
-				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
-				Node startnode = null;
-				try {
-					startnode = hts.getSingle();
-		        } catch (NoSuchElementException ex) {
-		        	throw new MultipleHitsException(taxUID);
-		        } finally {
-		        	hts.close();
-		        }
-				nodes.add(startnode);
-			}
-			HashSet<String> toprune= new HashSet<String>();
-			for(Node nd: nodes){
-				Node tnd = nd; 
-				while(tnd.hasRelationship(RelType.TAXCHILDOF, Direction.OUTGOING)){
-					tnd = tnd.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
-					if (nodes.contains(tnd)){
-						toprune.add((String) tnd.getProperty(NodeProperty.TAX_UID.propertyName));
-					}
-				}
-			}
-			for(String s: toprune){
-				JadeNode c = jt.get(0).getExternalNode(s);
-				JadeNode p = c.getParent();
-				p.removeChild(c);
-			}
-			System.out.println(jt.get(0).getRoot().getNewick(false));
 			graphDb.shutdownDb();
 		}
 		return (success ? 0 : -1);
@@ -1781,45 +1571,6 @@ public class MainRunner {
 		return 0;
     }
 	
-	public int extractTaxonomySubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
-		if (args.length != 4) {
-			System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
-			return 1;
-		}
-
-//		System.out.println(args[1]);
-		String[] OTTids = args[1].trim().split("\\,");
-		String outFileName = args[2];
-		String graphname = args[3];
-		GraphExplorer ge = new GraphExplorer(graphname);
-
-		ArrayList<Node> tipNodes = new ArrayList<Node>();
-		for (String OTTid : OTTids) {
-//			System.out.println(OTTid);
-			Node tip = ge.findGraphTaxNodeByUID(OTTid);
-			if (tip != null) {
-//				System.out.println("id = " + tip.getId());
-				tipNodes.add(tip);
-			}
-		}
-		
-		JadeNode synthTreeRootNode = ge.extractTaxonomySubtreeForTipNodes(tipNodes);
-
-		PrintWriter outFile = null;
-		try {
-			outFile = new PrintWriter(new FileWriter(outFileName));
-			outFile.write(synthTreeRootNode.getNewick(false) + ";\n");
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			outFile.close();
-			ge.shutdownDB();
-		}
-		
-		return 0;
-    }
-	
-	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForOttidJSON(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException{
 		// open the graph
@@ -2036,19 +1787,20 @@ public class MainRunner {
 			} else {
 				gi.setTree(j);
 				String sourcename = "";
+				String studyId = "";
 				if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-					sourcename = (String)j.getObject("ot:studyId");
+					 studyId = (String)j.getObject("ot:studyId");
+					 sourcename = studyId;
 				}
 				if (treeJId != null) { // use treeid (if present) as sourcename
 					sourcename += "_" + treeJId+"_"+SHA;
 				}
 				if (onlyTestTheInput) {
 					messageLogger.indentMessageStr(1, "Checking if tree could be added to graph", "tree id", treeJId);
-					getMRPmatrix(j,graphDb);
 				} else {
 					messageLogger.indentMessageStr(1, "Adding tree to graph", "tree id", treeJId);
-					gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger);
 				}
+				gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger, studyId, treeJId, SHA);
 			}
 			++treeIndex;
 		}
@@ -2072,7 +1824,7 @@ public class MainRunner {
 		PrintStream jsonOutputPrintStream = null;
 		if (args.length != 5 && args.length != 6) {
 			graphDb.shutdownDb();
-			System.out.println("the argument has to be graphdb filename treeid SHA (test)");
+			System.out.println("the argument has to be graphdb filename treeid (test)");
 			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
 		}
@@ -2080,7 +1832,7 @@ public class MainRunner {
 			if (!args[3].matches("\\d+")) { // check for missing treeid
 				graphDb.shutdownDb();
 				System.out.println("Missing treeid argument");
-				System.out.println("the argument has to be graphdb filename treeid SHA (test)");
+				System.out.println("the argument has to be graphdb filename treeid (test)");
 				System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 				return 1;
 			}
@@ -2101,7 +1853,7 @@ public class MainRunner {
 		File file = new File(filen);
 		System.err.println("file " + file);
 		String treeid = args[3];
-		String SHA = args[4];// git commit SHA
+		String SHA = args[4];//git commit SHA
 		treeid.concat(SHA);
 		BufferedReader br= null;
 		MessageLogger messageLogger;
@@ -2122,7 +1874,7 @@ public class MainRunner {
 		int rc = 0;
 		try {
 			//set treeid == null if you want to load all of them
-			if (loadPhylografterStudy(graphDb, br, treeid, SHA, messageLogger, test) != 0) {
+			if (loadPhylografterStudy(graphDb, br, treeid, SHA,messageLogger, test) != 0) {
 				rc = -1;
 			}
 		} catch (IOException e) {
@@ -2143,117 +1895,6 @@ public class MainRunner {
 		graphDb.shutdownDb();
 		return rc;
 	}
-	
-	public int pg_loading_ind_studies_newick(String [] args) throws Exception {
-		boolean test = false;
-		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
-		PrintStream jsonOutputPrintStream = null;
-		if (args.length != 3 && args.length != 4) {
-			graphDb.shutdownDb();
-			System.out.println("the argument has to be graphdb filename (test)");
-			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
-			return 1;
-		}
-		if (args.length == 4) {
-			System.err.println("not entering into the database, just testing");
-			test = true;
-		}
-		String filen = args[2];
-		File file = new File(filen);
-		System.err.println("file " + file);
-		BufferedReader br= null;
-		MessageLogger messageLogger = new MessageLogger("pgloadindnewick", " ");
-		String treeString = "";
-		try {
-			br = new BufferedReader(new FileReader(file));
-			treeString  = br.readLine();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			graphDb.shutdownDb();
-			return -1;
-		}
-		int rc = 0;
-		try {
-			TreeReader tr = new TreeReader();
-			JadeTree tree = tr.readTree(treeString);
-			//set treeid == null if you want to load all of them
-			if (loadNewickStudy(graphDb, tree, filen,messageLogger, test) != 0) {
-				rc = -1;
-			}
-		} catch (IOException e) {
-			rc = -1;
-		} catch (java.lang.NullPointerException e){
-			rc = -1;
-		} catch (TaxonNotFoundException e) {
-			rc = -1;
-		} catch (TreeIngestException e) {
-			rc = -1;
-		}
-		messageLogger.close();
-		try {
-			br.close();
-		} catch (IOException e) {
-			rc = -1;
-		}
-		graphDb.shutdownDb();
-		return rc;
-	}
-	
-	public static int loadNewickStudy(GraphDatabaseAgent graphDb, 
-			JadeTree tree, String treeid,
-			MessageLogger messageLogger,
-			boolean onlyTestTheInput) 
-					throws Exception {
-		int count = 0;
-		String sourcename = null;
-		if (tree == null) {
-			messageLogger.indentMessage(1, "Skipping null tree...");
-			return -1;
-		} else {
-			// kick out early if tree is already in graph
-			sourcename = treeid;
-			if (!checkTreeNewToGraph(sourcename, graphDb)) {
-				messageLogger.indentMessageStrStr(1, "Source tree already added:", "","","source", sourcename);
-			} else {
-				System.err.println("\ttree " + count + ": " + tree.getExternalNodeCount());
-				count += 1;
-			}
-		}
-
-		GraphImporter gi = new GraphImporter(graphDb);
-		boolean doubname = false;
-		String treeJId = sourcename;
-		tree.assocObject("id", sourcename);
-		HashSet<Long> ottols = new HashSet<Long>();
-		messageLogger.indentMessageStr(1, "Checking for uniqueness of OTT IDs", "tree id", treeJId);
-		for (int m = 0; m < tree.getExternalNodeCount(); m++) {
-			Long ottID = Long.parseLong(tree.getExternalNode(m).getName());
-			tree.getExternalNode(m).assocObject("ot:ottId", ottID);
-			if (ottols.contains(ottID) == true) {
-				messageLogger.indentMessageLongStr(2, "duplicate OTT ID for node", "OTT ID", ottID, "name", tree.getExternalNode(m).getName());
-				doubname = true;
-				break;
-			} else {
-				ottols.add((Long)tree.getExternalNode(m).getObject("ot:ottId"));
-			}
-		}
-			//check for any duplicate ottol:id
-			if (doubname == true){
-				messageLogger.indentMessageStr(1, "null or duplicate names. Skipping tree", "tree id", treeJId);
-			} else {
-				gi.setTree(tree);
-				if (onlyTestTheInput) {
-					messageLogger.indentMessageStr(1, "Checking if tree could be added to graph", "tree id", treeJId);
-					getMRPmatrix(tree,graphDb);
-				} else {
-					messageLogger.indentMessageStr(1, "Adding tree to graph", "tree id", treeJId);
-					gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger);
-				}
-			}
-		return 0;
-	}
-	
 	
 	/**
 	 *  arguments are 
@@ -2501,11 +2142,11 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("Here are some common commands with descriptions.");
 		System.out.println("INPUT SET OF TREES (bootstrap, posterior probability)");
-		System.out.println("    \033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
+		System.out.println("  \033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
 		System.out.println("");
 		System.out.println("INPUT TAXONOMY AND TREES");
 		System.out.println("  Initializes the graph with a tax list in the format");
-		System.out.println("    \033[1minittax\033[0m <filename> (optional:synonymfilename) <taxonomyversion> <graphdbfolder>");
+		System.out.println("    \033[1minittax\033[0m <filename> (optional:synonymfilename) <graphdbfolder>");
 		System.out.println("  Add a newick tree to the graph");
 		System.out.println("    \033[1maddnewick\033[0m <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder>");
 		System.out.println("  Export a source tree from that graph with taxonomy mapped");
@@ -2526,68 +2167,65 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("commands");
 		System.out.println("---initialize---");
-		System.out.println("  inittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initializes the tax graph with a tax list)\n");
+		System.out.println("\tinittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
-		System.out.println("  addnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("  addnewickTNRS <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("  addnexson <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
-		System.out.println("  pgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
-		System.out.println("  mapcompat <graphdbfolder> treeid (maps the compatible nodes)");
+		System.out.println("\taddnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnewickTNRS <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("\taddnexson <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
+		System.out.println("\tpgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
+		System.out.println("\tmapcompat <graphdbfolder> treeid (maps the compatible nodes)");
 		
 		System.out.println("---graph output---");
-		System.out.println("  jsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
-		System.out.println("  fulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F] (constructs a newick file from a particular node)");
-		System.out.println("  fulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (constructs a newick file from a particular node, break ties preferring sources)");
-		System.out.println("  fulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
-		System.out.println("  mrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
-		System.out.println("  graphml <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder> (constructs a graphml file of the region starting from the name)");
-		System.out.println("  csvdump <name> <outfile> <graphdbfolder> (dumps the graph in format node,parent,nodename,parentname,source,brlen\n");
-		System.out.println("  taxtree <name> <outfile> <graphdbfolder> (dumps the taxonomy as a tree with UIDs as the tips");
-		
+		System.out.println("\tjsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
+		System.out.println("\tfulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F] (constructs a newick file from a particular node)");
+		System.out.println("\tfulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (constructs a newick file from a particular node, break ties preferring sources)");
+		System.out.println("\tfulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
+		System.out.println("\tmrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
+		System.out.println("\tgraphml <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder> (constructs a graphml file of the region starting from the name)");
+		System.out.println("\tcsvdump <name> <outfile> <graphdbfolder> (dumps the graph in format node,parent,nodename,parentname,source,brlen\n");
+
 		System.out.println("---graph exploration---");
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
-		System.out.println("  justtrees <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder> (loads the trees into a graph)");
-		System.out.println("  sourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
-		System.out.println("  sourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explores the different source files)");
-		System.out.println("  listsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
-		System.out.println("  gettaxonomy <graphdbfolder> (return the name of the taxonomy used to initialize the graph)");
-		System.out.println("  biparts <graphdbfolder> (looks at bipartition information for a graph)");
-		System.out.println("  mapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
-		System.out.println("  getlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)\n");
+		System.out.println("\tjusttrees <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder> (loads the trees into a graph)");
+		System.out.println("\tsourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
+		System.out.println("\tsourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explores the different source files)");
+		System.out.println("\tlistsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
+		System.out.println("\tgettaxonomy <graphdbfolder> (return the name of the taxonomy used to initialize the graph)");
+		System.out.println("\tbiparts <graphdbfolder> (looks at bipartition information for a graph)");
+		System.out.println("\tmapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
+		System.out.println("\tgetlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)\n");
 
 		System.out.println("---tree functions---");
 		System.out.println("(This is temporary and for doing some functions on trees (output or potential input))");
-		System.out.println("  counttips <filename> (count the number of nodes and leaves in a newick)");
-		System.out.println("  diversity <filename> (for each node it will print the immediate descendents and their diversity)");
-		System.out.println("  labeltips <filename.tre> <filename>");
-		System.out.println("  labeltax <filename.tre> <graphdbfolder>");
-		System.out.println("  checktax <filename.tre> <graphdbfolder>");
-		System.out.println("  nexson2newick <filename.nexson> [filename.newick]\n");
-		System.out.println("  convertfigtree <filename.tre> <outfile.tre>");
-		System.out.println("  nexson2mrp <filename.nexson>\n");
+		System.out.println("\tcounttips <filename> (count the number of nodes and leaves in a newick)");
+		System.out.println("\tdiversity <filename> (for each node it will print the immediate descendents and their diversity)");
+		System.out.println("\tlabeltips <filename.tre> <filename>");
+		System.out.println("\tlabeltax <filename.tre> <graphdbfolder>");
+		System.out.println("\tchecktax <filename.tre> <graphdbfolder>");
+		System.out.println("\tnexson2newick <filename.nexson> [filename.newick]\n");
+		System.out.println("\tconvertfigtree <filename.tre> <outfile.tre>");
 		
 		System.out.println("---synthesis functions---");
-		System.out.println("  synthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
-		System.out.println("  synthesizedrafttreelist_nodeid <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
-		System.out.println("  extractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  extractdrafttree_nodeid <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  extractdraftsubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  extracttaxonomysubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  extractdraftsubtreefornodeids <tipNodeId1>,<tipNodeId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  deleteDraftTree <graphdbfolder> deletes the synthesized tree (if any) from the graph\n");
+		System.out.println("\tsynthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
+		System.out.println("\tsynthesizedrafttreelist_nodeid <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
+		System.out.println("\textractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
+		System.out.println("\textractdrafttree_nodeid <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
+		System.out.println("\textractdraftsubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
+		System.out.println("\textractdraftsubtreefornodeids <tipNodeId1>,<tipNodeId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
+		System.out.println("\tdeleteDraftTree <graphdbfolder> deletes the synthesized tree (if any) from the graph\n");
 				
 		System.out.println("---temporary functions---");
-		System.out.println("  addtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");
+		System.out.println("\taddtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");
 
 		System.out.println("---testing---");
-		System.out.println("  makeprunedbipartstestfiles <randomseed> <ntaxa> <path> (export newick files containing (1) a randomized tree and (2) topologies for each of its bipartitions, pruned to a minimal subset of taxa)\n");
+		System.out.println("\tmakeprunedbipartstestfiles <randomseed> <ntaxa> <path> (export newick files containing (1) a randomized tree and (2) topologies for each of its bipartitions, pruned to a minimal subset of taxa)\n");
 		
 		System.out.println("---server functions---");
-		System.out.println("  getupdatedlist\n");
+		System.out.println("\tgetupdatedlist\n");
 		
 		System.out.println("---general functions---");
-		System.out.println("  help (print this help)\n");
+		System.out.println("\thelp (print this help)\n");
 	}
 	
 	/**
@@ -2659,15 +2297,13 @@ public class MainRunner {
 			} else if (command.compareTo("counttips") == 0
 				   || command.compareTo("diversity") == 0
 				   || command.compareTo("labeltips") == 0 
-				   || command.compareTo("labeltipsottol") == 0
 				   || command.compareTo("convertfigtree") == 0
 				   || command.compareTo("convertfigtree2")==0){
 				cmdReturnCode = mr.treeUtils(args);
 			} else if (command.compareTo("converttaxonomy")==0){
 				cmdReturnCode = mr.convertTaxonomy(args);
 			}else if (command.compareTo("labeltax") == 0
-					|| command.compareTo("checktax") == 0 
-					|| command.compareTo("checktaxhier") == 0) {
+					|| command.compareTo("checktax") == 0) {
 				cmdReturnCode = mr.treeUtilsDB(args);
 			} else if (command.compareTo("synthesizedrafttree") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTree(args);
@@ -2687,9 +2323,7 @@ public class MainRunner {
 				cmdReturnCode = mr.extractDraftTreeForNodeId(args);
 			} else if (command.compareTo("extractdraftsubtreeforottids") == 0) {
 				cmdReturnCode = mr.extractDraftSubTreeForOttIDs(args);
-			} else if (command.compareTo("extracttaxonomysubtreeforottids") == 0) {
-				cmdReturnCode = mr.extractTaxonomySubTreeForOttIDs(args);
-			}else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
+			} else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
 				cmdReturnCode = mr.extractDraftSubTreeForNodeIDs(args);
 			// not sure where this should live
 			} else if (command.compareTo("nexson2newick") == 0) {
@@ -2701,16 +2335,12 @@ public class MainRunner {
 				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
 			} else if (command.compareTo("pgloadind") == 0) {
 				cmdReturnCode = mr.pg_loading_ind_studies(args);
-			} else if (command.compareTo("pgloadindnew") == 0){
-				cmdReturnCode = mr.pg_loading_ind_studies_newick(args);
 			} else if (command.compareTo("pgdelind") == 0) {
 				cmdReturnCode = mr.pg_delete_ind_study(args);
 			} else if (command.compareTo("mapcompat") == 0) {
 				cmdReturnCode = mr.mapcompat(args);
 			} else if (command.compareTo("gettaxonomy") == 0) {
 				cmdReturnCode = mr.getTaxonomyVersion(args);
-			}  else if (command.compareTo("taxtree") == 0) {
-				cmdReturnCode = mr.getTaxonomyTreeExport(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;

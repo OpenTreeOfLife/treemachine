@@ -52,6 +52,9 @@ public class GraphImporter extends GraphBase {
 	private String inputTreeNewick; // original newick string for the inputTree; was treestring
 	private String sourceName; // will be recorded in the STREECHILDOF branches we add, and also the metadata node
 	private String treeID; // will also be recorded in the db
+	private String rawNexsonTreeId = null;
+	private String commitSHA = null;
+	private String studyId = null;
 
 	private boolean allTreesHaveAllTaxa = false; // this will trigger getalllica if true, otherwise we use the bipartition based code
 	private boolean runTestOnly = false; // if set, then nothing is recorded in the db but we run through the process and give lots of output
@@ -137,7 +140,7 @@ public class GraphImporter extends GraphBase {
 	 * @param test don't add to the database
 	 * @throws Exception 
 	 */
-	public void addSetTreeToGraphWIdsSet(String sourceName, boolean allTreesHaveAllTaxa, boolean runTestOnly, MessageLogger msgLogger) throws Exception {
+	public void addSetTreeToGraphWIdsSet(String sourceName, boolean allTreesHaveAllTaxa, boolean runTestOnly, MessageLogger msgLogger, String studyId, String treeId, String SHA) throws Exception {
 
 		this.runTestOnly = runTestOnly;
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
@@ -149,6 +152,9 @@ public class GraphImporter extends GraphBase {
 		}
 		this.logger = msgLogger;
 		this.sourceName = sourceName;
+		this.studyId = studyId;
+		this.rawNexsonTreeId = treeId;
+		this.commitSHA = SHA; 
 
 		// first add the mappings to the eaxct taxon nodes
 		matchTaxaUsingTaxUIDs();
@@ -985,12 +991,21 @@ public class GraphImporter extends GraphBase {
 		metadataNode.createRelationshipTo(currGoLNode, RelType.METADATAFOR); // TODO: doesn't account for multiple root nodes (I don't think this is true anymore)
 		sourceMetaIndex.add(metadataNode, "source", sourceName);
 
-		// set metadat from tree
+		// set metadata from tree
 		metadataNode.setProperty("source", sourceName);
 		metadataNode.setProperty("newick", inputTreeNewick);
 		metadataNode.setProperty("original_taxa_map", graphNodeIdsForInputLeaves.toArray()); // node ids for the taxon mappings
 		if (treeID != null) {
 			metadataNode.setProperty("treeID", treeID);
+		}
+		if (rawNexsonTreeId != null) {
+			metadataNode.setProperty("raw_nexson_treeId", rawNexsonTreeId);
+		}
+		if (studyId != null) {
+				metadataNode.setProperty("ot:studyId", studyId);
+		}
+		if (commitSHA != null) {
+				metadataNode.setProperty("commit_SHA", commitSHA);
 		}
 
 		// Set metadata from NEXSON
@@ -1021,15 +1036,21 @@ public class GraphImporter extends GraphBase {
 			String source = (String)itrel.getProperty("source");
 			String trees = (String)itrel.getProperty("newick");
 			String treeID = (String)itrel.getProperty("treeID");
+
+			String studyId = (String)itrel.getProperty("ot:studyId");
+			String treeId = (String)itrel.getProperty("treeId");
+			String commitSHA = (String)itrel.getProperty("commitSHA");
+			
 			deleteTreeBySource(source);
 			TreeReader tr = new TreeReader();
 			inputTree = tr.readTree(trees);
 			inputTree.assocObject("id", treeID);
+			
 			System.out.println("tree read");
 //			setTree(inputTree,trees);
 			setTree(inputTree);
 			try {
-				addSetTreeToGraph("life", source, false, null);
+				addSetTreeToGraph("life", source,  false, null);
 			} catch (TaxonNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
