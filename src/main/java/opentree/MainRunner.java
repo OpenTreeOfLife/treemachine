@@ -1824,18 +1824,18 @@ public class MainRunner {
 		PrintStream jsonOutputPrintStream = null;
 		if (args.length != 5 && args.length != 6) {
 			graphDb.shutdownDb();
-			System.out.println("the argument has to be graphdb filename treeid (test)");
+			System.out.println("the argument has to be graphdb filename treeid sha");
 			System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 			return 1;
 		}
 		if (args.length == 5) {
-			if (!args[3].matches("\\d+")) { // check for missing treeid
+/*			if (!args[3].matches("\\d+")) { // check for missing treeid
 				graphDb.shutdownDb();
 				System.out.println("Missing treeid argument");
 				System.out.println("the argument has to be graphdb filename treeid (test)");
 				System.out.println("\tif you have test at the end, it will not be entered into the database, but everything will be performed");
 				return 1;
-			}
+			} */
 		}
 		if (args.length == 6) {
 			System.err.println("not entering into the database, just testing");

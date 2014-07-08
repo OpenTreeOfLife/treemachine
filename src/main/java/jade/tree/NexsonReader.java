@@ -129,9 +129,9 @@ public class NexsonReader {
 		for (Object tree : treeList) {
 			JSONObject tree2 = (JSONObject)tree;
 			String treeID = (String)tree2.get("@id");
-			if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
-				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"
-			}
+//			if (treeID.startsWith("tree")) { // phylografter tree ids are #'s, but in the Nexson export, they'll have the word tree prepended
+//				treeID = treeID.substring(4); // chop off 0-3 to chop off "tree"				
+//			}
 			msgLogger.messageStr("Processing tree", "@id", treeID);
 			
 			
