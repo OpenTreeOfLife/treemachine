@@ -95,12 +95,12 @@ public class GoLS extends ServerPlugin {
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
-            Node mrca = ge.getDraftTreeMRCAForNodes(tips,false);
+			Node mrca = ge.getDraftTreeMRCAForNodes(tips,false);
 			vals.put("mrca_node_id", mrca.getId());
-            vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
-            vals.put("mrca_name_unique", mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-            vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
-            vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
+			vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
+			vals.put("mrca_name_unique", mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+			vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
+			vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
