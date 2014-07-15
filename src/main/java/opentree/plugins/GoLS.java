@@ -96,6 +96,7 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
 			vals.put("mrca_node_id", ge.getDraftTreeMRCAForNodes(tips,false).getId());
+            vals.put("mrca_info", ge.getDraftTreeMRCAForNodes(tips,false));
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
