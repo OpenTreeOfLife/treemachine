@@ -25,7 +25,10 @@ public enum NodeProperty {
 	
 	// ===== Synonym nodes
 	NAMETYPE ("nametype", String.class, "The type of synonym. Used for synonym nodes"),
-	SOURCE ("source", String.class, "The taxonomic source of this synonym.");
+	SOURCE ("source", String.class, "The taxonomic source of this synonym."),
+
+	// ===== Synthetic tree nodes
+	DESCENDANT_TIPS_IN_DRAFT_TREE ("descendant_tips_in_draft_tree", Long.class, "The number of descendant tips in the draft tree below this node");
 	
 	public String propertyName;
 	public final Class<?> type;

@@ -1445,6 +1445,79 @@ public class GraphExplorer extends GraphBase {
         	
         	System.out.println("Synthesis traversal complete. Results:\n");
             System.out.println("\n" + draftSynthesisMethod.getReport());
+            
+        	System.out.println("Now storing counts of descendant tips...\n");
+//        	recurCountAndStoreSyntheticDescendants(startNode);
+        	
+        	// This could be more efficiently done using a postorder traversal, that is, if there weren't A BUG IN NEO4J that causes
+        	// some relationships not to be returned! We do it this way so we never have to use the getRelationships() method.
+        	// Note, the bug has been fixed, but we are still using an older neo4j version because of compatibility issues.
+        	// MORE INFO: https://groups.google.com/forum/#!topic/neo4j/stHamJpQSBk
+        	// 
+        	// The bad news, even without using getRelationships, we still don't seem to be traversing all the relationships that
+        	// we should be traversing. Seems weird that this would be a bug, because we've never experienced it elsewhere. But what
+        	// else could it be?
+    		for (Node tip : Traversal.description().depthFirst().evaluator(new SynthesisTipEvaluator())
+    				.relationships(RelType.SYNTHCHILDOF, Direction.INCOMING).traverse(startNode).nodes()) {
+
+    			System.out.println(tip.getProperty("name"));
+				String dtips = NodeProperty.DESCENDANT_TIPS_IN_DRAFT_TREE.propertyName;
+				tip.setProperty(dtips, 1L);
+
+				Node parent = tip;
+    			while (parent.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+    				parent = parent.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode(); 
+    				if (parent.hasProperty(dtips)) {
+    					parent.setProperty(dtips, (Long) parent.getProperty(dtips) + 1L);
+    				} else {
+    					parent.setProperty(dtips, 1L);
+    				}
+    			}
+    		}    		
+        	
+/*        	LinkedList<Node> stack = new LinkedList<Node>();
+        	stack.add(startNode);
+        	stack_building:
+        	while (stack.size() > 0) {
+        		
+        		Node n = stack.getLast();
+        		Long d = 0L;
+
+                for (Relationship r : n.getRelationships()) {
+                	if (!r.isType(RelType.SYNTHCHILDOF) || r.getEndNode() == n) {
+                		continue;
+                	}
+
+                	Node c = r.getStartNode();
+        			if (!c.hasProperty(NodeProperty.DESCENDANT_TIPS_IN_DRAFT_TREE.propertyName)) {
+        				
+        				if (c.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING)) {
+        					// this is an internal node, add it to the stack
+        					stack.add(c);
+            				continue stack_building;
+        				} else {
+        					// this is a tip node, just record a 1
+//                    		c.setProperty(NodeProperty.DESCENDANT_TIPS_IN_DRAFT_TREE.propertyName, 1L);
+                    		d += 1L;
+                    	}
+
+        			} else {
+        				// this child has been tallied, so count its value
+        				d += (Long) c.getProperty(NodeProperty.DESCENDANT_TIPS_IN_DRAFT_TREE.propertyName);
+        			}
+        		}
+
+                // if we got here all children of this node have been tallied, store the value and move on
+        		n.setProperty(NodeProperty.DESCENDANT_TIPS_IN_DRAFT_TREE.propertyName, d);
+            	stack.removeLast();
+
+            	// debug code
+            	String report = (n.hasProperty("name") ? (String) n.getProperty("name") + " " : "" ) + String.valueOf(n.getId()) + " " + String.valueOf(d);
+            	System.out.println(report + " | " + String.valueOf(stack.size()));
+        	} */
+        	
+        	System.out.println("Done. Synthetic tree contains " +
+        			String.valueOf((Long) startNode.getProperty(NodeProperty.DESCENDANT_TIPS_IN_DRAFT_TREE.propertyName)) + " tip nodes.\n");
         	
         	tx.success();
         } catch (Exception ex) {
@@ -1471,12 +1544,38 @@ public class GraphExplorer extends GraphBase {
         return true;
     }
     
-    
-    
-    
-    
-    
-    
+    /**
+     * Uses recursion to count and store the number of descendant tip nodes below each node in the draft synthetic tree.
+     * @param n
+     */
+    public long recurCountAndStoreSyntheticDescendants(Node n) {
+
+    	// get all the children of this node and preorder traverse/sum their descendant tips
+    	Long d = 0L;
+//    	for (Relationship childRel : n.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+        for (Relationship childRel : n.getRelationships(RelType.SYNTHCHILDOF, Direction.INCOMING)) {
+    		if (n.getId() == 20667L) {
+    			System.out.println(childRel.getStartNode().getId());
+    		}
+    		d += recurCountAndStoreSyntheticDescendants(childRel.getStartNode());
+    		if (n.getId() == 20667L) {
+    			System.out.println(d);
+    		}
+    	}
+    	
+    	d = d == 0L ? 1L : d; // if this is a tip (i.e. has no descendant tips), set it as having one descendant
+
+    	// store the number of descendants
+    	n.setProperty(NodeProperty.DESCENDANT_TIPS_IN_DRAFT_TREE.propertyName, d);
+    	String report = (n.hasProperty("name") ? (String) n.getProperty("name") : "" ) + String.valueOf(n.getId()) + " " + String.valueOf(d);
+    	System.out.println(report);
+    	
+		if (n.getId() == 20667L) {
+			System.out.println("leaving 20667");
+		}
+    	return d;
+    	
+    }
     
     /**
      * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
