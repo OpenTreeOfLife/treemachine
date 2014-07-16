@@ -59,9 +59,8 @@ public class GoLS extends ServerPlugin {
 	}
 
 	@Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input. Returns the " +
-				 "node id of the mrca node as well as the node id, name, and ott id of the most recent taxonomic ancestor (the mrta, which may " +
-				 "or may not be deeper than the mrca). If no mrta is found returns nulls for mrta properties (should be impossible, as all trees " +
-				 "should find the life node).")
+				 "node id of the mrca node as well as the node id, name, and informoation about the most recent taxonomic ancestor (the mrta, " +
+				 "which may be the mrca or may be an ancestor of the mrca itself.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeMRCAForNodes(
 			@Source GraphDatabaseService graphDb,
@@ -108,18 +107,13 @@ public class GoLS extends ServerPlugin {
 				mrta = mrta.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
 			}
 
-			String mrta_name = null;
-			String mrta_ott_id = null;
-			Long mrta_node_id = null;
 			if (mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
-				mrta_name = (String) mrta.getProperty(NodeProperty.NAME.propertyName);
-				mrta_ott_id = (String) mrta.getProperty(NodeProperty.TAX_UID.propertyName);
-				mrta_node_id = mrta.getId();
+				vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
+				vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+				vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
+				vals.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+				vals.put("nearest_taxon_mrca_node_id", mrta.getId());
 			}
-
-			vals.put("nearest_taxon_mrca_name", mrta_name);
-			vals.put("nearest_taxon_mrca_ott_id", mrta_ott_id);
-			vals.put("nearest_taxon_mrca_node_id", mrta_node_id);
 
 			return OTRepresentationConverter.convert(vals);
 		}
