@@ -368,7 +368,7 @@ public class GraphInitializer extends GraphBase{
 		tnode.setProperty(NodeProperty.TAX_PARENT_UID.propertyName, pid);
 		tnode.setProperty(NodeProperty.TAX_RANK.propertyName, rank);
 		tnode.setProperty(NodeProperty.TAX_SOURCE.propertyName, srce);
-		tnode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uniqname);
+		tnode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uniqname.equals("") ? name : uniqname);
 		
 		// add index entries
 		graphNodeIndex.add(tnode, NodeProperty.NAME.propertyName, name);
