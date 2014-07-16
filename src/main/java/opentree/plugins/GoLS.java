@@ -20,9 +20,7 @@ import opentree.GraphExplorer;
 import opentree.MainRunner;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
-
 import opentree.constants.GeneralConstants;
-
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
@@ -41,6 +39,7 @@ import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.ArgusonRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
+import org.opentree.properties.OTVocabularyPredicate;
 
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
@@ -59,12 +58,16 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(sourceArrayList);
 	}
 
-	@Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input.")
+	@Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input. Returns the " +
+				 "node id of the mrca node as well as the node id, name, and ott id of the most recent taxonomic ancestor (the mrta, which may " +
+				 "or may not be deeper than the mrca). If no mrta is found returns nulls for mrta properties (should be impossible, as all trees " +
+				 "should find the life node).")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeMRCAForNodes(
 			@Source GraphDatabaseService graphDb,
 			@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
 			@Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
+
 		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
 			throw new IllegalArgumentException("You must supply at least one node or ott id.");
 		}
@@ -92,10 +95,32 @@ public class GoLS extends ServerPlugin {
 
 		if (tips.size() < 1) {
 			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
+
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
-			vals.put("mrca_node_id", ge.getDraftTreeMRCAForNodes(tips,false).getId());
+			Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
+			vals.put("mrca_node_id", mrca.getId());
+			
+			// now attempt to find the most recent taxonomic ancestor
+			Node mrta = mrca;
+			while (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+				mrta = mrta.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+			}
+
+			String mrta_name = null;
+			String mrta_ott_id = null;
+			Long mrta_node_id = null;
+			if (mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+				mrta_name = (String) mrta.getProperty(NodeProperty.NAME.propertyName);
+				mrta_ott_id = (String) mrta.getProperty(NodeProperty.TAX_UID.propertyName);
+				mrta_node_id = mrta.getId();
+			}
+
+			vals.put("nearest_taxon_mrca_name", mrta_name);
+			vals.put("nearest_taxon_mrca_ott_id", mrta_ott_id);
+			vals.put("nearest_taxon_mrca_node_id", mrta_node_id);
+
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
