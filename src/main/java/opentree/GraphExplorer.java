@@ -1475,30 +1475,7 @@ public class GraphExplorer extends GraphBase {
 		System.out.println("exiting the sythesis");
 		return true;
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	/**
-	 * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
-	 * External function that uses the ottid to find the root node in the db.
-	 * 
-	 * @param nodeId
-	 * @throws OttIdNotFoundException 
-	 */
-	public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
 		
-		// empty parameters for initial recursion
-		JadeNode parentJadeNode = null;
-		Relationship incomingRel = null;
-		
-		return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
-	}
-	
 	private List<Node> getPathToRoot(Node startNode, RelType relType, String nameToFilterBy) {
 		ArrayList<Node> path = new ArrayList<Node>();
 		Node curNode = startNode;
@@ -1771,6 +1748,22 @@ public class GraphExplorer extends GraphBase {
 	// ====================================== extracting Synthetic trees from the db ==========================================
 	
 	/**
+	 * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
+	 * External function that uses the ottid to find the root node in the db.
+	 * 
+	 * @param nodeId
+	 * @throws OttIdNotFoundException 
+	 */
+	public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
+		
+		// empty parameters for initial recursion
+		JadeNode parentJadeNode = null;
+		Relationship incomingRel = null;
+		
+		return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
+	}
+	
+	/**
 	 * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
 	 * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
 	 * 
@@ -1826,82 +1819,6 @@ public class GraphExplorer extends GraphBase {
 		
 		return curNode;
 	}
-	
-	
-	/*
-	public void deleteSyntheticTree(Node startNode, String synthTreeName) {
-	
-		// empty parameters for initial recursion
-		//JadeNode parentJadeNode = null;
-		Relationship incomingRel = null;
-		
-		System.out.println("Attempting to delete existing synthetic tree...");
-		
-		deleteStoredSyntheticTreeRecur(startNode, incomingRel, DRAFTTREENAME);
-	}
-	
-	public void deleteStoredSyntheticTreeRecur(Node curGraphNode, Relationship incomingRel, String synthTreeName) {
-		
-		// get the immediate synth children of the current node
-		LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
-		for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
-			if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
-				synthChildRels.add(synthChildRel);
-			}
-			synthChildRel.delete();
-		}
-
-		// recursively add the children to the tree we're building
-		for (Relationship synthChildRel : synthChildRels) {
-			deleteStoredSyntheticTreeRecur(synthChildRel.getStartNode(), synthChildRel, synthTreeName);
-		}
-		
-	}
-	 */
-	
-	/*
-	public void deleteSyntheticTreeRecur(Node curGraphNode) {
-		System.out.println("Attempting to delete existing synthetic tree...");
-
-		// initialize db access variables
-		Transaction tx = null;
-		IndexHits <Relationship> relsToRemove = null;
-		IndexHits <Node> nodesToRemove = null;
-
-		// first remove the relationships
-		try {
-			relsToRemove = sourceRelIndex.get("source", source);
-			tx = graphDb.beginTx();
-			try {
-				for (Relationship itrel : relsToRemove) {
-					itrel.delete();
-					sourceRelIndex.remove(itrel, "source", source);
-				}
-				tx.success();
-			} finally {
-				tx.finish();
-			}
-		} finally {
-			relsToRemove.close();
-		}
-	}
-	 */
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	
 	// =============================== Synthesis methods using source metadata decisions ONLY ===============================
