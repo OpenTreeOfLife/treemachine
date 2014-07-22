@@ -1272,12 +1272,14 @@ public class GraphExplorer extends GraphBase {
 		for (String sourceId : preferredSourceIds) {
 			if (sourceId.startsWith("pg")) {
 				justSourcePriorityList.add("pg_" + sourceId.split("_")[1]);
+			} else if (sourceId.startsWith("ot")) {
+				justSourcePriorityList.add("ot_" + sourceId.split("_")[1]);
 			} else {
 				justSourcePriorityList.add(sourceId.split("_")[0]);
 			}
 			sourceIdPriorityListString[iii] = sourceId;
 			iii++;
-		}	
+		}
 		
 		// define the synthesis protocol
 		SynthesisExpander draftSynthesisMethod = new SynthesisExpander();
@@ -2382,7 +2384,7 @@ public class GraphExplorer extends GraphBase {
 	 * Adds nodes based on taxnomy; identifies all the external descendants of each taxon that are absent from the tree, and adds them
 	 * at the base of the MRCA of all the external descendants of that taxon that are present in the tree.
 	 * 
-	 * @param inputRoot -
+	 * @param inputRoot
 	 *		the tree to be added
 	 * @param taxRootName
 	 *		the name of the inclusive taxon to add missing descendants of (will include all descendant taxa)
@@ -2776,7 +2778,7 @@ public class GraphExplorer extends GraphBase {
 							}
 							JadeNode tchild = new JadeNode();
 							if (tnodechild.hasProperty("name")) {
-								tchild.setName((String) tnodechild.getProperty("name")+"______"+(String)tnodechild.getProperty(NodeProperty.TAX_UID.propertyName));
+								tchild.setName((String) tnodechild.getProperty("name") + "______" + (String)tnodechild.getProperty(NodeProperty.TAX_UID.propertyName));
 							}
 							tchild.assocObject("nodeid", tnodechild.getId());
 							if (endnode_rel_map.get(tnode).get(i).hasProperty("branch_length")) {
