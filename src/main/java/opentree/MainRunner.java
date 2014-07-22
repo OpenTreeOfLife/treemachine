@@ -67,41 +67,8 @@ import jade.JSONMessageLogger;
 
 public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
-
-/*
-	/// @returns 0 for success, 1 for poorly formed command
-	public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
-		if (args.length < 3) {
-			System.out.println("arguments should be: filename (optional:synfilename) graphdbfolder");
-			return 1;
-		}
-		String filename = args[1];
-		String graphname = "";
-		String synfilename = "";
-		if (args.length == 4) {
-			synfilename = args[2];
-			graphname = args[3];
-			System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename+" to " + graphname);
-		} else if (args.length == 3) {
-			graphname = args[2];
-			System.out.println("initializing taxonomy from " + filename + " to " + graphname);
-		} else {
-			System.out.println("you have the wrong number of arguments. should be : filename (optional:synonym) graphdbfolder");
-			return 1;
-		}
-		
-		GraphInitializer tl = new GraphInitializer(graphname);
-		try {
-			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename);
-		} finally {
-			tl.shutdownDB();
-		}
-		return 0;
-	}
-*/
 	
-	
-	// note a slightly different ordering of arguments from above.
+	// @returns 0 for success, 1 for poorly formed command
 	public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
 		if (args.length < 4) {
 			System.out.println("arguments should be: filename (optional:synfilename) taxonomyversion graphdbfolder");
@@ -764,6 +731,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphListPruner(String [] args) throws TaxonNotFoundException, MultipleHitsException {
 		if (args.length != 4) {
@@ -809,6 +777,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 	
 	public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
 		String sourcename = null;
@@ -914,6 +883,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	// Report which taxonomy (e.g. version of OTT) was used to initialize the graph
 	/// @returns 0 for success, 1 for poorly formed command
 	public int getTaxonomyVersion(String [] args) {
@@ -935,6 +905,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 
 	public int getTaxonomyTreeExport(String [] args) {
 		if (args.length != 4) {
@@ -1017,6 +988,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExplorerMapSupport(String [] args) throws TaxonNotFoundException, MultipleHitsException {
 		if (args.length != 4) {
@@ -1034,6 +1006,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExporter(String [] args) throws TaxonNotFoundException {
@@ -1063,6 +1036,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 	
 	public int graphExporter_ottolid(String [] args) throws TaxonNotFoundException {
 		String usageString = "arguments should be ottolid outfile usetaxonomy[T|F] graphdbfolder [depth]";
@@ -1113,6 +1087,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int csvDumpParser(String [] args) throws TaxonNotFoundException {
 		if (args.length != 4) {
@@ -1131,6 +1106,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int getLicaNames(String [] args) {
 		if (args.length != 3) {
@@ -1147,6 +1123,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 	
 	public int treeUtils(String [] args) {
 		if (args.length < 2) {
@@ -1545,6 +1522,7 @@ public class MainRunner {
 		// do the synth
 		return synthesizeDraftTreeWithListForNodeId(args);
 	}
+	
 
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int synthesizeDraftTreeWithListForNodeId(String [] args) throws Exception {
@@ -1622,6 +1600,7 @@ public class MainRunner {
 		}
 		return (success ? 0 : -1);
 	}
+	
 
 	public int getSynthesisInfo(String [] args) {
 		boolean success = true;
@@ -1672,6 +1651,7 @@ public class MainRunner {
 		return extractDraftTreeForNodeId(args);
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForNodeId(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
@@ -1709,6 +1689,7 @@ public class MainRunner {
 		
 		return 0;
 	}
+	
 	
 	public int extractDraftSubTreeForNodeIDs(String [] args) throws MultipleHitsException {
 		if (args.length != 4) {
@@ -1748,6 +1729,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftSubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
@@ -1786,6 +1768,7 @@ public class MainRunner {
 		
 		return 0;
 	}
+	
 	
 	public int extractTaxonomySubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
@@ -1853,6 +1836,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int deleteDraftTree(String [] args) {
 		GraphImporter gi = null;
@@ -1869,6 +1853,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int makePrunedBipartsTestFiles(String [] args) {
@@ -1935,6 +1920,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	// check if tree is already in the graph
 	// @returns true is new to graph, false if already present
 	public static boolean checkTreeNewToGraph (String sourcename, GraphDatabaseAgent graphDb) {
@@ -1947,6 +1933,7 @@ public class MainRunner {
 		}
 		return newTree;
 	}
+	
 	
 	public static int loadPhylografterStudy(GraphDatabaseAgent graphDb, 
 											BufferedReader nexsonContentBR, String treeid, String SHA,
@@ -2289,6 +2276,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/**
 	 * maps the compatible relationships
 	 * @param args
@@ -2348,6 +2336,7 @@ public class MainRunner {
 		graphDb.shutdownDb();
 		return 0;
 	}
+	
 	
 	public int convertTaxonomy(String []args) {
 		if (args.length != 3) {
@@ -2501,6 +2490,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	public static void printShortHelp() {
 		System.out.println("======================Treemachine======================");
 		System.out.println("usage: java -jar locationOftreemachine.jar command options");
@@ -2526,6 +2516,7 @@ public class MainRunner {
 		System.out.println("	\033[1mfulltree_sources\033[0m <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F]");
 		System.out.println("\n");
 	}
+	
 	
 	public static void printHelp() {
 		System.out.println("==========================");
@@ -2596,6 +2587,7 @@ public class MainRunner {
 		System.out.println("---general functions---");
 		System.out.println("  help (print this help)\n");
 	}
+	
 	
 	/**
 	 * @param args
