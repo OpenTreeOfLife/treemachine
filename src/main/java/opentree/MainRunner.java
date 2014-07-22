@@ -1632,6 +1632,7 @@ public class MainRunner {
 		return (success ? 0 : -1);
 	}
 	
+	// gets graph nodeid from ottid
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForOttId(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
@@ -2561,7 +2562,7 @@ public class MainRunner {
 		System.out.println("  labeltips <filename.tre> <filename>");
 		System.out.println("  labeltax <filename.tre> <graphdbfolder>");
 		System.out.println("  checktax <filename.tre> <graphdbfolder>");
-		System.out.println("  nexson2newick <filename.nexson> [filename.newick]\n");
+		System.out.println("  nexson2newick <filename.nexson> [filename.newick]");
 		System.out.println("  convertfigtree <filename.tre> <outfile.tre>");
 		System.out.println("  nexson2mrp <filename.nexson>\n");
 		
