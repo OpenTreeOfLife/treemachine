@@ -136,56 +136,57 @@ public class MainRunner {
 		return 0;
 	}
 	
-	private static void getMRPmatrix(JadeTree tree, GraphDatabaseAgent graphDb){
+	private static void getMRPmatrix(JadeTree tree, GraphDatabaseAgent graphDb) {
 		
 		HashMap<JadeNode,StringBuffer> taxastart = new HashMap<JadeNode,StringBuffer>();
-		for(int i=0;i<tree.getExternalNodeCount();i++){
+		for (int i = 0; i < tree.getExternalNodeCount(); i++) {
 			taxastart.put(tree.getExternalNode(i), new StringBuffer(""));
 		}
-		for (int i=0;i<tree.getInternalNodeCount();i++){
+		for (int i = 0; i < tree.getInternalNodeCount(); i++) {
 			ArrayList<JadeNode> nds = new ArrayList<JadeNode>();
-			for (JadeNode n: tree.getInternalNode(i).getDescendantLeaves()){
+			for (JadeNode n: tree.getInternalNode(i).getDescendantLeaves()) {
 				nds.add(n);
 			}
-			for(int j=0;j<tree.getExternalNodeCount();j++){
-				if (nds.contains(tree.getExternalNode(j)))
+			for (int j = 0; j < tree.getExternalNodeCount(); j++) {
+				if (nds.contains(tree.getExternalNode(j))) {
 					taxastart.get(tree.getExternalNode(j)).append("1");
-				else
+				} else {
 					taxastart.get(tree.getExternalNode(j)).append("0");
+				}
 			}
 		}
 		HashMap<String,StringBuffer> taxafinal = new HashMap<String,StringBuffer>();
 		HashMap<JadeNode,String> orignames = new HashMap<JadeNode,String>();
-		for (JadeNode jd: taxastart.keySet()){
+		for (JadeNode jd: taxastart.keySet()) {
 			Long taxUID = (Long)jd.getObject("ot:ottId");
 			IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
 			Node startnode = null;
 			try {
 				startnode = hts.getSingle();
-	        } catch (NoSuchElementException ex) {
-	        	throw new MultipleHitsException(taxUID);
-	        } finally {
-	        	hts.close();
-	        }
+			} catch (NoSuchElementException ex) {
+				throw new MultipleHitsException(taxUID);
+			} finally {
+				hts.close();
+			}
 			long[] dbnodei = (long[]) startnode.getProperty("mrca");
-			if(dbnodei.length>0){
+			if (dbnodei.length > 0) {
 				for (long temp : dbnodei) {
 					taxafinal.put(String.valueOf(((Node)graphDb.getNodeById(temp)).getProperty("tax_uid")), taxastart.get(jd));
 				}
-			}else{
+			} else {
 				taxafinal.put(String.valueOf(taxUID), taxastart.get(jd));
 			}
 			orignames.put(jd, jd.getName());
 			jd.setName(String.valueOf(taxUID));
 		}
 		System.out.println("TREEUID");
-		System.out.println(tree.getRoot().getNewick(false)+";");
-		for(int i=0;i<tree.getExternalNodeCount();i++){
+		System.out.println(tree.getRoot().getNewick(false) + ";");
+		for (int i = 0; i < tree.getExternalNodeCount(); i++) {
 			tree.getExternalNode(i).setName(orignames.get(tree.getExternalNode(i)));
 		}
 		System.out.println("MRP");
-		System.out.println(tree.getExternalNodeCount()+"\t"+tree.getInternalNodeCount());
-		for(String st: taxafinal.keySet()){
+		System.out.println(tree.getExternalNodeCount() + "\t" + tree.getInternalNodeCount());
+		for (String st: taxafinal.keySet()) {
 			System.out.print(st);
 			System.out.print("\t");
 			System.out.print(taxafinal.get(st));
@@ -297,7 +298,7 @@ public class MainRunner {
 						}
 					}
 					br.close();				
-				} else if(readingNewick == true && readingNewickTNRS == false){
+				} else if (readingNewick == true && readingNewickTNRS == false) {
 					System.out.println("Reading newick file...");
 					TreeReader tr = new TreeReader();
 					String ts = "";
@@ -313,7 +314,7 @@ public class MainRunner {
 						}
 					}
 					br.close();
-				}else { // nexson
+				} else { // nexson
 					System.out.println("Reading nexson file...");
 					for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 						if (tree == null) {
@@ -329,7 +330,7 @@ public class MainRunner {
 			System.out.println(treeCounter + " trees read.");
 			
 			// Do TNRS on trees
-			if(readingNewickTNRS == true){
+			if (readingNewickTNRS == true) {
 				System.out.println("Conducting TNRS on input leaf names...");
 				GraphDatabaseAgent graphDb = new GraphDatabaseAgent("fool"); // does it matter what the name is?!?
 				try {
@@ -470,7 +471,7 @@ public class MainRunner {
 			String graphname = args[2];
 			ge = new GraphExporter(graphname);
 			try {
-				System.out.println("constructing a json for: "+ name);
+				System.out.println("constructing a json for: " + name);
 				ge.writeJSONWithAltParentsToFile(name);
 			} finally {
 				ge.shutdownDB();
@@ -517,30 +518,30 @@ public class MainRunner {
 			gi = new GraphExplorer(graphname);
 			gi.setSinkLostChildren(sinkLostChildren);
 			
-	        // find the start node
-	        Node firstNode = gi.findTaxNodeByName(name);
-	        Long nodeId = null;
-	        if (firstNode == null) {
-	            System.out.println("name not found");
-	            return -1;
-	        } else {
-	        	nodeId = firstNode.getId();
-	        }
-	        JadeTree synthTree = gi.graphSynthesis(firstNode, useTaxonomy, useBranchAndBound,"synthtree");
-	        gi.shutdownDB();
+			// find the start node
+			Node firstNode = gi.findTaxNodeByName(name);
+			Long nodeId = null;
+			if (firstNode == null) {
+				System.out.println("name not found");
+				return -1;
+			} else {
+				nodeId = firstNode.getId();
+			}
+			JadeTree synthTree = gi.graphSynthesis(firstNode, useTaxonomy, useBranchAndBound,"synthtree");
+			gi.shutdownDB();
 
-	        // write newick tree to a file
-	        PrintWriter outFile;
-	        try {
-	            outFile = new PrintWriter(new FileWriter(name + ".tre"));
-	            boolean reportBranchLength = false;
-	            outFile.write(synthTree.getRoot().getNewick(reportBranchLength) + ";\n");
-	            outFile.close();
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	        }
-	        
-	        return 0;
+			// write newick tree to a file
+			PrintWriter outFile;
+			try {
+				outFile = new PrintWriter(new FileWriter(name + ".tre"));
+				boolean reportBranchLength = false;
+				outFile.write(synthTree.getRoot().getNewick(reportBranchLength) + ";\n");
+				outFile.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			return 0;
 
 		} else if (args[0].compareTo("fulltree_sources") == 0) {
 			String usageString = "arguments should be: name preferredsource graphdbfolder usetaxonomy[T|F] sinklostchildren[T|F]";
@@ -581,25 +582,25 @@ public class MainRunner {
 			gi.setSinkLostChildren(sinkLostChildren);
 			
 			Node firstNode = gi.findTaxNodeByName(name);
-	        if (firstNode == null) {
-	            System.out.println("name not found");
-	            return -1;
-	        }
+			if (firstNode == null) {
+				System.out.println("name not found");
+				return -1;
+			}
 		
-	        LinkedList<String> preferredSources = new LinkedList<String>();
+			LinkedList<String> preferredSources = new LinkedList<String>();
 			String [] tsl = sourcenames.split(",");
-			for(int i=0;i<tsl.length;i++){preferredSources.add(tsl[i]);}
-	        JadeTree synthTree = gi.sourceSynthesis(firstNode, preferredSources, useTaxonomy);
+			for (int i = 0; i < tsl.length; i++) {preferredSources.add(tsl[i]);}
+			JadeTree synthTree = gi.sourceSynthesis(firstNode, preferredSources, useTaxonomy);
 			gi.shutdownDB();
 
-	        PrintWriter outFile;
-	        try {
-	            outFile = new PrintWriter(new FileWriter(name + ".tre"));
-	            outFile.write(synthTree.getRoot().getNewick(true) + ";\n");
-	            outFile.close();
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	        }
+			PrintWriter outFile;
+			try {
+				outFile = new PrintWriter(new FileWriter(name + ".tre"));
+				outFile.write(synthTree.getRoot().getNewick(true) + ";\n");
+				outFile.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			
 			return 0;
 
@@ -830,7 +831,7 @@ public class MainRunner {
 				System.out.println("arguments should be: <sourcename> <graphdbfolder>");
 				return 1;
 			}
-		}else {
+		} else {
 			if (args.length == 5) {
 				sourcename = args[1];
 				rootNodeID = args[2];
@@ -855,9 +856,9 @@ public class MainRunner {
 			JadeTree tree = null;
 			if (rootNodeID == null) {
 				if (treeID == null) {
-					if(args[0].equalsIgnoreCase("sourceexplorer")) {
+					if (args[0].equalsIgnoreCase("sourceexplorer")) {
 						tree = ge.reconstructSource(sourcename, maxDepth);
-					} else if(args[0].equalsIgnoreCase("sourceexplorer_inf_mono")) {
+					} else if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono")) {
 						ge.getInformationAndMonophylyTreeVsTaxonomy(sourcename);
 					}
 				} else {
@@ -871,7 +872,7 @@ public class MainRunner {
 					tree = ge.reconstructSourceByTreeID(treeID, rootNodeIDParsed, maxDepth);
 				}
 			}
-			if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono")==false) {
+			if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono") == false) {
 				final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
 				System.out.println(newick + ";");
 			}
@@ -935,7 +936,7 @@ public class MainRunner {
 		return 0;
 	}
 
-	public int getTaxonomyTreeExport(String [] args){
+	public int getTaxonomyTreeExport(String [] args) {
 		if (args.length != 4) {
 			System.out.println("arguments should be: uid outfile graphdbfolder");
 			return 1;
@@ -954,8 +955,9 @@ public class MainRunner {
 			HashMap<Node,JadeNode> nodemp = new HashMap<Node,JadeNode>();
 			nodemp.put(tnode, root);
 			for (Node m : Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING).traverse(tnode).nodes()) {
-				if (m == tnode)
+				if (m == tnode) {
 					continue;
+				}
 				Node p = m.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
 				JadeNode pa = nodemp.get(p);
 				JadeNode tn = new JadeNode(pa);
@@ -1073,7 +1075,7 @@ public class MainRunner {
 		String _useTaxonomy = args[3];
 		String graphname = args[4];
 		int depth = 0;
-		if(args.length == 6){
+		if (args.length == 6) {
 			depth = Integer.valueOf(args[5]);
 		}
 		
@@ -1157,7 +1159,7 @@ public class MainRunner {
 		TreeReader tr = new TreeReader();
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			while ((ts = br.readLine())!=null) {
+			while ((ts = br.readLine()) != null) {
 				if (ts.length() > 1)
 					jt.add(tr.readTree(ts));
 			}
@@ -1217,23 +1219,23 @@ public class MainRunner {
 		}
 		if (args[0].equals("labeltipsottol")) {
 			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
-			for(int i=0;i<jt.get(0).getExternalNodeCount();i++){
+			for (int i = 0; i < jt.get(0).getExternalNodeCount(); i++) {
 				JadeNode jd = jt.get(0).getExternalNode(i);
 				Long taxUID = Long.valueOf(jd.getName().replaceAll("\\s+",""));
 				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
 				Node startnode = null;
 				try {
 					startnode = hts.getSingle();
-		        } catch (NoSuchElementException ex) {
-		        	throw new MultipleHitsException(taxUID);
-		        } finally {
-		        	hts.close();
-		        }
+				} catch (NoSuchElementException ex) {
+					throw new MultipleHitsException(taxUID);
+				} finally {
+					hts.close();
+				}
 				jd.setName((String)startnode.getProperty("name")+"_"+String.valueOf(taxUID));
 			}
-			for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
+			for (int i = 0; i < jt.get(0).getInternalNodeCount(); i++) {
 				JadeNode jd = jt.get(0).getInternalNode(i);
-				try{
+				try {
 					Long taxUID = Long.valueOf(jd.getName().replaceAll("\\s+",""));
 					IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
 					Node startnode = null;
@@ -1244,20 +1246,20 @@ public class MainRunner {
 					} finally {
 						hts.close();
 					}
-					jd.setName((String)startnode.getProperty("name")+"_"+String.valueOf(taxUID));
-				}catch(Exception ex2){
+					jd.setName((String)startnode.getProperty("name") + "_" + String.valueOf(taxUID));
+				} catch(Exception ex2) {
 					continue;
 				}
 			}
 			System.out.println(jt.get(0).getRoot().getNewick(false) + ";");
 			return 0;
 		}
-		if(args[0].equals("convertfigtree") || args[0].equals("convertfigtree2")){
+		if (args[0].equals("convertfigtree") || args[0].equals("convertfigtree2")) {
 			//the idea here is to generate another newick that will have internal labels the width of the branch
 			//polytomies will have one node and it will have this width
 			HashMap<String,String> source_mp = new HashMap<String,String>();
 			HashMap<String,Double> id_counts = new HashMap<String,Double>();
-			if (args.length == 4 && args[0].equals("convertfigtree")){
+			if (args.length == 4 && args[0].equals("convertfigtree")) {
 				try {
 					BufferedReader brt = new BufferedReader(new FileReader(args[3]));
 					while ((ts = brt.readLine()) != null) {
@@ -1276,15 +1278,15 @@ public class MainRunner {
 				}
 				getNCBICountsFigtreeNewick(jt.get(0).getRoot(),source_mp);
 			}
-			if (args.length == 4 && args[0].equals("convertfigtree2")){
+			if (args.length == 4 && args[0].equals("convertfigtree2")) {
 				try {
 					BufferedReader brt = new BufferedReader(new FileReader(args[3]));
 					while ((ts = brt.readLine()) != null) {
-					    String tid = ts.trim();
-					    if (id_counts.containsKey(tid) == false){
-						id_counts.put(tid,0.);
-					    }
-					    id_counts.put(tid,id_counts.get(tid)+1);
+						String tid = ts.trim();
+						if (id_counts.containsKey(tid) == false) {
+							id_counts.put(tid,0.);
+						}
+						id_counts.put(tid,id_counts.get(tid)+1);
 					}
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
@@ -1296,44 +1298,46 @@ public class MainRunner {
 
 			try {
 				ArrayList<JadeNode> destroy = new ArrayList<JadeNode>();
-				for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
+				for (int i = 0; i < jt.get(0).getInternalNodeCount(); i++) {
 					JadeNode t = jt.get(0).getInternalNode(i);
-					if(args.length != 4){
+					if (args.length != 4) {
 						t.assocObject("tipcount", Math.log10(t.getTipCount()));
 					}
-					for(int j=0;j<t.getChildCount();j++){
-						if(t.getChild(j).getTipCount() < 500){// ||t.getChild(j).getChildCount()<2){//  || t.getChild(j).getName().split("_").length>2){
+					for (int j = 0; j < t.getChildCount(); j++) {
+						if (t.getChild(j).getTipCount() < 500) {// ||t.getChild(j).getChildCount() < 2) {//  || t.getChild(j).getName().split("_").length > 2) {
 							destroy.add(t.getChild(j));
 						}
 					}
 				}
-				for(int i=0;i<destroy.size();i++){
-					if(destroy.get(i).getParent().getName().length() < 2)
+				for (int i = 0; i < destroy.size(); i++) {
+					if (destroy.get(i).getParent().getName().length() < 2) {
 						destroy.get(i).getParent().setName(destroy.get(i).getName());
+					}
 					destroy.get(i).getParent().removeChild(destroy.get(i));
 				}
 				destroy.clear();
 				//now we take out the polytomies
-				for(int i=0;i<jt.get(0).getInternalNodeCount();i++){
+				for (int i = 0; i < jt.get(0).getInternalNodeCount(); i++) {
 					JadeNode t = jt.get(0).getInternalNode(i);
-					if(t.getChildCount() > 2){
-						for(int j=0;j<t.getChildCount();j++){
-							if(t.getChild(j).getChildCount()<1){//sometimes I do 2
+					if (t.getChildCount() > 2) {
+						for (int j = 0; j < t.getChildCount(); j++) {
+							if (t.getChild(j).getChildCount() < 1) {//sometimes I do 2
 								destroy.add(t.getChild(j));
 							}
 						}
 					}
 				}
-				for(int i=0;i<destroy.size();i++){
-					if(destroy.get(i).getParent().getName().length() < 2)
+				for (int i = 0; i < destroy.size(); i++) {
+					if (destroy.get(i).getParent().getName().length() < 2) {
 						destroy.get(i).getParent().setName(destroy.get(i).getName());
+					}
 					//Double v = (Double)destroy.get(i).getParent().getObject("value");
 					//Double tv = (Double)destroy.get(i).getObject("value");
 					destroy.get(i).getParent().removeChild(destroy.get(i));
 				}
 				FileWriter fw = new FileWriter(args[2]);
 				fw.write("#nexus\nbegin trees;\ntree a = ");
-				fw.write(getSynthMinorFigtreeNewick(jt.get(0).getRoot())+";");
+				fw.write(getSynthMinorFigtreeNewick(jt.get(0).getRoot()) + ";");
 				fw.write("\nend;\n");
 				fw.close();
 			} catch (IOException e) {
@@ -1352,16 +1356,16 @@ public class MainRunner {
 	 * @param id_childs
 	 * @param source_mp
 	 */
-	private double getNCBICountsFigtreeNewick(JadeNode innode,HashMap<String,String> source_mp){
+	private double getNCBICountsFigtreeNewick(JadeNode innode,HashMap<String,String> source_mp) {
 		double childcount = 0;
-		for(int i=0;i<innode.getChildCount();i++){
+		for (int i = 0; i < innode.getChildCount(); i++) {
 			childcount += getNCBICountsFigtreeNewick(innode.getChild(i),source_mp);
 		}
 		double count = 0;
-		if(innode.isExternal()){
+		if (innode.isExternal()) {
 			String nm = innode.getName().split("_")[innode.getName().split("_").length-1].replace("ott", "");
-			if(source_mp.containsKey(nm)){
-				if(source_mp.get(nm).contains("ncbi")){
+			if (source_mp.containsKey(nm)) {
+				if (source_mp.get(nm).contains("ncbi")) {
 					count = 1;
 				}
 			}
@@ -1377,22 +1381,24 @@ public class MainRunner {
 	 * @param innode
 	 * @param id_childs
 	 */
-	private double getOTTCountsFigtreeNewick(JadeNode innode,HashMap<String,Double> id_counts){
+	private double getOTTCountsFigtreeNewick(JadeNode innode,HashMap<String,Double> id_counts) {
 		double childcount = 0;
-		for(int i=0;i<innode.getChildCount();i++){
+		for (int i = 0; i < innode.getChildCount(); i++) {
 			childcount += getOTTCountsFigtreeNewick(innode.getChild(i),id_counts);
 		}
 		double count = 0;
 		String nm = innode.getName().split("_")[innode.getName().split("_").length-1].replace("ott", "");
-		if(id_counts.containsKey(nm)){
-		    count = id_counts.get(nm);
+		if (id_counts.containsKey(nm)) {
+			count = id_counts.get(nm);
 		}
 		count += childcount;
 		//innode.assocObject("tipcount", Math.log10(count));
-		if(count >0)
-		    innode.assocObject("tipcount",1.);
-		if(count == 0)
-		    innode.assocObject("tipcount",0.);
+		if (count > 0) {
+			innode.assocObject("tipcount",1.);
+		}
+		if (count == 0) {
+			innode.assocObject("tipcount",0.);
+		}
 		return count;
 	}
 	
@@ -1410,7 +1416,7 @@ public class MainRunner {
 			ret.append(getSynthMinorFigtreeNewick(innode.getChild(i)));
 			
 			
-			if (i == innode.getChildCount()-1) {
+			if (i == innode.getChildCount() - 1) {
 				ret.append(")");
 			} else {
 				ret.append(",");
@@ -1419,7 +1425,7 @@ public class MainRunner {
 		if (innode.getName() != null) {
 			String [] spls = innode.getName().split("_");
 			String tname = spls[0];
-			for(int i=1;i<spls.length;i++){
+			for (int i = 1; i < spls.length; i++) {
 				tname += "_" +spls[i];
 			}
 			ret.append(GeneralUtils.cleanName(tname));
@@ -1464,7 +1470,7 @@ public class MainRunner {
 			GraphExplorer ge = new GraphExplorer(graphdbn);	
 			for (int i = 0; i < jt.size(); i++) {
 				ge.labelInternalNodesTax(jt.get(i), messageLogger);
-				System.out.println(jt.get(i).getRoot().getNewick(false));
+				System.out.println(jt.get(i).getRoot().getNewick(false) + ";");
 			}
 			messageLogger.close();
 			ge.shutdownDB();
@@ -1487,38 +1493,38 @@ public class MainRunner {
 			}
 			messageLogger.close();
 			graphDb.shutdownDb();
-		} else if(arg.equals("checktaxhier")){
+		} else if (arg.equals("checktaxhier")) {
 			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphdbn);
 			HashSet<Node> nodes = new HashSet<Node>();
-			for(int i=0;i<jt.get(0).getExternalNodeCount();i++){
+			for (int i = 0; i < jt.get(0).getExternalNodeCount(); i++) {
 				Long taxUID = Long.valueOf(jt.get(0).getExternalNode(i).getName());
 				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
 				Node startnode = null;
 				try {
 					startnode = hts.getSingle();
-		        } catch (NoSuchElementException ex) {
-		        	throw new MultipleHitsException(taxUID);
-		        } finally {
-		        	hts.close();
-		        }
+				} catch (NoSuchElementException ex) {
+					throw new MultipleHitsException(taxUID);
+				} finally {
+					hts.close();
+				}
 				nodes.add(startnode);
 			}
 			HashSet<String> toprune= new HashSet<String>();
-			for(Node nd: nodes){
+			for (Node nd: nodes) {
 				Node tnd = nd; 
-				while(tnd.hasRelationship(RelType.TAXCHILDOF, Direction.OUTGOING)){
+				while (tnd.hasRelationship(RelType.TAXCHILDOF, Direction.OUTGOING)) {
 					tnd = tnd.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
-					if (nodes.contains(tnd)){
+					if (nodes.contains(tnd)) {
 						toprune.add((String) tnd.getProperty(NodeProperty.TAX_UID.propertyName));
 					}
 				}
 			}
-			for(String s: toprune){
+			for (String s: toprune) {
 				JadeNode c = jt.get(0).getExternalNode(s);
 				JadeNode p = c.getParent();
 				p.removeChild(c);
 			}
-			System.out.println(jt.get(0).getRoot().getNewick(false));
+			System.out.println(jt.get(0).getRoot().getNewick(false) + ";");
 			graphDb.shutdownDb();
 		}
 		return (success ? 0 : -1);
@@ -1561,7 +1567,7 @@ public class MainRunner {
 			// build the list of preferred sources, this should probably be done externally
 			LinkedList<String> preferredSources = new LinkedList<String>();
 			String [] tsl = slist.split(",");
-			for (int i = 0; i < tsl.length; i++){preferredSources.add(tsl[i]);}
+			for (int i = 0; i < tsl.length; i++) {preferredSources.add(tsl[i]);}
 			System.out.println(preferredSources);
 			//preferredSources.add("taxonomy");, need to add taxonomy 
 
@@ -1617,9 +1623,9 @@ public class MainRunner {
 		return (success ? 0 : -1);
 	}
 
-	public int getSynthesisInfo(String [] args){
+	public int getSynthesisInfo(String [] args) {
 		boolean success = true;
-		if (args.length != 2 && args.length!= 3) {
+		if (args.length != 2 && args.length != 3) {
 			System.out.println("arguments should be graphdbfolder or ottolID graphdbfolder");
 			return 1;
 		}
@@ -1627,7 +1633,7 @@ public class MainRunner {
 		Node startnode = null;
 
 		GraphExplorer ge; 
-		if (args.length == 2){
+		if (args.length == 2) {
 			graphname = args[1];
 			ge = new GraphExplorer(graphname);
 		} else {
@@ -1679,9 +1685,9 @@ public class MainRunner {
 		
 		// find the start node
 		Node firstNode = ge.graphDb.getNodeById(startNodeId);
-//        if (firstNode == null) {
-//            throw new opentree.exceptions.OttIdNotFoundException(ottId);
-//        }
+//		if (firstNode == null) {
+//			throw new opentree.exceptions.OttIdNotFoundException(ottId);
+//		}
 		
 		JadeTree synthTree = null;
 		synthTree = ge.extractDraftTree(firstNode, GraphBase.DRAFTTREENAME);
@@ -1740,7 +1746,7 @@ public class MainRunner {
 		}
 		
 		return 0;
-    }
+	}
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftSubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
@@ -1779,7 +1785,7 @@ public class MainRunner {
 		}
 		
 		return 0;
-    }
+	}
 	
 	public int extractTaxonomySubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
@@ -1817,7 +1823,7 @@ public class MainRunner {
 		}
 		
 		return 0;
-    }
+	}
 	
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
@@ -1886,45 +1892,45 @@ public class MainRunner {
 		System.out.println("randomizing a fully resolved tree with " + nTaxa + " tips");
 		JadeNode randomTree = TreeUtils.makeRandomTree(names, seed);
 
-        PrintWriter outFile;
+		PrintWriter outFile;
 
-        String completeTreePath = (exportPath + "/" + "random.tre").replaceAll("/+", "/");
-        System.out.println("Writing the random tree to " + completeTreePath);
-        try {
-            outFile = new PrintWriter(new FileWriter(completeTreePath));
-            boolean reportBranchLength = false;
-            outFile.write(randomTree.getNewick(reportBranchLength) + ";\n");
-            outFile.close();
-        
-        } catch (IOException e) {
-            e.printStackTrace();
-            return 1;
-        }
+		String completeTreePath = (exportPath + "/" + "random.tre").replaceAll("/+", "/");
+		System.out.println("Writing the random tree to " + completeTreePath);
+		try {
+			outFile = new PrintWriter(new FileWriter(completeTreePath));
+			boolean reportBranchLength = false;
+			outFile.write(randomTree.getNewick(reportBranchLength) + ";\n");
+			outFile.close();
+		
+		} catch (IOException e) {
+			e.printStackTrace();
+			return 1;
+		}
 
-        System.out.println("Finding all bipartitions ");
+		System.out.println("Finding all bipartitions ");
 		Iterable<JadeNode> randomTreeBipartTrees = TreeUtils.extractBipartitions(randomTree);
 
-        String bipartTreesPath = (exportPath + "/" + "random.biparts.pruned.tre").replaceAll("/+", "/");
-        System.out.println("Writing bipartition trees to " + bipartTreesPath);
-        try {
-            outFile = new PrintWriter(new FileWriter(bipartTreesPath));
-            boolean reportBranchLength = false;
-            
-            for (JadeNode bipart : randomTreeBipartTrees) {
-            	
-            	// here is where the pruning happens
-            	
-//            	System.out.println(bipart.getNewick(reportBranchLength).concat(";\n"));
-            	
-            	outFile.write(bipart.getNewick(reportBranchLength).concat(";\n"));
-            }
+		String bipartTreesPath = (exportPath + "/" + "random.biparts.pruned.tre").replaceAll("/+", "/");
+		System.out.println("Writing bipartition trees to " + bipartTreesPath);
+		try {
+			outFile = new PrintWriter(new FileWriter(bipartTreesPath));
+			boolean reportBranchLength = false;
+			
+			for (JadeNode bipart : randomTreeBipartTrees) {
+				
+				// here is where the pruning happens
+				
+//				System.out.println(bipart.getNewick(reportBranchLength).concat(";\n"));
+				
+				outFile.write(bipart.getNewick(reportBranchLength).concat(";\n"));
+			}
 
-            outFile.close();
+			outFile.close();
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            return 1;
-        }
+		} catch (IOException e) {
+			e.printStackTrace();
+			return 1;
+		}
 		
 		return 0;
 	}
@@ -1951,7 +1957,7 @@ public class MainRunner {
 		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
 		rawTreeList = NexsonReader.readNexson(nexsonContentBR, true, messageLogger);
 		if (treeid != null) {
-			System.out.println("loading a specific tree: "+treeid);
+			System.out.println("loading a specific tree: " + treeid);
 		}
 		int count = 0;
 		for (JadeTree j : rawTreeList) {
@@ -1996,7 +2002,7 @@ public class MainRunner {
 				System.err.println("failed to get the names from server fixNamesFromTrees 3");
 				return -1;
 			}
-		} catch (IOException ioe){
+		} catch (IOException ioe) {
 			System.err.println("excpeption to get the names from server fixNamesFromTrees 4");
 			throw ioe;
 		}
@@ -2008,7 +2014,7 @@ public class MainRunner {
 			String treeJId = (String)j.getObject("id");
 			if (treeid != null) {
 				if (treeJId.equals(treeid) == false) {
-					System.out.println("skipping tree: "+treeJId);
+					System.out.println("skipping tree: " + treeJId);
 					continue;
 				}
 			}
@@ -2031,7 +2037,7 @@ public class MainRunner {
 				}
 			}
 			//check for any duplicate ottol:id
-			if (doubname == true){
+			if (doubname == true) {
 				messageLogger.indentMessageStr(1, "null or duplicate names. Skipping tree", "tree id", treeJId);
 			} else {
 				gi.setTree(j);
@@ -2127,7 +2133,7 @@ public class MainRunner {
 			}
 		} catch (IOException e) {
 			rc = -1;
-		} catch (java.lang.NullPointerException e){
+		} catch (java.lang.NullPointerException e) {
 			rc = -1;
 		} catch (TaxonNotFoundException e) {
 			rc = -1;
@@ -2183,7 +2189,7 @@ public class MainRunner {
 			}
 		} catch (IOException e) {
 			rc = -1;
-		} catch (java.lang.NullPointerException e){
+		} catch (java.lang.NullPointerException e) {
 			rc = -1;
 		} catch (TaxonNotFoundException e) {
 			rc = -1;
@@ -2214,7 +2220,7 @@ public class MainRunner {
 			// kick out early if tree is already in graph
 			sourcename = treeid;
 			if (!checkTreeNewToGraph(sourcename, graphDb)) {
-				messageLogger.indentMessageStrStr(1, "Source tree already added:", "","","source", sourcename);
+				messageLogger.indentMessageStrStr(1, "Source tree already added:", "", "", "source", sourcename);
 			} else {
 				System.err.println("\ttree " + count + ": " + tree.getExternalNodeCount());
 				count += 1;
@@ -2239,7 +2245,7 @@ public class MainRunner {
 			}
 		}
 			//check for any duplicate ottol:id
-			if (doubname == true){
+			if (doubname == true) {
 				messageLogger.indentMessageStr(1, "null or duplicate names. Skipping tree", "tree id", treeJId);
 			} else {
 				gi.setTree(tree);
@@ -2343,7 +2349,7 @@ public class MainRunner {
 		return 0;
 	}
 	
-	public int convertTaxonomy(String []args){
+	public int convertTaxonomy(String []args) {
 		if (args.length != 3) {
 			System.out.println("arguments should be: node graphdb");
 			return 1;
@@ -2384,9 +2390,10 @@ public class MainRunner {
 				srce = st.nextToken().trim();
 				uniqname = st.nextToken().trim();
 				flag = st.nextToken().trim(); //for dubious
-				if(id_childs.containsKey(pid)==false){
+				if (id_childs.containsKey(pid) == false) {
 					id_childs.put(pid, new ArrayList<String>());
-				}id_childs.get(pid).add(tid);
+				}
+				id_childs.get(pid).add(tid);
 				JadeNode tnode = new JadeNode();
 				tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
 				tnode.assocObject("id", tid);
@@ -2397,18 +2404,18 @@ public class MainRunner {
 			Stack <JadeNode> nodes = new Stack<JadeNode>();
 			root = id_node_map.get(cellular);
 			nodes.add(root);
-			while(nodes.empty()==false){
+			while (nodes.empty() == false) {
 				JadeNode tnode = nodes.pop();
 				count += 1;
 				ArrayList<String> childs = id_childs.get((String)tnode.getObject("id"));
-				for(int i=0;i<childs.size();i++){
+				for (int i = 0; i < childs.size(); i++) {
 					JadeNode ttnode = id_node_map.get(childs.get(i));
 					tnode.addChild(ttnode);
-					if(id_childs.containsKey(childs.get(i))){
+					if (id_childs.containsKey(childs.get(i))) {
 						nodes.add(ttnode);
 					}
 				}
-				if(count%10000 == 0){
+				if (count%10000 == 0) {
 					System.out.println(count);
 				}
 			}
@@ -2425,7 +2432,7 @@ public class MainRunner {
 		FileWriter fw;
 		try {
 			fw = new FileWriter(outfile);
-			fw.write(tree.getRoot().getNewick(false)+";");
+			fw.write(tree.getRoot().getNewick(false) + ";");
 			fw.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -2501,22 +2508,22 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("Here are some common commands with descriptions.");
 		System.out.println("INPUT SET OF TREES (bootstrap, posterior probability)");
-		System.out.println("    \033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
+		System.out.println("	\033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
 		System.out.println("");
 		System.out.println("INPUT TAXONOMY AND TREES");
 		System.out.println("  Initializes the graph with a tax list in the format");
-		System.out.println("    \033[1minittax\033[0m <filename> (optional:synonymfilename) <taxonomyversion> <graphdbfolder>");
+		System.out.println("	\033[1minittax\033[0m <filename> (optional:synonymfilename) <taxonomyversion> <graphdbfolder>");
 		System.out.println("  Add a newick tree to the graph");
-		System.out.println("    \033[1maddnewick\033[0m <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder>");
+		System.out.println("	\033[1maddnewick\033[0m <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder>");
 		System.out.println("  Export a source tree from that graph with taxonomy mapped");
-		System.out.println("    \033[1msourceexplorer\033[0m <sourcename> <graphdbfolder>");
+		System.out.println("	\033[1msourceexplorer\033[0m <sourcename> <graphdbfolder>");
 		System.out.println("");
 		System.out.println("WORK WITH GRAPH");
 		System.out.println("  Export the graph in graphml format with statistics embedded");
-		System.out.println("    \033[1mgraphml\033[0m <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder>");
+		System.out.println("	\033[1mgraphml\033[0m <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder>");
 		System.out.println("  Synthesize the graph");
-		System.out.println("    \033[1mfulltree\033[0m <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F]");
-		System.out.println("    \033[1mfulltree_sources\033[0m <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F]");
+		System.out.println("	\033[1mfulltree\033[0m <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F]");
+		System.out.println("	\033[1mfulltree_sources\033[0m <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F]");
 		System.out.println("\n");
 	}
 	
@@ -2661,11 +2668,11 @@ public class MainRunner {
 				   || command.compareTo("labeltips") == 0 
 				   || command.compareTo("labeltipsottol") == 0
 				   || command.compareTo("convertfigtree") == 0
-				   || command.compareTo("convertfigtree2")==0){
+				   || command.compareTo("convertfigtree2") == 0) {
 				cmdReturnCode = mr.treeUtils(args);
-			} else if (command.compareTo("converttaxonomy")==0){
+			} else if (command.compareTo("converttaxonomy") == 0) {
 				cmdReturnCode = mr.convertTaxonomy(args);
-			}else if (command.compareTo("labeltax") == 0
+			} else if (command.compareTo("labeltax") == 0
 					|| command.compareTo("checktax") == 0 
 					|| command.compareTo("checktaxhier") == 0) {
 				cmdReturnCode = mr.treeUtilsDB(args);
@@ -2689,7 +2696,7 @@ public class MainRunner {
 				cmdReturnCode = mr.extractDraftSubTreeForOttIDs(args);
 			} else if (command.compareTo("extracttaxonomysubtreeforottids") == 0) {
 				cmdReturnCode = mr.extractTaxonomySubTreeForOttIDs(args);
-			}else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
+			} else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
 				cmdReturnCode = mr.extractDraftSubTreeForNodeIDs(args);
 			// not sure where this should live
 			} else if (command.compareTo("nexson2newick") == 0) {
@@ -2701,7 +2708,7 @@ public class MainRunner {
 				cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
 			} else if (command.compareTo("pgloadind") == 0) {
 				cmdReturnCode = mr.pg_loading_ind_studies(args);
-			} else if (command.compareTo("pgloadindnew") == 0){
+			} else if (command.compareTo("pgloadindnew") == 0) {
 				cmdReturnCode = mr.pg_loading_ind_studies_newick(args);
 			} else if (command.compareTo("pgdelind") == 0) {
 				cmdReturnCode = mr.pg_delete_ind_study(args);

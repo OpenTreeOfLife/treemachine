@@ -1058,7 +1058,7 @@ public class GraphExplorer extends GraphBase {
 		}
 		//System.out.println(rootnodesTLAL);
 		//for each of the root nodes, get the tip nodes
-		for (int tll=0;tll<rootnodesTLAL.size();tll++) {
+		for (int tll = 0; tll < rootnodesTLAL.size(); tll++) {
 			Node sn = graphDb.getNodeById(rootnodesTLAL.get(tll));
 			Node mn = null;
 			for (Relationship rel1 : sn.getRelationships(Direction.INCOMING, RelType.METADATAFOR)) {
@@ -1069,7 +1069,7 @@ public class GraphExplorer extends GraphBase {
 			TLongArrayList ndmap = new TLongArrayList((long[]) mn.getProperty("original_taxa_map"));//need to check and see if this is the deeper mapping
 			//if we have exemplar, remove the regular and add these
 			TLongArrayList remndmap = new TLongArrayList();
-			for (int i=0;i<ndmap.size();i++) {
+			for (int i = 0; i < ndmap.size(); i++) {
 				long tid = ndmap.get(i);
 				Node stnd = graphDb.getNodeById(tid);
 				if (stnd.hasRelationship(Direction.OUTGOING, RelType.STREEEXEMPLAROF) == true) {
@@ -1081,13 +1081,14 @@ public class GraphExplorer extends GraphBase {
 					}
 				}
 			}
-			while (ndmap.removeAll(remndmap) == true)
+			while (ndmap.removeAll(remndmap) == true) {
 				continue;
+			}
 			TLongArrayList skids = new TLongArrayList();//already visiited relationship ids
 			TLongArrayList licas = new TLongArrayList();
 			HashSet<Node> allnodes = new HashSet<Node>();
 			//for each of the original taxa map nodes
-			for (int i=0;i<ndmap.size();i++) {
+			for (int i = 0; i < ndmap.size(); i++) {
 				long tid = ndmap.get(i);
 				//				System.out.println("currently at tip: " + tid);
 				Node stnd = graphDb.getNodeById(tid);
@@ -1117,7 +1118,7 @@ public class GraphExplorer extends GraphBase {
 						}
 						TLongBitArray rt_mrcas = new TLongBitArray((long[])rel1.getProperty("root_exclusive_mrca"));//need to blow these out
 						TLongBitArray blowout = new TLongBitArray();
-						for (int j=0;j<rt_mrcas.size();j++) {
+						for (int j = 0; j < rt_mrcas.size(); j++) {
 							blowout.addAll((long[])graphDb.getNodeById(rt_mrcas.get(j)).getProperty("mrca"));
 						}
 						rt_mrcas.addAll(blowout);
@@ -1270,7 +1271,7 @@ public class GraphExplorer extends GraphBase {
 		ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
 		for (String sourceId : preferredSourceIds) {
 			if (sourceId.startsWith("pg")) {
-				justSourcePriorityList.add("pg_"+sourceId.split("_")[1]);
+				justSourcePriorityList.add("pg_" + sourceId.split("_")[1]);
 			} else {
 				justSourcePriorityList.add(sourceId.split("_")[0]);
 			}
