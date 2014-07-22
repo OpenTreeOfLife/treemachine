@@ -2678,7 +2678,7 @@ public class GraphExplorer extends GraphBase {
 	private JadeTree reconstructSourceTreeHelper(Node metadataNode, Node rootnode, int maxDepth) {
 		JadeNode root = new JadeNode();
 		if (rootnode.hasProperty("name")) {
-			root.setName((String) rootnode.getProperty("name")+"______"+(String)rootnode.getProperty(NodeProperty.TAX_UID.propertyName));
+			root.setName((String)rootnode.getProperty("name") + "______" + (String)rootnode.getProperty(NodeProperty.TAX_UID.propertyName));
 		}
 		root.assocObject("nodeid", rootnode.getId());
 		boolean printlengths = false;
