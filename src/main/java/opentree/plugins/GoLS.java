@@ -44,6 +44,9 @@ import org.opentree.properties.OTVocabularyPredicate;
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
 
+	// NOTE: this isn't as useful anymore, since the curator gives trees IDs 1, 2, etc. for each study
+	//	If all studies have just one tree, each will have the treeID '1'
+	//	i.e. treeIDs are no longer unique
 	@Description("Returns a list of all source tree IDs")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSourceTreeIDs(
@@ -237,7 +240,7 @@ public class GoLS extends ServerPlugin {
 			Node meta = ge.getSynthesisMetaNode();
 			if (meta != null){
 				String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
-				for(int i=0;i<sourcePrimList.length;i++){
+				for (int i = 0; i < sourcePrimList.length; i++){
 					sourceList.add(sourcePrimList[i]);
 				}
 			}
