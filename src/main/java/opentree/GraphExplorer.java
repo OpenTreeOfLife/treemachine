@@ -2393,6 +2393,9 @@ public class GraphExplorer extends GraphBase {
 	 * Get the list of sources that have been loaded in the graph
 	 * @returns array of strings that are the values of the "source" property of nodes stored in sourceMetaIndex
 	 */
+	// NOTE: this isn't as useful anymore, since the curator gives trees IDs 1, 2, etc. for each study
+	//	If all studies have just one tree, each will have the treeID '1'
+	//	i.e. treeIDs are no longer unique
 	public ArrayList<String> getTreeIDList() {
 		IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
 		ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
@@ -2415,7 +2418,9 @@ public class GraphExplorer extends GraphBase {
 		while (hits.hasNext()) {
 			Node n = hits.next();
 			try {
-				sourceArrayList.add((String) n.getProperty("source"));
+				if (!sourceArrayList.contains((String) n.getProperty("source"))) {
+					sourceArrayList.add((String) n.getProperty("source"));
+				}
 			} catch(Exception e) {
 				System.out.println("source property not found for " + n);
 			}
@@ -2423,6 +2428,8 @@ public class GraphExplorer extends GraphBase {
 		return sourceArrayList;
 	}
 	
+	
+	// This doesn't seem to be used anywhere (JWB)
 	public ArrayList<String> getDetailedSourceList() {
 		IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
 		ArrayList<String> sourceList = new ArrayList<String>();
@@ -2440,34 +2447,7 @@ public class GraphExplorer extends GraphBase {
 		}
 		return sourceList;
 	}
-	
-	
-	/**
-	 * @returns the source tree with the specified treeID
-	 * @param maxDepth is the max number of edges between the root and an included node
-	 *		if non-negative this can be used to prune off subtrees that exceed the threshold
-	 *		distance from the root. If maxDepth is negative, no threshold is applied
-	 */
-	public JadeTree reconstructSourceByTreeID(String treeID, int maxDepth) throws TreeNotFoundException {
-		Node rootnode = getRootNodeByTreeID(treeID);
-		Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
-		return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
-	}
-	
-	/**
-	 * @returns a subtree of the source tree with the specified treeID
-	 * @param subtreeNodeID the ID of the node that will be used as the root of the returned tree.
-	 *		the node must be a node in the tree
-	 * @param maxDepth is the max number of edges between the root and an included node
-	 *		if non-negative this can be used to prune off subtrees that exceed the threshold
-	 *		distance from the root. If maxDepth is negative, no threshold is applied
-	 */
-	public JadeTree reconstructSourceByTreeID(String treeID, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
-		Node rootnode = graphDb.getNodeById(subtreeNodeID);
-		Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
-		return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
-	}
-	
+		
 	// TODO: we should store an index of synthesis "name" -> root node. Here we'll just rely on the fact that
 	//	  the root of the synthesis tree will be "life"...
 	private Node getSynthesisRoot(String treeID) throws TaxonNotFoundException {
@@ -2495,17 +2475,6 @@ public class GraphExplorer extends GraphBase {
 	public JadeTree reconstructSyntheticTree(String treeID, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
 		Node rootnode = graphDb.getNodeById(subtreeNodeID);
 		return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
-	}
-	
-	public Node getRootNodeByTreeID(String treeID) throws TreeNotFoundException {
-		IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);
-		if (hits == null || hits.size() == 0) {
-			throw new TreeNotFoundException(treeID);
-		}
-		// really only need one
-		Node rootnode = hits.next();
-		hits.close();
-		return rootnode;
 	}
 	
 	public String findSourceNameFromTreeID(String treeID) throws TreeNotFoundException {
@@ -2546,9 +2515,18 @@ public class GraphExplorer extends GraphBase {
 		return null;
 	}
 	
-	/**
-	 * 
-	 */
+	public Node getRootNodeByTreeID(String treeID) throws TreeNotFoundException {
+		IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);
+		if (hits == null || hits.size() == 0) {
+			throw new TreeNotFoundException(treeID);
+		}
+		// really only need one
+		Node rootnode = hits.next();
+		hits.close();
+		return rootnode;
+	}
+
+	
 	public Node getRootNodeByTreeSourceName(String sourcename) throws TreeNotFoundException {
 		IndexHits<Node> hits = sourceRootIndex.get("rootnode", sourcename);
 		if (hits == null || hits.size() == 0) {
@@ -2560,20 +2538,26 @@ public class GraphExplorer extends GraphBase {
 		return rootnode;
 	}
 	
+	
+	
+	
+	// ========================================== Reconstruct source trees ==============================================
+	
+	
 	/**
-	 * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
-	 * 
-	 * @param sourcename
-	 *		the name of the source
+	 * @returns a subtree of the source tree with the specified treeID
+	 * @param subtreeNodeID the ID of the node that will be used as the root of the returned tree.
+	 *		the node must be a node in the tree
 	 * @param maxDepth is the max number of edges between the root and an included node
 	 *		if non-negative this can be used to prune off subtrees that exceed the threshold
 	 *		distance from the root. If maxDepth is negative, no threshold is applied
 	 */
-	public JadeTree reconstructSource(String sourcename, int maxDepth) throws TreeNotFoundException {
-		Node rootnode = getRootNodeByTreeSourceName(sourcename);
-		Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
+	public JadeTree reconstructSourceByTreeID(String treeID, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
+		Node rootnode = graphDb.getNodeById(subtreeNodeID);
+		Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
 		return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
 	}
+	
 	/**
 	 * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
 	 * 
@@ -2588,17 +2572,51 @@ public class GraphExplorer extends GraphBase {
 		Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
 		return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
 	}
+
+	/**
+	 * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
+	 * 
+	 * @param sourcename
+	 *		the name of the source
+	 * @param maxDepth is the max number of edges between the root and an included node
+	 *		if non-negative this can be used to prune off subtrees that exceed the threshold
+	 *		distance from the root. If maxDepth is negative, no threshold is applied
+	 */
+	public JadeTree reconstructSource(String sourcename, int maxDepth) throws TreeNotFoundException {
+		Node rootnode = getRootNodeByTreeSourceName(sourcename);
+		Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
+		return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
+	}
+	
+	/**
+	 * @returns the source tree with the specified treeID
+	 * @param maxDepth is the max number of edges between the root and an included node
+	 *		if non-negative this can be used to prune off subtrees that exceed the threshold
+	 *		distance from the root. If maxDepth is negative, no threshold is applied
+	 */
+	public JadeTree reconstructSourceByTreeID(String treeID, int maxDepth) throws TreeNotFoundException {
+//		System.out.println("Here I am!\n");
+		Node rootnode = getRootNodeByTreeID(treeID);
+		Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
+		return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
+	}
 	
 	/**
 	 * @param maxDepth is the max number of edges between the root and an included node
 	 *		if non-negative this can be used to prune off subtrees that exceed the threshold
 	 *		distance from the root. If maxDepth is negative, no threshold is applied
 	 */
+	
 	private JadeTree reconstructSourceTreeHelper(Node metadataNode, Node rootnode, int maxDepth) {
 		JadeNode root = new JadeNode();
-		if (rootnode.hasProperty("name")) {
+//		System.out.println("Hiya!");
+		if (rootnode.hasProperty("name")) { 
+			System.out.println("root name: " + rootnode.getProperty("name") + "\n");
 			root.setName((String)rootnode.getProperty("name") + "______" + (String)rootnode.getProperty(NodeProperty.TAX_UID.propertyName));
+		} else {
+			System.out.println("rootnode has no associated name.");
 		}
+		
 		root.assocObject("nodeid", rootnode.getId());
 		boolean printlengths = false;
 		HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
