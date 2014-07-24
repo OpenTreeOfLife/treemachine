@@ -44,6 +44,7 @@ import org.opentree.properties.OTVocabularyPredicate;
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
 
+	@Deprecated
 	// NOTE: this isn't as useful anymore, since the curator gives trees IDs 1, 2, etc. for each study
 	//	If all studies have just one tree, each will have the treeID '1'
 	//	i.e. treeIDs are no longer unique
@@ -283,6 +284,7 @@ public class GoLS extends ServerPlugin {
 	}
 	
 	/* should this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh */
+		// avoiding code duplication? what is the advantage of having separate queries?
 	// subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
 	@Description("Returns a source tree if format is \"newick\" then return JSON will have two fields: newick and treeID. " +
 			"If format = \"arguson\" then the return object will be the form of JSON expected by argus")
