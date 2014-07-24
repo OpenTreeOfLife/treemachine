@@ -2534,34 +2534,34 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("commands");
 		System.out.println("---initialize---");
-		System.out.println("  inittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initializes the tax graph with a tax list)\n");
+		System.out.println("  inittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initialize the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
-		System.out.println("  addnewick <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("  addnewickTNRS <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("  addnewick <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
+		System.out.println("  addnewickTNRS <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph with TNRS)");
 		System.out.println("  addnexson <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
-		System.out.println("  pgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
-		System.out.println("  mapcompat <graphdbfolder> treeid (maps the compatible nodes)");
+		System.out.println("  pgloadind <graphdbfolder> <filepath> <treeid> [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
+		System.out.println("  mapcompat <graphdbfolder> <treeid> (maps the compatible nodes)");
 		
 		System.out.println("---graph output---");
-		System.out.println("  jsgol <name> <graphdbfolder> (constructs a json file from a particular node)");
-		System.out.println("  fulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F] (constructs a newick file from a particular node)");
-		System.out.println("  fulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (constructs a newick file from a particular node, break ties preferring sources)");
-		System.out.println("  fulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
-		System.out.println("  mrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
-		System.out.println("  graphml <name> <outfile> <usetaxonomy[T|F]> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
-		System.out.println("  csvdump <name> <outfile> <graphdbfolder> (dumps the graph in format node,parent,nodename,parentname,source,brlen\n");
-		System.out.println("  taxtree <name> <outfile> <graphdbfolder> (dumps the taxonomy as a tree with UIDs as the tips");
+		System.out.println("  jsgol <name> <graphdbfolder> (construct a json file from a particular node)");
+		System.out.println("  fulltree <name> <graphdbfolder> <usetaxonomy[T|F]> <usebranchandbound[T|F]> sinklostchildren[T|F] (construct a newick file from a particular node)");
+		System.out.println("  fulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (construct a newick file from a particular node, break ties preferring sources)");
+		System.out.println("  fulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (construct a newick tree for a group of species)");
+		System.out.println("  mrpdump <name> <outfile> <graphdbfolder> (dump the mrp matrix for a subgraph without the taxonomy branches)");
+		System.out.println("  graphml <name> <outfile> <usetaxonomy[T|F]> <graphdbfolder> (construct a graphml file of the region starting from the name)");
+		System.out.println("  csvdump <name> <outfile> <graphdbfolder> (dump the graph in format node,parent,nodename,parentname,source,brlen)");
+		System.out.println("  taxtree <name> <outfile> <graphdbfolder> (dump the taxonomy as a tree with UIDs as the tips)\n");
 		
 		System.out.println("---graph exploration---");
 		System.out.println("(This is for testing the graph with a set of trees from a file)");
-		System.out.println("  justtrees <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder> (loads the trees into a graph)");
-		System.out.println("  sourceexplorer <sourcename> <graphdbfolder> (explores the different source files)");
-		System.out.println("  sourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explores the different source files)");
-		System.out.println("  listsources <graphdbfolder> (lists the names of the sources loaded in the graph)");
+		System.out.println("  justtrees <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder> (load trees into a new graph)");
+		System.out.println("  sourceexplorer <sourcename> <graphdbfolder> (explore the different source files)");
+		System.out.println("  sourcepruner <sourcename> <nodeid> <maxDepth> <graphdbfolder> (explore the different source files)");
+		System.out.println("  listsources <graphdbfolder> (list the names of the sources loaded in the graph)");
 		System.out.println("  gettaxonomy <graphdbfolder> (return the name of the taxonomy used to initialize the graph)");
-		System.out.println("  biparts <graphdbfolder> (looks at bipartition information for a graph)");
-		System.out.println("  mapsupport <file> <outfile> <graphdbfolder> (maps bipartition information from graph to tree)");
+		System.out.println("  biparts <graphdbfolder> (look at bipartition information for a graph)");
+		System.out.println("  mapsupport <file> <outfile> <graphdbfolder> (map bipartition information from graph to tree)");
 		System.out.println("  getlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)\n");
 
 		System.out.println("---tree functions---");
@@ -2571,7 +2571,7 @@ public class MainRunner {
 		System.out.println("  labeltips <filename.tre> <filename>");
 		System.out.println("  labeltax <filename.tre> <graphdbfolder>");
 		System.out.println("  checktax <filename.tre> <graphdbfolder>");
-		System.out.println("  nexson2newick <filename.nexson> [filename.newick]");
+		System.out.println("  nexson2newick <filename.nexson> [filename.newick] (construct newick tree file from a nexson file)");
 		System.out.println("  convertfigtree <filename.tre> <outfile.tre>");
 		System.out.println("  nexson2mrp <filename.nexson>");
 		System.out.println("  converttaxonomy <taxonomy_filename> <outfile.tre> (construct a newick tree from a TSV taxonomy file)\n");
@@ -2579,15 +2579,15 @@ public class MainRunner {
 		System.out.println("---synthesis functions---");
 		System.out.println("  synthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
 		System.out.println("  synthesizedrafttreelist_nodeid <rootNodeId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
-		System.out.println("  extractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  extractdrafttree_nodeid <rootNodeId> <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  extractdraftsubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  extracttaxonomysubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  extractdraftsubtreefornodeids <tipNodeId1>,<tipNodeId2>,... <outfilename> <graphdbfolder> extracts the default synthesized tree (if any) stored below the root node");
-		System.out.println("  deleteDraftTree <graphdbfolder> deletes the synthesized tree (if any) from the graph\n");
+		System.out.println("  extractdrafttree_ottid <rootNodeOttId> <outfilename> <graphdbfolder> (extract the default synthesized tree (if any) stored below the root node)");
+		System.out.println("  extractdrafttree_nodeid <rootNodeId> <outfilename> <graphdbfolder> (extract the default synthesized tree (if any) stored below the root node)");
+		System.out.println("  extractdraftsubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> (extract the default synthesized tree (if any) stored below the root node)");
+		System.out.println("  extracttaxonomysubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> (extract the default synthesized tree (if any) stored below the root node)");
+		System.out.println("  extractdraftsubtreefornodeids <tipNodeId1>,<tipNodeId2>,... <outfilename> <graphdbfolder> (extract the default synthesized tree (if any) stored below the root node)");
+		System.out.println("  deleteDraftTree <graphdbfolder> (deletes the synthesized tree (if any) from the graph)\n");
 				
 		System.out.println("---temporary functions---");
-		System.out.println("  addtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> add the metadata node attched to 'life' to the sourceMetaNodes index for the 'taxonomy' source\n");
+		System.out.println("  addtaxonomymetadatanodetoindex <metadatanodeid> <graphdbfolder> (add the metadata node attached to 'life' to the sourceMetaNodes index for the 'taxonomy' source)\n");
 
 		System.out.println("---testing---");
 		System.out.println("  makeprunedbipartstestfiles <randomseed> <ntaxa> <path> (export newick files containing (1) a randomized tree and (2) topologies for each of its bipartitions, pruned to a minimal subset of taxa)\n");
