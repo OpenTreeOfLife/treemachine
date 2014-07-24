@@ -820,6 +820,7 @@ public class MainRunner {
 				return 1;
 			}
 		}
+		
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
 			JadeTree tree = null;
@@ -842,8 +843,8 @@ public class MainRunner {
 				}
 			}
 			if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono") == false) {
-				final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths());
-				System.out.println(newick + ";");
+				final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths()) + ";";
+				System.out.println(newick);
 			}
 		} finally {
 			ge.shutdownDB();
@@ -2250,7 +2251,7 @@ public class MainRunner {
 	
 	
 	/**
-	 *  arguments are 
+	 * arguments are:
 	 * database sourcename (test)
 	 * @param args
 	 * @return
@@ -2338,10 +2339,19 @@ public class MainRunner {
 		return 0;
 	}
 	
+	/**
+	 * Constructs a newick tree file from a passed in taxonomy file
+	 * arguments are:
+	 * taxonomy_filename output_tree_filename
+	 * @param args
+	 * @return
+	 * @throws Exception
+	 */
+	// @returns 0 for success, 1 for poorly formed command
 	
 	public int convertTaxonomy(String []args) {
 		if (args.length != 3) {
-			System.out.println("arguments should be: node graphdb");
+			System.out.println("arguments should be: taxonomyfile treefile");
 			return 1;
 		}
 		JadeTree tree = null;
@@ -2390,7 +2400,7 @@ public class MainRunner {
 				id_node_map.put(tid, tnode);
 			}
 			count = 0;
-			//construct tree
+			// construct tree
 			Stack <JadeNode> nodes = new Stack<JadeNode>();
 			root = id_node_map.get(cellular);
 			nodes.add(root);
@@ -2428,7 +2438,6 @@ public class MainRunner {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 		return 0;
 	}
 	
@@ -2528,9 +2537,9 @@ public class MainRunner {
 		System.out.println("  inittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initializes the tax graph with a tax list)\n");
 
 		System.out.println("---graph input---");
-		System.out.println("  addnewick <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("  addnewickTNRS <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
-		System.out.println("  addnexson <filename>  <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
+		System.out.println("  addnewick <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("  addnewickTNRS <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph of life)");
+		System.out.println("  addnexson <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
 		System.out.println("  pgloadind <graphdbfolder> filepath treeid [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
 		System.out.println("  mapcompat <graphdbfolder> treeid (maps the compatible nodes)");
 		
@@ -2540,7 +2549,7 @@ public class MainRunner {
 		System.out.println("  fulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (constructs a newick file from a particular node, break ties preferring sources)");
 		System.out.println("  fulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (constructs a newick file for a group of species)");
 		System.out.println("  mrpdump <name> <outfile> <graphdbfolder> (dumps the mrp matrix for a subgraph without the taxonomy branches)");
-		System.out.println("  graphml <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder> (constructs a graphml file of the region starting from the name)");
+		System.out.println("  graphml <name> <outfile> <usetaxonomy[T|F]> <graphdbfolder> (constructs a graphml file of the region starting from the name)");
 		System.out.println("  csvdump <name> <outfile> <graphdbfolder> (dumps the graph in format node,parent,nodename,parentname,source,brlen\n");
 		System.out.println("  taxtree <name> <outfile> <graphdbfolder> (dumps the taxonomy as a tree with UIDs as the tips");
 		
@@ -2564,7 +2573,8 @@ public class MainRunner {
 		System.out.println("  checktax <filename.tre> <graphdbfolder>");
 		System.out.println("  nexson2newick <filename.nexson> [filename.newick]");
 		System.out.println("  convertfigtree <filename.tre> <outfile.tre>");
-		System.out.println("  nexson2mrp <filename.nexson>\n");
+		System.out.println("  nexson2mrp <filename.nexson>");
+		System.out.println("  converttaxonomy <taxonomy_filename> <outfile.tre> (construct a newick tree from a TSV taxonomy file)\n");
 		
 		System.out.println("---synthesis functions---");
 		System.out.println("  synthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
