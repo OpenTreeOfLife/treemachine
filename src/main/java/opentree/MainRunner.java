@@ -198,8 +198,7 @@ public class MainRunner {
 	/**
 	 * @throws Exception 
 	 * @returns 0 for success, 1 for error, 2 for error with a request that the generic help be displayed
-	 */
-// TODO: newicks must be treated differently from nexsons. Former will contain '_', latter will not.
+	*/
 	public int graphImporterParser(String [] args) throws Exception {
 		
 		if (args.length != 6) {
@@ -208,11 +207,10 @@ public class MainRunner {
 		}
 		
 		boolean readingNewick = false;
+		boolean readingNewickTNRS = false;
 		if (args[0].compareTo("addnewick") == 0) {
 			readingNewick = true;
-		} 
-		boolean readingNewickTNRS = false;
-		if (args[0].compareTo("addnewickTNRS") == 0) {
+		} else if (args[0].compareTo("addnewickTNRS") == 0) {
 			readingNewick = true;
 			readingNewickTNRS = true;
 		} 
@@ -778,10 +776,10 @@ public class MainRunner {
 		return 0;
 	}
 	
+	// @returns 0 for success, 1 for poorly formed command
 	
 	public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
 		String sourcename = null;
-		String treeID = null;
 		String graphname = null;
 		String rootNodeID = null;
 		int maxDepth = -1;
@@ -789,13 +787,6 @@ public class MainRunner {
 			if (args.length == 3) {
 				sourcename = args[1];
 				graphname = args[2];
-			} else if (args.length == 4) {
-				if (args[1].compareTo("id") != 0) {
-					System.out.println("arguments should be:\n <sourcename> <graphdbfolder>\nor\n id <sourcename> <graphdbfolder>\n");
-					return 1;
-				}
-				treeID = args[2];
-				graphname = args[3];
 			} else {
 				System.out.println("arguments should be: <sourcename> <graphdbfolder>");
 				return 1;
@@ -806,15 +797,6 @@ public class MainRunner {
 				rootNodeID = args[2];
 				maxDepth = Integer.parseInt(args[3]);
 				graphname = args[4];
-			} else if (args.length == 6) {
-				if (args[1].compareTo("id") != 0) {
-					System.out.println("arguments should be:\n <sourcename> <rootNodeID> <maxDepth> <graphdbfolder>\nor\n id <sourcename> <graphdbfolder>\n");
-					return 1;
-				}
-				treeID = args[2];
-				rootNodeID = args[3];
-				maxDepth = Integer.parseInt(args[4]);
-				graphname = args[5];
 			} else {
 				System.out.println("arguments should be: <sourcename> <rootNodeID> <maxDepth> <graphdbfolder>");
 				return 1;
@@ -825,28 +807,27 @@ public class MainRunner {
 		try {
 			JadeTree tree = null;
 			if (rootNodeID == null) {
-				if (treeID == null) {
-					if (args[0].equalsIgnoreCase("sourceexplorer")) {
-						tree = ge.reconstructSource(sourcename, maxDepth);
-					} else if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono")) {
-						ge.getInformationAndMonophylyTreeVsTaxonomy(sourcename);
-					}
-				} else {
-					tree = ge.reconstructSourceByTreeID(treeID, maxDepth);
+				if (args[0].equalsIgnoreCase("sourceexplorer")) {
+					tree = ge.reconstructSource(sourcename, maxDepth);
+				} else if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono")) {
+					ge.getInformationAndMonophylyTreeVsTaxonomy(sourcename);
 				}
 			} else {
 				long rootNodeIDParsed = Long.parseLong(rootNodeID);
-				if (treeID == null) {
-					tree = ge.reconstructSource(sourcename, rootNodeIDParsed, maxDepth);
-				} else {
-					tree = ge.reconstructSourceByTreeID(treeID, rootNodeIDParsed, maxDepth);
-				}
+				tree = ge.reconstructSource(sourcename, rootNodeIDParsed, maxDepth);
 			}
 			if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono") == false) {
-				final String newick = tree.getRoot().getNewick(tree.getHasBranchLengths()) + ";";
+				String newick = tree.getRoot().getNewick(tree.getHasBranchLengths()) + ";";
 				System.out.println(newick);
+				System.out.println("Tree has ELs: " + tree.getHasBranchLengths());
+			} else {
+				System.out.println("I am somehow here...\n");
 			}
-		} finally {
+		} catch (NoSuchElementException ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+		}
+		finally {
 			ge.shutdownDB();
 		}
 		return 0;
@@ -964,7 +945,7 @@ public class MainRunner {
 		}
 		try {
 			FileWriter fw = new FileWriter(outfile);
-			fw.write(tt.getRoot().getNewick(false)+";");
+			fw.write(tt.getRoot().getNewick(false) + ";");
 			fw.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -1888,7 +1869,6 @@ public class MainRunner {
 			boolean reportBranchLength = false;
 			outFile.write(randomTree.getNewick(reportBranchLength) + ";\n");
 			outFile.close();
-		
 		} catch (IOException e) {
 			e.printStackTrace();
 			return 1;
@@ -1904,21 +1884,15 @@ public class MainRunner {
 			boolean reportBranchLength = false;
 			
 			for (JadeNode bipart : randomTreeBipartTrees) {
-				
 				// here is where the pruning happens
-				
 //				System.out.println(bipart.getNewick(reportBranchLength).concat(";\n"));
-				
 				outFile.write(bipart.getNewick(reportBranchLength).concat(";\n"));
 			}
-
 			outFile.close();
-
 		} catch (IOException e) {
 			e.printStackTrace();
 			return 1;
 		}
-		
 		return 0;
 	}
 	
@@ -2480,7 +2454,9 @@ public class MainRunner {
 				}
 			}
 			br.close();
-		} catch (IOException ioe) {}
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
 		System.out.println(treeCounter + " trees read.");
 		
 		PrintWriter outFile = null;
@@ -2562,7 +2538,8 @@ public class MainRunner {
 		System.out.println("  gettaxonomy <graphdbfolder> (return the name of the taxonomy used to initialize the graph)");
 		System.out.println("  biparts <graphdbfolder> (look at bipartition information for a graph)");
 		System.out.println("  mapsupport <file> <outfile> <graphdbfolder> (map bipartition information from graph to tree)");
-		System.out.println("  getlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)\n");
+		System.out.println("  getlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)");
+		System.out.println("  gettaxonomy <graphdbfolder> (report which taxonomy (e.g. version of OTT) was used to initialize the graph)\n");
 
 		System.out.println("---tree functions---");
 		System.out.println("(This is temporary and for doing some functions on trees (output or potential input))");
