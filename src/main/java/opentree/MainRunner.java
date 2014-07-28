@@ -94,6 +94,13 @@ public class MainRunner {
 			return 1;
 		}
 		
+		// check if graph already exists. abort if it does to prevent overwriting.
+		File f = new File(graphname);
+		if (f.exists()) {
+			System.out.println("Graph database already exists. Exiting.");
+			return 0;
+		}
+		
 		GraphInitializer tl = new GraphInitializer(graphname);
 		try {
 			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename, taxonomyversion);
@@ -819,10 +826,11 @@ public class MainRunner {
 			if (args[0].equalsIgnoreCase("sourceexplorer_inf_mono") == false) {
 				String newick = tree.getRoot().getNewick(tree.getHasBranchLengths()) + ";";
 				System.out.println(newick);
-				System.out.println("Tree has ELs: " + tree.getHasBranchLengths());
-			} else {
-				System.out.println("I am somehow here...\n");
+//				System.out.println("Tree has ELs: " + tree.getHasBranchLengths());
 			}
+//			else {
+//				System.out.println("I am somehow here...\n");
+//			}
 		} catch (NoSuchElementException ex) {
 			// TODO Auto-generated catch block
 			ex.printStackTrace();
