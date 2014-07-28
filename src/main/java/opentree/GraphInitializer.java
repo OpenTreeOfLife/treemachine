@@ -113,20 +113,22 @@ public class GraphInitializer extends GraphBase{
 			try {
 				BufferedReader sbr = new BufferedReader(new FileReader(synonymfile));
 				while ((str = sbr.readLine()) != null) {
-					StringTokenizer st = new StringTokenizer(str,"\t|\t");
-					String name = st.nextToken();
-					//this is the id that points to the right node
-					String parentuid = st.nextToken();
-					String uid = parentuid;
-					String type = "OTT synonym";//st.nextToken();
-					String source = "OTT";//st.nextToken();
-					ArrayList<String> tar = new ArrayList<String>();
-					tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
-					if (synonymHash.get(parentuid) == null) {
-						ArrayList<ArrayList<String> > ttar = new ArrayList<ArrayList<String> >();
-						synonymHash.put(parentuid, ttar);
+					if (!str.trim().equals("")) {
+						StringTokenizer st = new StringTokenizer(str,"\t|\t");
+						String name = st.nextToken();
+						//this is the id that points to the right node
+						String parentuid = st.nextToken();
+						String uid = parentuid;
+						String type = "OTT synonym";//st.nextToken();
+						String source = "OTT";//st.nextToken();
+						ArrayList<String> tar = new ArrayList<String>();
+						tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
+						if (synonymHash.get(parentuid) == null) {
+							ArrayList<ArrayList<String> > ttar = new ArrayList<ArrayList<String> >();
+							synonymHash.put(parentuid, ttar);
+						}
+						synonymHash.get(parentuid).add(tar);
 					}
-					synonymHash.get(parentuid).add(tar);
 				}
 				sbr.close();
 			} catch (Exception e) {
@@ -144,33 +146,33 @@ public class GraphInitializer extends GraphBase{
 			// for each line in input file
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			while ((str = br.readLine()) != null) {
-				
-				// check the first line to see if it the file has a header that we should skip
-				if (count == 0) {
-					if (str.startsWith("uid")) { // file contains a header. skip line
-						System.out.println("Skipping taxonomy header line: " + str);
-						continue;
-					}
-				}
-				
-				// collect sets of lines until we reach the transaction frequency
-				count += 1;
-				templines.add(str);
-				
-				// process lines in sets of N = transactionFrequency
-				if (count % transactionFrequency == 0) {
-					System.out.print("cur transaction: " + count);
-					System.out.print("\n");
-					tx = graphDb.beginTx();
-					try {
-						for (int i = 0; i < templines.size(); i++) {
-							processTaxInputLine(templines.get(i), taxonomyversion); // replaced repeated code with function call
+				if (!str.trim().equals("")) {
+					// check the first line to see if it the file has a header that we should skip
+					if (count == 0) {
+						if (str.startsWith("uid")) { // file contains a header. skip line
+							System.out.println("Skipping taxonomy header line: " + str);
+							continue;
 						}
-						tx.success();
-					} finally {
-						tx.finish();
 					}
-					templines.clear();
+					// collect sets of lines until we reach the transaction frequency
+					count += 1;
+					templines.add(str);
+					
+					// process lines in sets of N = transactionFrequency
+					if (count % transactionFrequency == 0) {
+						System.out.print("cur transaction: " + count);
+						System.out.print("\n");
+						tx = graphDb.beginTx();
+						try {
+							for (int i = 0; i < templines.size(); i++) {
+								processTaxInputLine(templines.get(i), taxonomyversion); // replaced repeated code with function call
+							}
+							tx.success();
+						} finally {
+							tx.finish();
+						}
+						templines.clear();
+					}
 				}
 			}
 			br.close();
