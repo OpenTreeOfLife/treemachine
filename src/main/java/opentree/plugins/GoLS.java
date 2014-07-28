@@ -231,6 +231,24 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(draftTreeInfo);
 	}
 	
+	@Description("Returns the version of the taxonomy used to initial the graph")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getTaxonomyVersion (
+			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
+
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
+		GraphExplorer ge = new GraphExplorer(gdb);
+		String taxVersion = "";
+		
+		try {
+			taxVersion = ge.getTaxonomyVersion();
+		} finally {
+			ge.shutdownDB();
+		}
+
+		return OTRepresentationConverter.convert(taxVersion);
+	}
+	
 	@Description("Returns a list of the synthesis tree source information")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSynthesisSourceList (
