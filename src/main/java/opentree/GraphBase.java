@@ -75,119 +75,116 @@ public abstract class GraphBase {
 	 * Access the graph db through the given service object. 
 	 * @param graphService
 	 */
-    public GraphBase(GraphDatabaseService graphService) {
+	public GraphBase(GraphDatabaseService graphService) {
 		graphDb = new GraphDatabaseAgent(graphService);
 		initNodeIndexes();
-    }
+	}
 
-    /**
-     * Access the graph db through the given embedded db object.
-     * @param embeddedGraph
-     */
-    public GraphBase(EmbeddedGraphDatabase embeddedGraph) {
-    	graphDb = new GraphDatabaseAgent(embeddedGraph);
-    	initNodeIndexes();
-    }
+	/**
+	 * Access the graph db through the given embedded db object.
+	 * @param embeddedGraph
+	 */
+	public GraphBase(EmbeddedGraphDatabase embeddedGraph) {
+		graphDb = new GraphDatabaseAgent(embeddedGraph);
+		initNodeIndexes();
+	}
 
-    /**
-     * Open the graph db through the given agent object.
-     * @param gdb
-     */
-    public GraphBase(GraphDatabaseAgent gdb) {
-    	graphDb = gdb;
-    	initNodeIndexes();
-    }
-    
+	/**
+	 * Open the graph db through the given agent object.
+	 * @param gdb
+	 */
+	public GraphBase(GraphDatabaseAgent gdb) {
+		graphDb = gdb;
+		initNodeIndexes();
+	}
+	
 	/**
 	 * Just close the db.
 	 */
-	public void shutdownDB(){
+	public void shutdownDB() {
 		graphDb.shutdownDb();
 	}
-    
+	
 	/**
 	 * Wrapper function for taxUID searches on the graphTaxUIDNodes index. Throws TaxonNotFoundException if the search fails,
 	 * or a MultipleHitsWhenOneExpectedException if the uid matches multiple taxa.
 	 * @return taxNode
 	 * @throws MultipleHitsException, TaxonNotFoundException
 	 */
-    public Node findGraphTaxNodeByUID(final String taxUID) throws MultipleHitsException, TaxonNotFoundException {
-        IndexHits<Node> hits = GraphBase.graphTaxUIDNodeIndex.get(NodeProperty.TAX_UID.propertyName, taxUID);
-        Node firstNode = null;
-        try {
-        	firstNode = hits.getSingle();
-        } catch (NoSuchElementException ex) {
-        	throw new MultipleHitsException(taxUID);
-        } finally {
-        	hits.close();
-        }
+	public Node findGraphTaxNodeByUID(final String taxUID) throws MultipleHitsException, TaxonNotFoundException {
+		IndexHits<Node> hits = GraphBase.graphTaxUIDNodeIndex.get(NodeProperty.TAX_UID.propertyName, taxUID);
+		Node firstNode = null;
+		try {
+			firstNode = hits.getSingle();
+		} catch (NoSuchElementException ex) {
+			throw new MultipleHitsException(taxUID);
+		} finally {
+			hits.close();
+		}
 		if (firstNode == null) {
 			throw new TaxonNotFoundException(NodeProperty.TAX_UID.propertyName + " = " + String.valueOf(taxUID));
 		}
 		return firstNode;
 	}
-    
+	
 	/**
 	 * Wrapper function for simple name searches on the graphNamedNodes index. Throws TaxonNotFoundException if the search fails,
 	 * or a MultipleHitsWhenOneExpectedException if the name matches multiple taxa.
 	 * @return taxNode
 	 * @throws MultipleHitsException, TaxonNotFoundException
 	 */
-    public Node findTaxNodeByName(final String name) throws TaxonNotFoundException, MultipleHitsException {
-        IndexHits<Node> hits = GraphBase.graphNodeIndex.get(NodeProperty.NAME.propertyName, name);
-        Node firstNode = null;
-        try {
-        	firstNode = hits.getSingle();
-        } catch (NoSuchElementException ex) {
-        	throw new MultipleHitsException(name);
-        } finally {
-        	hits.close();
-        }
+	public Node findTaxNodeByName(final String name) throws TaxonNotFoundException, MultipleHitsException {
+		IndexHits<Node> hits = GraphBase.graphNodeIndex.get(NodeProperty.NAME.propertyName, name);
+		Node firstNode = null;
+		try {
+			firstNode = hits.getSingle();
+		} catch (NoSuchElementException ex) {
+			throw new MultipleHitsException(name);
+		} finally {
+			hits.close();
+		}
 		if (firstNode == null) {
 			throw new TaxonNotFoundException(name);
 		}
 		return firstNode;
 	}
-    
-    /**
-     * A wrapper for the index call to find the life node.
-     * @return rootnode
-     */
-    public Node getGraphRootNode() {
-    	return graphDb.getNodeById((Long) graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName));
-    }
-    
-    
-    
-    public String getTaxonomyVersion () {
-    	return (String)graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_TAXONOMY.propertyName);
-    }
-    
-    
-    /**
-     * Used to set graph properties identifying the root node, so that is will always be known.
-     */
-    public void setGraphRootNode(Node rootNode, String taxonomyversion) {
-    	
-    	System.out.println("setting root node");
-    	System.out.println("name: " + rootNode.getProperty(NodeProperty.NAME.propertyName));
-    	graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_NAME.propertyName, rootNode.getProperty(NodeProperty.NAME.propertyName));
-    	
-    	System.out.println("id: " + rootNode.getId());
-    	graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName, rootNode.getId());
-    	
-    	System.out.println("setting taxonomy version: " + taxonomyversion);
-    	graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_TAXONOMY.propertyName, taxonomyversion);
-    }
-    
-    
-    
-    
-    /**
-     * Return a HashSet containing the nodes corresponding to the passed long array nodeIDArr.
-     * @param nodeIDArr
-     * @return nodes
-     */
+	
+	/**
+	 * A wrapper for the index call to find the life node.
+	 * @return rootnode
+	 */
+	public Node getGraphRootNode() {
+		return graphDb.getNodeById((Long) graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName));
+	}
+	
+	
+	
+	public String getTaxonomyVersion () {
+		return (String)graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_TAXONOMY.propertyName);
+	}
+	
+	
+	/**
+	 * Used to set graph properties identifying the root node, so that is will always be known.
+	 */
+	public void setGraphRootNode(Node rootNode, String taxonomyversion) {
+		
+		System.out.println("setting root node");
+		System.out.println("name: " + rootNode.getProperty(NodeProperty.NAME.propertyName));
+		graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_NAME.propertyName, rootNode.getProperty(NodeProperty.NAME.propertyName));
+		
+		System.out.println("id: " + rootNode.getId());
+		graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName, rootNode.getId());
+		
+		System.out.println("setting taxonomy version: " + taxonomyversion);
+		graphDb.setGraphProperty(GraphProperty.GRAPH_ROOT_NODE_TAXONOMY.propertyName, taxonomyversion);
+	}
+	
+	/**
+	 * Return a HashSet containing the nodes corresponding to the passed long array nodeIDArr.
+	 * @param nodeIDArr
+	 * @return nodes
+	 */
 	public HashSet<Node> getNodesForIds(long [] nodeIDArr) {
 		HashSet<Node> s = new HashSet<Node>();
 		for (int i = 0; i < nodeIDArr.length; i++) {
@@ -197,11 +194,11 @@ public abstract class GraphBase {
 		return s;
 	}
 
-    /**
-     * Return a HashSet containing the nodes corresponding to the passed Iterable<Long> nodeIDIter.
-     * @param nodeIDIter
-     * @return nodes
-     */
+	/**
+	 * Return a HashSet containing the nodes corresponding to the passed Iterable<Long> nodeIDIter.
+	 * @param nodeIDIter
+	 * @return nodes
+	 */
 	public HashSet<Node> getNodesForIds(Iterable<Long> nodeIDIter) {
 		HashSet<Node> s = new HashSet<Node>();
 		for (Long nid : nodeIDIter) {
@@ -379,22 +376,22 @@ public abstract class GraphBase {
 		}
 	}
 	
-    /**
-     * Just initialize the standard GoL indexes used for searching.
-     */
+	/**
+	 * Just initialize the standard GoL indexes used for searching.
+	 */
 	private void initNodeIndexes() {
 		// TODO: should move this to an enum to make management/index access easier to deal with
-        graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
+		graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
 		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
-        sourceRelIndex = graphDb.getRelIndex("sourceRels");
-        sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
-        sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-    	graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes");
-    	synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
-    	graphTaxNewNodes = graphDb.getNodeIndex(""); // not sure what the name of this one is in the graphdb. it doesn't seem to be used (for now)
-    	
-    // synthetic tree indices
-    	synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes");
-    	synthRelIndex = graphDb.getRelIndex("synthRels");
+		sourceRelIndex = graphDb.getRelIndex("sourceRels");
+		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
+		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
+		graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes");
+		synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
+		graphTaxNewNodes = graphDb.getNodeIndex(""); // not sure what the name of this one is in the graphdb. it doesn't seem to be used (for now)
+		
+	// synthetic tree indices
+		synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes");
+		synthRelIndex = graphDb.getRelIndex("synthRels");
 	}
 }
