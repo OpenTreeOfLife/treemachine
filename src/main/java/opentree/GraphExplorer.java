@@ -2611,10 +2611,10 @@ public class GraphExplorer extends GraphBase {
 		JadeNode root = new JadeNode();
 //		System.out.println("Hiya!");
 		if (rootnode.hasProperty("name")) { 
-			System.out.println("root name: " + rootnode.getProperty("name") + "\n");
+//			System.out.println("root name: " + rootnode.getProperty("name") + "\n");
 			root.setName((String)rootnode.getProperty("name") + "______" + (String)rootnode.getProperty(NodeProperty.TAX_UID.propertyName));
 		} else {
-			System.out.println("rootnode has no associated name.");
+//			System.out.println("rootnode has no associated name.");
 		}
 		
 		root.assocObject("nodeid", rootnode.getId());
