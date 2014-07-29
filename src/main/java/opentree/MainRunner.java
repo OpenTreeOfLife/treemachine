@@ -2338,12 +2338,14 @@ public class MainRunner {
 		}
 		JadeTree tree = null;
 		JadeNode root = null;
+		String cellular = "93302"; // default. for full tree.
+		Boolean cellularHit = false;
+		String taxonomyRoot = "";
 		String taxonomyfile = args[1];
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(taxonomyfile));
 			String str;
 			int count = 0;
-			String cellular = "93302";
 			HashMap<String,JadeNode> id_node_map = new HashMap<String,JadeNode>();
 			HashMap<String,ArrayList<String>> id_childs = new HashMap<String,ArrayList<String>>();
 			while ((str = br.readLine()) != null) {
@@ -2354,37 +2356,49 @@ public class MainRunner {
 						continue;
 					}
 				}
-				
-				// collect sets of lines until we reach the transaction frequency
-				count += 1;
-				StringTokenizer st = new StringTokenizer(str,"|");
-				String tid = null;
-				String pid = null;
-				String name = null;
-				String rank = null;
-				String srce = null;
-				String uniqname = null;
-				String flag = null; 
-				tid = st.nextToken().trim();
-				pid = st.nextToken().trim();
-				name = st.nextToken().trim();
-				rank = st.nextToken().trim();
-				srce = st.nextToken().trim();
-				uniqname = st.nextToken().trim();
-				flag = st.nextToken().trim(); //for dubious
-				if (id_childs.containsKey(pid) == false) {
-					id_childs.put(pid, new ArrayList<String>());
+				if (!str.trim().equals("")) {
+					// collect sets of lines until we reach the transaction frequency
+					count += 1;
+					StringTokenizer st = new StringTokenizer(str,"|");
+					String tid = null;
+					String pid = null;
+					String name = null;
+					String rank = null;
+					String srce = null;
+					String uniqname = null;
+					String flag = null; 
+					tid = st.nextToken().trim();
+					pid = st.nextToken().trim();
+					name = st.nextToken().trim();
+					rank = st.nextToken().trim();
+					srce = st.nextToken().trim();
+					uniqname = st.nextToken().trim();
+					flag = st.nextToken().trim(); //for dubious
+					if (pid.trim().equals("")) {
+						taxonomyRoot = tid;
+					}
+					if (tid == cellular) {
+						cellularHit = true;
+					}
+					if (id_childs.containsKey(pid) == false) {
+						id_childs.put(pid, new ArrayList<String>());
+					}
+					id_childs.get(pid).add(tid);
+					JadeNode tnode = new JadeNode();
+					tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
+					tnode.assocObject("id", tid);
+					id_node_map.put(tid, tnode);
 				}
-				id_childs.get(pid).add(tid);
-				JadeNode tnode = new JadeNode();
-				tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
-				tnode.assocObject("id", tid);
-				id_node_map.put(tid, tnode);
 			}
 			count = 0;
 			// construct tree
 			Stack <JadeNode> nodes = new Stack<JadeNode>();
-			root = id_node_map.get(cellular);
+			if (cellularHit) {
+				taxonomyRoot = cellular;
+			}
+			System.out.println("Setting root to: " + taxonomyRoot);
+			root = id_node_map.get(taxonomyRoot);
+			
 			nodes.add(root);
 			while (nodes.empty() == false) {
 				JadeNode tnode = nodes.pop();
