@@ -231,7 +231,7 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(draftTreeInfo);
 	}
 	
-	@Description("Returns the version of the taxonomy used to initial the graph")
+	@Description("Returns the version of the taxonomy used to initialize the graph")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getTaxonomyVersion (
 			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
