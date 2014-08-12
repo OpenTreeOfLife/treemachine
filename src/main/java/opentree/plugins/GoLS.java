@@ -111,7 +111,7 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
-			vals.put("mrca_node_id", mrca.getId());
+			vals.put("mrca_nodeId", mrca.getId());
 			
 			// now attempt to find the most recent taxonomic ancestor
 			Node mrta = mrca;
@@ -122,8 +122,8 @@ public class GoLS extends ServerPlugin {
 			vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
 			vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
 			vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-			vals.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
-			vals.put("nearest_taxon_mrca_node_id", mrta.getId());
+			vals.put("nearest_taxon_mrca_ottId", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+			vals.put("nearest_taxon_mrca_nodeId", mrta.getId());
 
 			return OTRepresentationConverter.convert(vals);
 		}
@@ -174,6 +174,98 @@ public class GoLS extends ServerPlugin {
 			vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
 			vals.put("mrca_ottId", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 	
+			return OTRepresentationConverter.convert(vals);
+		}
+	}
+	
+	
+	@Description("Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current "
+			+ " synthesis tree. come from either the 1) taxonomy, or 2) synthetic tree (which could be quite different)in the taxonomy. Accepts any combination of nodeIds and ottIds as input. Returns the " +
+			 "following information about the MRCA: 1) name, 2) ottId, 3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa.")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getMRCA(@Source GraphDatabaseService graphDb,
+			@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
+			@Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds,
+			@Description("Tree source (either 'taxonomy' or 'synth'") @Parameter(name = "treeSource", optional = false) String treeSource) throws MultipleHitsException, TaxonNotFoundException {
+		
+		boolean taxonomyOnly = true;
+		ArrayList<Node> tips = new ArrayList<Node>();
+		
+		if (treeSource == null) {
+			throw new IllegalArgumentException("You must supply a treeSource, either 'taxonomy' or 'synth'.");
+		} else if (!treeSource.equalsIgnoreCase("synth") && !treeSource.equalsIgnoreCase("taxonomy")) {
+			throw new IllegalArgumentException("treeSource must be either 'taxonomy' or 'synth'.");
+		}
+		if (treeSource.equalsIgnoreCase("synth")) {
+			taxonomyOnly = false;
+		}
+		
+		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
+			throw new IllegalArgumentException("You must supply at least one nodeId or ottId.");
+		}
+		
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		
+		if (nodeIds != null && nodeIds.length > 0) {
+			for (long nodeId : nodeIds) {
+				Node n = graphDb.getNodeById(nodeId);
+				if (n != null) {
+					if (taxonomyOnly) {
+						tips.add(n);
+					} else { // need to check if taxon is in the synthetic tree. 
+						if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
+							tips.add(n);
+						} else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
+							tips.addAll(ge.getTaxonomyDescendantTips(n));
+						}
+					}
+				}
+			}
+		}
+		
+		if (ottIds != null && ottIds.length > 0) {
+			for (long ottId : ottIds) {
+				Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				if (n != null) {
+					if (taxonomyOnly) {
+						tips.add(n);
+					} else { // need to check if taxon is in the synthetic tree. 
+						if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
+							tips.add(n);
+						} else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
+							tips.addAll(ge.getTaxonomyDescendantTips(n));
+						}
+					}
+				}
+			}
+		}
+
+		if (tips.size() < 1) {
+			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ottIds provided.");
+		} else {
+			HashMap<String, Object> vals = new HashMap<String, Object>();
+			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
+			
+			vals.put("mrca_nodeId", mrca.getId());
+			vals.put("found_nodes", tips);
+			
+			// now attempt to find the most recent taxonomic ancestor
+			Node mrta = mrca;
+			
+			if (!taxonomyOnly) {
+				while (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+					mrta = mrta.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+				}
+				vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
+				vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+				vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
+				vals.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+				vals.put("nearest_taxon_mrca_node_id", mrta.getId());
+			} else {
+				vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
+				vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
+				vals.put("mrca_ottId", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
+			}
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
@@ -250,8 +342,8 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeID (
 			@Source GraphDatabaseService graphDb,
-			@Description( "The OTT id of the intended starting taxon. If not specified, the the root of the draft tree will be used if it is set. If it not set then this will return null.")
-//			@Parameter(name = "startingTaxonName", optional = true) String startingTaxonName) throws TaxonNotFoundException, MultipleHitsException {
+			@Description("The OTT id of the intended starting taxon. If not specified, the the root of the draft tree will be used if it is set. " +
+			"If it not set then this will return null.")
 			@Parameter(name = "startingTaxonOTTId", optional = true) String startingTaxonOTTId) throws TaxonNotFoundException, MultipleHitsException {
 
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
@@ -274,7 +366,6 @@ public class GoLS extends ServerPlugin {
 
 			draftTreeInfo = new HashMap<String, Object>();
 			draftTreeInfo.put("draftTreeName",GraphBase.DRAFTTREENAME);
-//			draftTreeInfo.put("lifeNodeID", String.valueOf(ge.findTaxNodeByName("life").getId()));
 			draftTreeInfo.put("startNodeTaxName", String.valueOf(startNode.getProperty(NodeProperty.NAME.propertyName)));
 			draftTreeInfo.put("startNodeOTTId", Long.valueOf((String) startNode.getProperty(NodeProperty.TAX_UID.propertyName))); //TODO: the taxuids should be stored as longs, not strings... fix this where it happens
 			draftTreeInfo.put("startNodeID", startNode.getId());
