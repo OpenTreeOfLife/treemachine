@@ -136,47 +136,47 @@ public class GoLS extends ServerPlugin {
 		@Source GraphDatabaseService graphDb,
 		@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
 		@Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
-
-	if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
-		throw new IllegalArgumentException("You must supply at least one nodeId or ottId.");
-	}
 	
-	ArrayList<Node> tips = new ArrayList<Node>();
-	GraphExplorer ge = new GraphExplorer(graphDb);
-	
-	if (nodeIds != null && nodeIds.length > 0) {
-		for (long nodeId : nodeIds) {
-			Node n = graphDb.getNodeById(nodeId);
-			if (n != null) {
-				tips.add(n);
+		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
+			throw new IllegalArgumentException("You must supply at least one nodeId or ottId.");
+		}
+		
+		ArrayList<Node> tips = new ArrayList<Node>();
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		
+		if (nodeIds != null && nodeIds.length > 0) {
+			for (long nodeId : nodeIds) {
+				Node n = graphDb.getNodeById(nodeId);
+				if (n != null) {
+					tips.add(n);
+				}
 			}
 		}
-	}
-	
-	if (ottIds != null && ottIds.length > 0) {
-		for (long ottId : ottIds) {
-			Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
-			if (n != null) {
-				tips.add(n);
+		
+		if (ottIds != null && ottIds.length > 0) {
+			for (long ottId : ottIds) {
+				Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				if (n != null) {
+					tips.add(n);
+				}
 			}
 		}
+	
+		if (tips.size() < 1) {
+			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
+	
+		} else {
+			HashMap<String, Object> vals = new HashMap<String, Object>();
+			vals.put("found_nodes", tips);
+			Node mrca = ge.getDraftTreeMRCAForNodes(tips, true);
+			vals.put("mrca_nodeId", mrca.getId());
+			vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
+			vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
+			vals.put("mrca_ottId", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
+	
+			return OTRepresentationConverter.convert(vals);
+		}
 	}
-
-	if (tips.size() < 1) {
-		throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
-
-	} else {
-		HashMap<String, Object> vals = new HashMap<String, Object>();
-		vals.put("found_nodes", tips);
-		Node mrca = ge.getDraftTreeMRCAForNodes(tips, true);
-		vals.put("mrca_nodeId", mrca.getId());
-		vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
-		vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
-		vals.put("mrca_ottId", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
-
-		return OTRepresentationConverter.convert(vals);
-	}
-}
 	
 	@Description("Get a subtree of the draft tree with tips corresponding to the set of nodes identified by the query"
 			+ "input. Accepts any combination of node ids and ott ids as input.")
