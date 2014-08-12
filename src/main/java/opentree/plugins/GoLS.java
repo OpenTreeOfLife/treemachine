@@ -62,9 +62,10 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(sourceArrayList);
 	}
 
-	@Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input. Returns the " +
-				 "node id of the mrca node as well as the node id, name, and informoation about the most recent taxonomic ancestor (the mrta, " +
-				 "which may be the mrca or may be an ancestor of the mrca itself.")
+	@Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input." +
+		"If a query taxon is not present in the synthetic tree (i.e. it is not monophyletic), the tip descendants of the taxon " +
+		"are used for the MRCA calculation. Returns the nodeId of the mrca node as well as the nodeId, name, and information " +
+		"about the most recent taxonomic ancestor (the mrta, which may be the mrca or may be an ancestor of the mrca itself.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeMRCAForNodes(
 			@Source GraphDatabaseService graphDb,
@@ -82,7 +83,11 @@ public class GoLS extends ServerPlugin {
 			for (long nodeId : nodeIds) {
 				Node n = graphDb.getNodeById(nodeId);
 				if (n != null) {
-					tips.add(n);
+					if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
+						tips.add(n);
+					} else { // if not in synth tree (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
+						tips.addAll(ge.getTaxonomyDescendantTips(n));	
+					}
 				}
 			}
 		}
@@ -91,14 +96,17 @@ public class GoLS extends ServerPlugin {
 			for (long ottId : ottIds) {
 				Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
 				if (n != null) {
-					tips.add(n);
+					if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
+						tips.add(n);
+					} else { // if not in synth tree (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
+						tips.addAll(ge.getTaxonomyDescendantTips(n));	
+					}
 				}
 			}
 		}
 
 		if (tips.size() < 1) {
 			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
-
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
@@ -111,20 +119,15 @@ public class GoLS extends ServerPlugin {
 				mrta = mrta.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
 			}
 
-			if (mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
-				vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
-				vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-				vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-				vals.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
-				vals.put("nearest_taxon_mrca_node_id", mrta.getId());
-			}
+			vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
+			vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+			vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
+			vals.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+			vals.put("nearest_taxon_mrca_node_id", mrta.getId());
 
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
-	
-	
-	
 	
 	@Description("Get the MRCA of a set of nodes in the taxonomy. Accepts any combination of node ids and ott ids as input. Returns the " +
 			 "following information about the MRCA: 1) name, 2) ottId, 3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa.")
