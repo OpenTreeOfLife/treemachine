@@ -3206,4 +3206,16 @@ public class GraphExplorer extends GraphBase {
 		System.out.println("number of edges supported both by tax and tree: " + bothtaxtree);
 		return tcount;
 	}
+	
+	// From a given node, return all taxonomic descendants which are tips
+	public ArrayList<Node> getTaxonomyDescendantTips(Node startNode) {
+		ArrayList<Node> tips = new ArrayList<Node>();
+		TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
+		for (Node curnode : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
+			if (curnode.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING) == false) { // tip
+				tips.add(curnode);
+			}
+		}
+		return tips;
+	}
 }
