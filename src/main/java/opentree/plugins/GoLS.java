@@ -111,7 +111,7 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
-			vals.put("mrca_nodeId", mrca.getId());
+			vals.put("mrca_node_id", mrca.getId());
 			
 			// now attempt to find the most recent taxonomic ancestor
 			Node mrta = mrca;
@@ -122,8 +122,8 @@ public class GoLS extends ServerPlugin {
 			vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
 			vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
 			vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-			vals.put("nearest_taxon_mrca_ottId", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
-			vals.put("nearest_taxon_mrca_nodeId", mrta.getId());
+			vals.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+			vals.put("nearest_taxon_mrca_node_id", mrta.getId());
 
 			return OTRepresentationConverter.convert(vals);
 		}
@@ -169,10 +169,10 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, true);
-			vals.put("mrca_nodeId", mrca.getId());
+			vals.put("mrca_node_id", mrca.getId());
 			vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
 			vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
-			vals.put("mrca_ottId", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
+			vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 	
 			return OTRepresentationConverter.convert(vals);
 		}
@@ -246,7 +246,7 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
 			
-			vals.put("mrca_nodeId", mrca.getId());
+			vals.put("mrca_node_id", mrca.getId());
 			vals.put("found_nodes", tips);
 			
 			// now attempt to find the most recent taxonomic ancestor
@@ -264,7 +264,7 @@ public class GoLS extends ServerPlugin {
 			} else {
 				vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
 				vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
-				vals.put("mrca_ottId", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
+				vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 			}
 			return OTRepresentationConverter.convert(vals);
 		}
