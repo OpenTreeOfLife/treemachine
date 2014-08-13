@@ -171,6 +171,7 @@ public class GoLS extends ServerPlugin {
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, true);
 			vals.put("mrca_node_id", mrca.getId());
 			vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
+			vals.put("mrca_unique_name", mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
 			vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
 			vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 	
@@ -264,6 +265,7 @@ public class GoLS extends ServerPlugin {
 				vals.put("nearest_taxon_mrca_node_id", mrta.getId());
 			} else {
 				vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
+				vals.put("mrca_unique_name", mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
 				vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
 				vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 			}
