@@ -179,9 +179,10 @@ public class GoLS extends ServerPlugin {
 	}
 	
 	
-	@Description("Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current "
-			+ " synthetic tree). come from either the 1) taxonomy, or 2) synthetic tree (which could be quite different)in the taxonomy. Accepts any combination of nodeIds and ottIds as input. Returns the " +
-			 "following information about the MRCA: 1) name, 2) ottId, 3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa.")
+	@Description("Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current" +
+			" synthetic tree). come from either the 1) taxonomy, or 2) synthetic tree (which could be quite different)in the taxonomy." +
+			" Accepts any combination of nodeIds and ottIds as input. Returns the following information about the MRCA: 1) name, 2) ottId," +
+			" 3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa, and the query target (treeSource).")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getMRCA(@Source GraphDatabaseService graphDb,
 			@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
