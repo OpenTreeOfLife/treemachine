@@ -65,7 +65,8 @@ public class GoLS extends ServerPlugin {
 	@Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input." +
 		"If a query taxon is not present in the synthetic tree (i.e. it is not monophyletic), the tip descendants of the taxon " +
 		"are used for the MRCA calculation. Returns the nodeId of the mrca node as well as the nodeId, name, and information " +
-		"about the most recent taxonomic ancestor (the mrta, which may be the mrca or may be an ancestor of the mrca itself.")
+		"about the most recent taxonomic ancestor (the mrta, which may be the mrca or may be an ancestor of the mrca itself. " +
+		"Also returns any unmatched nodeIds/ottIds.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeMRCAForNodes(
 			@Source GraphDatabaseService graphDb,
@@ -77,6 +78,8 @@ public class GoLS extends ServerPlugin {
 		}
 		
 		ArrayList<Node> tips = new ArrayList<Node>();
+		ArrayList<Long> unmatchedOtts = new ArrayList<Long>();
+		ArrayList<Long> unmatchedNodes = new ArrayList<Long>();
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		
 		if (nodeIds != null && nodeIds.length > 0) {
@@ -85,22 +88,29 @@ public class GoLS extends ServerPlugin {
 				if (n != null) {
 					if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
 						tips.add(n);
-					} else { // if not in synth tree (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
-						tips.addAll(ge.getTaxonomyDescendantTips(n));	
+					} else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
+						tips.addAll(ge.getTaxonomyDescendantTips(n));
 					}
+				} else {
+					unmatchedNodes.add(nodeId);
 				}
 			}
 		}
 		
 		if (ottIds != null && ottIds.length > 0) {
 			for (long ottId : ottIds) {
-				Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				Node n = null;
+				try {
+					n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				} catch (TaxonNotFoundException e) {}
 				if (n != null) {
 					if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
 						tips.add(n);
-					} else { // if not in synth tree (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
-						tips.addAll(ge.getTaxonomyDescendantTips(n));	
+					} else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
+						tips.addAll(ge.getTaxonomyDescendantTips(n));
 					}
+				} else {
+					unmatchedOtts.add(ottId);
 				}
 			}
 		}
@@ -109,9 +119,17 @@ public class GoLS extends ServerPlugin {
 			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
-			vals.put("found_nodes", tips);
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
+			
 			vals.put("mrca_node_id", mrca.getId());
+			vals.put("found_nodes", tips);
+			
+			if (!unmatchedOtts.isEmpty()) {
+				vals.put("unmatched_ott_ids", unmatchedOtts);
+			}
+			if (!unmatchedNodes.isEmpty()) {
+				vals.put("unmatched_node_ids", unmatchedNodes);
+			}
 			
 			// now attempt to find the most recent taxonomic ancestor
 			Node mrta = mrca;
@@ -130,7 +148,8 @@ public class GoLS extends ServerPlugin {
 	}
 	
 	@Description("Get the MRCA of a set of nodes in the taxonomy. Accepts any combination of node ids and ott ids as input. Returns the " +
-			 "following information about the MRCA: 1) name, 2) ottId, 3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa.")
+		"following information about the MRCA: 1) name, 2) ottId, 3) rank, and 4) nodeId. Also returns the nodeIds of the query taxa, as " +
+		"well as any unmatched nodeIds/ottIds.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getTaxonomyMRCAForNodes(
 		@Source GraphDatabaseService graphDb,
@@ -142,6 +161,8 @@ public class GoLS extends ServerPlugin {
 		}
 		
 		ArrayList<Node> tips = new ArrayList<Node>();
+		ArrayList<Long> unmatchedOtts = new ArrayList<Long>();
+		ArrayList<Long> unmatchedNodes = new ArrayList<Long>();
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		
 		if (nodeIds != null && nodeIds.length > 0) {
@@ -149,15 +170,22 @@ public class GoLS extends ServerPlugin {
 				Node n = graphDb.getNodeById(nodeId);
 				if (n != null) {
 					tips.add(n);
+				} else {
+					unmatchedNodes.add(nodeId);
 				}
 			}
 		}
 		
 		if (ottIds != null && ottIds.length > 0) {
 			for (long ottId : ottIds) {
-				Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				Node n = null;
+				try {
+					n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				} catch (TaxonNotFoundException e) {}
 				if (n != null) {
 					tips.add(n);
+				} else {
+					unmatchedOtts.add(ottId);
 				}
 			}
 		}
@@ -167,8 +195,17 @@ public class GoLS extends ServerPlugin {
 	
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
-			vals.put("found_nodes", tips);
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, true);
+			
+			vals.put("found_nodes", tips);
+			
+			if (!unmatchedOtts.isEmpty()) {
+				vals.put("unmatched_ott_ids", unmatchedOtts);
+			}
+			if (!unmatchedNodes.isEmpty()) {
+				vals.put("unmatched_node_ids", unmatchedNodes);
+			}
+			
 			vals.put("mrca_node_id", mrca.getId());
 			vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
 			vals.put("mrca_unique_name", mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
@@ -180,10 +217,10 @@ public class GoLS extends ServerPlugin {
 	}
 	
 	
-	@Description("Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current" +
-			" synthetic tree). come from either the 1) taxonomy, or 2) synthetic tree (which could be quite different)in the taxonomy." +
-			" Accepts any combination of nodeIds and ottIds as input. Returns the following information about the MRCA: 1) name, 2) ottId," +
-			" 3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa, and the query target (treeSource).")
+	@Description("Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current " +
+		"synthetic tree). come from either the 1) taxonomy, or 2) synthetic tree (which could be quite different)in the taxonomy. " +
+		"Accepts any combination of nodeIds and ottIds as input. Returns the following information about the MRCA: 1) name, 2) ottId, " +
+		"3) rank, and 4) nodeId. Also returns the nodeIds of the query taxa, the query target (treeSource), and any unmatched nodeIds/ottIds.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getMRCA(@Source GraphDatabaseService graphDb,
 			@Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
@@ -191,7 +228,6 @@ public class GoLS extends ServerPlugin {
 			@Description("Tree source (either 'taxonomy' or 'synth'") @Parameter(name = "treeSource", optional = false) String treeSource) throws MultipleHitsException, TaxonNotFoundException {
 		
 		boolean taxonomyOnly = true;
-		ArrayList<Node> tips = new ArrayList<Node>();
 		
 		if (treeSource == null) {
 			throw new IllegalArgumentException("You must supply a treeSource, either 'taxonomy' or 'synth'.");
@@ -201,11 +237,13 @@ public class GoLS extends ServerPlugin {
 		if (treeSource.equalsIgnoreCase("synth")) {
 			taxonomyOnly = false;
 		}
-		
 		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
 			throw new IllegalArgumentException("You must supply at least one nodeId or ottId.");
 		}
 		
+		ArrayList<Node> tips = new ArrayList<Node>();
+		ArrayList<Long> unmatchedOtts = new ArrayList<Long>();
+		ArrayList<Long> unmatchedNodes = new ArrayList<Long>();
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		
 		if (nodeIds != null && nodeIds.length > 0) {
@@ -221,13 +259,18 @@ public class GoLS extends ServerPlugin {
 							tips.addAll(ge.getTaxonomyDescendantTips(n));
 						}
 					}
+				} else {
+					unmatchedNodes.add(nodeId);
 				}
 			}
 		}
 		
 		if (ottIds != null && ottIds.length > 0) {
 			for (long ottId : ottIds) {
-				Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				Node n = null;
+				try {
+					n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				} catch (TaxonNotFoundException e) {}
 				if (n != null) {
 					if (taxonomyOnly) {
 						tips.add(n);
@@ -238,6 +281,8 @@ public class GoLS extends ServerPlugin {
 							tips.addAll(ge.getTaxonomyDescendantTips(n));
 						}
 					}
+				} else {
+					unmatchedOtts.add(ottId);
 				}
 			}
 		}
@@ -248,8 +293,16 @@ public class GoLS extends ServerPlugin {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
 			
+			vals.put("tree_source", treeSource);
 			vals.put("mrca_node_id", mrca.getId());
 			vals.put("found_nodes", tips);
+			
+			if (!unmatchedOtts.isEmpty()) {
+				vals.put("unmatched_ott_ids", unmatchedOtts);
+			}
+			if (!unmatchedNodes.isEmpty()) {
+				vals.put("unmatched_node_ids", unmatchedNodes);
+			}
 			
 			// now attempt to find the most recent taxonomic ancestor
 			Node mrta = mrca;
@@ -269,6 +322,7 @@ public class GoLS extends ServerPlugin {
 				vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
 				vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 			}
+			ge.shutdownDB();
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
