@@ -2703,7 +2703,8 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("commands");
 		System.out.println("---initialize---");
-		System.out.println("  inittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initialize the tax graph with a tax list)\n");
+		System.out.println("  inittax <filename> (<synonymfilename>) <taxonomyversion> <graphdbfolder> (initialize the tax graph with a tax list)");
+		System.out.println("  loadott <ott_distribution_directory> (initialize the tax graph from the opentree-taxonomy (ott))\n");
 
 		System.out.println("---graph input---");
 		System.out.println("  addnewick <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
@@ -2741,7 +2742,7 @@ public class MainRunner {
 		System.out.println("  labeltips <filename.tre> <filename>");
 		System.out.println("  labeltax <filename.tre> <graphdbfolder>");
 		System.out.println("  checktax <filename.tre> <graphdbfolder>");
-		System.out.println("  nexson2newick <filename.nexson> [filename.newick] (construct newick tree file from a nexson file)");
+		System.out.println("  nexson2newick <filename.nexson> (<filename.newick>) (construct newick tree file from a nexson file)");
 		System.out.println("  convertfigtree <filename.tre> <outfile.tre>");
 		System.out.println("  nexson2mrp <filename.nexson>");
 		System.out.println("  converttaxonomy <taxonomy_filename> <outfile.tre> (construct a newick tree from a TSV taxonomy file)\n");
@@ -2754,6 +2755,7 @@ public class MainRunner {
 		System.out.println("  extractdraftsubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> (extract the default synthesized tree (if any) stored below the root node)");
 		System.out.println("  extracttaxonomysubtreeforottids <tipOttId1>,<tipOttId2>,... <outfilename> <graphdbfolder> (extract the default synthesized tree (if any) stored below the root node)");
 		System.out.println("  extractdraftsubtreefornodeids <tipNodeId1>,<tipNodeId2>,... <outfilename> <graphdbfolder> (extract the default synthesized tree (if any) stored below the root node)");
+		System.out.println("  synthesisinfo (ottolID) <graphdbfolder> (summarize current synthetic tree)");
 		System.out.println("  deleteDraftTree <graphdbfolder> (deletes the synthesized tree (if any) from the graph)\n");
 				
 		System.out.println("---temporary functions---");
