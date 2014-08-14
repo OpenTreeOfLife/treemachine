@@ -26,13 +26,6 @@ import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
-
-
-
-
-
-
-
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.Direction;
@@ -43,10 +36,6 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
-
-
-
-
 
 import org.neo4j.kernel.Traversal;
 
@@ -68,7 +57,7 @@ import jade.JSONMessageLogger;
 public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
 	
-	// @returns 0 for success, 1 for poorly formed command
+	// @returns 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
 	public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
 		if (args.length < 4) {
 			System.out.println("arguments should be: filename (optional:synfilename) taxonomyversion graphdbfolder");
@@ -97,8 +86,8 @@ public class MainRunner {
 		// check if graph already exists. abort if it does to prevent overwriting.
 		File f = new File(graphname);
 		if (f.exists()) {
-			System.out.println("Graph database already exists. Exiting.");
-			return 0;
+			System.err.println("Directory '" + graphname + "' already exists. Exiting...");
+			return -1;
 		}
 		
 		GraphInitializer tl = new GraphInitializer(graphname);
@@ -106,6 +95,183 @@ public class MainRunner {
 			tl.addInitialTaxonomyTableIntoGraph(filename, synfilename, taxonomyversion);
 		} finally {
 			tl.shutdownDB();
+		}
+		return 0;
+	}
+	
+	
+	/*
+	 *  Initialize graph directly from OTT distribution files.
+	 *  Depends on the existence of the following files:
+	 *  1. taxonomy.tsv
+	 *  2. synonyms.tsv
+	 *  3. version.txt
+	 *  Will create a DB called 'ott_v[ottVersion].db' e.g. 'ott_v2.8draft5.db'
+	*/
+	// @returns 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
+	public int loadOTT(String [] args) throws FileNotFoundException, TaxonNotFoundException {
+		if (args.length != 2 && args.length != 3) {
+			System.out.println("arguments should be: ott_directory [graph_name (defaults to 'ott_v[ottVersion].db'])");
+			return 1;
+		}
+		
+		String ottDir = args[1];
+		
+		if (args[1].endsWith("/") || args[1].endsWith("\\")) {
+			ottDir = args[1].substring(0, args[1].length() - 1);
+		}
+		
+		if (!new File(ottDir).exists()) {
+			System.out.println("Directory '" + ottDir + "' not found. Exiting...");
+			return -1;
+		}
+		
+		String ottVersion = "";
+		String taxFile = ottDir + File.separator + "taxonomy.tsv";
+		String synFile = ottDir + File.separator + "synonyms.tsv";
+		String versionFile = ottDir + File.separator + "version.txt";
+		String graphName = "";
+		
+		// grab taxonomy version
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(versionFile));
+			ottVersion = br.readLine();
+			br.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Could not open the file '" + versionFile + "'. Exiting...");
+			return -1;
+		} catch (IOException ioe) {
+			
+		}
+		
+		if (!ottVersion.isEmpty()) {
+			ottVersion = "ott_v" + ottVersion;
+			if (args.length == 3) {
+				graphName = args[2];
+			} else {
+				graphName = ottVersion + ".db";
+			}
+		}
+		
+		// check if graph already exists. abort if it does to prevent overwriting.
+		if (new File(graphName).exists()) {
+			System.err.println("Graph database '" + graphName + "' already exists. Exiting...");
+			return -1;
+		}
+		if (!new File(taxFile).exists()) {
+			System.err.println("Could not open the file '" + taxFile + "'. Exiting...");
+			return -1;
+		}
+		if (!new File(synFile).exists()) {
+			System.err.println("Could not open the file '" + synFile + "'. Exiting...");
+			return -1;
+		}
+
+		System.out.println("Initializing ott taxonomy '" + ottVersion + "' from '" + taxFile + "' with synonyms in '"
+				+ synFile + "' to graphDB '" + graphName + "'.");
+		
+		GraphInitializer tl = new GraphInitializer(graphName);
+		try {
+			tl.addInitialTaxonomyTableIntoGraph(taxFile, synFile, ottVersion);
+		} finally {
+			tl.shutdownDB();
+		}
+		
+		return 0;
+	}
+	
+	/*
+	 * Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current
+	    synthetic tree). come from either the 1) taxonomy, or 2) synthetic tree (which could be quite different)in the taxonomy.
+		Taxa are specified by comma-delimited ottIds. Returns the following information about the MRCA: 1) name, 2) ottId,
+		3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa, and the query target (treeSource)
+	 */
+	
+	// @returns 0 for success, 1 for poorly formed command
+	public int getMRCA(String [] args) throws MultipleHitsException, TaxonNotFoundException {
+		
+		if (args.length != 4) {
+			System.out.println("arguments should be: graphdb treesource('taxonomy' or 'synth') ottIds");
+			return 1;
+		}
+		String graphDb = args[1];
+		String treeSource = args[2];
+		String slist = args[3];
+		boolean taxonomyOnly = true;
+		
+		if (!treeSource.equalsIgnoreCase("synth") && !treeSource.equalsIgnoreCase("taxonomy")) {
+			System.out.println("treesource must be either 'taxonomy' or 'synth'");
+			return 1;
+		}
+		if (treeSource.equalsIgnoreCase("synth")) {
+			taxonomyOnly = false;
+			System.out.println("Searching for MRCA of taxa against the current synthetic tree.");
+		} else {
+			System.out.println("Searching for MRCA of taxa against the taxonomy only.");
+		}
+		
+		String [] ottIds = slist.split(",");
+		ArrayList<Node> tips = new ArrayList<Node>();
+		ArrayList<String> unmatched = new ArrayList<String>();
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		
+		for (String ottId : ottIds) {
+			Node n = null;
+			try {
+				n = ge.findGraphTaxNodeByUID(ottId);
+			} catch (TaxonNotFoundException e) {}
+			if (n != null) {
+				System.out.println("Matched query taxon '" + ottId + "'.");
+				if (taxonomyOnly) {
+					tips.add(n);
+				} else { // need to check if taxon is in the synthetic tree. 
+					if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
+						tips.add(n);
+					} else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
+						
+						ArrayList<Node> taxTips = new ArrayList<Node>();
+						taxTips = ge.getTaxonomyDescendantTips(n);
+						System.out.print("Query taxon '" + n.getProperty(NodeProperty.NAME.propertyName) + "' is not monophyletic in the synth tree.");
+						System.out.println(" Adding it's " + taxTips.size() + " taxonomic tip descendants for MRCA calculation.");
+						tips.addAll(taxTips);	
+					}
+				}
+			} else {
+				System.out.println("Failed to match query taxon '" + ottId + "'.");
+				unmatched.add(ottId);
+			}
+		}
+
+		if (tips.size() < 1) {
+			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ottIds provided.");
+		} else {
+			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
+			
+			// now attempt to find the most recent taxonomic ancestor
+			Node mrta = mrca;
+			
+			if (!unmatched.isEmpty()) {
+				System.out.println("Could not map the following ottID:");
+				for (String i : unmatched) {
+					System.out.println("\t" + i);
+				}
+			}
+			
+			if (!taxonomyOnly) {
+				while (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+					mrta = mrta.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+				}
+				System.out.println("nearest_taxon_mrca_name: " + mrta.getProperty(NodeProperty.NAME.propertyName));
+				System.out.println("nearest_taxon_mrca_rank: " + mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
+				System.out.println("nearest_taxon_mrca_ottId: " + mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+				System.out.println("nearest_taxon_mrca_nodeId: " + mrta.getId());
+				System.out.println("mrca_nodeId: " + mrca.getId());
+			} else {
+				System.out.println("mrca_name: " + mrta.getProperty(NodeProperty.NAME.propertyName));
+				System.out.println("mrca_rank: " + mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
+				System.out.println("mrca_ottId: " + mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+				System.out.println("mrca_nodeId: " + mrta.getId());
+			}
 		}
 		return 0;
 	}
@@ -875,7 +1041,7 @@ public class MainRunner {
 	
 	
 	// Report which taxonomy (e.g. version of OTT) was used to initialize the graph
-	/// @returns 0 for success, 1 for poorly formed command
+	/// @returns 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
 	public int getTaxonomyVersion(String [] args) {
 		String graphname;
 		
@@ -884,6 +1050,11 @@ public class MainRunner {
 			return 1;
 		}
 		graphname = args[1];
+		
+		if (!new File(graphname).exists()) {
+			System.err.println("Graph database '" + graphname + "' not found. Exiting...");
+			return -1;
+		}
 		
 		GraphExplorer ge = new GraphExplorer(graphname);
 		try {
@@ -2720,7 +2891,11 @@ public class MainRunner {
 				cmdReturnCode = mr.getTaxonomyVersion(args);
 			}  else if (command.compareTo("taxtree") == 0) {
 				cmdReturnCode = mr.getTaxonomyTreeExport(args);
-			} else {
+			} else if (command.compareTo("getmrca") == 0) {
+				cmdReturnCode = mr.getMRCA(args);
+			} else if (command.compareTo("loadott") == 0) {
+				cmdReturnCode = mr.loadOTT(args);
+			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}
