@@ -186,7 +186,6 @@ public class MainRunner {
 		Taxa are specified by comma-delimited ottIds. Returns the following information about the MRCA: 1) name, 2) ottId,
 		3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa, and the query target (treeSource)
 	 */
-	
 	// @returns 0 for success, 1 for poorly formed command
 	public int getMRCA(String [] args) throws MultipleHitsException, TaxonNotFoundException {
 		
@@ -748,6 +747,7 @@ public class MainRunner {
 		}
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int justTreeAnalysis(String [] args) throws Exception {
 		if (args.length != 5) {
@@ -949,8 +949,8 @@ public class MainRunner {
 		return 0;
 	}
 	
-	// @returns 0 for success, 1 for poorly formed command
 	
+	// @returns 0 for success, 1 for poorly formed command
 	public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
 		String sourcename = null;
 		String graphname = null;
@@ -1007,6 +1007,7 @@ public class MainRunner {
 		return 0;
 	}
 
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int listSources(String [] args) {
 		boolean listIDs = false;
@@ -1133,6 +1134,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExplorerBiparts(String [] args) {
 		if (args.length != 2) {
@@ -1230,6 +1232,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 	
 	public int mrpDumpParser(String [] args) throws TaxonNotFoundException {
 		if (args.length > 4) {
@@ -1355,6 +1358,7 @@ public class MainRunner {
 			System.out.println(jt.get(0).getRoot().getNewick(true) + ";");
 			return 0;
 		}
+		// relabel tree from ottIds to names
 		if (args[0].equals("labeltipsottol")) {
 			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
 			for (int i = 0; i < jt.get(0).getExternalNodeCount(); i++) {
@@ -1369,7 +1373,7 @@ public class MainRunner {
 				} finally {
 					hts.close();
 				}
-				jd.setName((String)startnode.getProperty("name")+"_"+String.valueOf(taxUID));
+				jd.setName((String)startnode.getProperty("name") + "_" + String.valueOf(taxUID));
 			}
 			for (int i = 0; i < jt.get(0).getInternalNodeCount(); i++) {
 				JadeNode jd = jt.get(0).getInternalNode(i);
@@ -1488,6 +1492,7 @@ public class MainRunner {
 		return 2;
 	}
 	
+	
 	/**
 	 * this will just fill out the ncbi counts
 	 * @param innode
@@ -1514,6 +1519,7 @@ public class MainRunner {
 		return count;
 	}
 
+	
 /**
 	 * this will just fill out the ott counts
 	 * @param innode
@@ -1539,6 +1545,7 @@ public class MainRunner {
 		}
 		return count;
 	}
+	
 	
 	/**
 	 * similar to the getNewick but doesn't go to the tips and adds a &label for thickness of the branches
@@ -1572,6 +1579,7 @@ public class MainRunner {
 		ret.append("[&tipcount=".concat(String.valueOf(value)).concat("]"));
 		return ret.toString();
 	}
+	
 	
 	/*
 	 * these are treeutils that need the database
@@ -1668,6 +1676,7 @@ public class MainRunner {
 		return (success ? 0 : -1);
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int synthesizeDraftTreeWithListForTaxUID(String [] args) throws Exception {
 
@@ -1725,6 +1734,7 @@ public class MainRunner {
 		}
 		return (success ? 0 : -1);
 	}
+	
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int synthesizeDraftTree(String [] args) throws Exception {
@@ -1792,6 +1802,7 @@ public class MainRunner {
 		System.out.println(ge.getNumberSynthesisTips(startnode));
 		return (success ? 0 : -1);
 	}
+	
 	
 	// gets graph nodeid from ottid
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
@@ -2292,6 +2303,7 @@ public class MainRunner {
 		return rc;
 	}
 	
+	
 	public int pg_loading_ind_studies_newick(String [] args) throws Exception {
 		boolean test = false;
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
@@ -2347,6 +2359,7 @@ public class MainRunner {
 		graphDb.shutdownDb();
 		return rc;
 	}
+	
 	
 	public static int loadNewickStudy(GraphDatabaseAgent graphDb, 
 			JadeTree tree, String treeid,
@@ -2492,6 +2505,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/**
 	 * Constructs a newick tree file from a passed in taxonomy file
 	 * arguments are:
@@ -2501,7 +2515,6 @@ public class MainRunner {
 	 * @throws Exception
 	 */
 	// @returns 0 for success, 1 for poorly formed command
-	
 	public int convertTaxonomy(String []args) {
 		if (args.length != 3) {
 			System.out.println("arguments should be: taxonomyfile treefile");
@@ -2607,6 +2620,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 	
 	/*
 	 * Read in nexson-formatted tree, export as newick
