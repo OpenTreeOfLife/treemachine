@@ -62,6 +62,7 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(sourceArrayList);
 	}
 
+	
 	@Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input." +
 		"If a query taxon is not present in the synthetic tree (i.e. it is not monophyletic), the tip descendants of the taxon " +
 		"are used for the MRCA calculation. Returns the nodeId of the mrca node as well as the nodeId, name, and information " +
@@ -146,6 +147,7 @@ public class GoLS extends ServerPlugin {
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
+	
 	
 	@Description("Get the MRCA of a set of nodes in the taxonomy. Accepts any combination of node ids and ott ids as input. Returns the " +
 		"following information about the MRCA: 1) name, 2) ottId, 3) rank, and 4) nodeId. Also returns the nodeIds of the query taxa, as " +
@@ -327,6 +329,7 @@ public class GoLS extends ServerPlugin {
 		}
 	}
 	
+	
 	@Description("Get a subtree of the draft tree with tips corresponding to the set of nodes identified by the query"
 			+ "input. Accepts any combination of node ids and ott ids as input.")
 	@PluginTarget(GraphDatabaseService.class)
@@ -370,6 +373,7 @@ public class GoLS extends ServerPlugin {
 		}
 	}
 	
+	
 	@Description("Return a JSON obj that represents the error and warning messages associated with attempting to ingest a NexSON blob")
 	@PluginTarget (GraphDatabaseService.class)
 	public Representation getStudyIngestMessagesForNexSON(
@@ -395,6 +399,7 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(jsonResponse); // TODO: still double wrapping string. Need to figure out a thin String->Representation wrapper.
 	}
 
+	
 	@Description("Returns identifying information for the current draft tree")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeID (
@@ -434,6 +439,7 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(draftTreeInfo);
 	}
 	
+	
 	@Description("Returns the version of the taxonomy used to initialize the graph")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getTaxonomyVersion (
@@ -451,6 +457,7 @@ public class GoLS extends ServerPlugin {
 
 		return OTRepresentationConverter.convert(taxVersion);
 	}
+	
 	
 	@Description("Returns a list of the synthesis tree source information")
 	@PluginTarget(GraphDatabaseService.class)
@@ -503,6 +510,7 @@ public class GoLS extends ServerPlugin {
 			return "Failure. Nothing stored for ottId=" + rootottId;
 		}
 	}
+	
 	
 	/* should this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh */
 		// avoiding code duplication? what is the advantage of having separate queries?
@@ -633,6 +641,7 @@ public class GoLS extends ServerPlugin {
 		}
 	}
 	
+	
 	@Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeForottId( // TODO: should be renamed getDraftTreeNewickForottId, will need to be updated in argus
@@ -653,6 +662,7 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(response);
 	}
 
+	
 	@Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `nodeID`.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getDraftTreeForNodeID( // TODO: should be renamed getDraftTreeNewickForNodeID, will need to be updated in argus
@@ -671,6 +681,7 @@ public class GoLS extends ServerPlugin {
 		return OTRepresentationConverter.convert(response);
 	}
 
+	
 	@Description("Returns the the node id of the named node identified by `ottId`.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Long getNodeIDForottId(
@@ -681,6 +692,7 @@ public class GoLS extends ServerPlugin {
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		return ge.findGraphTaxNodeByUID(ottId).getId();
 	}
+	
 	
 	// ============================== arbor interoperability services ==================================
 
