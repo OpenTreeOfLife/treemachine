@@ -367,6 +367,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/**
 	 * @throws Exception 
 	 * @returns 0 for success, 1 for error, 2 for error with a request that the generic help be displayed
@@ -423,10 +424,8 @@ public class MainRunner {
 					// change names to match format from nexson (i.e. spaces instead of under_scores)
 							Iterable<JadeNode> terp = newestTree.iterateExternalNodes();
 							for (JadeNode tt : terp) {
-					//			System.out.println("Current name: " + tt.getName());
 								String newName = tt.getName().replaceAll("_", " ");
 								tt.setName(newName);
-					//			System.out.println("\tName changed to: " + tt.getName());
 							}
 							
 							newestTree.assocObject("id", String.valueOf(treeNum));
@@ -445,6 +444,14 @@ public class MainRunner {
 						if (ts.length() > 1) {
 							++treeNum;
 							JadeTree newestTree = tr.readTree(ts);
+							
+					// change names to match format from nexson (i.e. spaces instead of under_scores)
+							Iterable<JadeNode> terp = newestTree.iterateExternalNodes();
+							for (JadeNode tt : terp) {
+								String newName = tt.getName().replaceAll("_", " ");
+								tt.setName(newName);
+							}
+							
 							newestTree.assocObject("id", String.valueOf(treeNum));
 							jt.add(newestTree);
 							treeCounter++;
@@ -1358,7 +1365,7 @@ public class MainRunner {
 			System.out.println(jt.get(0).getRoot().getNewick(true) + ";");
 			return 0;
 		}
-		// relabel tree from ottIds to names
+		// relabel tree from ottIds to names e.g. 654722 -> Crax_alector_654722
 		if (args[0].equals("labeltipsottol")) {
 			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[2]);
 			for (int i = 0; i < jt.get(0).getExternalNodeCount(); i++) {
@@ -1373,7 +1380,7 @@ public class MainRunner {
 				} finally {
 					hts.close();
 				}
-				jd.setName((String)startnode.getProperty("name") + "_" + String.valueOf(taxUID));
+				jd.setName((String)startnode.getProperty("name") + "_ott" + String.valueOf(taxUID));
 			}
 			for (int i = 0; i < jt.get(0).getInternalNodeCount(); i++) {
 				JadeNode jd = jt.get(0).getInternalNode(i);
@@ -1388,7 +1395,7 @@ public class MainRunner {
 					} finally {
 						hts.close();
 					}
-					jd.setName((String)startnode.getProperty("name") + "_" + String.valueOf(taxUID));
+					jd.setName((String)startnode.getProperty("name") + "_ott" + String.valueOf(taxUID));
 				} catch(Exception ex2) {
 					continue;
 				}
@@ -2400,18 +2407,18 @@ public class MainRunner {
 			}
 		}
 			//check for any duplicate ottol:id
-			if (doubname == true) {
-				messageLogger.indentMessageStr(1, "null or duplicate names. Skipping tree", "tree id", treeJId);
+		if (doubname == true) {
+			messageLogger.indentMessageStr(1, "null or duplicate names. Skipping tree", "tree id", treeJId);
+		} else {
+			gi.setTree(tree);
+			if (onlyTestTheInput) {
+				messageLogger.indentMessageStr(1, "Checking if tree could be added to graph", "tree id", treeJId);
+				getMRPmatrix(tree,graphDb);
 			} else {
-				gi.setTree(tree);
-				if (onlyTestTheInput) {
-					messageLogger.indentMessageStr(1, "Checking if tree could be added to graph", "tree id", treeJId);
-					getMRPmatrix(tree,graphDb);
-				} else {
-					messageLogger.indentMessageStr(1, "Adding tree to graph", "tree id", treeJId);
-					gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger);
-				}
+				messageLogger.indentMessageStr(1, "Adding tree to graph", "tree id", treeJId);
+				gi.addSetTreeToGraphWIdsSet(sourcename, false, onlyTestTheInput, messageLogger);
 			}
+		}
 		return 0;
 	}
 	
