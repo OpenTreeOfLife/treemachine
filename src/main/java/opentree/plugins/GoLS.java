@@ -368,7 +368,7 @@ public class GoLS extends ServerPlugin {
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			vals.put("found_nodes", tips);
-			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(true) + ";\n");
+			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";\n");
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
@@ -657,7 +657,7 @@ public class GoLS extends ServerPlugin {
 		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
 
 		HashMap<String, String> response = new HashMap<String, String>();
-		response.put("tree", tree.getRoot().getNewick(true));
+		response.put("tree", tree.getRoot().getNewick(false));
 
 		return OTRepresentationConverter.convert(response);
 	}
@@ -676,7 +676,7 @@ public class GoLS extends ServerPlugin {
 		JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
 
 		HashMap<String, String> response = new HashMap<String, String>();
-		response.put("tree", tree.getRoot().getNewick(true));
+		response.put("tree", tree.getRoot().getNewick(false));
 
 		return OTRepresentationConverter.convert(response);
 	}
