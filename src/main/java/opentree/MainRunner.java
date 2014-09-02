@@ -180,6 +180,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/*
 	 * Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current
 	    synthetic tree). come from either the 1) taxonomy, or 2) synthetic tree (which could be quite different)in the taxonomy.
@@ -275,6 +276,91 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
+	/*
+	 * Get information about a node. Is it:
+	 * 1. In the graph?
+	 * 2. In the synthetic tree? If so:
+	 * 3. What sources support it?
+	 * 4. How many child tips does it have?
+	 * 5. Others?!?
+	*/
+	// @returns 0 for success, 1 for poorly formed command
+	public int getNodeStatus(String [] args) {
+		
+		if (args.length != 3) {
+			System.out.println("arguments should be: graphdb ottId");
+			return 1;
+		}
+		String graphDb = args[1];
+		String ottId = args[2];
+		String name = "";
+		String rank = "";
+		String taxSource = "";
+		Long nodeId = null;
+		boolean inGraph = false;
+		boolean inSynthTree = false;
+		Integer numSynthChildren = 0;
+		Integer numMRCA = 0;
+		String[] sources = null;
+		String[] treeSources = null;
+		
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		
+		Node n = null;
+		try {
+			n = ge.findGraphTaxNodeByUID(ottId);
+		} catch (TaxonNotFoundException e) {}
+		if (n != null) {
+			nodeId = n.getId();
+			if (n.hasProperty(NodeProperty.NAME.propertyName)) {
+				name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
+				rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
+				taxSource = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
+			}
+			inGraph = true;
+			numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
+			if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
+				inSynthTree = true;
+				numSynthChildren = ge.getSynthesisDescendantTips(n).size(); // may be faster to just use stored MRCA
+				// get all the unique sources supporting this node
+				sources = ge.getSynthesisSupportingSources(n);
+				treeSources = ge.getSupportingTreeSources(n);
+			}
+		}
+		
+		System.out.println("Query ottId: " + ottId);
+		if (name != null) {
+			System.out.println("Name: " + name);
+			System.out.println("Rank: " + rank);
+			System.out.println("Taxonomy source: " + taxSource);
+		}
+		System.out.println("NodeId: " + nodeId);
+		System.out.println("Is_in_graph: " + inGraph);
+		System.out.println("Is_in_synth_tree: " + inSynthTree);
+		System.out.println("Num_synth_tips: " + numSynthChildren);
+		System.out.println("MRCA_length: " + numMRCA);
+		
+		if (sources != null) {
+			System.out.println("Node is supported by " + sources.length + " synthesis source tree(s):");
+			for (String s : sources) {
+				System.out.println("\t" + s);
+			}
+		} else {
+			System.out.println("No synthesis supporting sources found.");
+		}
+		if (treeSources != null) {
+			System.out.println("Node is supported by " + treeSources.length + " source tree(s):");
+			for (String s : treeSources) {
+				System.out.println("\t" + s);
+			}
+		} else {
+			System.out.println("No supporting tree sources found.");
+		}
+		return 0;
+	}
+	
+	
 	private static void getMRPmatrix(JadeTree tree, GraphDatabaseAgent graphDb) {
 		
 		HashMap<JadeNode,StringBuffer> taxastart = new HashMap<JadeNode,StringBuffer>();
@@ -333,6 +419,7 @@ public class MainRunner {
 		}
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphReloadTrees(String [] args) throws Exception {
 		GraphImporter gi = null;
@@ -349,6 +436,7 @@ public class MainRunner {
 		}
 		return 0;
 	}
+	
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphDeleteTrees(String [] args) {
@@ -528,12 +616,15 @@ public class MainRunner {
 		return 0;
 	}
 	
-		/**
+	
+	/**
 	 * 
 	 * @param args
 	 * @return 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
 	 * @throws TaxonNotFoundException
 	 */
+	
+	
 	public int graphArgusJSON(String [] args) throws TreeNotFoundException, TaxonNotFoundException {
 		GraphExplorer ge = null;
 		if (args[0].compareTo("argusjson") == 0) {
@@ -603,6 +694,8 @@ public class MainRunner {
 	 * @throws TaxonNotFoundException
 	 * @throws MultipleHitsException 
 	 */
+	
+	
 	public int graphExplorerParser(String [] args) throws TaxonNotFoundException, MultipleHitsException {
 		GraphExplorer gi = null;
 		GraphExporter ge = null;
@@ -1527,7 +1620,7 @@ public class MainRunner {
 	}
 
 	
-/**
+	/**
 	 * this will just fill out the ott counts
 	 * @param innode
 	 * @param id_childs
@@ -2754,6 +2847,7 @@ public class MainRunner {
 		System.out.println("  biparts <graphdbfolder> (look at bipartition information for a graph)");
 		System.out.println("  mapsupport <file> <outfile> <graphdbfolder> (map bipartition information from graph to tree)");
 		System.out.println("  getlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)");
+		System.out.println("  nodestatus <ottId> <graphdbfolder> (give summary info about node, including num. descendants, supporting trees, etc.)");
 		System.out.println("  gettaxonomy <graphdbfolder> (report which taxonomy (e.g. version of OTT) was used to initialize the graph)\n");
 
 		System.out.println("---tree functions---");
@@ -2918,7 +3012,9 @@ public class MainRunner {
 				cmdReturnCode = mr.getMRCA(args);
 			} else if (command.compareTo("loadott") == 0) {
 				cmdReturnCode = mr.loadOTT(args);
-			}else {
+			} else if (command.compareTo("nodestatus") == 0) {
+				cmdReturnCode = mr.getNodeStatus(args);
+			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}

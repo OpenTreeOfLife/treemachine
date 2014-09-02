@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Stack;
 
 import opentree.constants.NodeProperty;
+import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
 import opentree.exceptions.MultipleHitsException;
@@ -3217,5 +3218,53 @@ public class GraphExplorer extends GraphBase {
 			}
 		}
 		return tips;
+	}
+		
+	// From a given node, return all taxonomic descendants which are tips
+	public ArrayList<Node> getSynthesisDescendantTips(Node startNode) {
+		ArrayList<Node> tips = new ArrayList<Node>();
+		HashSet<Node> tipSet = new HashSet<Node>();
+		TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
+		for (Node curnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
+			if (curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING) == false) { // tip
+				tips.add(curnode);
+				tipSet.add(curnode);
+			}
+		}
+		System.out.println("Counted " + tipSet.size() + " unique tips.");
+		return tips;
+	}
+	
+	// get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
+	public String[] getSynthesisSupportingSources (Node startNode) {
+		HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
+		if (startNode.hasRelationship(RelType.SYNTHCHILDOF)) {
+			for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF)) {
+				if (rel.hasProperty("supporting_sources")) {
+					String[] sources = (String[]) rel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
+					for (String s : sources) {
+						sourceSet.add(s);
+					}
+				}
+			}
+		}
+		String[] res = sourceSet.toArray(new String[sourceSet.size()]);
+		Arrays.sort(res);
+		return res;
+	}
+	
+	// unlike above, this looks at STREE support, not sources from synthesis alone
+	public String[] getSupportingTreeSources (Node startNode) {
+		HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
+		if (startNode.hasRelationship(RelType.STREECHILDOF)) {
+			for (Relationship rel : startNode.getRelationships(RelType.STREECHILDOF)) {
+				if (rel.hasProperty("source")) {
+					sourceSet.add((String) rel.getProperty(RelProperty.SOURCE.propertyName));
+				}
+			}
+		}
+		String[] res = sourceSet.toArray(new String[sourceSet.size()]);
+		Arrays.sort(res);
+		return res;
 	}
 }
