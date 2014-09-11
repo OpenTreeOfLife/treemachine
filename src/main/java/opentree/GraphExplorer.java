@@ -3305,7 +3305,7 @@ public class GraphExplorer extends GraphBase {
 	
 	
 	// get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
-	public String[] getSynthesisSupportingSources (Node startNode) {
+	public ArrayList<String> getSynthesisSupportingSources (Node startNode) {
 		HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
 		if (startNode.hasRelationship(RelType.SYNTHCHILDOF)) {
 			for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF)) {
@@ -3317,14 +3317,13 @@ public class GraphExplorer extends GraphBase {
 				}
 			}
 		}
-		String[] res = sourceSet.toArray(new String[sourceSet.size()]);
-		Arrays.sort(res);
-		return res;
+		ArrayList<String> sources = new ArrayList<String>(sourceSet);
+		return sources;
 	}
 	
 	
 	// unlike above, this looks at STREE support, not sources from synthesis alone
-	public String[] getSupportingTreeSources (Node startNode) {
+	public ArrayList<String> getSupportingTreeSources (Node startNode) {
 		HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
 		if (startNode.hasRelationship(RelType.STREECHILDOF)) {
 			for (Relationship rel : startNode.getRelationships(RelType.STREECHILDOF)) {
@@ -3333,9 +3332,8 @@ public class GraphExplorer extends GraphBase {
 				}
 			}
 		}
-		String[] res = sourceSet.toArray(new String[sourceSet.size()]);
-		Arrays.sort(res);
-		return res;
+		ArrayList<String> sources = new ArrayList<String>(sourceSet);
+		return sources;
 	}
 	
 	
@@ -3350,7 +3348,6 @@ public class GraphExplorer extends GraphBase {
 				sourceList.add(sourcePrimList[i]);
 			}
 		}
-		
 		return (sourceList);
 	}
 	

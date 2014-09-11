@@ -170,10 +170,26 @@ public class tree_of_life extends ServerPlugin {
 			}
 			vals.put("mrca_node_id", mrca.getId());
 			
-			vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
-			vals.put("mrca_unique_name", mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-			vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
-			vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
+			String name = "";
+			String unique = "";
+			String rank = "";
+			Long ottID = null;
+			
+			if (mrca.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+				name = (String) mrca.getProperty(NodeProperty.NAME.propertyName);
+				unique = (String) mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName);
+				rank = (String) mrca.getProperty(NodeProperty.TAX_RANK.propertyName);
+				ottID = (Long) mrca.getProperty(NodeProperty.TAX_UID.propertyName);
+			}
+			vals.put("mrca_name", name);
+			vals.put("mrca_unique_name", unique);
+			vals.put("mrca_rank", rank);
+			// a hack, since OTRepresentationConverter apparently cannot use null values
+			if (ottID != null) {
+				vals.put("ott_id", ottID);
+			} else {
+				vals.put("ott_id", "null");
+			}
 			
 			vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
 			vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));

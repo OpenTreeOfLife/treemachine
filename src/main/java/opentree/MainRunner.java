@@ -301,8 +301,8 @@ public class MainRunner {
 		boolean inSynthTree = false;
 		Integer numSynthChildren = 0;
 		Integer numMRCA = 0;
-		String[] sources = null;
-		String[] treeSources = null;
+		ArrayList<String> sources = null;
+		ArrayList<String> treeSources = null;
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		
@@ -341,7 +341,7 @@ public class MainRunner {
 		System.out.println("MRCA_length: " + numMRCA);
 		
 		if (sources != null) {
-			System.out.println("Node is supported by " + sources.length + " synthesis source tree(s):");
+			System.out.println("Node is supported by " + sources.size() + " synthesis source tree(s):");
 			for (String s : sources) {
 				System.out.println("\t" + s);
 			}
@@ -349,7 +349,7 @@ public class MainRunner {
 			System.out.println("No synthesis supporting sources found.");
 		}
 		if (treeSources != null) {
-			System.out.println("Node is supported by " + treeSources.length + " source tree(s):");
+			System.out.println("Node is supported by " + treeSources.size() + " source tree(s):");
 			for (String s : treeSources) {
 				System.out.println("\t" + s);
 			}
