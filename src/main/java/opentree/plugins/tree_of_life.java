@@ -59,10 +59,11 @@ public class tree_of_life extends ServerPlugin {
 		try {
 			Node meta = ge.getSynthesisMetaNode();
 			if (meta != null) {
-				String [] sourceList = (String []) meta.getProperty("sourcenames");
+		//		String [] sourceList = (String []) meta.getProperty("sourcenames");
+				ArrayList<String> sourceList = ge.getSynthesisSourceList();
 				Node startNode = gdb.getNodeById((Long) gdb.getGraphProperty("draftTreeRootNodeId"));
 				Integer numMRCA = ((long[]) startNode.getProperty(NodeProperty.MRCA.propertyName)).length;
-				Integer numStudies = sourceList.length;
+				Integer numStudies = sourceList.size();
 				draftTreeInfo = new HashMap<String, Object>();
 				
 				// general info
