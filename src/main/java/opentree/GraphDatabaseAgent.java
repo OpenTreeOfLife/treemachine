@@ -153,8 +153,6 @@ public class GraphDatabaseAgent {
 	}
 	
 	protected /*static */ void registerShutdownHook() {
-		
-		
 		if (embedded) {
 			embeddedGraphDb.shutdown();
 

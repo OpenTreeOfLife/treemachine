@@ -38,7 +38,6 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
 import org.neo4j.kernel.Traversal;
-
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.exceptions.DataFormatException;
@@ -225,7 +224,7 @@ public class MainRunner {
 				if (taxonomyOnly) {
 					tips.add(n);
 				} else { // need to check if taxon is in the synthetic tree. 
-					if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
+					if (ge.nodeIsInSyntheticTree(n)) {
 						tips.add(n);
 					} else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
 						
@@ -320,7 +319,7 @@ public class MainRunner {
 			}
 			inGraph = true;
 			numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
-			if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
+			if (ge.nodeIsInSyntheticTree(n)) {
 				inSynthTree = true;
 				numSynthChildren = ge.getSynthesisDescendantTips(n).size(); // may be faster to just use stored MRCA
 				// get all the unique sources supporting this node
