@@ -216,9 +216,8 @@ public class tree_of_life extends ServerPlugin {
 			+ "nodes in the graph, or which are in the graph but are absent from the synthetic tree, will be identified in the output "
 			+ "(but will of course not be present in the resulting induced tree). Branch lengths in the result may be arbitrary, and the "
 			+ "leaf labels of the tree may either be taxonomic names or (for nodes not corresponding directly to named taxa) node ids.\n\n"
-			+ "**WARNING: there is currently a known bug if any of the "
-			+ "input nodes is the parent of another, the returned tree may be incorrect.** Please avoid this input case." +
-		"of other queried nodes.")
+			+ "**WARNING: there is currently a known bug if any of the input nodes is the parent of another, the returned tree may be "
+			+ "incorrect.** Please avoid this input case.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation induced_subtree (@Source GraphDatabaseService graphDb,
 			
