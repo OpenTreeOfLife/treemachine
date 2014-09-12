@@ -46,7 +46,8 @@ import org.opentree.properties.OTVocabularyPredicate;
 public class tree_of_life extends ServerPlugin {
 	
 	
-	@Description("Returns summary information about the current draft tree of life.")
+	@Description("Returns summary information about the current draft tree of life, including information about the list of source trees "
+			+ "and the taxonomy used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation about (
 			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
@@ -208,20 +209,29 @@ public class tree_of_life extends ServerPlugin {
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
-	
-	
+
 	// NOTE: currently only works for tip nodes (not internal)
-	@Description("Get a subtree of the draft tree with tips corresponding to the set of nodes identified by the query. " +
-		"Accepts any combination of node ids and ott ids as input. Currently has a bug: when queried nodes are the parents " +
-		"of other queried nodes.")
+	@Description("Return a tree with tips corresponding to the nodes identified in the input set(s), that is consistent with topology of "
+			+ "the current draft tree. This tree is equivalent to the minimal subtree induced on the draft tree by the set of identified "
+			+ "nodes. Any combination of node ids and ott ids may be used as input. Nodes or ott ids that do not correspond to any found "
+			+ "nodes in the graph, or which are in the graph but are absent from the synthetic tree, will be identified in the output "
+			+ "(but will of course not be present in the resulting induced tree). Branch lengths in the result may be arbitrary, and the "
+			+ "leaf labels of the tree may either be taxonomic names or (for nodes not corresponding directly to named taxa) node ids.\n\n"
+			+ "**WARNING: there is currently a known bug if any of the input nodes is the parent of another, the returned tree may be "
+			+ "incorrect.** Please avoid this input case.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation induced_subtree (
-			@Source GraphDatabaseService graphDb,
-			@Description("A set of node ids") @Parameter(name = "node_ids", optional = true) long[] nodeIds,
-			@Description("A set of ott ids") @Parameter(name = "ott_ids", optional = true) long[] ottIds) {
+	public Representation induced_subtree (@Source GraphDatabaseService graphDb,
+			
+			@Description("Node ids indicating nodes to be used as tips in the induced tree")
+			@Parameter(name = "node_ids", optional = true)
+			long[] nodeIds,
+			
+			@Description("OTT ids indicating nodes to be used as tips in the induced tree")
+			@Parameter(name = "ott_ids", optional = true)
+			long[] ottIds) {
 		
 		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
-			throw new IllegalArgumentException("You must supply at least one node or ott id.");
+			throw new IllegalArgumentException("You must supply at least two node or ott ids.");
 		}
 		
 		ArrayList<Node> tips = new ArrayList<Node>();
@@ -289,16 +299,13 @@ public class tree_of_life extends ServerPlugin {
 		
 		vals = new HashMap<String, Object>();
 		// 'bad' nodes
-		vals.put("invalid_node_ids", invalidNodesIds);
-		vals.put("invalid_ott_ids", invalidOttIds);
+		vals.put("node_ids_not_in_graph", invalidNodesIds);
+		vals.put("ott_ids_not_in_graph", invalidOttIds);
 		vals.put("node_ids_not_in_tree", nodeIdsNotInSynth);
 		vals.put("ott_ids_not_in_tree", ottIdsNotInSynth);
 		
-		if (tips.size() < 1) {
-			vals.put("error", "Could not find any graph nodes corresponding to the node and/or ott ids provided.");
-			return OTRepresentationConverter.convert(vals);
-		} else if (tips.size() == 1) {
-			vals.put("error", "Not enough valid node or ott ids provided to construct a subtree.");
+		if (tips.size() < 2) {
+			vals.put("error", "Not enough valid node or ott ids provided to construct a subtree (there must be at least two).");
 			return OTRepresentationConverter.convert(vals);
 		} else {
 			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
@@ -306,17 +313,20 @@ public class tree_of_life extends ServerPlugin {
 		}
 	}
 	
-	
-	@Description("Returns a subtree of the synthetic tree beyond some specified node. " +
-			"If format is \"newick\" then the returned JSON will have the fields: newick, tree_id.")
+	@Description("Return a complete subtree of the draft tree descended from some specified node. The node to use as the start node "
+			+ "may be specified using *either* a node id or an ott id, **but not both**. If the specified node is not in the synthetic "
+			+ "tree (or is entirely absent from the graph), an error will be returned.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation subtree (
 			@Source GraphDatabaseService graphDb,
-			@Description("The identifier for the synthesis (e.g. \"otol.draft.22\") (default is most current synthetic tree)")
+			@Description("The identifier for the synthesis tree. We currently only support a single draft tree "
+					+ "in the db at a time, so this argument is superfluous and may be safely ignored.")
 			@Parameter(name = "tree_id", optional = true) String treeID,
-			@Description("The node id of the node in the tree that should serve as the root of the tree returned")
+			@Description("The node id of the node in the tree that should serve as the root of the tree returned. This argument may not "
+					+ "be used in combination with `ott_id`.")
 			@Parameter(name = "node_id", optional = true) Long subtreeNodeId,
-			@Description("The ott id of the node in the tree that should serve as the root of the tree returned")
+			@Description("The ott id of the node in the tree that should serve as the root of the tree returned. This argument may not "
+					+ "be used in combination with `node_id`.")
 			@Parameter(name = "ott_id", optional = true) Long subtreeOttId) throws TreeNotFoundException {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
