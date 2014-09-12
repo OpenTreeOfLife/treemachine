@@ -2439,7 +2439,7 @@ public class GraphExplorer extends GraphBase {
 	// NOTE: this isn't as useful anymore, since the curator gives trees IDs 1, 2, etc. for each study
 	//	If all studies have just one tree, each will have the treeID '1'
 	//	i.e. treeIDs are no longer unique
-	public List<String> getTreeIDList() {
+	public ArrayList<String> getTreeIDList() {
 		IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
 		ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
 		while (hits.hasNext()) {
@@ -2456,7 +2456,7 @@ public class GraphExplorer extends GraphBase {
 	 * Get the list of sources that have been loaded in the graph
 	 * @returns array of strings that are the values of the "source" property of nodes stored in sourceMetaIndex
 	 */
-	public List<String> getSourceList() {
+	public ArrayList<String> getSourceList() {
 		IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
 		ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
 		while (hits.hasNext()) {
@@ -2474,7 +2474,7 @@ public class GraphExplorer extends GraphBase {
 	
 	
 	// This doesn't seem to be used anywhere (JWB)
-	public List<String> getDetailedSourceList() {
+	public ArrayList<String> getDetailedSourceList() {
 		IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
 		ArrayList<String> sourceList = new ArrayList<String>();
 		while (hits.hasNext()) {
@@ -3276,7 +3276,7 @@ public class GraphExplorer extends GraphBase {
 	
 	
 	// From a given node, return all taxonomic descendants which are tips
-	public List<Node> getTaxonomyDescendantTips(Node startNode) {
+	public ArrayList<Node> getTaxonomyDescendantTips(Node startNode) {
 		ArrayList<Node> tips = new ArrayList<Node>();
 		TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
 		for (Node curnode : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
@@ -3289,7 +3289,7 @@ public class GraphExplorer extends GraphBase {
 		
 	
 	// From a given node, return all taxonomic descendants which are tips
-	public List<Node> getSynthesisDescendantTips(Node startNode) {
+	public ArrayList<Node> getSynthesisDescendantTips(Node startNode) {
 		ArrayList<Node> tips = new ArrayList<Node>();
 		HashSet<Node> tipSet = new HashSet<Node>();
 		TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
@@ -3305,7 +3305,7 @@ public class GraphExplorer extends GraphBase {
 	
 	
 	// get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
-	public List<String> getSynthesisSupportingSources (Node startNode) {
+	public ArrayList<String> getSynthesisSupportingSources (Node startNode) {
 		HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
 		if (startNode.hasRelationship(RelType.SYNTHCHILDOF)) {
 			for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF)) {
@@ -3323,7 +3323,7 @@ public class GraphExplorer extends GraphBase {
 	
 	
 	// unlike above, this looks at STREE support, not sources from synthesis alone
-	public List<String> getSupportingTreeSources (Node startNode) {
+	public ArrayList<String> getSupportingTreeSources (Node startNode) {
 		HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
 		if (startNode.hasRelationship(RelType.STREECHILDOF)) {
 			for (Relationship rel : startNode.getRelationships(RelType.STREECHILDOF)) {
@@ -3338,7 +3338,7 @@ public class GraphExplorer extends GraphBase {
 	
 	
 	// return all sources used in the construction of a synthetic tree
-	public List<String> getSynthesisSourceList () {
+	public ArrayList<String> getSynthesisSourceList () {
 		ArrayList<String> sourceList = new ArrayList<String>();
 		
 		Node meta = getSynthesisMetaNode();
