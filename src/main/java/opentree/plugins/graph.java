@@ -48,7 +48,8 @@ import org.opentree.properties.OTVocabularyPredicate;
 public class graph extends ServerPlugin {
 	
 	
-	@Description("Returns summary information about the graph database.")
+	@Description("Returns summary information about the entire graph database, including identifiers for the taxonomy and source trees "
+			+ "used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation about (
 			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
@@ -74,13 +75,16 @@ public class graph extends ServerPlugin {
 	}	
 	
 	
-	@Description("Returns a newick-fromatted source tree. The returned JSON will have two fields: newick and tree_id.")
+	@Description("Returns a source tree (corresponding to a tree in some [study](#studies)) as it exists within the graph. Although the "
+			+ "result of this service is a tree corresponding directly a tree in a study, the representation of the tree in the graph may "
+			+ "differ slightly from its canonical representation in the studu, due to changes made during tree import (for example, "
+			+ "pruning tips from the tree that cannot be mapped to taxa in the graph). The tree is returned in newick format.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation source_tree (
 			@Source GraphDatabaseService graphDb,
 			@Description("The identifier for the source tree to return. Takes format: \"studyid_treeid_GITSHA\"")
 			@Parameter(name = "tree_id", optional = false) String treeID,
-			@Description("The name of the return format (default is newick)")
+			@Description("The name of the return format. The only currently supported format is newick.")
 			@Parameter(name = "format", optional = true) String format) throws TreeNotFoundException {
 		
 		// get the tree
@@ -107,16 +111,19 @@ public class graph extends ServerPlugin {
 		return OTRepresentationConverter.convert(responseMap);
 	}
 	
-	
-	@Description("Returns summary information about a node in the graph.")
+	@Description("Returns summary information about a node in the graph. The node of interest may be specified using *either* a node id, "
+			+ "or an ott id, **but not both**. If the specified node or ott id is not in the graph, an error will be returned.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation node_info (
 			@Source GraphDatabaseService graphDb,
-			@Description("The node id of the node of interest")
+			@Description("The node id of the node of interest. This argument may not be combined with `ott_id`.")
 			@Parameter(name = "node_id", optional = true) Long queryNodeId,
-			@Description("The ott id of the node of interest")
+			@Description("The ott id of the node of interest. This argument may not be combined with `node_id`.")
 			@Parameter(name = "ott_id", optional = true) Long queryOttId,
-			@Description("Include the synthetic lineage")
+			@Description("Include the ancestral lineage of the node in the draft tree. If this argument is `true`, then a list of all the "
+					+ "ancestors of this node in the draft tree, down to the root of the tree itself, will be included in the results. "
+					+ "Higher list indices correspond to more incluive (i.e. deeper) ancestors, with the immediate parent of the specified "
+					+ "node occupying position 0 in the list.")
 			@Parameter(name = "include_lineage", optional = true) Boolean includeLineage) {
 		
 		HashMap<String, Object> nodeIfo = new HashMap<String, Object>();
@@ -221,7 +228,7 @@ public class graph extends ServerPlugin {
 					lineage.add(info);
 				}
 			}
-			nodeIfo.put("synthesis_lineage", lineage);
+			nodeIfo.put("draft_tree_lineage", lineage);
 		}
 		
 		ge.shutdownDB();
