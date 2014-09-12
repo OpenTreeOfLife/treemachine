@@ -1,53 +1,35 @@
 package opentree.plugins;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-
 import jade.tree.JadeTree;
-import jade.JSONMessageLogger;
-import opentree.GraphBase;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
-import opentree.MainRunner;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
 import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.OttIdNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
-import opentree.exceptions.TreeIngestException;
 import opentree.exceptions.TreeNotFoundException;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
-import org.neo4j.server.rest.repr.ArgusonRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
-import org.opentree.properties.OTVocabularyPredicate;
 
 // Graph of Life Services 
 public class tree_of_life extends ServerPlugin {
 	
 	
-	@Description("Returns summary information about the current draft tree of life, including information about the list of source trees "
-			+ "and the taxonomy used to build it.")
+	@Description("Returns summary information about the current draft tree of life, including information "
+			+ "about the list of source trees and the taxonomy used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation about (
 			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
@@ -70,7 +52,9 @@ public class tree_of_life extends ServerPlugin {
 				// general info
 				draftTreeInfo.put("tree_id", meta.getProperty("name"));
 				draftTreeInfo.put("date", meta.getProperty("date"));
-				draftTreeInfo.put("taxonomy_version", ge.getTaxonomyVersion()); // currently comes from root node of graph. should bake into metadatanode of synth tree 
+				
+				// currently comes from root node of graph. should bake into metadatanode of synth tree 
+				draftTreeInfo.put("taxonomy_version", ge.getTaxonomyVersion());
 				
 				// root node info
 				draftTreeInfo.put("root_node_id", startNode.getId());
@@ -94,12 +78,13 @@ public class tree_of_life extends ServerPlugin {
 	}
 	
 	
-	@Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott ids as input. " +
-			"Returns information about the most recent common ancestor (MRCA) node as well as the most recent taxonomic ancestor (MRTA) node " +
-			"(the closest taxonomic node to the MRCA node in the synthetic tree; the MRCA and MRTA may be the same node). Node ids that are " + 
-			"not in the synthetic tree are dropped from the MRCA calculation. For a valid ott id that is not in the synthetic " +
-			"tree (i.e. it is not recovered as monophyletic from the source tree information), the taxonomic descendants of the node are used " +
-			"in the MRCA calculation. Returns any unmatched node ids / ott ids.")
+	@Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott "
+			+ "ids as input. Returns information about the most recent common ancestor (MRCA) node as well as the most recent "
+			+ "taxonomic ancestor (MRTA) node (the closest taxonomic node to the MRCA node in the synthetic tree; the MRCA "
+			+ "and MRTA may be the same node). Node ids that are not in the synthetic tree are dropped from the MRCA "
+			+ "calculation. For a valid ott id that is not in the synthetic tree (i.e. it is not recovered as monophyletic "
+			+ "from the source tree information), the taxonomic descendants of the node are used in the MRCA calculation. "
+			+ "Returns any unmatched node ids / ott ids.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation mrca (@Source GraphDatabaseService graphDb,
 			@Description("A set of node ids") @Parameter(name = "node_ids", optional = true) long[] nodeIds,
@@ -211,14 +196,15 @@ public class tree_of_life extends ServerPlugin {
 	}
 
 	// NOTE: currently only works for tip nodes (not internal)
-	@Description("Return a tree with tips corresponding to the nodes identified in the input set(s), that is consistent with topology of "
-			+ "the current draft tree. This tree is equivalent to the minimal subtree induced on the draft tree by the set of identified "
-			+ "nodes. Any combination of node ids and ott ids may be used as input. Nodes or ott ids that do not correspond to any found "
-			+ "nodes in the graph, or which are in the graph but are absent from the synthetic tree, will be identified in the output "
-			+ "(but will of course not be present in the resulting induced tree). Branch lengths in the result may be arbitrary, and the "
-			+ "leaf labels of the tree may either be taxonomic names or (for nodes not corresponding directly to named taxa) node ids.\n\n"
-			+ "**WARNING: there is currently a known bug if any of the input nodes is the parent of another, the returned tree may be "
-			+ "incorrect.** Please avoid this input case.")
+	@Description("Return a tree with tips corresponding to the nodes identified in the input set(s), that is "
+			+ "consistent with topology of the current draft tree. This tree is equivalent to the minimal subtree "
+			+ "induced on the draft tree by the set of identified nodes. Any combination of node ids and ott ids may "
+			+ "be used as input. Nodes or ott ids that do not correspond to any found nodes in the graph, or which "
+			+ "are in the graph but are absent from the synthetic tree, will be identified in the output (but will "
+			+ "of course not be present in the resulting induced tree). Branch lengths in the result may be arbitrary, "
+			+ "and the leaf labels of the tree may either be taxonomic names or (for nodes not corresponding directly "
+			+ "to named taxa) node ids.\n\n**WARNING: there is currently a known bug if any of the input nodes is the "
+			+ "parent of another, the returned tree may be incorrect.** Please avoid this input case.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation induced_subtree (@Source GraphDatabaseService graphDb,
 			
@@ -313,20 +299,20 @@ public class tree_of_life extends ServerPlugin {
 		}
 	}
 	
-	@Description("Return a complete subtree of the draft tree descended from some specified node. The node to use as the start node "
-			+ "may be specified using *either* a node id or an ott id, **but not both**. If the specified node is not in the synthetic "
-			+ "tree (or is entirely absent from the graph), an error will be returned.")
+	@Description("Return a complete subtree of the draft tree descended from some specified node. The node to use as the "
+			+ "start node may be specified using *either* a node id or an ott id, **but not both**. If the specified node "
+			+ "is not in the synthetic tree (or is entirely absent from the graph), an error will be returned.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation subtree (
 			@Source GraphDatabaseService graphDb,
 			@Description("The identifier for the synthesis tree. We currently only support a single draft tree "
 					+ "in the db at a time, so this argument is superfluous and may be safely ignored.")
 			@Parameter(name = "tree_id", optional = true) String treeID,
-			@Description("The node id of the node in the tree that should serve as the root of the tree returned. This argument may not "
-					+ "be used in combination with `ott_id`.")
+			@Description("The node id of the node in the tree that should serve as the root of the tree returned. This "
+					+ "argument may not be used in combination with `ott_id`.")
 			@Parameter(name = "node_id", optional = true) Long subtreeNodeId,
-			@Description("The ott id of the node in the tree that should serve as the root of the tree returned. This argument may not "
-					+ "be used in combination with `node_id`.")
+			@Description("The ott id of the node in the tree that should serve as the root of the tree returned. This "
+					+ "argument may not be used in combination with `node_id`.")
 			@Parameter(name = "ott_id", optional = true) Long subtreeOttId) throws TreeNotFoundException {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
@@ -357,7 +343,8 @@ public class tree_of_life extends ServerPlugin {
 				return OTRepresentationConverter.convert(responseMap);
 			}
 		} else {
-			responseMap.put("error", "Must provide a \"node_id\" or \"ott_id\" argument to indicate the location of the root node of the subtree.");
+			responseMap.put("error", "Must provide a \"node_id\" or \"ott_id\" argument to indicate the location of the root "
+					+ "node of the subtree.");
 			return OTRepresentationConverter.convert(responseMap);
 		}
 		
