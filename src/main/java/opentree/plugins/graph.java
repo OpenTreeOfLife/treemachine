@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
+
 import jade.tree.JadeTree;
 import jade.JSONMessageLogger;
 import opentree.GraphBase;
@@ -85,12 +87,20 @@ public class graph extends ServerPlugin {
 		JadeTree tree = null;
 		try {
 			tree = ge.reconstructSource(treeID, -1); // -1 here means no limit on depth
+		} catch (TreeNotFoundException e) {
+			
 		} finally {
 			ge.shutdownDB();
 		}
 		
 		// return results
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+		
+		if (tree == null) {
+			responseMap.put("error", "Invalid tree id provided.");
+			return OTRepresentationConverter.convert(responseMap);
+		}
+		
 		responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()));
 		responseMap.put("tree_id", treeID);
 		return OTRepresentationConverter.convert(responseMap);
@@ -201,6 +211,48 @@ public class graph extends ServerPlugin {
 		
 		return OTRepresentationConverter.convert(nodeIfo);
 	}
+	
+	
+	/*
+	
+	private List<Long> getDraftTreePathToRoot(Node startNode) {
+		
+		ArrayList<Long> path = new ArrayList<Long>();
+		
+		// testing
+		//	System.out.println("getting path to root");
+		
+		Node curParent = startNode;
+		boolean atRoot = false;
+		while (!atRoot) {
+			
+			// testing
+			//	System.out.println("looking for parents of " + curParent.toString());
+			
+			Iterable<Relationship> parentRels = curParent.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING);
+			atRoot = true; // assume we have hit the root until proven otherwise
+			for (Relationship m : parentRels) {
+				
+				// testing
+				//	System.out.println("current rel name = " + m.getProperty("name") + "; drafttreename = " + DRAFTTREENAME);
+				
+				if (String.valueOf(m.getProperty("name")).equals(DRAFTTREENAME)) {
+					
+					atRoot = false; // if we found an acceptable relationship to a parent then we're not done yet
+					curParent = m.getEndNode();
+					
+					// testing
+					//	System.out.println("found a parent! " + curParent.toString());
+					
+					path.add(curParent.getId());
+					break;
+				}
+			}
+		}
+		return path;
+	}
+	
+	*/
 
 }
 
