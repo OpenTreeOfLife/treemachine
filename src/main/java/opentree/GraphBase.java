@@ -58,8 +58,9 @@ public abstract class GraphBase {
 	protected static Index<Node> synthMetaIndex;
 	protected static Index<Relationship> synthRelIndex;
 
-	// this is clunky, might be a better way to do this
+	// this is clunky, might be a better way to do this. could use the date here.
 	public static final String DRAFTTREENAME = (String) GeneralConstants.DRAFT_TREE_NAME.value;
+	
 	
 	// all constructor methods require a graph database
 	/**
@@ -79,7 +80,8 @@ public abstract class GraphBase {
 		graphDb = new GraphDatabaseAgent(graphService);
 		initNodeIndexes();
 	}
-
+	
+	
 	/**
 	 * Access the graph db through the given embedded db object.
 	 * @param embeddedGraph
@@ -88,7 +90,8 @@ public abstract class GraphBase {
 		graphDb = new GraphDatabaseAgent(embeddedGraph);
 		initNodeIndexes();
 	}
-
+	
+	
 	/**
 	 * Open the graph db through the given agent object.
 	 * @param gdb
@@ -98,12 +101,14 @@ public abstract class GraphBase {
 		initNodeIndexes();
 	}
 	
+	
 	/**
 	 * Just close the db.
 	 */
 	public void shutdownDB() {
 		graphDb.shutdownDb();
 	}
+	
 	
 	/**
 	 * Wrapper function for taxUID searches on the graphTaxUIDNodes index. Throws TaxonNotFoundException if the search fails,
@@ -126,6 +131,7 @@ public abstract class GraphBase {
 		}
 		return firstNode;
 	}
+	
 	
 	/**
 	 * Wrapper function for simple name searches on the graphNamedNodes index. Throws TaxonNotFoundException if the search fails,
@@ -256,7 +262,7 @@ public abstract class GraphBase {
 	 * Remove all the loaded trees from the graph.
 	 */
 	public void deleteAllTrees() {
-		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
+		IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
 		System.out.println(hits.size());
 		for (Node itrel : hits) {
 			String source = (String)itrel.getProperty("source");

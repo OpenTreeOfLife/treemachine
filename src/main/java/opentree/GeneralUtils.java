@@ -10,7 +10,8 @@ public class GeneralUtils {
     // all common non-alphanumeric chars except "_" and "-", for use when cleaning strings
     public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
     public static final String newickIllegal = ".*[\\Q:;/[]{}(),\\E]+.*";
-
+    
+    
     public static int sum_ints(List<Integer> list){
 		if (list == null || list.size() < 1) {
 			return 0;
@@ -22,7 +23,8 @@ public class GeneralUtils {
 		}
 		return sum;
 	}
-
+    
+    
 	/**
 	 * Replaces non-alphanumeric characters (excluding "_" and "-") in `dirtyName` with "_" and returns the cleaned name.
 	 * Meant for cleaning names on newick tree input.
@@ -34,6 +36,7 @@ public class GeneralUtils {
 	    String cleanName = dirtyName.replaceAll(offendingChars, "_");
 	    return cleanName;
 	}
+	
 	
 	/**
 	 * Make sure name conforms to valid newick usage (http://evolution.genetics.washington.edu/phylip/newick_doc.html).
@@ -69,6 +72,7 @@ public class GeneralUtils {
 		
 		return newickName;
 	}
+	
 	
 	/*
 	 Peek at tree flavour, report back, reset reader for subsequent processing
