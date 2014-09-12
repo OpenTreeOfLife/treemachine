@@ -97,7 +97,7 @@ public class graph extends ServerPlugin {
 	}
 	
 	
-	@Description("Returns a newick-fromatted source tree. The returned JSON will have two fields: newick and tree_id.")
+	@Description("Returns summary information about a node in the graph.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation node_info (
 			@Source GraphDatabaseService graphDb,
