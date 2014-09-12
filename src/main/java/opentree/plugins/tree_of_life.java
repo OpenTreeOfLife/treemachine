@@ -180,7 +180,7 @@ public class tree_of_life extends ServerPlugin {
 				name = (String) mrca.getProperty(NodeProperty.NAME.propertyName);
 				unique = (String) mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName);
 				rank = (String) mrca.getProperty(NodeProperty.TAX_RANK.propertyName);
-				ottID = (Long) mrca.getProperty(NodeProperty.TAX_UID.propertyName);
+				ottID = Long.valueOf((String)mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 			}
 			vals.put("mrca_name", name);
 			vals.put("mrca_unique_name", unique);
