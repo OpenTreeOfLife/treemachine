@@ -46,7 +46,8 @@ import org.opentree.properties.OTVocabularyPredicate;
 public class tree_of_life extends ServerPlugin {
 	
 	
-	@Description("Returns summary information about the current draft tree of life.")
+	@Description("Returns summary information about the current draft tree of life, including information about the list of source trees "
+			+ "and the taxonomy used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation about (
 			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
