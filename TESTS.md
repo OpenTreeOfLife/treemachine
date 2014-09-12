@@ -4,7 +4,7 @@ Currently, there are no automated tests for treemachine or its services. You may
 
 **Summary information about the graph**
 ```bash
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/about
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/about
 ```
 
 ```json
@@ -20,7 +20,7 @@ curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/abou
 
 **Get summary information about a node in the graph**
 ```bash
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":3019459}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"node_id":3019459}'
 ```
 
 ```json
@@ -41,7 +41,7 @@ curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node
 
 **Get a source tree from the graph**
 ```bash
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/source_tree -H "content-type:application/json" -d '{"tree_id":"pg_420_522_96e3dcc7d18b5ba7b96b888ef18fdf7c14c088fa"}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/source_tree -H "content-type:application/json" -d '{"tree_id":"pg_420_522_96e3dcc7d18b5ba7b96b888ef18fdf7c14c088fa"}'
 ```
 
 ```json
@@ -55,7 +55,7 @@ curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/sour
 
 **Summary information about the current synthetic tree**
 ```bash
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/about
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/about
 ```
 
 ```json
@@ -74,7 +74,7 @@ curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graph
 
 **Get MRCA in the current synthetic tree of a bunch of nodes**
 ```bash
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/mrca -H "content-type:application/json" -d '{"ott_ids":[412129, 536234]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/mrca -H "content-type:application/json" -d '{"ott_ids":[412129, 536234]}'
 
 ```
 
@@ -99,7 +99,7 @@ curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graph
 
 **From the current synthetic tree, get the complete subtree below a given node**
 ```bash
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":3599390}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id":3599390}'
 ```
 
 ```json
@@ -111,7 +111,7 @@ curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graph
 
 **Get the induced subtree = synthetic tree with just specified terminal nodes**
 ```bash
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710, 176458]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710, 176458]}'
 ```
 
 ```json
