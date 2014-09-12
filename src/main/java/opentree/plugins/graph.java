@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import jade.tree.JadeTree;
 import jade.JSONMessageLogger;
@@ -114,7 +115,9 @@ public class graph extends ServerPlugin {
 			@Description("The node id of the node of interest")
 			@Parameter(name = "node_id", optional = true) Long queryNodeId,
 			@Description("The ott id of the node of interest")
-			@Parameter(name = "ott_id", optional = true) Long queryOttId) {
+			@Parameter(name = "ott_id", optional = true) Long queryOttId,
+			@Description("Include the synthetic lineage")
+			@Parameter(name = "include_lineage", optional = true) Boolean includeLineage) {
 		
 		HashMap<String, Object> nodeIfo = new HashMap<String, Object>();
 		
@@ -123,7 +126,6 @@ public class graph extends ServerPlugin {
 		String rank = "";
 		String taxSource = "";
 		Long nodeId = null;
-		//long nodeId = -1;
 		boolean inGraph = false;
 		boolean inSynthTree = false;
 		Integer numSynthChildren = 0;
@@ -207,42 +209,45 @@ public class graph extends ServerPlugin {
 		nodeIfo.put("synth_sources", sources);
 		nodeIfo.put("tree_sources", treeSources);
 		
+		if (includeLineage != null && includeLineage == true) {
+			LinkedList<HashMap<String,Object>> lineage = new LinkedList<HashMap<String, Object>>();
+			if (inSynthTree) {
+				Node n = graphDb.getNodeById(nodeId);
+				List<Long> nodeList = getDraftTreePathToRoot(n);
+				
+				for (Long node : nodeList) {
+					HashMap<String,Object> info = new HashMap<String, Object>();
+					addNodeInfo(graphDb.getNodeById(node), info);
+					lineage.add(info);
+				}
+			}
+			nodeIfo.put("synthesis_lineage", lineage);
+		}
+		
 		ge.shutdownDB();
 		
 		return OTRepresentationConverter.convert(nodeIfo);
 	}
 	
 	
-	/*
 	
-	private List<Long> getDraftTreePathToRoot(Node startNode) {
+	public List<Long> getDraftTreePathToRoot(Node startNode) {
 		
 		ArrayList<Long> path = new ArrayList<Long>();
-		
-		// testing
-		//	System.out.println("getting path to root");
+		String synthTreeName = (String)GeneralConstants.DRAFT_TREE_NAME.value;
 		
 		Node curParent = startNode;
 		boolean atRoot = false;
 		while (!atRoot) {
 			
-			// testing
-			//	System.out.println("looking for parents of " + curParent.toString());
-			
 			Iterable<Relationship> parentRels = curParent.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING);
 			atRoot = true; // assume we have hit the root until proven otherwise
 			for (Relationship m : parentRels) {
 				
-				// testing
-				//	System.out.println("current rel name = " + m.getProperty("name") + "; drafttreename = " + DRAFTTREENAME);
-				
-				if (String.valueOf(m.getProperty("name")).equals(DRAFTTREENAME)) {
+				if (String.valueOf(m.getProperty("name")).equals(synthTreeName)) {
 					
-					atRoot = false; // if we found an acceptable relationship to a parent then we're not done yet
+					atRoot = false;
 					curParent = m.getEndNode();
-					
-					// testing
-					//	System.out.println("found a parent! " + curParent.toString());
 					
 					path.add(curParent.getId());
 					break;
@@ -252,7 +257,33 @@ public class graph extends ServerPlugin {
 		return path;
 	}
 	
-	*/
+	private void addNodeInfo(Node n, HashMap<String, Object> results) {
+		
+		String name = "";
+		String uniqueName = "";
+		String rank = "";
+		Long ottId = null;
+		if (n.hasProperty(NodeProperty.NAME.propertyName)) {
+			name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
+			uniqueName = String.valueOf(n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+			rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
+			ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
+		}
+		
+		results.put("node_id", n.getId());
+		results.put("name", name);
+		results.put("unique_name", uniqueName);
+		results.put("rank", rank);
+		if (ottId != null) {
+			results.put("ott_id", ottId);
+		} else {
+			results.put("ott_id", "null");
+		}
+    }
+    
+    private void addPropertyFromNode(Node node, String property, Map<String, Object> map) {
+		map.put(property, node.getProperty(property));
+    }
 
 }
 
