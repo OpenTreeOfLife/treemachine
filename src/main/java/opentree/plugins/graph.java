@@ -76,9 +76,10 @@ public class graph extends ServerPlugin {
 	
 	
 	@Description("Returns a source tree (corresponding to a tree in some [study](#studies)) as it exists within the graph. Although the "
-			+ "result of this service is a tree corresponding directly a tree in a study, the representation of the tree in the graph may "
-			+ "differ slightly from its canonical representation in the studu, due to changes made during tree import (for example, "
-			+ "pruning tips from the tree that cannot be mapped to taxa in the graph). The tree is returned in newick format.")
+			+ "result of this service is a tree corresponding directly to a tree in a study, the representation of the tree in the graph may "
+			+ "differ slightly from its canonical representation in the study, due to changes made during tree import (for example, "
+			+ "pruning tips from the tree that cannot be mapped to taxa in the graph). In addition, both internal and terminal nodes are "
+			+ "labelled ott ids. The tree is returned in newick format.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation source_tree (
 			@Source GraphDatabaseService graphDb,
@@ -286,10 +287,6 @@ public class graph extends ServerPlugin {
 		} else {
 			results.put("ott_id", "null");
 		}
-    }
-    
-    private void addPropertyFromNode(Node node, String property, Map<String, Object> map) {
-		map.put(property, node.getProperty(property));
     }
 
 }
