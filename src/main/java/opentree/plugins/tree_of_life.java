@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import jade.tree.JadeTree;
+import opentree.GeneralUtils;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
@@ -77,7 +78,8 @@ public class tree_of_life extends ServerPlugin {
 					LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
 					for (String study : sourceList) {
 						HashMap<String, Object> indStudy = new HashMap<String, Object>();
-						addStudyInfo(study, indStudy);
+						indStudy = GeneralUtils.reformatSourceID(study);
+		//				addStudyInfo(study, indStudy);
 						sources.add(indStudy);
 					}
 					draftTreeInfo.put("study_list", sources);
@@ -94,7 +96,7 @@ public class tree_of_life extends ServerPlugin {
 		return OTRepresentationConverter.convert(draftTreeInfo);
 	}
 	
-	
+/*	
 	// TODO: make return list of source trees in a nicer format: {"study" : "NNN", "tree" : "MMM", "sha":"NANA"}
 	private void addStudyInfo(String source, HashMap<String, Object> results) {
 		
@@ -116,7 +118,7 @@ public class tree_of_life extends ServerPlugin {
 		results.put("tree_id", treeId);
 		results.put("git_sha", gitSha);
 	}
-
+*/
 	
 	@Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott "
 			+ "ids as input. Returns information about the most recent common ancestor (MRCA) node as well as the most recent "
