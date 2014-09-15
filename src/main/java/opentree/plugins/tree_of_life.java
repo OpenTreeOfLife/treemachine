@@ -110,7 +110,7 @@ public class tree_of_life extends ServerPlugin {
 			gitSha = res[3];
 			
 		} else { // taxonomy has only one element
-			studyId = "taxonomy";
+			studyId = res[0];
 		}
 		results.put("study_id", studyId);
 		results.put("tree_id", treeId);
@@ -234,8 +234,8 @@ public class tree_of_life extends ServerPlugin {
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
-
-	// NOTE: currently only works for tip nodes (not internal)
+	
+	
 	@Description("Return a tree with tips corresponding to the nodes identified in the input set(s), that is "
 			+ "consistent with topology of the current draft tree. This tree is equivalent to the minimal subtree "
 			+ "induced on the draft tree by the set of identified nodes. Any combination of node ids and ott ids may "
@@ -338,6 +338,7 @@ public class tree_of_life extends ServerPlugin {
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
+	
 	
 	@Description("Return a complete subtree of the draft tree descended from some specified node. The node to use as the "
 			+ "start node may be specified using *either* a node id or an ott id, **but not both**. If the specified node "
