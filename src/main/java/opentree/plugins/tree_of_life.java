@@ -101,6 +101,9 @@ public class tree_of_life extends ServerPlugin {
 		// format will be: pg_420_522_a2c48df995ddc9fd208986c3d4225112550c8452
 		String[] res = source.split("_");
 		
+		results.put("source_elements", res.length);
+		
+		/*
 		String studyId = "";
 		studyId = (String)res[0] + "_" + (String)res[1];
 		String treeId = (String)res[2];
@@ -109,6 +112,14 @@ public class tree_of_life extends ServerPlugin {
 		results.put("study_id", studyId);
 		results.put("tree_id", treeId);
 		results.put("git_sha", gitSha);
+		*/
+		/*
+		 String [] spls = innode.getName().split("_");
+			String tname = spls[0];
+			for (int i = 1; i < spls.length; i++) {
+				tname += "_" +spls[i];
+			}
+		 */
 	}
 
 	
