@@ -77,8 +77,8 @@ public class tree_of_life extends ServerPlugin {
 				if (returnStudyList) {
 					LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
 					for (String study : sourceList) {
-						HashMap<String, Object> indStudy = new HashMap<String, Object>();
-						indStudy = GeneralUtils.reformatSourceID(study);
+		//				HashMap<String, Object> indStudy = new HashMap<String, Object>();
+						HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(study);
 		//				addStudyInfo(study, indStudy);
 						sources.add(indStudy);
 					}
