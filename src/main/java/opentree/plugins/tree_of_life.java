@@ -2,6 +2,9 @@ package opentree.plugins;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
 import jade.tree.JadeTree;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
@@ -32,11 +35,17 @@ public class tree_of_life extends ServerPlugin {
 			+ "about the list of source trees and the taxonomy used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation about (
-			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
+			@Source GraphDatabaseService graphDb,
+			@Description("Return a list of source studies") @Parameter(name = "study_list", optional = true) Boolean study_list) throws TaxonNotFoundException, MultipleHitsException {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		GraphExplorer ge = new GraphExplorer(gdb);
 		HashMap<String, Object> draftTreeInfo = null;
+		Boolean returnStudyList = true; // default to true for now
+		
+		if (study_list != null && study_list == false) {
+			returnStudyList = false;
+		}
 		
 		// Most information will come from the synthesis metadata node
 		try {
@@ -64,7 +73,15 @@ public class tree_of_life extends ServerPlugin {
 				// tree constituents
 				draftTreeInfo.put("num_tips", numMRCA);
 				draftTreeInfo.put("num_source_studies", numStudies);
-				draftTreeInfo.put("study_list", sourceList);
+				if (returnStudyList) {
+					LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
+					for (String study : sourceList) {
+						HashMap<String, Object> indStudy = new HashMap<String, Object>();
+						addStudyInfo(study, indStudy);
+						sources.add(indStudy);
+					}
+					draftTreeInfo.put("study_list", sources);
+				}
 				
 			} else {
 				draftTreeInfo = new HashMap<String, Object>();
@@ -77,6 +94,22 @@ public class tree_of_life extends ServerPlugin {
 		return OTRepresentationConverter.convert(draftTreeInfo);
 	}
 	
+	
+	// TODO: make return list of source trees in a nicer format: {"study" : "NNN", "tree" : "MMM", "sha":"NANA"}
+	private void addStudyInfo(String source, HashMap<String, Object> results) {
+		
+		// format will be: pg_420_522_a2c48df995ddc9fd208986c3d4225112550c8452
+		String[] res = source.split("_");
+		
+		String studyId = res[0] + "_" + res[1];
+		String treeId = res[2];
+		String gitSha = res[3];
+
+		results.put("study_id", studyId);
+		results.put("tree_id", treeId);
+		results.put("git_sha", gitSha);
+	}
+
 	
 	@Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott "
 			+ "ids as input. Returns information about the most recent common ancestor (MRCA) node as well as the most recent "

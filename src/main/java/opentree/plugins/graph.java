@@ -234,10 +234,8 @@ public class graph extends ServerPlugin {
 			for (Relationship m : parentRels) {
 
 				if (String.valueOf(m.getProperty("name")).equals(synthTreeName)) {
-
 					atRoot = false;
 					curParent = m.getEndNode();
-
 					path.add(curParent.getId());
 					break;
 				}
@@ -245,7 +243,9 @@ public class graph extends ServerPlugin {
 		}
 		return path;
 	}
-
+	
+	
+	// add information from a node
 	private void addNodeInfo(Node n, HashMap<String, Object> results) {
 
 		String name = "";
