@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import jade.tree.JadeTree;
+import opentree.GeneralUtils;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
@@ -26,9 +27,11 @@ import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
 
+
 // Graph of Life Services 
 public class graph extends ServerPlugin {
 
+	
 	@Description("Returns summary information about the entire graph database, including identifiers for the "
 			+ "taxonomy and source trees used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
@@ -54,6 +57,7 @@ public class graph extends ServerPlugin {
 
 		return OTRepresentationConverter.convert(graphInfo);
 	}
+	
 
 	@Description("Returns a source tree (corresponding to a tree in some [study](#studies)) as it exists "
 			+ "within the graph. Although the result of this service is a tree corresponding directly to a "
@@ -92,7 +96,8 @@ public class graph extends ServerPlugin {
 		responseMap.put("tree_id", treeID);
 		return OTRepresentationConverter.convert(responseMap);
 	}
-
+	
+	
 	@Description("Returns summary information about a node in the graph. The node of interest may be specified "
 			+ "using *either* a node id, or an ott id, **but not both**. If the specified node or ott id is not in "
 			+ "the graph, an error will be returned.")
@@ -120,8 +125,8 @@ public class graph extends ServerPlugin {
 		boolean inSynthTree = false;
 		Integer numSynthChildren = 0;
 		Integer numMRCA = 0;
-		ArrayList<String> treeSources = new ArrayList<String>();
-		ArrayList<String> sources = new ArrayList<String>();
+		LinkedList<HashMap<String, Object>> synthSources = new LinkedList<HashMap<String, Object>>();
+		LinkedList<HashMap<String, Object>> treeSources = new LinkedList<HashMap<String, Object>>();
 
 		if (queryNodeId == null && queryOttId == null) {
 			nodeIfo.put("error", "Must provide a \"node_id\" or \"ott_id\" argument.");
@@ -177,11 +182,21 @@ public class graph extends ServerPlugin {
 				inSynthTree = true;
 				numSynthChildren = ge.getSynthesisDescendantTips(n).size(); // may be faster to just use stored MRCA
 				// get all the unique sources supporting this node
-				sources = ge.getSynthesisSupportingSources(n);
-				treeSources = ge.getSupportingTreeSources(n);
+				ArrayList<String> sSources = ge.getSynthesisSupportingSources(n);
+				ArrayList<String> tSources = ge.getSupportingTreeSources(n);
+				
+				for (String sStudy : sSources) {
+					HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(sStudy);
+					synthSources.add(indStudy);
+				}
+				
+				for (String tStudy : tSources) {
+					HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(tStudy);
+					treeSources.add(indStudy);
+				}
 			}
 		}
-
+		
 		// problem: can't pass null objects.
 		nodeIfo.put("name", name);
 		nodeIfo.put("rank", rank);
@@ -197,9 +212,9 @@ public class graph extends ServerPlugin {
 		nodeIfo.put("in_synth_tree", inSynthTree);
 		nodeIfo.put("num_synth_children", numSynthChildren);
 		nodeIfo.put("num_tips", numMRCA);
-		nodeIfo.put("synth_sources", sources);
+		nodeIfo.put("synth_sources", synthSources);
 		nodeIfo.put("tree_sources", treeSources);
-
+		
 		if (includeLineage != null && includeLineage == true) {
 			LinkedList<HashMap<String, Object>> lineage = new LinkedList<HashMap<String, Object>>();
 			if (inSynthTree) {
@@ -219,7 +234,8 @@ public class graph extends ServerPlugin {
 
 		return OTRepresentationConverter.convert(nodeIfo);
 	}
-
+	
+	
 	public List<Long> getDraftTreePathToRoot(Node startNode) {
 
 		ArrayList<Long> path = new ArrayList<Long>();

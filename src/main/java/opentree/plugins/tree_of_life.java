@@ -77,9 +77,7 @@ public class tree_of_life extends ServerPlugin {
 				if (returnStudyList) {
 					LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
 					for (String study : sourceList) {
-		//				HashMap<String, Object> indStudy = new HashMap<String, Object>();
 						HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(study);
-		//				addStudyInfo(study, indStudy);
 						sources.add(indStudy);
 					}
 					draftTreeInfo.put("study_list", sources);
@@ -96,29 +94,6 @@ public class tree_of_life extends ServerPlugin {
 		return OTRepresentationConverter.convert(draftTreeInfo);
 	}
 	
-/*	
-	// TODO: make return list of source trees in a nicer format: {"study" : "NNN", "tree" : "MMM", "sha":"NANA"}
-	private void addStudyInfo(String source, HashMap<String, Object> results) {
-		
-		// format will be: pg_420_522_a2c48df995ddc9fd208986c3d4225112550c8452
-		String[] res = source.split("_");
-		String studyId = "";
-		String treeId = "";
-		String gitSha = "";
-		
-		if (res.length == 4) {
-			studyId = res[0] + "_" + res[1];
-			treeId = res[2];
-			gitSha = res[3];
-			
-		} else { // taxonomy has only one element
-			studyId = res[0];
-		}
-		results.put("study_id", studyId);
-		results.put("tree_id", treeId);
-		results.put("git_sha", gitSha);
-	}
-*/
 	
 	@Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott "
 			+ "ids as input. Returns information about the most recent common ancestor (MRCA) node as well as the most recent "
