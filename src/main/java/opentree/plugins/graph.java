@@ -69,11 +69,11 @@ public class graph extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation source_tree(
 			@Source GraphDatabaseService graphDb,
-			@Description("The identifier for the source tree to return. Takes format: \"studyid_treeid_GITSHA\"") @Parameter(
+			@Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")") @Parameter(
 					name = "study_id", optional = false) String studyID,
-			@Description("The identifier for the source tree to return. Takes format: \"studyid_treeid_GITSHA\"") @Parameter(
+			@Description("The tree identifier for a given study.") @Parameter(
 					name = "tree_id", optional = false) String treeID,
-			@Description("The identifier for the source tree to return. Takes format: \"studyid_treeid_GITSHA\"") @Parameter(
+			@Description("The git SHA identifying a particular source version.") @Parameter(
 					name = "git_sha", optional = false) String gitSHA,
 			@Description("The name of the return format. The only currently supported format is newick.") @Parameter(
 					name = "format", optional = true) String format) throws TreeNotFoundException {
