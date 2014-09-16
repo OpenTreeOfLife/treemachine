@@ -100,7 +100,6 @@ public class graph extends ServerPlugin {
 		}
 
 		responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()) + ";");
-		responseMap.put("tree_id", treeID);
 		return OTRepresentationConverter.convert(responseMap);
 	}
 	
