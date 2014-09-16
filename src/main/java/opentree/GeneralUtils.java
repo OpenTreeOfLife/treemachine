@@ -118,10 +118,13 @@ public class GeneralUtils {
 			treeId  = res[2];
 			gitSha  = res[3];
 			
-		} else if (res.length == 4) { // older DBs with no prefix
+		} else if (res.length == 3) { // older DBs with no prefix
 			studyId = res[0];
 			treeId  = res[1];
 			gitSha  = res[2];
+		} else if (res.length == 2) { // older DBs with no prefix or git SHA
+			studyId = res[0];
+			treeId  = res[1];
 		} else { // taxonomy has only one element
 			studyId = res[0];
 		}
