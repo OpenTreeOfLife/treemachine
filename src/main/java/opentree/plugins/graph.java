@@ -58,7 +58,8 @@ public class graph extends ServerPlugin {
 		return OTRepresentationConverter.convert(graphInfo);
 	}
 	
-
+	
+	// TODO: change input arguments
 	@Description("Returns a source tree (corresponding to a tree in some [study](#studies)) as it exists "
 			+ "within the graph. Although the result of this service is a tree corresponding directly to a "
 			+ "tree in a study, the representation of the tree in the graph may differ slightly from its "
@@ -69,15 +70,21 @@ public class graph extends ServerPlugin {
 	public Representation source_tree(
 			@Source GraphDatabaseService graphDb,
 			@Description("The identifier for the source tree to return. Takes format: \"studyid_treeid_GITSHA\"") @Parameter(
+					name = "study_id", optional = false) String studyID,
+			@Description("The identifier for the source tree to return. Takes format: \"studyid_treeid_GITSHA\"") @Parameter(
 					name = "tree_id", optional = false) String treeID,
+			@Description("The identifier for the source tree to return. Takes format: \"studyid_treeid_GITSHA\"") @Parameter(
+					name = "git_sha", optional = false) String gitSHA,
 			@Description("The name of the return format. The only currently supported format is newick.") @Parameter(
 					name = "format", optional = true) String format) throws TreeNotFoundException {
 
+		String source = studyID + "_" + treeID + "_" + gitSHA;
+		
 		// get the tree
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		JadeTree tree = null;
 		try {
-			tree = ge.reconstructSource(treeID, -1); // -1 here means no limit on depth
+			tree = ge.reconstructSource(source, -1); // -1 here means no limit on depth
 		} catch (TreeNotFoundException e) {
 
 		} finally {
@@ -88,7 +95,7 @@ public class graph extends ServerPlugin {
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
 
 		if (tree == null) {
-			responseMap.put("error", "Invalid tree id provided.");
+			responseMap.put("error", "Invalid source id provided.");
 			return OTRepresentationConverter.convert(responseMap);
 		}
 
