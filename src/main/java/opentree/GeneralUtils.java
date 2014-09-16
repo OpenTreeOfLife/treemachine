@@ -110,14 +110,18 @@ public class GeneralUtils {
 		// format will be: pg_420_522_a2c48df995ddc9fd208986c3d4225112550c8452
 		String[] res = source.split("_");
 		String studyId = "";
-		String treeId = "";
-		String gitSha = "";
+		String treeId  = "";
+		String gitSha  = "";
 		
 		if (res.length == 4) {
 			studyId = res[0] + "_" + res[1];
-			treeId = res[2];
-			gitSha = res[3];
+			treeId  = res[2];
+			gitSha  = res[3];
 			
+		} else if (res.length == 4) { // older DBs with no prefix
+			studyId = res[0];
+			treeId  = res[1];
+			gitSha  = res[2];
 		} else { // taxonomy has only one element
 			studyId = res[0];
 		}
