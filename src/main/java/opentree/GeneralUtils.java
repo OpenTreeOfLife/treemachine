@@ -12,7 +12,7 @@ public class GeneralUtils {
     public static final String newickIllegal = ".*[\\Q:;/[]{}(),\\E]+.*";
     
     
-    public static int sum_ints(List<Integer> list){
+    public static int sum_ints (List<Integer> list){
 		if (list == null || list.size() < 1) {
 			return 0;
 		}
@@ -32,7 +32,7 @@ public class GeneralUtils {
 	 * @param dirtyName
 	 * @return cleanName
 	 */
-	public static String cleanName(String dirtyName) {
+	public static String cleanName (String dirtyName) {
 	    String cleanName = dirtyName.replaceAll(offendingChars, "_");
 	    return cleanName;
 	}
@@ -47,7 +47,7 @@ public class GeneralUtils {
 	 * @param origName
 	 * @return newickName
 	 */
-	public static String newickName(String origName) {
+	public static String newickName (String origName) {
 		Boolean needQuotes = false;
 		String newickName = origName;
 		
@@ -79,7 +79,7 @@ public class GeneralUtils {
 	 @param r a tree file reader
 	 @return treeFormat a string indicating recognized tree format
 	*/
-	public static String divineTreeFormat(Reader r) throws java.io.IOException, DataFormatException {
+	public static String divineTreeFormat (Reader r) throws java.io.IOException, DataFormatException {
 		String treeFormat = "";
 		r.mark(1);
 		char c = (char)r.read();
@@ -94,6 +94,45 @@ public class GeneralUtils {
 			throw new DataFormatException("We don't know what format this tree is in.");
 		}
 		return treeFormat;
+	}
+	
+	
+	/* Convert from string:
+			PREFIX_STUDYID_TREEID_GITSHA
+		to:
+		{"study" : "NNN", "tree" : "MMM", "sha":"NANA"}
+	
+	*/
+	public static HashMap<String, Object> reformatSourceID (String source) {
+		
+		HashMap<String, Object> results = new HashMap<String, Object>();
+		
+		// format will be: pg_420_522_a2c48df995ddc9fd208986c3d4225112550c8452
+		String[] res = source.split("_");
+		String studyId = "";
+		String treeId  = "";
+		String gitSha  = "";
+		
+		if (res.length == 4) {
+			studyId = res[0] + "_" + res[1];
+			treeId  = res[2];
+			gitSha  = res[3];
+			
+		} else if (res.length == 3) { // older DBs with no prefix
+			studyId = res[0];
+			treeId  = res[1];
+			gitSha  = res[2];
+		} else if (res.length == 2) { // older DBs with no prefix or git SHA
+			studyId = res[0];
+			treeId  = res[1];
+		} else { // taxonomy has only one element
+			studyId = res[0];
+		}
+		results.put("study_id", studyId);
+		results.put("tree_id", treeId);
+		results.put("git_sha", gitSha);
+		
+		return (results);
 	}
 
 }

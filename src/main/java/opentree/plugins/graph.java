@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import jade.tree.JadeTree;
+import opentree.GeneralUtils;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
@@ -26,9 +27,11 @@ import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
 
+
 // Graph of Life Services 
 public class graph extends ServerPlugin {
 
+	
 	@Description("Returns summary information about the entire graph database, including identifiers for the "
 			+ "taxonomy and source trees used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
@@ -54,7 +57,9 @@ public class graph extends ServerPlugin {
 
 		return OTRepresentationConverter.convert(graphInfo);
 	}
-
+	
+	
+	// TODO: change input arguments
 	@Description("Returns a source tree (corresponding to a tree in some [study](#studies)) as it exists "
 			+ "within the graph. Although the result of this service is a tree corresponding directly to a "
 			+ "tree in a study, the representation of the tree in the graph may differ slightly from its "
@@ -64,16 +69,22 @@ public class graph extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation source_tree(
 			@Source GraphDatabaseService graphDb,
-			@Description("The identifier for the source tree to return. Takes format: \"studyid_treeid_GITSHA\"") @Parameter(
+			@Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")") @Parameter(
+					name = "study_id", optional = false) String studyID,
+			@Description("The tree identifier for a given study.") @Parameter(
 					name = "tree_id", optional = false) String treeID,
+			@Description("The git SHA identifying a particular source version.") @Parameter(
+					name = "git_sha", optional = false) String gitSHA,
 			@Description("The name of the return format. The only currently supported format is newick.") @Parameter(
 					name = "format", optional = true) String format) throws TreeNotFoundException {
 
+		String source = studyID + "_" + treeID + "_" + gitSHA;
+		
 		// get the tree
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		JadeTree tree = null;
 		try {
-			tree = ge.reconstructSource(treeID, -1); // -1 here means no limit on depth
+			tree = ge.reconstructSource(source, -1); // -1 here means no limit on depth
 		} catch (TreeNotFoundException e) {
 
 		} finally {
@@ -84,15 +95,15 @@ public class graph extends ServerPlugin {
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
 
 		if (tree == null) {
-			responseMap.put("error", "Invalid tree id provided.");
+			responseMap.put("error", "Invalid source id provided.");
 			return OTRepresentationConverter.convert(responseMap);
 		}
 
 		responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()) + ";");
-		responseMap.put("tree_id", treeID);
 		return OTRepresentationConverter.convert(responseMap);
 	}
-
+	
+	
 	@Description("Returns summary information about a node in the graph. The node of interest may be specified "
 			+ "using *either* a node id, or an ott id, **but not both**. If the specified node or ott id is not in "
 			+ "the graph, an error will be returned.")
@@ -120,8 +131,8 @@ public class graph extends ServerPlugin {
 		boolean inSynthTree = false;
 		Integer numSynthChildren = 0;
 		Integer numMRCA = 0;
-		ArrayList<String> treeSources = new ArrayList<String>();
-		ArrayList<String> sources = new ArrayList<String>();
+		LinkedList<HashMap<String, Object>> synthSources = new LinkedList<HashMap<String, Object>>();
+		LinkedList<HashMap<String, Object>> treeSources = new LinkedList<HashMap<String, Object>>();
 
 		if (queryNodeId == null && queryOttId == null) {
 			nodeIfo.put("error", "Must provide a \"node_id\" or \"ott_id\" argument.");
@@ -177,11 +188,21 @@ public class graph extends ServerPlugin {
 				inSynthTree = true;
 				numSynthChildren = ge.getSynthesisDescendantTips(n).size(); // may be faster to just use stored MRCA
 				// get all the unique sources supporting this node
-				sources = ge.getSynthesisSupportingSources(n);
-				treeSources = ge.getSupportingTreeSources(n);
+				ArrayList<String> sSources = ge.getSynthesisSupportingSources(n);
+				ArrayList<String> tSources = ge.getSupportingTreeSources(n);
+				
+				for (String sStudy : sSources) {
+					HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(sStudy);
+					synthSources.add(indStudy);
+				}
+				
+				for (String tStudy : tSources) {
+					HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(tStudy);
+					treeSources.add(indStudy);
+				}
 			}
 		}
-
+		
 		// problem: can't pass null objects.
 		nodeIfo.put("name", name);
 		nodeIfo.put("rank", rank);
@@ -197,9 +218,9 @@ public class graph extends ServerPlugin {
 		nodeIfo.put("in_synth_tree", inSynthTree);
 		nodeIfo.put("num_synth_children", numSynthChildren);
 		nodeIfo.put("num_tips", numMRCA);
-		nodeIfo.put("synth_sources", sources);
+		nodeIfo.put("synth_sources", synthSources);
 		nodeIfo.put("tree_sources", treeSources);
-
+		
 		if (includeLineage != null && includeLineage == true) {
 			LinkedList<HashMap<String, Object>> lineage = new LinkedList<HashMap<String, Object>>();
 			if (inSynthTree) {
@@ -219,7 +240,8 @@ public class graph extends ServerPlugin {
 
 		return OTRepresentationConverter.convert(nodeIfo);
 	}
-
+	
+	
 	public List<Long> getDraftTreePathToRoot(Node startNode) {
 
 		ArrayList<Long> path = new ArrayList<Long>();
@@ -234,10 +256,8 @@ public class graph extends ServerPlugin {
 			for (Relationship m : parentRels) {
 
 				if (String.valueOf(m.getProperty("name")).equals(synthTreeName)) {
-
 					atRoot = false;
 					curParent = m.getEndNode();
-
 					path.add(curParent.getId());
 					break;
 				}
@@ -245,7 +265,9 @@ public class graph extends ServerPlugin {
 		}
 		return path;
 	}
-
+	
+	
+	// add information from a node
 	private void addNodeInfo(Node n, HashMap<String, Object> results) {
 
 		String name = "";

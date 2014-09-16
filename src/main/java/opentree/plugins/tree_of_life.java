@@ -2,7 +2,11 @@ package opentree.plugins;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
 import jade.tree.JadeTree;
+import opentree.GeneralUtils;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
@@ -32,11 +36,17 @@ public class tree_of_life extends ServerPlugin {
 			+ "about the list of source trees and the taxonomy used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation about (
-			@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
+			@Source GraphDatabaseService graphDb,
+			@Description("Return a list of source studies") @Parameter(name = "study_list", optional = true) Boolean study_list) throws TaxonNotFoundException, MultipleHitsException {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		GraphExplorer ge = new GraphExplorer(gdb);
 		HashMap<String, Object> draftTreeInfo = null;
+		Boolean returnStudyList = true; // default to true for now
+		
+		if (study_list != null && study_list == false) {
+			returnStudyList = false;
+		}
 		
 		// Most information will come from the synthesis metadata node
 		try {
@@ -64,7 +74,14 @@ public class tree_of_life extends ServerPlugin {
 				// tree constituents
 				draftTreeInfo.put("num_tips", numMRCA);
 				draftTreeInfo.put("num_source_studies", numStudies);
-				draftTreeInfo.put("study_list", sourceList);
+				if (returnStudyList) {
+					LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
+					for (String study : sourceList) {
+						HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(study);
+						sources.add(indStudy);
+					}
+					draftTreeInfo.put("study_list", sources);
+				}
 				
 			} else {
 				draftTreeInfo = new HashMap<String, Object>();
@@ -194,8 +211,8 @@ public class tree_of_life extends ServerPlugin {
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
-
-	// NOTE: currently only works for tip nodes (not internal)
+	
+	
 	@Description("Return a tree with tips corresponding to the nodes identified in the input set(s), that is "
 			+ "consistent with topology of the current draft tree. This tree is equivalent to the minimal subtree "
 			+ "induced on the draft tree by the set of identified nodes. Any combination of node ids and ott ids may "
@@ -298,6 +315,7 @@ public class tree_of_life extends ServerPlugin {
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
+	
 	
 	@Description("Return a complete subtree of the draft tree descended from some specified node. The node to use as the "
 			+ "start node may be specified using *either* a node id or an ott id, **but not both**. If the specified node "
