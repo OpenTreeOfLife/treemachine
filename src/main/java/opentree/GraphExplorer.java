@@ -412,6 +412,7 @@ public class GraphExplorer extends GraphBase {
 	 * @param tips
 	 * @return draftSubtree
 	 */
+	// TODO: detect if some tips are ancestors of other tips
 	public JadeNode extractDraftSubtreeForTipNodes(List<Node> tips) {
 		
 		if (tips.size() < 2) {
