@@ -408,17 +408,18 @@ public class GraphExplorer extends GraphBase {
 	
 	/**
 	 * Get a subtree out of the draft tree topology for the indicated tips. If taxonomy is true
-	 * it will traverse only taxonomy relationships
+	 * it will traverse only taxonomy relationships *** taxonomy does not appear to be relevant here
 	 * @param tips
 	 * @return draftSubtree
 	 */
+	// TODO: detect if some nodes are ancestors of other nodes
 	public JadeNode extractDraftSubtreeForTipNodes(List<Node> tips) {
 		
 		if (tips.size() < 2) {
 			throw new UnsupportedOperationException("Cannot extract a tree with < 2 tips.");
 		}
 		
-		// get the mrca
+		// get the mrca. should check if the mrca is equal to one of the query nodes
 		Node mrca = getDraftTreeMRCAForNodes(tips,false);
 		
 		System.out.println("identified mrca " + mrca);
