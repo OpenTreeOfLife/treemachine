@@ -398,7 +398,7 @@ public class tree_of_life extends ServerPlugin {
 		
 		// synthetic tree identifier. we currently only support one in a graph at a time, so check against that.
 		if (treeID != null) {
-			if (synthTreeID == treeID) {
+			if (synthTreeID.equalsIgnoreCase(treeID)) {
 				synthTreeID = treeID;
 			} else {
 				responseMap.put("error", "Unrecognized \"tree_id\" argument. Leave blank to default to the current synthetic tree.");
