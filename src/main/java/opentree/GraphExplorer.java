@@ -408,7 +408,7 @@ public class GraphExplorer extends GraphBase {
 	
 	/**
 	 * Get a subtree out of the draft tree topology for the indicated tips. If taxonomy is true
-	 * it will traverse only taxonomy relationships
+	 * it will traverse only taxonomy relationships *** taxonomy does not appear to be relevant here
 	 * @param tips
 	 * @return draftSubtree
 	 */
