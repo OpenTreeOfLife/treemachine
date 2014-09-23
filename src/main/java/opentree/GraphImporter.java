@@ -364,6 +364,7 @@ public class GraphImporter extends GraphBase {
 					Relationship exemplarRel = originalMatchedNode.createRelationshipTo(newMatch, RelType.STREEEXEMPLAROF);
 					sourceRelIndex.add(exemplarRel, "source", sourceName);
 					exemplarRel.setProperty("source", sourceName);
+					exemplarRel.setProperty("source_tree_id", treeID);
 	
 					System.out.println("\t" + curLeaf.getName() + " was remapped to " + getIdString(newMatch));
 				}
@@ -851,7 +852,7 @@ public class GraphImporter extends GraphBase {
 				addRootProperties(currGoLNode);
 			}
 
-			//System.out.println("adding relationships to licas for children");
+			System.out.println("adding relationships to licas for children");
 
 			// for each child of the jade node we are installing
 			for (JadeNode childJadeNode : inputJadeNode.getChildren()) {
@@ -862,11 +863,16 @@ public class GraphImporter extends GraphBase {
 				for (JadeNode child : childJadeNode.getDescendantLeaves()) {
 					childNamesList.add(child.getName());
 				}
-				//System.out.println("\ton child1: " + Arrays.toString(childNamesList.toArray()));
+				// testing
+	//			System.out.println("\ton child1: " + Arrays.toString(childNamesList.toArray()));
 				
 				for (Node childGoLNode : allChildGoLNodes) {
 					
+					// testing
+	//				System.out.println("\tchild node ID: " + childGoLNode.getId());
+					
 					if (childGoLNode.getId() == currGoLNode.getId()) {
+						System.out.println(childJadeNode.getNewick(false));
 						throw new IllegalStateException("this child is mapped the same graph node (" + currGoLNode + ") as its parent " + Arrays.toString(namesList.toArray()));
 					}
 					
@@ -875,7 +881,9 @@ public class GraphImporter extends GraphBase {
 					
 //					rel.setProperty("exclusive_mrca", inputJadeNode.getObject("exclusive_mrca"));
 					
-//					System.out.println("setting exclusive mrca to: " + Arrays.toString((long[]) childJadeNode.getObject("exclusive_mrca")));
+					//testing
+	//				System.out.println("setting exclusive mrca to: " + Arrays.toString((long[]) childJadeNode.getObject("exclusive_mrca")));
+					
 					rel.setProperty("exclusive_mrca", (long[]) childJadeNode.getObject("exclusive_mrca")); // switching from holding info for parent to holding info for child
 
 					rel.setProperty("root_exclusive_mrca", graphNodeIdsForInputLeaves.toArray());
@@ -908,6 +916,8 @@ public class GraphImporter extends GraphBase {
 
 					// METADATA ENTRY
 					rel.setProperty("source", sourceName);
+					rel.setProperty("source_tree_id", treeID);
+					
 					// TODO this if will cause us to drop 0 length branches. We probably need a "has branch length" flag in JadeNode...
 					if (childJadeNode.getBL() > 0.0) {
 						rel.setProperty("branch_length", childJadeNode.getBL());
@@ -981,7 +991,7 @@ public class GraphImporter extends GraphBase {
 		metadataNode.createRelationshipTo(currGoLNode, RelType.METADATAFOR); // TODO: doesn't account for multiple root nodes (I don't think this is true anymore)
 		sourceMetaIndex.add(metadataNode, "source", sourceName);
 
-		// set metadat from tree
+		// set metadata from tree
 		metadataNode.setProperty("source", sourceName);
 		metadataNode.setProperty("newick", inputTreeNewick);
 		metadataNode.setProperty("original_taxa_map", graphNodeIdsForInputLeaves.toArray()); // node ids for the taxon mappings

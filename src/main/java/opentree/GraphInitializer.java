@@ -96,7 +96,7 @@ public class GraphInitializer extends GraphBase{
 	 * @param synonymfile file that has the synonyms as dumped by ottol dump
 	 * @throws TaxonNotFoundException 
 	 */
-	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile) throws TaxonNotFoundException {
+	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile, String taxonomyversion) throws TaxonNotFoundException {
 		
 		initContainersForTaxLoading();
 		
@@ -113,20 +113,22 @@ public class GraphInitializer extends GraphBase{
 			try {
 				BufferedReader sbr = new BufferedReader(new FileReader(synonymfile));
 				while ((str = sbr.readLine()) != null) {
-					StringTokenizer st = new StringTokenizer(str,"\t|\t");
-					String name = st.nextToken();
-					//this is the id that points to the right node
-					String parentuid = st.nextToken();
-					String uid = parentuid;
-					String type = "OTT synonym";//st.nextToken();
-					String source = "OTT";//st.nextToken();
-					ArrayList<String> tar = new ArrayList<String>();
-					tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
-					if (synonymHash.get(parentuid) == null) {
-						ArrayList<ArrayList<String> > ttar = new ArrayList<ArrayList<String> >();
-						synonymHash.put(parentuid, ttar);
+					if (!str.trim().equals("")) {
+						StringTokenizer st = new StringTokenizer(str,"\t|\t");
+						String name = st.nextToken();
+						//this is the id that points to the right node
+						String parentuid = st.nextToken();
+						String uid = parentuid;
+						String type = "OTT synonym";//st.nextToken();
+						String source = "OTT";//st.nextToken();
+						ArrayList<String> tar = new ArrayList<String>();
+						tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
+						if (synonymHash.get(parentuid) == null) {
+							ArrayList<ArrayList<String> > ttar = new ArrayList<ArrayList<String> >();
+							synonymHash.put(parentuid, ttar);
+						}
+						synonymHash.get(parentuid).add(tar);
 					}
-					synonymHash.get(parentuid).add(tar);
 				}
 				sbr.close();
 			} catch (Exception e) {
@@ -135,7 +137,7 @@ public class GraphInitializer extends GraphBase{
 			}
 			System.out.println("synonyms: " + synonymHash.size());
 		}
-		//finished processing synonym file
+		// finished processing synonym file
 
 		Transaction tx;
 		ArrayList<String> templines = new ArrayList<String>();
@@ -144,33 +146,33 @@ public class GraphInitializer extends GraphBase{
 			// for each line in input file
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			while ((str = br.readLine()) != null) {
-				
-				// check the first line to see if it the file has a header that we should skip
-				if (count == 0) {
-					if (str.startsWith("uid")) { // file contains a header. skip line
-						System.out.println("Skipping taxonomy header line: " + str);
-						continue;
-					}
-				}
-				
-				// collect sets of lines until we reach the transaction frequency
-				count += 1;
-				templines.add(str);
-				
-				// process lines in sets of N = transactionFrequency
-				if (count % transactionFrequency == 0) {
-					System.out.print("cur transaction: " + count);
-					System.out.print("\n");
-					tx = graphDb.beginTx();
-					try {
-						for (int i = 0; i < templines.size(); i++) {
-							processTaxInputLine(templines.get(i)); // replaced repeated code with function call
+				if (!str.trim().equals("")) {
+					// check the first line to see if it the file has a header that we should skip
+					if (count == 0) {
+						if (str.startsWith("uid")) { // file contains a header. skip line
+							System.out.println("Skipping taxonomy header line: " + str);
+							continue;
 						}
-						tx.success();
-					} finally {
-						tx.finish();
 					}
-					templines.clear();
+					// collect sets of lines until we reach the transaction frequency
+					count += 1;
+					templines.add(str);
+					
+					// process lines in sets of N = transactionFrequency
+					if (count % transactionFrequency == 0) {
+						System.out.print("cur transaction: " + count);
+						System.out.print("\n");
+						tx = graphDb.beginTx();
+						try {
+							for (int i = 0; i < templines.size(); i++) {
+								processTaxInputLine(templines.get(i), taxonomyversion); // replaced repeated code with function call
+							}
+							tx.success();
+						} finally {
+							tx.finish();
+						}
+						templines.clear();
+					}
 				}
 			}
 			br.close();
@@ -179,7 +181,7 @@ public class GraphInitializer extends GraphBase{
 			tx = graphDb.beginTx();
 			try {
 				for (int i = 0; i < templines.size(); i++) {
-					processTaxInputLine(templines.get(i)); // replaced repeated code with function call
+					processTaxInputLine(templines.get(i), taxonomyversion); // replaced repeated code with function call
 				}
 				tx.success();
 			} finally {
@@ -252,7 +254,7 @@ public class GraphInitializer extends GraphBase{
 	 * Called during taxonomy loading to process each line of input from the taxonomy file
 	 * @param line
 	 */
-	private void processTaxInputLine(String line) {
+	private void processTaxInputLine(String line, String taxonomyversion) {
 		
 		StringTokenizer st = new StringTokenizer(line,"|");
 		String tid = null;
@@ -285,58 +287,78 @@ public class GraphInitializer extends GraphBase{
 		 */
 		//the flag can be comma delimited
 		StringTokenizer stfl = new StringTokenizer(flag,",");
-		while(stfl.hasMoreTokens()){
+		while (stfl.hasMoreTokens()){
 			String tflag = stfl.nextToken();
 			//if flag == D
 			if (tflag.equals("major_rank_conflict")){
 				System.out.println("skipping major_rank_conflict "+name);	
 				return;
-			}if (tflag.equals("major_rank_conflict_direct")){
+			}
+			if (tflag.equals("major_rank_conflict_direct")){
 				System.out.println("skipping major_rank_confict_direct "+name);	
 				return;
-			}if (tflag.equals("major_rank_conflict_inherited")){
+			}
+			if (tflag.equals("major_rank_conflict_inherited")){
 				System.out.println("skipping major_rank_conflict_inherited "+name);	
 				return;
-			}if (tflag.equals("environmental")){
+			}
+			if (tflag.equals("environmental")){
 				System.out.println("skipping environmental "+name);	
 				return;
-			}if (tflag.equals("unclassified_inherited")){
+			}
+			if (tflag.equals("unclassified_inherited")){
 				System.out.println("skipping unclassified_inherited "+name);	
 				return;
-			}if (tflag.equals("unclassified_direct")){
+			}
+			if (tflag.equals("unclassified_direct")){
 				System.out.println("skipping unclassified_direct "+name);	
 				return;
-			}if (tflag.equals("viral")){
+			}
+			if (tflag.equals("viral")){
 				System.out.println("skipping viral "+name);	
 				return;
-			}if (tflag.equals("nootu")){
+			}
+			if (tflag.equals("nootu")){
 				System.out.println("skipping nootu "+name);	
 				return;
-			}if (tflag.equals("barren")){
+			}
+			if (tflag.equals("barren")){
 				System.out.println("skipping barren "+name);	
 				return;
-			}if (tflag.equals("not_otu")){
+			}
+			if (tflag.equals("not_otu")){
 				System.out.println("skipping not_otu "+name);	
 				return;
-			}if (tflag.equals("incertae_sedis")){
+			}
+			if (tflag.equals("incertae_sedis")){
 				System.out.println("skipping incertae_sedis "+name);	
 				return;
-			}if (tflag.equals("incertae_sedis_direct")){
+			}
+			if (tflag.equals("incertae_sedis_direct")){
 				System.out.println("skipping incertae_sedis_direct "+name);	
 				return;
-			}if (tflag.equals("incertae_sedis_inherited")){
+			}
+			if (tflag.equals("incertae_sedis_inherited")){
 				System.out.println("skipping incertae_sedis_inherited "+name);	
 				return;
-			}if (tflag.equals("extinct_inherited")){
+			}
+			if (tflag.equals("extinct_inherited")){
 				System.out.println("skipping extinct_inherited "+name);	
 				return;
-			}if (tflag.equals("extinct_direct")){
+			}
+			if (tflag.equals("extinct_direct")){
 				System.out.println("skipping extinct_direct "+name);	
 				return;
-			}if (tflag.equals("hidden")){
+			}
+			if (tflag.equals("hidden")){
 				System.out.println("skipping hidden "+name);	
 				return;
-			}if (tflag.equals("tattered")){
+			}if (tflag.equals("unclassified")){
+				System.out.println("skipping unclassified "+name);	
+				return;
+			}
+			
+			if (tflag.equals("tattered")){
 				System.out.println("skipping tattered "+name);	
 			//	return;
 			}
@@ -348,19 +370,21 @@ public class GraphInitializer extends GraphBase{
 		tnode.setProperty(NodeProperty.TAX_PARENT_UID.propertyName, pid);
 		tnode.setProperty(NodeProperty.TAX_RANK.propertyName, rank);
 		tnode.setProperty(NodeProperty.TAX_SOURCE.propertyName, srce);
-		tnode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uniqname);
+		tnode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uniqname.equals("") ? name : uniqname);
 		
 		// add index entries
-		graphNodeIndex.add( tnode, NodeProperty.NAME.propertyName, name );
+		graphNodeIndex.add(tnode, NodeProperty.NAME.propertyName, name);
 		graphTaxUIDNodeIndex.add(tnode, NodeProperty.TAX_UID.propertyName, tid);
 		
 		if (pid.length() > 0) {
 			childNodeIDToParentNodeIDMap.put(tid, pid);
-
+		
 		} else { // root node
-
+			
+			// set taxonomy version here
+			
 			System.out.println("found root node: " + tnode.getProperty("name"));
-			setGraphRootNode(tnode);
+			setGraphRootNode(tnode, taxonomyversion);
 			
 			// set the source metadata
 			Node mdnode = graphDb.createNode();

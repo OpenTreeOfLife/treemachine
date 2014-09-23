@@ -77,7 +77,7 @@ public class NexsonReader {
 	// TODO: tree(s) may be deprecated. Need to check this. May result in no trees to return.
 	public static List<JadeTree> readNexson(Reader r, Boolean verbose, MessageLogger msgLogger) throws java.io.IOException {
 		JSONObject all = (JSONObject)JSONValue.parse(r);
-
+		
 		/*
 		  The format of the file, roughly speaking (some noise omitted):
 		  {"nexml": {
@@ -94,7 +94,7 @@ public class NexsonReader {
 		List<JadeTree> result = new ArrayList<JadeTree>();
 		
 		// The XML root element
-		JSONObject root = (JSONObject)all.get("nexml");
+		JSONObject root = (JSONObject)((JSONObject)all.get("data")).get("nexml");
 
 		// All of the <meta> elements from root (i.e. study-wide). Trees may have their own meta elements (e.g. inGroupClade)
 		List<Object> studyMetaList = getMetaList(root);
@@ -110,6 +110,8 @@ public class NexsonReader {
 		JSONObject otus = (JSONObject)root.get("otus");
 		JSONArray otuList = (JSONArray)otus.get("otu");
 		msgLogger.messageInt("OTUs", "number", otuList.size());
+		
+		//System.exit(0);
 
 		// Make an index by id of the OTUs. We'll need to be able to find them when we built the trees.
 		Map<String,JSONObject> otuMap = new HashMap<String,JSONObject>();
@@ -214,12 +216,12 @@ public class NexsonReader {
 					msgLogger.indentMessageStr(2, "Error. Node with otuID of unknown OTU", "@otu", otuId);
 					return null;
 				}
-				String label = (String)otu.get("@label");
-				jn.setName(label);
 
 				// Get taxon id (usually present) and maybe other metadata (rarely present)
 				List<Object> metaList2 = getMetaList(otu);
 				if (metaList2 != null) {
+					String origlabel = null;
+					String ottlabel = null;
 					for (Object meta : metaList2) {
 						JSONObject m = (JSONObject)meta;
 						String propname = (String)m.get("@property");
@@ -243,14 +245,21 @@ public class NexsonReader {
 								throw new RuntimeException("Invalid ottId value: " + value);
 							}
 						} else if (propname.equals("ot:originalLabel")){
+							origlabel = (String)value;
 							// ignoring originalLabel, but not emitting the unknown property warning
 						} else if (propname.equals("ot:treebaseOTUId")){
 							// ignoring treebaseOTUId, but not emitting the unknown property warning
+						}  else if (propname.equals("ot:ottTaxonName")){
+							ottlabel = (String)value;
+							jn.setName(ottlabel);
+							// ignoring ot:ottTaxonName, but not emitting the unknown property warning
 						} else {
 							msgLogger.indentMessageStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);
 						}
 						jn.assocObject(propname, value);
 					}
+					if(ottlabel == null && origlabel != null)
+						jn.setName(origlabel);
 				}
 			}
 		}
@@ -274,7 +283,13 @@ public class NexsonReader {
 				msgLogger.indentMessageStr(2, "Error. Edge with target property not found in map", "@target", (String)j.get("@target"));
 				return null;
 			}
-			Double length = (Double)j.get("@length");
+			Double length = null;
+			try{
+				length = (Double)j.get("@length");
+			}catch(java.lang.ClassCastException c){
+				length = 0.;
+				continue;
+			}
 			if (length != null) {
 				target.setBL(length);
 			}
@@ -314,16 +329,20 @@ public class NexsonReader {
 	// works for both study-wide and tree-specific metadata
 	private static Boolean checkDeprecated (List<Object> metaData) {
 		Boolean deprecated = false;
+		
 		for (Object meta : metaData) {
 			JSONObject j = (JSONObject)meta;
-			if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
-				if ((j.get("$")) != null) {
-					String currentTag = (String)j.get("$");
-					if (currentTag.startsWith("del")) {
-						return true;
+			
+			if (j.get("@property") != null) { // was dying if @property was not present
+				if (((String)j.get("@property")).compareTo("ot:tag") == 0) {
+					if ((j.get("$")) != null) {
+						String currentTag = (String)j.get("$");
+						if (currentTag.startsWith("del")) {
+							return true;
+						}
+					} else {
+						throw new RuntimeException("missing property value for name: " + j);
 					}
-				} else {
-					throw new RuntimeException("missing property value for name: " + j);
 				}
 			}
 		}
@@ -335,6 +354,9 @@ public class NexsonReader {
 			JSONObject j = (JSONObject)meta;
 			// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
 			String propname = (String)j.get("@property");
+			if (propname == null) {
+				propname = (String)j.get("@rel");
+			}
 			if (propname != null) {
 				// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
 				// looking for either "$" or "@href" (former is more frequent)
@@ -357,7 +379,9 @@ public class NexsonReader {
 						msgLogger.indentMessageStr(1, "property added", propname, value.toString());
 					}
 				} else {
-					throw new RuntimeException("missing property value for name: " + j);
+	// temporarily turning off this error. involves nexson 'messages'
+	//				System.err.println("missing property value for name: " + j);
+					//throw new RuntimeException("missing property value for name: " + j);
 				}
 			} else {
 				throw new RuntimeException("missing property name: " + j);

@@ -259,16 +259,16 @@ public class LicaUtil {
 		return retaln;
 	}
 	
-	/**
+	/*
 	 * This will return the MRCA using the current draft tree relationships. This only
 	 * requires the nodes that we are looking for.
 	 * 
 	 * @param inNodes
 	 * @return
-	 */
+	 *
 	public static Node getDraftTreeLICA(Iterable<Node> inNodes) {
 		return getSynthTreeLICA(inNodes, (String) GeneralConstants.DRAFT_TREE_NAME.value);
-	}
+	} */
 
 	protected static void checkNodeId(Node n) {
 		// eventually need bitset that accepts long ids
@@ -277,13 +277,13 @@ public class LicaUtil {
 		}	
 	}
 	
-	/**
+	/*
 	 * This will return the MRCA using the specified synthesis tree relationships. This only
 	 * requires the nodes that we are looking for.
 	 * 
 	 * @param inNodes
 	 * @return
-	 */
+	 *
 	public static Node getSynthTreeLICA(Iterable<Node> inNodes, String treeName) {
 		
 		// TODO: going to need a check somewhere in here to make sure all the nodes are in the draft tree
@@ -380,7 +380,7 @@ public class LicaUtil {
 		}
 
 		return retaln;
-	}
+	} */
 	
 	/**
 	 * This will return the MRCA using the taxonomic relationships. This only

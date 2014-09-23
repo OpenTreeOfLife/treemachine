@@ -10,6 +10,7 @@ package opentree;
  * write json
  */
 
+import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 
@@ -23,6 +24,7 @@ import java.util.LinkedList;
 //import java.util.Iterator;
 import java.util.Stack;
 
+import opentree.constants.NodeProperty;
 //import opentree.RelTypes;
 import opentree.constants.RelType;
 import opentree.exceptions.TaxonNotFoundException;
@@ -85,7 +87,7 @@ public class GraphExporter extends GraphBase {
 	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) 
 				throws TaxonNotFoundException {
 		Node firstNode = findTaxNodeByName(taxname);
-		String tofile = getGraphML(firstNode,useTaxonomy);
+		String tofile = getGraphML(firstNode,useTaxonomy,0);
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(outfile));
@@ -95,7 +97,110 @@ public class GraphExporter extends GraphBase {
 			e.printStackTrace();
 		}
 	}
+	
+	public void writeGraphMLDepth_ottolid(String ottolid, String outfile, boolean useTaxonomy, int depth) 
+			throws TaxonNotFoundException {
+	Node firstNode = findGraphTaxNodeByUID(ottolid);
+	String tofile = getGraphMLSimple(firstNode,useTaxonomy,depth);
+	PrintWriter outFile;
+	try {
+		outFile = new PrintWriter(new FileWriter(outfile));
+		outFile.write(tofile);
+		outFile.close();
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+}
 
+	/**
+	 * creates a graphml for viewing in gephi Because gephi cannot view parallel lines, this will not output parallel edges. The properties that we have are
+	 * node taxon edge sourcename (this is more complicated because of not outputting parallel edges) 
+	 * 
+	 * 
+	 * @param startnode
+	 * @return
+	 */
+
+	private String getGraphMLSimple(Node startnode,boolean taxonomy,int depth){
+		StringBuffer retstring = new StringBuffer("<graphml>\n");
+		retstring.append("<key id=\"d0\" for=\"node\" attr.name=\"taxon\" attr.type=\"string\">\n");
+		retstring.append("<default></default>\n");
+		retstring.append("</key>\n");
+		retstring.append("<key id=\"d1\" for=\"edge\" attr.name=\"sourcename\" attr.type=\"string\">\n");
+		retstring.append("<default></default>\n");
+		retstring.append("</key>\n");
+		retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
+		// get the list of nodes
+		HashSet<Node> nodes = new HashSet<Node>();
+		if(depth > 0){
+		for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
+				.traverse(startnode).nodes()) {
+			nodes.add(tnode);
+		}
+		}else{
+			for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
+					.traverse(startnode).nodes()) {
+				nodes.add(tnode);
+			}
+		}
+		HashMap<Long, ArrayList<String>> sourcelists = new HashMap<Long, ArrayList<String>>();// number of sources for each node
+		// do most of the calculations
+		/*
+		 * calculations here are effective parents and effective children
+		 */
+		HashSet<Node> removenodes = new HashSet<Node> ();//remove for taxonomy
+		for (Node tnode : nodes) {
+			HashMap<Long, Integer> parcount = new HashMap<Long, Integer>();
+			ArrayList<String> slist = new ArrayList<String>();
+			for (Relationship rel : tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)) {
+				if (taxonomy == true || ((String) rel.getProperty("source")).compareTo("taxonomy") != 0) {
+					if (parcount.containsKey(rel.getEndNode().getId()) == false) {
+						parcount.put(rel.getEndNode().getId(), 0);
+					}
+					Integer tint = parcount.get(rel.getEndNode().getId()) + 1;
+					parcount.put(rel.getEndNode().getId(), tint);
+					slist.add((String) rel.getProperty("source"));
+				}
+			}
+			if(slist.size()==0 && tnode!=startnode)
+				removenodes.add(tnode);
+			sourcelists.put(tnode.getId(), slist);
+		}
+		nodes.removeAll(removenodes);
+		// calculate node support
+		/*
+		 * node support here is calculated as the number of outgoing edges divided by the total number of sources in the subtree obtained by getting the number
+		 * of unique sources at each tip
+		 */
+		System.out.println("nodes traversed");
+		//nothing calculated beyond, this is just for writing the file
+		for(Node tnode: nodes){
+			retstring.append("<node id=\"n"+tnode.getId()+"\">\n");
+			if(tnode.hasProperty("name")){
+				retstring.append("<data key=\"d0\">"+((String)tnode.getProperty("name")).replace("&", "_")+"</data>\n");
+			}
+			retstring.append("</node>\n");
+		}
+		for (Node tnode : nodes) {
+			for(Relationship rel: tnode.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF)){
+				if (taxonomy == true || ((String) rel.getProperty("source")).compareTo("taxonomy") != 0) {
+					if(nodes.contains(rel.getEndNode())){
+						retstring.append("<edge source=\"n" + tnode.getId() + "\" target=\"n" + rel.getEndNode().getId() + "\">\n");
+						//retstring.append("<data key=\"d3\">" + tedgesupport.get(tl) + "</data>\n");
+						retstring.append("<data key=\"d1\">"+((String)rel.getProperty("source")).replace("&", "_")+"</data>\n");
+						retstring.append("</edge>\n");
+					}
+				}
+			}
+		}
+		System.out.println("nodes written");
+		retstring.append("</graph>\n</graphml>\n");
+		return retstring.toString();
+	}
+
+	
+	
+	
 	/**
 	 * creates a graphml for viewing in gephi Because gephi cannot view parallel lines, this will not output parallel edges. The properties that we have are
 	 * node taxon edge sourcename (this is more complicated because of not outputting parallel edges) node support edge support node effective parents node
@@ -107,7 +212,7 @@ public class GraphExporter extends GraphBase {
 	 * @return
 	 */
 
-	private String getGraphML(Node startnode,boolean taxonomy){
+	private String getGraphML(Node startnode,boolean taxonomy,int depth){
 		StringBuffer retstring = new StringBuffer("<graphml>\n");
 		retstring.append("<key id=\"d0\" for=\"node\" attr.name=\"taxon\" attr.type=\"string\">\n");
 		retstring.append("<default></default>\n");
@@ -136,9 +241,16 @@ public class GraphExporter extends GraphBase {
 		retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
 		// get the list of nodes
 		HashSet<Node> nodes = new HashSet<Node>();
-		for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
+		if(depth > 0){
+		for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
 				.traverse(startnode).nodes()) {
 			nodes.add(tnode);
+		}
+		}else{
+			for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
+					.traverse(startnode).nodes()) {
+				nodes.add(tnode);
+			}
 		}
 		HashMap<Long, Double> nodesupport = new HashMap<Long, Double>();
 		HashMap<Long, HashMap<Long, Double>> edgesupport = new HashMap<Long, HashMap<Long, Double>>();
@@ -372,15 +484,7 @@ public class GraphExporter extends GraphBase {
 
 	public void mrpDump(String taxname, String outfile) throws TaxonNotFoundException  {
 		Node firstNode = findTaxNodeByName(taxname);
-		String tofile = getMRPDump(firstNode);
-		PrintWriter outFile;
-		try {
-			outFile = new PrintWriter(new FileWriter(outfile));
-			outFile.write(tofile);
-			outFile.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		getMRPDump(firstNode,outfile);
 	}
 
 	/**
@@ -389,15 +493,15 @@ public class GraphExporter extends GraphBase {
 	 * @param startnode
 	 * @return string of the mrp matrix
 	 */
-	private String getMRPDump(Node startnode) {
-		HashSet<Long> tids = new HashSet<Long>();
-		HashSet<Long> nodeids = new HashSet<Long>();
-		HashMap<Long, HashSet<Long>> mrpmap = new HashMap<Long, HashSet<Long>>(); // key is the id for the taxon and the hashset is the list of nodes to which
+	private void getMRPDump(Node startnode,String outfile) {
+		TLongHashSet tids = new TLongHashSet();
+		TLongHashSet nodeids = new TLongHashSet();
+		HashMap<Long, TLongHashSet> mrpmap = new HashMap<Long, TLongHashSet>(); // key is the id for the taxon and the hashset is the list of nodes to which
 																				  // the taxon is a member
 		long[] dbnodei = (long[]) startnode.getProperty("mrca");
 		for (long temp : dbnodei) {
 			tids.add(temp);
-			mrpmap.put(temp, new HashSet<Long>());
+			mrpmap.put(temp, new TLongHashSet());
 		}
 		TraversalDescription STREECHILDOF_TRAVERSAL = Traversal.description()
 				.relationships(RelType.STREECHILDOF, Direction.INCOMING);
@@ -410,20 +514,29 @@ public class GraphExporter extends GraphBase {
 			}
 			nodeids.add(tnd.getId());
 		}
-		String retstring = String.valueOf(tids.size()) + " " + String.valueOf(nodeids.size()) + "\n";
-		for (Long nd : tids) {
-			retstring += (String) graphDb.getNodeById(nd).getProperty("name");
-			retstring += "\t";
-			for (Long nnid : nodeids) {
-				if (mrpmap.get(nd).contains(nnid)) {
-					retstring += "1";
-				} else {
-					retstring += "0";
+		try {
+			FileWriter fw = new FileWriter(outfile);
+			String retstring = String.valueOf(tids.size()) + " " + String.valueOf(nodeids.size()) + "\n";
+			fw.write(retstring);
+			for (Long nd : tids.toArray()) {
+				StringBuffer retstring2 = new StringBuffer("");
+				retstring2.append((String) graphDb.getNodeById(nd).getProperty(NodeProperty.TAX_UID.propertyName));
+				retstring2.append("\t");
+				for (Long nnid : nodeids.toArray()) {
+					if (mrpmap.get(nd).contains(nnid)) {
+						retstring2.append("1");
+					} else {
+						retstring2.append("0");
+					}
 				}
+				retstring2.append("\n");
+				fw.write(retstring2.toString());
 			}
-			retstring += "\n";
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		return retstring;
 	}
 
 	/*

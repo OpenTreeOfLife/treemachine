@@ -19,15 +19,22 @@
       <artifactId>server-api</artifactId>
       <version>1.9.5</version>
     </dependency>
+<!--
     <dependency>
       <groupId>org.neo4j.app</groupId>
       <artifactId>neo4j-server</artifactId>
       <version>1.9.5</version>
     </dependency>
+-->
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>2.9.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opentree</groupId>
+      <artifactId>ot-base</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
