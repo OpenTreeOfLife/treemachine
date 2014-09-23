@@ -28,7 +28,7 @@ import java.util.Stack;
 import opentree.constants.NodeProperty;
 //import opentree.RelTypes;
 import opentree.constants.RelType;
-import opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.TaxonNotFoundException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphdb.GraphDatabaseService;

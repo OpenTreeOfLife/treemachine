@@ -8,8 +8,8 @@ import opentree.constants.GraphProperty;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
-import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.MultipleHitsException;
+import org.opentree.exceptions.TaxonNotFoundException;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;

@@ -12,9 +12,9 @@ import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
-import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.TaxonNotFoundException;
-import opentree.exceptions.TreeNotFoundException;
+import org.opentree.exceptions.MultipleHitsException;
+import org.opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.TreeNotFoundException;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
