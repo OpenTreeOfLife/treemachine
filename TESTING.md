@@ -1,6 +1,21 @@
+## Run the following command to test the basic functionality of the services:
+
+```
+./test.sh
+```
+
+### Graph Services
+
 Currently, there are no automated tests for treemachine or its services. You may test the services by querying them using cURL or other clients. Here are some cURL calls and their expected return values (for the ott 2.8draft taxonomy).
 
-### Services Querying The Graph Database
+Some example ott ids to play with
+* struthio_camelus = 647692
+* stellula_calliope = 536234
+* upupa_epops = 412129
+* anas_versicolor = 30854
+* gavia_immer = 1057518
+
+### Some example cURL calls
 
 **Summary information about the graph**
 ```bash
