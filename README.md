@@ -1,3 +1,5 @@
+[![Build Status](https://secure.travis-ci.org/OpenTreeOfLife/treemachine.png)](http://travis-ci.org/OpenTreeOfLife/treemachine)
+
 opentree-treemachine
 ===============
 Installation
