@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import jade.tree.JadeTree;
-import opentree.GeneralUtils;
+import org.opentree.utils.GeneralUtils;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;

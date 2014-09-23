@@ -7,6 +7,9 @@ import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
 
+import org.opentree.exceptions.DataFormatException;
+import org.opentree.utils.GeneralUtils;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,6 +29,7 @@ import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
+
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.Direction;
@@ -38,16 +42,15 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
 import org.neo4j.kernel.Traversal;
+
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
-import opentree.exceptions.DataFormatException;
 import opentree.exceptions.MultipleHitsException;
 import opentree.exceptions.OttIdNotFoundException;
 import opentree.exceptions.StoredEntityNotFoundException;
 import opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 import opentree.exceptions.TreeNotFoundException;
-import opentree.GeneralUtils;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.testing.TreeUtils;
 import jade.MessageLogger;
@@ -1672,7 +1675,8 @@ public class MainRunner {
 			for (int i = 1; i < spls.length; i++) {
 				tname += "_" +spls[i];
 			}
-			ret.append(GeneralUtils.cleanName(tname));
+//			ret.append(GeneralUtils.cleanName(tname));
+			ret.append(GeneralUtils.scrubName(tname));
 		}
 		double value = (Double)innode.getObject("tipcount");
 		ret.append("[&tipcount=".concat(String.valueOf(value)).concat("]"));
@@ -2668,7 +2672,8 @@ public class MainRunner {
 					}
 					id_childs.get(pid).add(tid);
 					JadeNode tnode = new JadeNode();
-					tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
+//					tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
+					tnode.setName(GeneralUtils.scrubName(name).concat("_ott").concat(tid));
 					tnode.assocObject("id", tid);
 					id_node_map.put(tid, tnode);
 				}

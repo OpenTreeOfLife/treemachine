@@ -3,10 +3,11 @@ package opentree;
 import java.io.Reader;
 import java.util.*;
 
-import opentree.exceptions.DataFormatException;
+import org.opentree.exceptions.DataFormatException;
 
 public class GeneralUtils {
 
+	/*
     // all common non-alphanumeric chars except "_" and "-", for use when cleaning strings
     public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
     public static final String newickIllegal = ".*[\\Q:;/[]{}(),\\E]+.*";
@@ -31,7 +32,7 @@ public class GeneralUtils {
 	 * 
 	 * @param dirtyName
 	 * @return cleanName
-	 */
+	 *
 	public static String cleanName (String dirtyName) {
 	    String cleanName = dirtyName.replaceAll(offendingChars, "_");
 	    return cleanName;
@@ -46,7 +47,7 @@ public class GeneralUtils {
 	 * 
 	 * @param origName
 	 * @return newickName
-	 */
+	 *
 	public static String newickName (String origName) {
 		Boolean needQuotes = false;
 		String newickName = origName;
@@ -78,7 +79,7 @@ public class GeneralUtils {
 	 Peek at tree flavour, report back, reset reader for subsequent processing
 	 @param r a tree file reader
 	 @return treeFormat a string indicating recognized tree format
-	*/
+	*
 	public static String divineTreeFormat (Reader r) throws java.io.IOException, DataFormatException {
 		String treeFormat = "";
 		r.mark(1);
@@ -97,12 +98,12 @@ public class GeneralUtils {
 	}
 	
 	
-	/* Convert from string:
+	/** Convert from string:
 			PREFIX_STUDYID_TREEID_GITSHA
 		to:
 		{"study" : "NNN", "tree" : "MMM", "sha":"NANA"}
 	
-	*/
+	*
 	public static HashMap<String, Object> reformatSourceID (String source) {
 		
 		HashMap<String, Object> results = new HashMap<String, Object>();
@@ -133,6 +134,5 @@ public class GeneralUtils {
 		results.put("git_sha", gitSha);
 		
 		return (results);
-	}
-
+	} */
 }
