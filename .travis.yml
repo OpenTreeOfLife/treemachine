@@ -6,7 +6,7 @@ before_install:
 branches:
     only:
         - travis
-#        - master
+        - master
 install:
     - ./mvn_cmdline.sh
     - ./travis-config/setup_db.sh
