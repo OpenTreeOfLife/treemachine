@@ -292,8 +292,8 @@ public class graph extends ServerPlugin {
 	}
 	
 	// Get a bunch of graph nodeIDs from a bunch of ottIDs
-	@Description("Get a set of node ids from a set of query ott ids. For ott ids not found in the graph, "
-			+ "the result \"null\" is returned.")
+	@Description("Get a set of node ids from a set of query ott ids. For individual ott ids not found "
+			+ "in the graph, the result \"null\" is returned.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation node_ids (
 			@Source GraphDatabaseService graphDb,
