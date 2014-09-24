@@ -13,11 +13,11 @@ You can point this script at different servers by setting the TREEMACHINE_SERVER
 
 ```bash
 # to test devapi remotely
-TREEMACHINE_SERVER=devapi.opentreeoflife.org/taxomachine && export TREEMACHINE_SERVER && ./test.sh
+TREEMACHINE_SERVER=devapi.opentreeoflife.org/treemachine && export TREEMACHINE_SERVER && ./test.sh
 ```
 
 ```bash
-# to test locally on a machine where the taxomachine neo4j instance is running on a
+# to test locally on a machine where the treemachine neo4j instance is running on a
 # nonstandard port (in this case 7480)
 TREEMACHINE_SERVER=localhost:7480/db/data && export TREEMACHINE_SERVER && ./test.sh
 ```
