@@ -13,6 +13,7 @@ package opentree;
 import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
+import org.opentree.utils.GeneralUtils;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -27,7 +28,7 @@ import java.util.Stack;
 import opentree.constants.NodeProperty;
 //import opentree.RelTypes;
 import opentree.constants.RelType;
-import opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.TaxonNotFoundException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -871,8 +872,8 @@ public class GraphExporter extends GraphBase {
     		}
     		traveledNodes.put(curGraphNode, curNode);
             if (curGraphNode.hasProperty("name")) {
-                curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
-//                curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+//                curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+                curNode.setName(GeneralUtils.scrubName(String.valueOf(curGraphNode.getProperty("name"))));
             }
             curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
             JadeNode parentJadeNode = null;
@@ -921,8 +922,8 @@ public class GraphExporter extends GraphBase {
         	Node curGraphNode = startNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
         	JadeNode newroot = new JadeNode();
             if (curGraphNode.hasProperty("name")) {
-                newroot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
-//                curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+//                newroot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+                newroot.setName(GeneralUtils.scrubName(String.valueOf(curGraphNode.getProperty("name"))));
             }
             newroot.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
         	newroot.addChild(root);
@@ -953,8 +954,8 @@ public class GraphExporter extends GraphBase {
     		}
     		traveledNodes.put(curGraphNode, curNode);
             if (curGraphNode.hasProperty("name")) {
-                curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
-//                curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+//                curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+                curNode.setName(GeneralUtils.scrubName(String.valueOf(curGraphNode.getProperty("name"))));
             }
             curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
             JadeNode parentJadeNode = null;
@@ -1013,8 +1014,8 @@ public class GraphExporter extends GraphBase {
         	Node curGraphNode = startNode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
         	JadeNode newroot = new JadeNode();
             if (curGraphNode.hasProperty("name")) {
-                newroot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
-//                curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+//                newroot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+                newroot.setName(GeneralUtils.scrubName(String.valueOf(curGraphNode.getProperty("name"))));
             }
             newroot.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
         	newroot.addChild(root);

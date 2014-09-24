@@ -7,6 +7,9 @@ import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
 
+import org.opentree.exceptions.DataFormatException;
+import org.opentree.utils.GeneralUtils;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,6 +29,9 @@ import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
+import org.opentree.exceptions.MultipleHitsException;
+
+
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.Direction;
@@ -38,16 +44,13 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 //import org.neo4j.graphdb.index.IndexHits;
 
 import org.neo4j.kernel.Traversal;
+
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
-import opentree.exceptions.DataFormatException;
-import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.OttIdNotFoundException;
-import opentree.exceptions.StoredEntityNotFoundException;
-import opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.StoredEntityNotFoundException;
+import org.opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
-import opentree.exceptions.TreeNotFoundException;
-import opentree.GeneralUtils;
+import org.opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.testing.TreeUtils;
 import jade.MessageLogger;
@@ -1672,7 +1675,8 @@ public class MainRunner {
 			for (int i = 1; i < spls.length; i++) {
 				tname += "_" +spls[i];
 			}
-			ret.append(GeneralUtils.cleanName(tname));
+//			ret.append(GeneralUtils.cleanName(tname));
+			ret.append(GeneralUtils.scrubName(tname));
 		}
 		double value = (Double)innode.getObject("tipcount");
 		ret.append("[&tipcount=".concat(String.valueOf(value)).concat("]"));
@@ -1855,7 +1859,7 @@ public class MainRunner {
 			// find the start node
 			Node firstNode = ge.findGraphTaxNodeByUID(ottId);
 			if (firstNode == null) {
-				throw new opentree.exceptions.OttIdNotFoundException(ottId);
+				throw new TaxonNotFoundException(ottId);
 			}
 			try {
 				success = ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,test);
@@ -1863,7 +1867,7 @@ public class MainRunner {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		} catch (OttIdNotFoundException oex) {
+		} catch (TaxonNotFoundException oex) {
 			oex.printStackTrace();
 		} finally {
 			ge.shutdownDB();
@@ -1905,7 +1909,7 @@ public class MainRunner {
 	
 	// gets graph nodeid from ottid
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftTreeForOttId(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int extractDraftTreeForOttId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be rootNodeOttId outfilename graphdbfolder");
 			return 1;
@@ -1925,7 +1929,7 @@ public class MainRunner {
 	
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftTreeForNodeId(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int extractDraftTreeForNodeId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be rootottId outFileName graphdbfolder");
 			return 1;
@@ -2003,7 +2007,7 @@ public class MainRunner {
 	
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftSubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int extractDraftSubTreeForOttIDs(String [] args) throws MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
 			return 1;
@@ -2042,7 +2046,7 @@ public class MainRunner {
 	}
 	
 	
-	public int extractTaxonomySubTreeForOttIDs(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException {
+	public int extractTaxonomySubTreeForOttIDs(String [] args) throws MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
 			System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
 			return 1;
@@ -2082,7 +2086,7 @@ public class MainRunner {
 	
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
-	public int extractDraftTreeForOttidJSON(String [] args) throws OttIdNotFoundException, MultipleHitsException, TaxonNotFoundException{
+	public int extractDraftTreeForOttidJSON(String [] args) throws MultipleHitsException, TaxonNotFoundException{
 		// open the graph
 		String graphname = args[3];
 		String outFileName = args[2];
@@ -2668,7 +2672,8 @@ public class MainRunner {
 					}
 					id_childs.get(pid).add(tid);
 					JadeNode tnode = new JadeNode();
-					tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
+//					tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
+					tnode.setName(GeneralUtils.scrubName(name).concat("_ott").concat(tid));
 					tnode.assocObject("id", tid);
 					id_node_map.put(tid, tnode);
 				}

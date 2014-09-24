@@ -1,8 +1,11 @@
 package jade.tree;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Stack;
 
-import opentree.GeneralUtils;
+import org.opentree.utils.GeneralUtils;
 
 public class JadeNode {
     
@@ -198,7 +201,8 @@ public class JadeNode {
 			}
 		}
 		if (this.name != null) {
-			ret.append(GeneralUtils.cleanName(this.name));
+//			ret.append(GeneralUtils.cleanName(this.name));
+			ret.append(GeneralUtils.scrubName(this.name));
 		}
 		return ret.toString();
 	}
