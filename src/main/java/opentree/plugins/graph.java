@@ -34,7 +34,7 @@ public class graph extends ServerPlugin {
 	@Description("Returns summary information about the entire graph database, including identifiers for the "
 			+ "taxonomy and source trees used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation about(@Source GraphDatabaseService graphDb) throws TaxonNotFoundException,
+	public Representation about (@Source GraphDatabaseService graphDb) throws TaxonNotFoundException,
 			MultipleHitsException {
 
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
@@ -66,7 +66,7 @@ public class graph extends ServerPlugin {
 			+ "pruning tips from the tree that cannot be mapped to taxa in the graph). In addition, both "
 			+ "internal and terminal nodes are labelled ott ids. The tree is returned in newick format.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation source_tree(
+	public Representation source_tree (
 			@Source GraphDatabaseService graphDb,
 			@Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")") @Parameter(
 					name = "study_id", optional = false) String studyID,
@@ -107,7 +107,7 @@ public class graph extends ServerPlugin {
 			+ "using *either* a node id, or an ott id, **but not both**. If the specified node or ott id is not in "
 			+ "the graph, an error will be returned.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation node_info(
+	public Representation node_info (
 			@Source GraphDatabaseService graphDb,
 			@Description("The node id of the node of interest. This argument may not be combined with `ott_id`.") @Parameter(
 					name = "node_id", optional = true) Long queryNodeId,
@@ -126,7 +126,7 @@ public class graph extends ServerPlugin {
 		String rank = "";
 		String taxSource = "";
 		Long nodeId = null;
-		boolean inGraph = false;
+		boolean inGraph = false; // seems useless. if not in the graph, an error is returned.
 		boolean inSynthTree = false;
 		Integer numSynthChildren = 0;
 		Integer numMRCA = 0;
@@ -267,7 +267,7 @@ public class graph extends ServerPlugin {
 	
 	
 	// add information from a node
-	private void addNodeInfo(Node n, HashMap<String, Object> results) {
+	private void addNodeInfo (Node n, HashMap<String, Object> results) {
 
 		String name = "";
 		String uniqueName = "";
@@ -290,5 +290,33 @@ public class graph extends ServerPlugin {
 			results.put("ott_id", "null");
 		}
 	}
-
+	
+	// Get a bunch of graph nodeIDs from a bunch of ottIDs
+	@Description("Get a set of node ids from a set of query ott ids. For individual ott ids not found "
+			+ "in the graph, the result \"null\" is returned.")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation node_ids (
+			@Source GraphDatabaseService graphDb,
+			@Description("A set of ott ids") @Parameter(name = "ott_ids", optional = false) long[] ottIds) {
+		
+		HashMap<Long, Object> nodeIDs = new HashMap<Long, Object>();
+		
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		
+		if (ottIds != null && ottIds.length > 0) {
+			for (long ottId : ottIds) {
+				Node n = null;
+				try {
+					n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+				} catch (TaxonNotFoundException e) {}
+				if (n != null) {
+					nodeIDs.put(ottId, n.getId());
+				} else {
+					nodeIDs.put(ottId, "null");
+				}
+			}
+		}
+		return OTRepresentationConverter.convert(nodeIDs);
+	}
+	
 }

@@ -10,82 +10,88 @@
 ### Graph Services ###
 
 ## About
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/about
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/about
 
 ## Get source tree from the graph
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/source_tree -H "content-type:application/json" -d '{"tree_id":"pg_420_522_96e3dcc7d18b5ba7b96b888ef18fdf7c14c088fa"}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/source_tree -H "content-type:application/json" -d '{"tree_id":"pg_420_522_96e3dcc7d18b5ba7b96b888ef18fdf7c14c088fa"}'
 
 ## Node info
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":292466}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"ott_id":292466}'
 
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":3019509}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"node_id":3019509}'
 
 # Aves: ott_id = 81461; node_id = 3019459
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":3019459}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"node_id":3019459}'
 
 # Passeroidea: in graph, but not synth
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":176458}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"ott_id":176458}'
 
 # Bad call: provides both ott_id and node_id
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":3019459, "ott_id":81461}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"node_id":3019459, "ott_id":81461}'
 
 # Bad call: invalid node id
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":3019459888}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"node_id":3019459888}'
 
 ## Get info about a node in the graph
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":292466}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"ott_id":292466}'
 
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":3019509}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"node_id":3019509}'
 
 # Aves: ott_id = 81461; node_id = 3019459
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":3019459}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"node_id":3019459}'
 
 # Passeroidea: in graph, but not synth
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":176458}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"ott_id":176458}'
 
 # Bad call: provides both ott_id and node_id
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":3019459, "ott_id":81461}'
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_info -H "content-type:application/json" -d '{"node_id":3019459, "ott_id":81461}'
 
 
 ### Tree Services ###
 
 ## About
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/about
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/about
 
 ## Get MRCA of nodes
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/mrca -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/mrca -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845]}'
 
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/mrca -H "content-type:application/json" -d '{"ott_ids":[292466]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/mrca -H "content-type:application/json" -d '{"ott_ids":[292466]}'
 
 # Example where MRCA node does not have a name
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/mrca -H "content-type:application/json" -d '{"ott_ids":[412129, 536234]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/mrca -H "content-type:application/json" -d '{"ott_ids":[412129, 536234]}'
 
 ## Get subtree below some node
 # Parulidae
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":3599390}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id":3599390}'
 
 # Passeroidea (not in synth tree)
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":176458}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id":176458}'
 
 # Bad call: provides both ott_id and node_id
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":3599390, "node_id":3599390}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id":3599390, "node_id":3599390}'
 
 # Get complete Aves tree
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":81461}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id":81461}'
 
 # Metazoa: too big to export
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":691846}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id":691846}'
 
 # Vertebrata: too big to export
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ott_id": 801601}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id": 801601}'
 
 ## Get induced subtree = synth tree with just specified terminal nodes
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710]}'
 
 # including Passeroidea (not in synth tree)
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710, 176458]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710, 176458]}'
 
 # Bad call: not enough valid node ids to make a tree
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[3599390, 176458]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[3599390, 176458]}'
 
-curl -X POST http://devapi.opentreeoflife.org/treemachine/ext/tree_of_life/graphdb/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[292466, 501678]}'
+curl -X POST http://devapi.opentreeoflife.org/v2/tree_of_life/induced_subtree -H "content-type:application/json" -d '{"ott_ids":[292466, 501678]}'
+
+## Get nodeIDs from ottIDs
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_ids -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710]}'
+
+# This one includes an invalid ottID (89744589)
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_ids -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 89744589]}'

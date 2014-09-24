@@ -51,6 +51,23 @@ curl -X POST http://devapi.opentreeoflife.org/v2/graph/source_tree -H "content-t
 }
 ```
 
+**Get a set of graph nodeIDs from corresponding ottIDs**
+```bash
+curl -X POST http://devapi.opentreeoflife.org/v2/graph/node_ids -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710]}'
+```
+
+```json
+{
+  "316878" : 3048165,
+  "501678" : 3022119,
+  "267845" : 3042161,
+  "292466" : 3019509,
+  "666104" : 3038666,
+  "102710" : 3049250
+}
+```
+
+
 ### Services Querying The Draft Tree Of Life
 
 **Summary information about the current synthetic tree**
