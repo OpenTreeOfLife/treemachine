@@ -3,6 +3,7 @@
 .settings*
 .project
 .classpath
+*.pyc
 data/examples*
 data/taxonomies*
 target*
