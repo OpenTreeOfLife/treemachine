@@ -18,8 +18,8 @@ TREEMACHINE_SERVER=devapi.opentreeoflife.org/taxomachine && export TREEMACHINE_S
 
 ```bash
 # to test locally on a machine where the taxomachine neo4j instance is running on a
-# nonstandard port (in this case 7476)
-TREEMACHINE_SERVER=localhost:7476/db/data && export TREEMACHINE_SERVER && ./test.sh
+# nonstandard port (in this case 7480)
+TREEMACHINE_SERVER=localhost:7480/db/data && export TREEMACHINE_SERVER && ./test.sh
 ```
 
 ### Manual testing
