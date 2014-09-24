@@ -33,7 +33,7 @@ Some example ott ids to play with
 * anas_versicolor = 30854
 * gavia_immer = 1057518
 
-#### Some example cURL calls
+Some example cURL calls follow.
 
 **Summary information about the graph**
 ```bash
