@@ -8,7 +8,7 @@ import java.util.List;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphImporter;
 import opentree.PhylografterConnector;
-import opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 import jade.MessageLogger;
 

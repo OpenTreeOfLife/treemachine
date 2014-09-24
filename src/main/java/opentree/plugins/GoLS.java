@@ -21,11 +21,10 @@ import opentree.MainRunner;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
-import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.OttIdNotFoundException;
-import opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.MultipleHitsException;
+import org.opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
-import opentree.exceptions.TreeNotFoundException;
+import org.opentree.exceptions.TreeNotFoundException;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -501,7 +500,7 @@ public class GoLS extends ServerPlugin {
         // find the start node
         Node firstNode = ge.findGraphTaxNodeByUID(rootottId);
         if (firstNode == null) {
-            throw new OttIdNotFoundException(rootottId);
+            throw new TaxonNotFoundException(rootottId);
         }
 		
 		if (ge.synthesizeAndStoreDraftTreeBranches(firstNode, preferredSources,false)) {

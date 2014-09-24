@@ -15,9 +15,8 @@ import java.util.LinkedList;
 import java.util.Map.Entry;
 
 import opentree.constants.RelType;
-import opentree.exceptions.AmbiguousTaxonException;
-import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.MultipleHitsException;
+import org.opentree.exceptions.TaxonNotFoundException;
 import opentree.exceptions.TreeIngestException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -31,6 +30,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
+import org.opentree.exceptions.AmbiguousTaxonException;
 
 import scala.actors.threadpool.Arrays;
 

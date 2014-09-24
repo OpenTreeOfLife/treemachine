@@ -5,6 +5,7 @@ import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.TreeReader;
+import org.opentree.utils.GeneralUtils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -26,10 +27,9 @@ import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
-import opentree.exceptions.MultipleHitsException;
-import opentree.exceptions.OttIdNotFoundException;
-import opentree.exceptions.TaxonNotFoundException;
-import opentree.exceptions.TreeNotFoundException;
+import org.opentree.exceptions.MultipleHitsException;
+import org.opentree.exceptions.TaxonNotFoundException;
+import org.opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.synthesis.SynthesisExpander;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
@@ -1916,7 +1916,8 @@ public class GraphExplorer extends GraphBase {
 		
 		if (curGraphNode.hasProperty("name")) {
 			newNode.setName((String) curGraphNode.getProperty("name"));
-			newNode.setName(GeneralUtils.cleanName(newNode.getName()));
+//			newNode.setName(GeneralUtils.cleanName(newNode.getName()));
+			newNode.setName(GeneralUtils.scrubName(newNode.getName()));
 		}
 		
 		if (parentJadeNode == null) {
@@ -2179,7 +2180,8 @@ public class GraphExplorer extends GraphBase {
 		
 		if (curGraphNode.hasProperty("name")) {
 			newJadeNode.setName((String) curGraphNode.getProperty("name"));
-			newJadeNode.setName(GeneralUtils.cleanName(newJadeNode.getName()));
+//			newJadeNode.setName(GeneralUtils.cleanName(newJadeNode.getName()));
+			newJadeNode.setName(GeneralUtils.scrubName(newJadeNode.getName()));
 		}
 		
 		if (newJadeNode.getName().length() == 0) {
@@ -2383,7 +2385,8 @@ public class GraphExplorer extends GraphBase {
 			
 			// get all external descendants of this taxon, remember if they're in the tree or not
 			for (long cid : (long[]) taxNode.getProperty("mrca")) {
-				String name = GeneralUtils.cleanName((String) graphDb.getNodeById(cid).getProperty("name"));
+//				String name = GeneralUtils.cleanName((String) graphDb.getNodeById(cid).getProperty("name"));
+				String name = GeneralUtils.scrubName((String) graphDb.getNodeById(cid).getProperty("name"));
 				
 				// `knownIdsInTree` should already have been started during original construction of `tree`
 				if (knownIdsInTree.contains(cid)) {
