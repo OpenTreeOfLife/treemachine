@@ -244,6 +244,61 @@ public class MainRunner {
 			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ottIds provided.");
 		} else {
 			
+			/*
+			Node foo = null;
+			
+			int numIters = 100;
+			long startTime = -1;
+			long endTime = -1;
+			long duration = -1;
+			
+			
+			// These tests don't mean anything anymore, as the old function calls the new one.
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getDraftTreeMRCAForNodes(tips, true);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("Old method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for old method: name = " + duration);
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getTaxonomyMRCA(tips);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("New method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for new method: name = " + duration);
+			
+			// Do again...
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getTaxonomyMRCA(tips);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("New method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for new method: name = " + duration);
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getDraftTreeMRCAForNodes(tips, true);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("Old method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for old method: name = " + duration);
+			
+			*/
+			
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
 			
 			// now attempt to find the most recent taxonomic ancestor
