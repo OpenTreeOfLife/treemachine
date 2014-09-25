@@ -165,7 +165,8 @@ public class tree_of_life extends ServerPlugin {
 			return OTRepresentationConverter.convert(vals);
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
-			Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
+			//Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
+			Node mrca = ge.getDraftTreeMRCAForNodesNEW(tips);
 			
 			Node mrta = mrca;
 			
