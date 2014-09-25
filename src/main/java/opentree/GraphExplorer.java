@@ -232,6 +232,37 @@ public class GraphExplorer extends GraphBase {
 	}
 	
 	
+	public Node getTaxonomyMRCA(Iterable<Node> nodeset) {
+		Node mrca = null;
+		
+		ArrayList<Node> holder = null;
+		
+		int index = 10000000;
+		
+		for (Node curNode : nodeset) {
+			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
+			if (holder != null) {
+				for (Node m : Traversal.description().relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(curNode).nodes()) {
+					int foo = holder.indexOf(m);
+					if (foo != -1) { // first match. 
+						if (foo < index) {
+							index = foo; // if hit is more rootward than previous hit, record that.
+						}
+						break; // subsequent matches are not informative. bail.
+					}
+				}
+			} else { // first pass. get full path to root. ideally we would get the shortest path...
+				for (Node m : Traversal.description().relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(curNode).nodes()) {
+					graphPathToRoot.add(0, m);
+				}
+				holder = graphPathToRoot;
+			}
+		}
+		mrca = holder.get(index);
+		return mrca;
+	}
+	
+	
 	/**
 	 * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
 	 * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
@@ -317,11 +348,14 @@ public class GraphExplorer extends GraphBase {
 		if (taxonomy == false) {
 			//treeTipRootPathMap = getTreeTipRootPathMap(tips);
 			Node mrca = getDraftTreeMRCA(tips); // redirect to new method
-			return(mrca);
+			return mrca;
 		} else {
-			treeTipRootPathMap = getTreeTipRootPathTaxonomyMap(tips);
+			//treeTipRootPathMap = getTreeTipRootPathTaxonomyMap(tips);
+			Node mrca = getTaxonomyMRCA(tips); // redirect to new method
+			return mrca;
 		}
 		
+		/*
 		if (treeTipRootPathMap.size() < 1) {
 			throw new IllegalArgumentException("Cannot find the ancestor of zero tips");
 		} else if (treeTipRootPathMap.size() < 2) {
@@ -373,6 +407,7 @@ public class GraphExplorer extends GraphBase {
 			}
 		
 		return lastSharedAncestor;
+		*/
 	}
 	
 	public JadeNode extractTaxonomySubtreeForTipNodes(Iterable<Node> tips) {
