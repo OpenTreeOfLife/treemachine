@@ -247,6 +247,9 @@ public class MainRunner {
 		if (tips.size() < 1) {
 			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ottIds provided.");
 		} else {
+			Node blah = ge.getDraftTreeMRCAForNodesNEW(tips);
+			System.out.println("New method: name = " + blah.getProperty(NodeProperty.NAME.propertyName));
+			
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
 			
 			// now attempt to find the most recent taxonomic ancestor
@@ -291,11 +294,11 @@ public class MainRunner {
 	public int getNodeStatus(String [] args) {
 		
 		if (args.length != 3) {
-			System.out.println("arguments should be: graphdb ottId");
+			System.out.println("arguments should be: ottId graphdb");
 			return 1;
 		}
-		String graphDb = args[1];
-		String ottId = args[2];
+		String ottId = args[1];
+		String graphDb = args[2];
 		String name = "";
 		String rank = "";
 		String taxSource = "";
