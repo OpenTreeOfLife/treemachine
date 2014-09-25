@@ -6,10 +6,8 @@ import jade.tree.JadeNode.NodeOrder;
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
-
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.utils.GeneralUtils;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -28,9 +26,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
-
 import org.opentree.exceptions.MultipleHitsException;
-
 
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
@@ -247,8 +243,6 @@ public class MainRunner {
 		if (tips.size() < 1) {
 			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ottIds provided.");
 		} else {
-			Node blah = ge.getDraftTreeMRCAForNodesNEW(tips);
-			System.out.println("New method: name = " + blah.getProperty(NodeProperty.NAME.propertyName));
 			
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
 			
