@@ -254,21 +254,13 @@ public class GraphExplorer extends GraphBase {
 		// populate the tip hash with the paths to the root of the tree
 		for (Node curTip : tips) {
 			
-			// testing
-			//			System.out.println("\ngetting rootward path for " + curTip + (curTip.hasProperty("name") ? curTip.getProperty("name") : ""));
-			
 			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
 			for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curTip).nodes()) {
 				
 				if (stopNode != null && m.equals(stopNode)) { // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
-					System.out.println("found stop node " + stopNode);
+					//System.out.println("found stop node " + stopNode);
 					break;
 				}
-				
-				// testing
-					if (m.hasProperty("name")) {
-						System.out.println(m.getProperty("name"));
-					}
 				graphPathToRoot.add(0, m);
 			}
 			
@@ -281,24 +273,34 @@ public class GraphExplorer extends GraphBase {
 	}
 	
 	
-	
-	// Assumes all query nodes are in the synthetic tree
-	public Node getDraftTreeMRCAForNodesNEW(Iterable<Node> tips) {
+	// Assumes all query nodes are in the synthetic tree. Doesn't calculate all paths.
+	public Node getDraftTreeMRCA(Iterable<Node> nodeset) {
 		Node mrca = null;
-		Map<Node, ArrayList<Node>> treeTipRootPathMap = null;
-		treeTipRootPathMap = getTreeTipRootPathMap(tips);
 		
 		ArrayList<Node> holder = null;
-		for (ArrayList<Node> curr : treeTipRootPathMap.values()) {
-			if (holder == null) {
-				holder = curr;
-			} else {
-				holder.retainAll(curr);
+		
+		int index = 10000000;
+		
+		for (Node curNode : nodeset) {
+			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
+			if (holder != null) {
+				for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
+					int foo = holder.indexOf(m);
+					if (foo != -1) { // first match. 
+						if (foo < index) {
+							index = foo; // if hit is more rootward than previous hit, record that.
+						}
+						break; // subsequent matches are not informative. bail.
+					}
+				}
+			} else { // first pass. get full path to root. ideally we would get the shortest path...
+				for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
+					graphPathToRoot.add(0, m);
+				}
+				holder = graphPathToRoot;
 			}
 		}
-		
-		mrca = holder.get(holder.size() - 1);
-		
+		mrca = holder.get(index);
 		return mrca;
 	}
 	
@@ -313,7 +315,9 @@ public class GraphExplorer extends GraphBase {
 	public Node getDraftTreeMRCAForNodes(Iterable<Node> tips, boolean taxonomy) {
 		Map<Node, ArrayList<Node>> treeTipRootPathMap = null;
 		if (taxonomy == false) {
-			treeTipRootPathMap = getTreeTipRootPathMap(tips);
+			//treeTipRootPathMap = getTreeTipRootPathMap(tips);
+			Node mrca = getDraftTreeMRCA(tips); // redirect to new method
+			return(mrca);
 		} else {
 			treeTipRootPathMap = getTreeTipRootPathTaxonomyMap(tips);
 		}
@@ -327,10 +331,7 @@ public class GraphExplorer extends GraphBase {
 		Node lastSharedAncestor = null;
 		Node curTestAncestor = null;
 		
-		
-		
 		int i = 0;
-		int counter = 0;
 		boolean found = false;
 		
 		// starting at the deepest level, look for different ancestors
@@ -339,20 +340,23 @@ public class GraphExplorer extends GraphBase {
 				
 				// reset at each level
 				curTestAncestor = null;
-				counter += 1;
-				
-//				System.out.println("i currently = " + i);
 				
 				for (Node tip : treeTipRootPathMap.keySet()) {
 					
 					List<Node> rootPath = treeTipRootPathMap.get(tip);
 					
+					if (rootPath.size() == i) { // can't get another element. node must be an ancestor of another node.
+						//System.out.println("No more nodes to check. Returning previous lastSharedAncestor.");
+						found = true;
+						break outer;
+					}
+					
 					// if this is a new level, then just get the ancestor of the first lineage and move on to the next
 					if (curTestAncestor == null) {
 						curTestAncestor = rootPath.get(i);
-						if (curTestAncestor.hasProperty("name")) {
-							System.out.println("curTestAncestor = " + curTestAncestor.getProperty("name"));
-						}
+						//if (curTestAncestor.hasProperty("name")) {
+						//	System.out.println("curTestAncestor = " + curTestAncestor.getProperty("name"));
+						//}
 						continue;
 					}
 					
@@ -368,22 +372,8 @@ public class GraphExplorer extends GraphBase {
 				i++;
 			}
 		
-		System.out.println("Went through that loop " + counter + " times!");
-		
 		return lastSharedAncestor;
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	public JadeNode extractTaxonomySubtreeForTipNodes(Iterable<Node> tips) {
 		Node mrca = getDraftTreeMRCAForNodes(tips,true);
