@@ -166,7 +166,7 @@ public class tree_of_life extends ServerPlugin {
 		} else {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			//Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
-			Node mrca = ge.getDraftTreeMRCAForNodesNEW(tips);
+			Node mrca = ge.getDraftTreeMRCA(tips);
 			
 			Node mrta = mrca;
 			
