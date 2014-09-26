@@ -240,7 +240,6 @@ public class GraphExplorer extends GraphBase {
 		int index = 10000000;
 		
 		for (Node curNode : nodeset) {
-			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
 			if (holder != null) {
 				for (Node m : Traversal.description().relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(curNode).nodes()) {
 					int foo = holder.indexOf(m);
@@ -252,6 +251,7 @@ public class GraphExplorer extends GraphBase {
 					}
 				}
 			} else { // first pass. get full path to root. ideally we would get the shortest path...
+				ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
 				for (Node m : Traversal.description().relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(curNode).nodes()) {
 					graphPathToRoot.add(0, m);
 				}
@@ -313,7 +313,6 @@ public class GraphExplorer extends GraphBase {
 		int index = 10000000;
 		
 		for (Node curNode : nodeset) {
-			ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
 			if (holder != null) {
 				for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
 					int foo = holder.indexOf(m);
@@ -325,6 +324,7 @@ public class GraphExplorer extends GraphBase {
 					}
 				}
 			} else { // first pass. get full path to root. ideally we would get the shortest path...
+				ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
 				for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
 					graphPathToRoot.add(0, m);
 				}
