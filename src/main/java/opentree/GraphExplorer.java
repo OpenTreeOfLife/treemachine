@@ -344,7 +344,7 @@ public class GraphExplorer extends GraphBase {
 	 * @return
 	 */
 	public Node getDraftTreeMRCAForNodes(Iterable<Node> tips, boolean taxonomy) {
-		Map<Node, ArrayList<Node>> treeTipRootPathMap = null;
+		//Map<Node, ArrayList<Node>> treeTipRootPathMap = null;
 		if (taxonomy == false) {
 			//treeTipRootPathMap = getTreeTipRootPathMap(tips);
 			Node mrca = getDraftTreeMRCA(tips); // redirect to new method
