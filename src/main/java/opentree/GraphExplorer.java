@@ -260,7 +260,7 @@ public class GraphExplorer extends GraphBase {
 		}
 		if (!holder.isEmpty()) {
 			if (index == 10000000) { // only a single node passed in, but it *is* in the taxonomy tree
-				mrca = holder.get(0);
+				mrca = holder.get(holder.size() - 1);
 			} else {
 				mrca = holder.get(index);
 			}
@@ -339,7 +339,7 @@ public class GraphExplorer extends GraphBase {
 		}
 		if (!holder.isEmpty()) {
 			if (index == 10000000) { // only a single node passed in, but it *is* in the synthetic tree
-				mrca = holder.get(0);
+				mrca = holder.get(holder.size() - 1);
 			} else {
 				mrca = holder.get(index);
 			}
