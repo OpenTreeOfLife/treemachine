@@ -258,7 +258,13 @@ public class GraphExplorer extends GraphBase {
 				holder = graphPathToRoot;
 			}
 		}
-		mrca = holder.get(index);
+		if (!holder.isEmpty()) {
+			if (index == 10000000) { // only a single node passed in, but it *is* in the taxonomy tree
+				mrca = holder.get(0);
+			} else {
+				mrca = holder.get(index);
+			}
+		}
 		return mrca;
 	}
 	
@@ -331,7 +337,13 @@ public class GraphExplorer extends GraphBase {
 				holder = graphPathToRoot;
 			}
 		}
-		mrca = holder.get(index);
+		if (!holder.isEmpty()) {
+			if (index == 10000000) { // only a single node passed in, but it *is* in the synthetic tree
+				mrca = holder.get(0);
+			} else {
+				mrca = holder.get(index);
+			}
+		}
 		return mrca;
 	}
 	
