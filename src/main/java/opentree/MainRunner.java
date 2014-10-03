@@ -6,10 +6,8 @@ import jade.tree.JadeNode.NodeOrder;
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
-
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.utils.GeneralUtils;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -28,9 +26,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
-
 import org.opentree.exceptions.MultipleHitsException;
-
 
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
@@ -247,6 +243,62 @@ public class MainRunner {
 		if (tips.size() < 1) {
 			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ottIds provided.");
 		} else {
+			
+			/*
+			Node foo = null;
+			
+			int numIters = 100;
+			long startTime = -1;
+			long endTime = -1;
+			long duration = -1;
+			
+			
+			// These tests don't mean anything anymore, as the old function calls the new one.
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getDraftTreeMRCAForNodes(tips, true);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("Old method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for old method: name = " + duration);
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getTaxonomyMRCA(tips);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("New method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for new method: name = " + duration);
+			
+			// Do again...
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getTaxonomyMRCA(tips);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("New method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for new method: name = " + duration);
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getDraftTreeMRCAForNodes(tips, true);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("Old method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for old method: name = " + duration);
+			
+			*/
+			
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
 			
 			// now attempt to find the most recent taxonomic ancestor
@@ -291,11 +343,11 @@ public class MainRunner {
 	public int getNodeStatus(String [] args) {
 		
 		if (args.length != 3) {
-			System.out.println("arguments should be: graphdb ottId");
+			System.out.println("arguments should be: ottId graphdb");
 			return 1;
 		}
-		String graphDb = args[1];
-		String ottId = args[2];
+		String ottId = args[1];
+		String graphDb = args[2];
 		String name = "";
 		String rank = "";
 		String taxSource = "";
