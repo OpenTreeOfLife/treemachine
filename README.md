@@ -6,7 +6,7 @@ Installation
 ---------------
 treemachine is managed by Maven v.3 (including the dependencies). In order to compile and build treemachine, it is easiest to let Maven v.3 do the hard work.
 
-On Ubuntu you can install Maven v.3 with:
+On Linux you can install Maven v.3 with:
 ```
 sudo apt-get install maven
 ```
@@ -27,7 +27,7 @@ sh mvn_install.sh
 Now, navigate to where you would like to put the [ot-base repo](https://github.com/OpenTreeOfLife/ot-base), and execute the following:
 ```
 git clone git@github.com:OpenTreeOfLife/ot-base.git
-ot-base
+cd ot-base
 sh mvn_install.sh
 ```
 ### treemachine
