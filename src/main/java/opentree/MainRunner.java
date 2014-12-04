@@ -6,8 +6,10 @@ import jade.tree.JadeNode.NodeOrder;
 import jade.tree.TreeReader;
 import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
+
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.utils.GeneralUtils;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
+
 import org.opentree.exceptions.MultipleHitsException;
 
 //import org.apache.log4j.Logger;
@@ -41,12 +44,17 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import org.neo4j.kernel.Traversal;
 
+import opentree.addanalyses.TreeComparator;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
+
 import org.opentree.exceptions.StoredEntityNotFoundException;
 import org.opentree.exceptions.TaxonNotFoundException;
+
 import opentree.exceptions.TreeIngestException;
+
 import org.opentree.exceptions.TreeNotFoundException;
+
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.testing.TreeUtils;
 import jade.MessageLogger;
@@ -2839,6 +2847,24 @@ public class MainRunner {
 		return 0;
 	}
 	
+	//Runs tree comparison analyses
+	public int treeCompare(String [] args){
+		//1 = graphdb, 2 = nexson, 3 = treeid
+		if (args.length != 4){
+			return 1;
+		}
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+		TreeComparator tc = new TreeComparator(false,args[2],args[3],graphDb);
+		tc.processNexson();
+		try {
+			tc.compareTree();
+		} catch (TaxonNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		graphDb.shutdownDb();
+		return 0;
+	}
 	
 	public static void printShortHelp() {
 		System.out.println("======================Treemachine======================");
@@ -3070,7 +3096,9 @@ public class MainRunner {
 				cmdReturnCode = mr.loadOTT(args);
 			} else if (command.compareTo("nodestatus") == 0) {
 				cmdReturnCode = mr.getNodeStatus(args);
-			} else {
+			} else if (command.compareTo("treecomp") == 0){
+				cmdReturnCode = mr.treeCompare(args);
+			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}

@@ -5,7 +5,6 @@ import jade.tree.JadeNode;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
-
 import java.util.Iterator;
 
 import gnu.trove.list.array.TLongArrayList;
@@ -16,6 +15,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.kernel.Traversal;
 
 /**
@@ -119,7 +119,35 @@ public class LicaUtil {
 		return retaln;
 	}
 
-
+	public static HashSet<Node> getBipart4jChooseRelationshipType(JadeNode jn,List<Node> nodeSetsm, List<Node> nodeSet, TLongArrayList nodeSetinIdSet, TLongArrayList inIdSet, TLongArrayList outIdSet, GraphDatabaseAgent graphdb, RelationshipType reltype){
+//		System.out.println("starting bipart lica search");
+//		System.out.println("smnodeset:"+nodeSetsm.size()+" nodeset:"+nodeSet.size());
+		HashSet<Node> retaln = new HashSet<Node>();
+		TLongArrayList testnodes = new TLongArrayList();
+		LicaBipartEvaluatorBS le = new LicaBipartEvaluatorBS();
+		le.setJadeNode(jn);
+		le.setgraphdb(graphdb);
+		le.setUpdateDB(false);
+//		if(nodeSetinIdSet.size()!= inIdSet.size()){
+//			System.out.println("set small set");
+//			le.setSmInSet(nodeSetinIdSet);
+//		}
+		le.setInset(inIdSet);
+		le.setOutset(outIdSet);
+		for(Node innode: nodeSetsm){			
+//			System.out.println("\tstarting "+innode);
+//			System.out.println("nodeSetinIdSet "+nodeSetinIdSet.size());
+//			System.out.println("inIdSet "+inIdSet.size());
+//			System.out.println("outIdSet "+outIdSet.size());
+			le.setVisitedSet(testnodes);
+			for (Node tnode : Traversal.description().breadthFirst().evaluator(le).relationships(reltype, Direction.OUTGOING).traverse(innode).nodes()) {
+//				System.out.println("\tadding "+tnode);
+				retaln.add(tnode);
+			}
+			testnodes = le.getVisitedSet();
+		}
+		return retaln;
+	}
 	
 	/**
 	 * This should find all the least inclusive common ancestors (LICA) ignoring
@@ -222,6 +250,22 @@ public class LicaUtil {
 		return retaln;
 	}
 
+	public static HashSet<Node> getSuperLICAt4jChooseRelationshipType(List<Node> nodeSetsm,List<Node> nodeSet, TLongArrayList nodeSetinIdSet, TLongArrayList inIdSet, RelationshipType reltype) {
+		HashSet<Node> retaln = new HashSet<Node>();
+		LicaContainsAllEvaluatorBS ca = new LicaContainsAllEvaluatorBS();
+		ca.setinIDset(inIdSet);
+		TLongArrayList testnodes = new TLongArrayList();
+		for(Node innode: nodeSetsm){
+			ca.setVisitedSet(testnodes);
+//			System.out.println("superlica inidset: "+inIdSet.size());
+			for (Node tnode : Traversal.description().depthFirst().evaluator(ca).relationships(reltype, Direction.OUTGOING).traverse(innode).nodes()) {
+				retaln.add(tnode);
+			}
+			testnodes = ca.getVisitedSet();
+		}
+		return retaln;
+	}
+	
 	/**
 	 * This will return the MRCA using the taxonomic relationships. This only
 	 * requires the nodes that we are looking for.

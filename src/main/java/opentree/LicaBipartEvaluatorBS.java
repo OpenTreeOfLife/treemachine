@@ -29,6 +29,8 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 	TLongBitArray outgroupNodeIds; // this is the other part of the bipartition
 	JadeNode jadenode;
 	GraphDatabaseAgent graphdb = null;
+	//by default this is set to true because that is the basic usage
+	boolean updateDB = true; // you can set to false if you don't want to update the database on this
 
 	public LicaBipartEvaluatorBS() {
 	}
@@ -57,6 +59,10 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 		return visited;
 	}
 
+	public void setUpdateDB(boolean update){
+		updateDB = update;
+	}
+	
 	@Override
 	public Evaluation evaluate(Path inPath) {
 		Node curNode = inPath.endNode();
@@ -151,7 +157,9 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						if (mrcaSearchIdsNotSetForThisNode.size() > 0) {
 							curNodeMRCAIds.addAll(mrcaSearchIdsNotSetForThisNode);
 							curNodeMRCAIds.sort();
-							curNode.setProperty("mrca", curNodeMRCAIds.toArray());
+							if(updateDB){
+								curNode.setProperty("mrca", curNodeMRCAIds.toArray());
+							}
 						}
 						
 						// get the node ids that are in our search outgroup but not in the current node's outmrca property
@@ -161,7 +169,9 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 						if (outmrcaSearchIdsNotSetForThisNode.size() > 0) {
 							curNodeOutMRCAIds.addAll(outmrcaSearchIdsNotSetForThisNode);
 							curNodeOutMRCAIds.sort();
-							curNode.setProperty("outmrca", curNodeOutMRCAIds.toArray());
+							if(updateDB){
+								curNode.setProperty("outmrca", curNodeOutMRCAIds.toArray());
+							}
 						}
 						
 						// check to see if the STREECHILDOF ancestors of this node in the graph have all the node ids in their mrca properties that this node
@@ -191,7 +201,9 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 								// add all the new ingroup ids to the parent
 								TLongBitArray mrcaNew = new TLongBitArray((long[]) ancestor.getProperty("mrca"));
 								mrcaNew.addAll(curNodeMRCAIds);
-								ancestor.setProperty("mrca", mrcaNew.toArray());
+								if(updateDB){
+									ancestor.setProperty("mrca", mrcaNew.toArray());
+								}
 							}
 						}
 
@@ -217,8 +229,9 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 								// add all the new outgroup ids to the descendant
 								TLongBitArray outMrcaNew = new TLongBitArray((long[]) descendant.getProperty("outmrca"));
 								outMrcaNew.addAll(curNodeOutMRCAIds);
-								descendant.setProperty("outmrca", outMrcaNew.toArray());
-
+								if(updateDB){
+									descendant.setProperty("outmrca", outMrcaNew.toArray());
+								}
 							}
 						}
 							
