@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
 import org.opentree.exceptions.AmbiguousTaxonException;
 import org.opentree.exceptions.TaxonNotFoundException;
@@ -256,6 +257,8 @@ public class TreeComparator extends GraphBase{
 			// begin alternative block 2
  			// gather lica mapping information independently for each node as we see it. this is slightly slower than recording this
 			// info recursively in the jadenode objects as we traverse, but it uses *much* less memory
+			TLongHashSet licaDescendantIdsForCurrentJadeNode_Hash = new TLongHashSet(); // use a hashset to avoid duplicate entries
+
 			for (JadeNode curLeaf : curJadeNode.getDescendantLeaves()) {
 
 				// remember the ids for the the graph nodes mapped to each jade tree leaf descended from the current node
@@ -271,6 +274,13 @@ public class TreeComparator extends GraphBase{
 				for (Long descId : descendantGraphNodeIdsForCurLeaf) {
 					graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphdb.getNodeById(descId));
 				}
+				
+				HashSet<Node> childNodeLicaMappings = (HashSet<Node>) curLeaf.getObject("dbnodes"); // the graph nodes for the mrca mappings for this child node
+
+				for (Node licaNode : childNodeLicaMappings) {
+					licaDescendantIdsForCurrentJadeNode_Hash.addAll((long[]) licaNode.getProperty("mrca"));
+				}
+				
 			}
 			// end alternative block 2  */
 
@@ -283,17 +293,6 @@ public class TreeComparator extends GraphBase{
 			nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.sort();
 			curJadeNode.assocObject("exclusive_mrca", nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray()); // moved up from below
 
-			// Get the union of all node ids from the mrca properties (i.e. descendant node ids) for every graph node mapped as a lica to every jade node
-			// child of the current jade node. This accumulates descendant node ids as the postorder traversal moves down the input tree toward the root.
-			TLongHashSet licaDescendantIdsForCurrentJadeNode_Hash = new TLongHashSet(); // use a hashset to avoid duplicate entries
-			for (JadeNode childNode : curJadeNode.getChildren()) {
-
-				HashSet<Node> childNodeLicaMappings = (HashSet<Node>) childNode.getObject("dbnodes"); // the graph nodes for the mrca mappings for this child node
-
-				for (Node licaNode : childNodeLicaMappings) {
-					licaDescendantIdsForCurrentJadeNode_Hash.addAll((long[]) licaNode.getProperty("mrca"));
-				}
-			}
 			// convert hashset to arraylist so we can use it in the lica calculations
 			TLongArrayList licaDescendantIdsForCurrentJadeNode = new TLongArrayList(licaDescendantIdsForCurrentJadeNode_Hash);
 			licaDescendantIdsForCurrentJadeNode.sort();
@@ -334,7 +333,10 @@ public class TreeComparator extends GraphBase{
 			
 			if (licaMatches.size() > 0) { // if we found any compatible lica mappings to nodes already in the graph
 				// remember all the lica mappings
-				curJadeNode.assocObject("dbnodes", licaMatches);
+				//curJadeNode.assocObject("dbnodes", licaMatches);
+				for(Node d: licaMatches){
+					System.out.println("matchRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());					
+				}
 			} else { // if there were no compatible lica mappings found for this jade node, then we need to make a new one
 				//newLicaNode.setProperty("mrca", licaDescendantIdsForCurrentJadeNode.toArray());
 				//newLicaNode.setProperty("outmrca", licaOutgroupDescendantIdsForCurrentJadeNode.toArray());

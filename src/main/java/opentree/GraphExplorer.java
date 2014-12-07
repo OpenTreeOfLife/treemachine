@@ -1891,6 +1891,26 @@ public class GraphExplorer extends GraphBase {
 	}
 	
 	/**
+	 * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
+	 * External function that uses the ottid to find the root node in the db.
+	 * 
+	 * This includes mapping the relationships based on a list that is input
+	 * 
+	 * @param startNode
+	 * @param synthTreeName
+	 * @param rellist
+	 * @throws OttIdNotFoundException 
+	 */
+	public JadeTree extractDraftTreeMap(Node startNode, String synthTreeName, HashMap<Long,Integer> rellist) {
+		
+		// empty parameters for initial recursion
+		JadeNode parentJadeNode = null;
+		Relationship incomingRel = null;
+		
+		return new JadeTree(extractStoredSyntheticTreeRecurMap(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, rellist));
+	}
+	
+	/**
 	 * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
 	 * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
 	 * 
@@ -1937,6 +1957,73 @@ public class GraphExplorer extends GraphBase {
 		// recursively add the children to the tree we're building
 		for (Relationship synthChildRel : synthChildRels) {
 			extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
+		}
+		
+		return curNode;
+	}
+	
+	/**
+	 * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
+	 * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
+	 * 
+	 * Includes the mapping of relationships based on the list provided
+	 * 
+	 * @param nodeId
+	 */
+	private JadeNode extractStoredSyntheticTreeRecurMap(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName, HashMap<Long,Integer> rellist) {
+		
+		JadeNode curNode = new JadeNode();
+		
+		// testing
+		//	System.out.println("child graph node: " + curGraphNode.getId());
+		//	if (parentJadeNode != null) {
+		//		System.out.println("parent jade node: " + parentJadeNode.toString());
+		//	}
+		
+		// set the names for the newick string
+		//only external names for now
+		if(!curGraphNode.hasRelationship(Direction.INCOMING, RelType.SYNTHCHILDOF)){
+			if (curGraphNode.hasProperty("name")) {
+				curNode.setName(getOttName(curGraphNode));
+			}
+		}
+		
+		if(incomingRel != null){
+			if (rellist.containsKey(incomingRel.getId())){
+				curNode.assocObject("relmap", rellist.get(incomingRel.getId()));
+				if(curGraphNode.hasRelationship(Direction.INCOMING, RelType.SYNTHCHILDOF)){
+					curNode.setName(String.valueOf(rellist.get(incomingRel.getId())));
+				}
+			}
+		}
+		
+		curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+		
+		// add the current node to the tree we're building
+		if (parentJadeNode != null) {
+			if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")) {
+				curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
+			}
+			parentJadeNode.addChild(curNode);
+			if (incomingRel.hasProperty("branch_length")) {
+				curNode.setBL((Double) incomingRel.getProperty("branch_length"));
+			}
+		}
+		
+		// get the immediate synth children of the current node
+		LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
+		for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+			
+			// TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
+			if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
+				// currently just filtering on name
+				synthChildRels.add(synthChildRel);
+			}
+		}
+		
+		// recursively add the children to the tree we're building
+		for (Relationship synthChildRel : synthChildRels) {
+			extractStoredSyntheticTreeRecurMap(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName,rellist);
 		}
 		
 		return curNode;
