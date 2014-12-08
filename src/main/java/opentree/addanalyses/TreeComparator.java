@@ -23,6 +23,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.kernel.Traversal;
 import org.opentree.exceptions.AmbiguousTaxonException;
 import org.opentree.exceptions.TaxonNotFoundException;
 
@@ -338,25 +339,33 @@ public class TreeComparator extends GraphBase{
 					System.out.println("matchRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());					
 				}
 			} else { // if there were no compatible lica mappings found for this jade node, then we need to make a new one
-				//newLicaNode.setProperty("mrca", licaDescendantIdsForCurrentJadeNode.toArray());
-				//newLicaNode.setProperty("outmrca", licaOutgroupDescendantIdsForCurrentJadeNode.toArray());
-				// === step 3. assoc the jade node with the new graph node
-
 				// first get the super licas, which is what would be the licas if we didn't have the other taxa in the tree
 				// this will be used to connect the new nodes to their licas for easier traversals
 				System.out.println("no match");
-				/*
+				
 				HashSet<Node> superlicas = LicaUtil.getSuperLICAt4jChooseRelationshipType(graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						licaDescendantIdsForCurrentJadeNode, RelType.SYNTHCHILDOF);
 				Iterator<Node> itrsl = superlicas.iterator();
-				while (itrsl.hasNext()) {
-					Node itrnext = itrsl.next();
-					//newLicaNode.createRelationshipTo(itrnext, RelType.MRCACHILDOF);
-					//updatedSuperLICAs.add(itrnext);
+				Node stopnode = itrsl.next();
+				//this will be the stop node where no more conflicts are recorded
+				ConflictEvaluator ce = new ConflictEvaluator();
+				HashSet<Node> retaln = new HashSet<Node>();
+				ce.setStopNode(stopnode);
+				ce.setInset(licaDescendantIdsForCurrentJadeNode);
+				ce.setOutset(licaOutgroupDescendantIdsForCurrentJadeNode);
+				TLongArrayList testnodes = new TLongArrayList();
+				for(Node innode: graphNodesMappedToDescendantLeavesOfThisJadeNode){			
+					ce.setVisitedSet(testnodes);
+					for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.SYNTHCHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+						retaln.add(tnode);
+					}
+					testnodes = ce.getVisitedSet();
 				}
-				*/
+				for(Node d: retaln){
+					System.out.println("conflictRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());					
+				}
 			}
 		}
 	}
@@ -421,5 +430,6 @@ public class TreeComparator extends GraphBase{
 
 		return taxChild;
 	}
+	
 	
 }

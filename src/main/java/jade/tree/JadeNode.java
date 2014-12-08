@@ -22,7 +22,7 @@ public class JadeNode {
 	private JadeNode parent;
 	private ArrayList<JadeNode> children;
 	private ArrayList<NodeObject> assoc; // @note might need to make this a HashMap<String, Object> or TreeMap<String,Object>
-	private String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
+	public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
 	
 	/*
 	 * constructors

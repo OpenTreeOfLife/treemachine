@@ -1982,18 +1982,18 @@ public class GraphExplorer extends GraphBase {
 		
 		// set the names for the newick string
 		//only external names for now
-		if(!curGraphNode.hasRelationship(Direction.INCOMING, RelType.SYNTHCHILDOF)){
+		//if(!curGraphNode.hasRelationship(Direction.INCOMING, RelType.SYNTHCHILDOF)){
 			if (curGraphNode.hasProperty("name")) {
 				curNode.setName(getOttName(curGraphNode));
 			}
-		}
+		//}
 		
 		if(incomingRel != null){
 			if (rellist.containsKey(incomingRel.getId())){
 				curNode.assocObject("relmap", rellist.get(incomingRel.getId()));
-				if(curGraphNode.hasRelationship(Direction.INCOMING, RelType.SYNTHCHILDOF)){
-					curNode.setName(String.valueOf(rellist.get(incomingRel.getId())));
-				}
+				//if(curGraphNode.hasRelationship(Direction.INCOMING, RelType.SYNTHCHILDOF)){
+				//	curNode.setName(String.valueOf(rellist.get(incomingRel.getId()))+".0"); //add the decimal just for figtree plotting
+				//}
 			}
 		}
 		
