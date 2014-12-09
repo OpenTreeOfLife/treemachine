@@ -261,6 +261,10 @@ public class JadeNode {
 			}
 			ret.append(", \"size\": "+sz);
 		}
+		Object relid = this.getObject("relid");
+		if(relid != null){
+			ret.append(", \"relid\": "+relid);
+		}
 		if(this.getObject("nodeID") != null){
 			ret.append(", \"id\":"+this.getObject("nodeID"));
 		}
