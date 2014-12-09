@@ -22,6 +22,7 @@ public class JadeNode {
 	private JadeNode parent;
 	private ArrayList<JadeNode> children;
 	private ArrayList<NodeObject> assoc; // @note might need to make this a HashMap<String, Object> or TreeMap<String,Object>
+	public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
 	
 	/*
 	 * constructors
@@ -202,7 +203,9 @@ public class JadeNode {
 		}
 		if (this.name != null) {
 //			ret.append(GeneralUtils.cleanName(this.name));
-			ret.append(GeneralUtils.scrubName(this.name));
+			//This isn't working so I am just putting this in
+            //ret.append(GeneralUtils.scrubName(this.name));
+            ret.append(this.name.replaceAll(this.offendingChars,"_"));
 		}
 		return ret.toString();
 	}
@@ -257,6 +260,10 @@ public class JadeNode {
 					sz++;
 			}
 			ret.append(", \"size\": "+sz);
+		}
+		Object relid = this.getObject("relid");
+		if(relid != null){
+			ret.append(", \"relid\": "+relid);
 		}
 		if(this.getObject("nodeID") != null){
 			ret.append(", \"id\":"+this.getObject("nodeID"));

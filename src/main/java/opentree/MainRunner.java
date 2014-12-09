@@ -31,7 +31,6 @@ import java.util.StringTokenizer;
 
 import org.opentree.exceptions.MultipleHitsException;
 
-
 //import org.apache.log4j.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.Direction;
@@ -45,12 +44,17 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import org.neo4j.kernel.Traversal;
 
+import opentree.addanalyses.TreeComparator;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
+
 import org.opentree.exceptions.StoredEntityNotFoundException;
 import org.opentree.exceptions.TaxonNotFoundException;
+
 import opentree.exceptions.TreeIngestException;
+
 import org.opentree.exceptions.TreeNotFoundException;
+
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.testing.TreeUtils;
 import jade.MessageLogger;
@@ -247,6 +251,62 @@ public class MainRunner {
 		if (tips.size() < 1) {
 			throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ottIds provided.");
 		} else {
+			
+			/*
+			Node foo = null;
+			
+			int numIters = 100;
+			long startTime = -1;
+			long endTime = -1;
+			long duration = -1;
+			
+			
+			// These tests don't mean anything anymore, as the old function calls the new one.
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getDraftTreeMRCAForNodes(tips, true);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("Old method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for old method: name = " + duration);
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getTaxonomyMRCA(tips);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("New method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for new method: name = " + duration);
+			
+			// Do again...
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getTaxonomyMRCA(tips);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("New method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for new method: name = " + duration);
+			
+			startTime = System.nanoTime();
+			for (int i = 0; i < numIters; i++) {
+				foo = ge.getDraftTreeMRCAForNodes(tips, true);
+			}
+			endTime = System.nanoTime();
+			duration = (endTime - startTime);  //divide by 1000000 to get milliseconds.
+			
+			System.out.println("Old method: name = " + foo.getProperty(NodeProperty.NAME.propertyName));
+			System.out.println("Duration for old method: name = " + duration);
+			
+			*/
+			
 			Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
 			
 			// now attempt to find the most recent taxonomic ancestor
@@ -291,11 +351,11 @@ public class MainRunner {
 	public int getNodeStatus(String [] args) {
 		
 		if (args.length != 3) {
-			System.out.println("arguments should be: graphdb ottId");
+			System.out.println("arguments should be: ottId graphdb");
 			return 1;
 		}
-		String graphDb = args[1];
-		String ottId = args[2];
+		String ottId = args[1];
+		String graphDb = args[2];
 		String name = "";
 		String rank = "";
 		String taxSource = "";
@@ -1928,6 +1988,113 @@ public class MainRunner {
 	}
 	
 	
+	public int extractDraftTreeForOttIdRelIDMap(String [] args) throws MultipleHitsException, TaxonNotFoundException {
+		if (args.length != 5) {
+			System.out.println("arguments should be rootNodeOttId relidinfile outfilename graphdbfolder");
+			return 1;
+		}
+		// open the graph
+		String graphname = args[4];
+		GraphExplorer ge = new GraphExplorer(graphname);
+		String ottId = args[1];
+
+		// get the start node
+		String startNodeIdStr = String.valueOf(ge.findGraphTaxNodeByUID(ottId).getId());
+		args[1] = startNodeIdStr;
+		
+		//read the relationships into a hashset of longs to be mapped
+		HashMap<Long,Integer> rellist = new HashMap<Long,Integer>();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(args[2]));
+			String str;
+			while ((str = br.readLine()) != null) {
+				if (str.trim().length() > 0){
+					Long lv = Long.valueOf(str.trim());
+					if (rellist.containsKey(lv)){
+						rellist.put(lv, rellist.get(lv)+1);
+					}else{
+						rellist.put(lv, 1);
+					}
+				}
+			}
+			br.close();
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//extract draft tree for node ids
+		Long startNodeId = Long.valueOf(args[1]);
+		String outFileName = args[3];
+		
+		// find the start node
+		Node firstNode = ge.graphDb.getNodeById(startNodeId);
+//		if (firstNode == null) {
+//			throw new opentree.exceptions.OttIdNotFoundException(ottId);
+//		}
+		
+		JadeTree synthTree = null;
+		//TODO: need to add the bit about reading the file
+		synthTree = ge.extractDraftTreeMap(firstNode, GraphBase.DRAFTTREENAME,rellist);
+
+		if (synthTree == null) {
+			return -1;
+		}
+		
+		PrintWriter outFile = null;
+		try {
+			outFile = new PrintWriter(new FileWriter(outFileName));
+			//outFile.write(synthTree.getRoot().getNewick(false) + ";\n");
+			outFile.write(figtreetop);
+			outFile.write(getCustomNewick(synthTree.getRoot(),"relmap",false)+";\nend;\n");
+			outFile.write(figtreetail);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			outFile.close();
+			ge.shutdownDB();
+		}
+		return 0;
+	}
+	
+	private String getCustomNewick(JadeNode innode, String objectName, boolean bl) {
+		StringBuffer ret = new StringBuffer("");
+		for (int i = 0; i < innode.getChildCount(); i++) {
+			if (i == 0) {
+				ret.append("(");
+			}
+			ret.append(getCustomNewick(innode.getChild(i),objectName,bl));
+			if (bl) {
+			    double branchLength = innode.getChild(i).getBL();
+			    if (branchLength == 0)
+			        branchLength = 0.0000001;
+
+			    ret.append(":".concat(String.valueOf(branchLength)));
+			}
+			if (i == innode.getChildCount()-1) {
+				ret.append(")");
+			} else {
+				ret.append(",");
+			}
+		}
+		if (innode.getName() != null) {
+//			ret.append(GeneralUtils.cleanName(this.name));
+			//This isn't working so I am just putting this in
+            //ret.append(GeneralUtils.scrubName(this.name));
+            ret.append(innode.getName().replaceAll(innode.offendingChars,"_"));
+		}
+		if(innode.getObject(objectName) != null){
+			ret.append("[&"+objectName+"="+String.valueOf((Integer)innode.getObject(objectName))+".0]");
+		}
+		return ret.toString();
+	}
+	public static final String figtreetop = "#NEXUS\nbegin trees;\n\ttree support = [&R] ";
+	public static final String figtreetail = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"relmap\";\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"label\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=true;\nset branchLabels.significantDigits=4;\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"label\";\nset legend.fontSize=10.0;\nset legend.isShown=false;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"User selection\";\nset nodeLabels.displayAttribute=\"Node ages\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=false;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"User selection\";\nset nodeShape.isShown=false;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=25.0;\nset nodeShape.sizeAttribute=\"label\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9.;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=false;\nset tipLabels.significantDigits=4;\nset trees.order=false;\nset trees.orderType=\"decreasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;\n";
+	
+	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForNodeId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4) {
@@ -2787,6 +2954,24 @@ public class MainRunner {
 		return 0;
 	}
 	
+	//Runs tree comparison analyses
+	public int treeCompare(String [] args){
+		//1 = graphdb, 2 = nexson, 3 = treeid
+		if (args.length != 4){
+			return 1;
+		}
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+		TreeComparator tc = new TreeComparator(false,args[2],args[3],graphDb);
+		tc.processNexson();
+		try {
+			tc.compareTree();
+		} catch (TaxonNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		graphDb.shutdownDb();
+		return 0;
+	}
 	
 	public static void printShortHelp() {
 		System.out.println("======================Treemachine======================");
@@ -2980,7 +3165,9 @@ public class MainRunner {
 				cmdReturnCode = mr.getSynthesisInfo(args);
 			} else if (command.compareTo("extractdrafttree_ottid") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForOttId(args);
-			} else if (command.compareTo("deleteDraftTree") == 0) {
+			} else if (command.compareTo("extractdrafttree_ottid_relidmap") == 0) {
+				cmdReturnCode = mr.extractDraftTreeForOttIdRelIDMap(args);
+			}else if (command.compareTo("deleteDraftTree") == 0) {
 				cmdReturnCode = mr.deleteDraftTree(args);
 			} else if (command.compareTo("extractdrafttree_ottid_JSON") == 0) {
 				cmdReturnCode = mr.extractDraftTreeForOttidJSON(args);
@@ -3018,7 +3205,9 @@ public class MainRunner {
 				cmdReturnCode = mr.loadOTT(args);
 			} else if (command.compareTo("nodestatus") == 0) {
 				cmdReturnCode = mr.getNodeStatus(args);
-			} else {
+			} else if (command.compareTo("treecomp") == 0){
+				cmdReturnCode = mr.treeCompare(args);
+			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}

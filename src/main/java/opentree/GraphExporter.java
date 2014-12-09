@@ -852,7 +852,7 @@ public class GraphExporter extends GraphBase {
 	// ====================================== extracting Synthetic trees from the db ==========================================
 
 	
-	public JadeTree buildSyntheticTreeForWeb(Node startNode, String synthTreeName, int maxNodes){
+	public JadeTree buildSyntheticTreeForWeb(Node startNode, String synthTreeName, int maxNodes, boolean storerelid){
         TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
         JadeNode root = new JadeNode();
         HashMap<Node,JadeNode> traveledNodes = new HashMap<Node,JadeNode>();
@@ -897,6 +897,8 @@ public class GraphExporter extends GraphBase {
             
             if (parentJadeNode != null) {
             	parentJadeNode.addChild(curNode);
+            	if(storerelid == true)
+            		curNode.assocObject("relid", incomingRel.getId());
                 if (incomingRel.hasProperty("branch_length")) {
                     curNode.setBL((Double) incomingRel.getProperty("branch_length"));
                 }
