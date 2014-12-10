@@ -348,23 +348,25 @@ public class TreeComparator extends GraphBase{
 						nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						licaDescendantIdsForCurrentJadeNode, RelType.SYNTHCHILDOF);
 				Iterator<Node> itrsl = superlicas.iterator();
-				Node stopnode = itrsl.next();
-				//this will be the stop node where no more conflicts are recorded
-				ConflictEvaluator ce = new ConflictEvaluator();
-				HashSet<Node> retaln = new HashSet<Node>();
-				ce.setStopNode(stopnode);
-				ce.setInset(licaDescendantIdsForCurrentJadeNode);
-				ce.setOutset(licaOutgroupDescendantIdsForCurrentJadeNode);
-				TLongArrayList testnodes = new TLongArrayList();
-				for(Node innode: graphNodesMappedToDescendantLeavesOfThisJadeNode){			
-					ce.setVisitedSet(testnodes);
-					for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.SYNTHCHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-						retaln.add(tnode);
+				if(itrsl.hasNext() == true){
+					Node stopnode = itrsl.next();
+					//this will be the stop node where no more conflicts are recorded
+					ConflictEvaluator ce = new ConflictEvaluator();
+					HashSet<Node> retaln = new HashSet<Node>();
+					ce.setStopNode(stopnode);
+					ce.setInset(licaDescendantIdsForCurrentJadeNode);
+					ce.setOutset(licaOutgroupDescendantIdsForCurrentJadeNode);
+					TLongArrayList testnodes = new TLongArrayList();
+					for(Node innode: graphNodesMappedToDescendantLeavesOfThisJadeNode){			
+						ce.setVisitedSet(testnodes);
+						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.SYNTHCHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+							retaln.add(tnode);
+						}
+						testnodes = ce.getVisitedSet();
 					}
-					testnodes = ce.getVisitedSet();
-				}
-				for(Node d: retaln){
-					System.out.println("conflictRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());					
+					for(Node d: retaln){
+						System.out.println("conflictRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());					
+					}
 				}
 			}
 		}
