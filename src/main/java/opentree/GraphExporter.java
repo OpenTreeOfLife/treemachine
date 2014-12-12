@@ -930,6 +930,9 @@ public class GraphExporter extends GraphBase {
             newroot.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
             if(storerelid == true){
             	root.assocObject("relid", startNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getId());
+            	if(curGraphNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)){
+            		newroot.assocObject("relid", curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getId());
+            	}
             }
         	newroot.addChild(root);
         	return new JadeTree(newroot);
