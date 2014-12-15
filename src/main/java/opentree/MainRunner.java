@@ -3227,7 +3227,7 @@ public class MainRunner {
 			} else if (command.compareTo("treecomp") == 0){
 				cmdReturnCode = mr.treeCompare(args);
 			} else if (command.compareTo("taxcomp") == 0){
-				cmdReturnCode = mr.treeCompare(args);
+				cmdReturnCode = mr.taxCompare(args);
 			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
