@@ -326,27 +326,44 @@ public class TreeComparator extends GraphBase{
 			HashSet<Node> licaMatches = null;
 			 // when taxon sets don't completely overlap, the lica calculator needs more info
 			
-			licaMatches = LicaUtil.getBipart4jChooseRelationshipType(curJadeNode,graphNodesMappedToDescendantLeavesOfThisJadeNode,
+			if (taxtree == false){
+				licaMatches = LicaUtil.getBipart4jChooseRelationshipType(curJadeNode,graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						licaDescendantIdsForCurrentJadeNode,
 						licaOutgroupDescendantIdsForCurrentJadeNode, graphdb,RelType.SYNTHCHILDOF);
-			
+			}else if(taxtree == true){
+				licaMatches = LicaUtil.getBipart4jChooseRelationshipType(curJadeNode,graphNodesMappedToDescendantLeavesOfThisJadeNode,
+						graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
+						nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
+						licaDescendantIdsForCurrentJadeNode,
+						licaOutgroupDescendantIdsForCurrentJadeNode, graphdb,RelType.TAXCHILDOF);
+			}
 			if (licaMatches.size() > 0) { // if we found any compatible lica mappings to nodes already in the graph
 				// remember all the lica mappings
 				//curJadeNode.assocObject("dbnodes", licaMatches);
 				for(Node d: licaMatches){
-					System.out.println("matchRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());					
+					if(taxtree == false)
+						System.out.println("matchRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());					
+					else if(taxtree == true)
+						System.out.println("matchRel: "+d.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getId());					
 				}
 			} else { // if there were no compatible lica mappings found for this jade node, then we need to make a new one
 				// first get the super licas, which is what would be the licas if we didn't have the other taxa in the tree
 				// this will be used to connect the new nodes to their licas for easier traversals
 				System.out.println("no match");
-				
-				HashSet<Node> superlicas = LicaUtil.getSuperLICAt4jChooseRelationshipType(graphNodesMappedToDescendantLeavesOfThisJadeNode,
+				HashSet<Node> superlicas = null;
+				if(taxtree == false){
+					superlicas = LicaUtil.getSuperLICAt4jChooseRelationshipType(graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						licaDescendantIdsForCurrentJadeNode, RelType.SYNTHCHILDOF);
+				}else if(taxtree == true){
+					superlicas = LicaUtil.getSuperLICAt4jChooseRelationshipType(graphNodesMappedToDescendantLeavesOfThisJadeNode,
+							graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
+							nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
+							licaDescendantIdsForCurrentJadeNode, RelType.TAXCHILDOF);					
+				}
 				Iterator<Node> itrsl = superlicas.iterator();
 				if(itrsl.hasNext() == true){
 					Node stopnode = itrsl.next();
@@ -359,13 +376,22 @@ public class TreeComparator extends GraphBase{
 					TLongArrayList testnodes = new TLongArrayList();
 					for(Node innode: graphNodesMappedToDescendantLeavesOfThisJadeNode){			
 						ce.setVisitedSet(testnodes);
-						for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.SYNTHCHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-							retaln.add(tnode);
+						if(taxtree == false){
+							for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.SYNTHCHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+								retaln.add(tnode);
+							}
+						}else if(taxtree == true){
+							for (Node tnode : Traversal.description().breadthFirst().evaluator(ce).relationships(RelType.TAXCHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
+								retaln.add(tnode);
+							}
 						}
 						testnodes = ce.getVisitedSet();
 					}
 					for(Node d: retaln){
-						System.out.println("conflictRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());					
+						if(taxtree == false)
+							System.out.println("conflictRel: "+d.getSingleRelationship(RelType.SYNTHCHILDOF,Direction.OUTGOING).getId());	
+						else if(taxtree == true)
+							System.out.println("conflictRel: "+d.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getId());					
 					}
 				}
 			}

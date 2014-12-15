@@ -2973,6 +2973,25 @@ public class MainRunner {
 		return 0;
 	}
 	
+	//Runs tree comparison analyses on taxonomy tree
+	public int taxCompare(String [] args){
+			//1 = graphdb, 2 = nexson, 3 = treeid
+			if (args.length != 4){
+				return 1;
+			}
+			GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
+			TreeComparator tc = new TreeComparator(true,args[2],args[3],graphDb);
+			tc.processNexson();
+			try {
+				tc.compareTree();
+			} catch (TaxonNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			graphDb.shutdownDb();
+			return 0;
+		}
+	
 	public static void printShortHelp() {
 		System.out.println("======================Treemachine======================");
 		System.out.println("usage: java -jar locationOftreemachine.jar command options");
@@ -3206,6 +3225,8 @@ public class MainRunner {
 			} else if (command.compareTo("nodestatus") == 0) {
 				cmdReturnCode = mr.getNodeStatus(args);
 			} else if (command.compareTo("treecomp") == 0){
+				cmdReturnCode = mr.treeCompare(args);
+			} else if (command.compareTo("taxcomp") == 0){
 				cmdReturnCode = mr.treeCompare(args);
 			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");

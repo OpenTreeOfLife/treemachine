@@ -943,7 +943,7 @@ public class GraphExporter extends GraphBase {
 	}
 	
 
-	public JadeTree buildTaxonomyTreeForWeb(Node startNode, int maxNodes){
+	public JadeTree buildTaxonomyTreeForWeb(Node startNode, int maxNodes,boolean storerelid){
         TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
         JadeNode root = new JadeNode();
         HashMap<Node,JadeNode> traveledNodes = new HashMap<Node,JadeNode>();
@@ -996,6 +996,8 @@ public class GraphExporter extends GraphBase {
             	
             if (parentJadeNode != null) {
             	parentJadeNode.addChild(curNode);
+            	if(storerelid == true)
+            		curNode.assocObject("relid", incomingRel.getId());
             }
             // get the immediate synth children of the current node
             LinkedList<Relationship> taxChildRels = new LinkedList<Relationship>();
@@ -1026,6 +1028,12 @@ public class GraphExporter extends GraphBase {
                 newroot.setName(GeneralUtils.scrubName(String.valueOf(curGraphNode.getProperty("name"))));
             }
             newroot.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+            if(storerelid == true){
+            	root.assocObject("relid", startNode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getId());
+            	if(curGraphNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)){
+            		newroot.assocObject("relid", curGraphNode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getId());
+            	}
+            }
         	newroot.addChild(root);
         	return new JadeTree(newroot);
         }
