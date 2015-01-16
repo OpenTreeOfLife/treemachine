@@ -1,4 +1,4 @@
-See README.md for agenda.  Eventually put this in LaTeX.
+See [the README](README.md) for agenda.  Eventually put this in LaTeX.
 
 
     alpha = number of source trees
@@ -18,6 +18,7 @@ See README.md for agenda.  Eventually put this in LaTeX.
 
     Define a "tip" to be a terminal vertex (furthest away from root).
     tips(x) = terminal vertices in vertices(x)
+    tips(TAG) = terminal vertices in Q
 
     Posit that if t ≠ t' then vertex sets, with the important exception of
     tips, are disjoint.  A tip of x is never the internal node of x'.
@@ -34,9 +35,11 @@ See README.md for agenda.  Eventually put this in LaTeX.
     out(q) = tips(TAG) - sub(q)        - varies
     v ~ q  if sub(v) ∩ out(q) ≠ ∅ and sub(q) ∩ out(v) ≠ ∅ (compatible)
     v → q  v 'maps to' or 'aligns to' q (see below) (a subrelation of ~)
-       v ~ v for all tips
+       v → v for all tips
     q ⇀ q' = there exists v such v → q' and v- → q for some child of v
              (same as E ???)
+
+-----------------------------------------------------------------------------
 
     Problem statement: compute [a? the?] TAG = <Q, E> and alignment
     relation → having the following properties
@@ -49,8 +52,6 @@ See README.md for agenda.  Eventually put this in LaTeX.
          NOT(v → q-)     [minimality]
 
     ???? is this a necessary and sufficient set of conditions ????
-
------------------------------------------------------------------------------
 
     'Algorithm' (iterative)
 
@@ -91,28 +92,35 @@ See README.md for agenda.  Eventually put this in LaTeX.
     An aside on model theory:
 
     Every vertex or node v is taken to be a symbol in the logic, to be
-    interpreted as a name for some biological taxon (or logical class),
+    interpreted as a name for some biological taxon ('taxon' in the
+    sense of logical class of individual organisms or specimens),
     denoted by ⟦v⟧.
 
-    (We could distinguish vertices/nodes from logical symbols, but that
-    would be cumbersome.  Confusing the two is convenient and I believe
-    harmless, since they're in 1-1 correspondence.  That is quite unlike
-    confusing vertices and taxa, which leads to all sorts of problems!)
+    (We could distinguish vertices/nodes from logical symbols, but
+    that would be cumbersome.  Confusing the two is convenient and I
+    believe harmless, since they're in 1-1 correspondence.  That is
+    quite unlike confusing nodes and vertices with taxa, which leads
+    to all sorts of problems!)
 
-    An edge from rootward v to v' (in some tree x) is interpreted as saying
+    An edge rootward from v to v' in some tree x is interpreted as saying
     that ⟦v⟧ is properly contained in ⟦v'⟧.  We interpret an edge from q
     rootward to q' to mean that ⟦q⟧ is properly contained in ⟦q'⟧.
 
-    If v and v' share a parent p in some x, we interpret that to mean that
-    ⟦v⟧ and ⟦v'⟧ are disjoint.  This does not hold in the TAG.
+    If v and v' share a parent p in some x, we interpret that to mean
+    that ⟦v⟧ and ⟦v'⟧ are disjoint.  This does not hold in the TAG
+    [although it should be possible to infer disjointness in the TAG
+    sometimes, right?].
 
-    How do we interpret v ~ q and v → q ?  I think it's supposed to mean that ⟦v⟧ =
-    ⟦q⟧ - meaning that our interpretation of the vertices depends on what
-    the TAG turns out to be.  Maybe we could also take it to mean that ⟦v⟧
-    ⊆ ⟦q⟧, or ⟦v⟧ ⊇ ⟦q⟧, or something similar.  TBD: Figure this out.
-    Goes to fidelity of the algorithm to biology.
+    How do we interpret v ~ q and v → q ?  I think they're supposed to
+    mean that ⟦v⟧ = ⟦q⟧ - meaning that our interpretation of the
+    vertices depends on what the TAG turns out to be.  Maybe we could
+    also take it to mean that ⟦v⟧ ⊆ ⟦q⟧, or ⟦v⟧ ⊇ ⟦q⟧, or something
+    similar, taken together with some other constraint.  TBD: Figure
+    this out.  Goes to fidelity of the algorithm to biology.
 
-    sub(v) ∩ out(q) ≠ ∅  means there's something in ⟦v⟧ that's not in ⟦q⟧.
+    sub(v) ∩ out(q) ≠ ∅ means there's something in ⟦v⟧ that's not in
+    ⟦q⟧ - in particular, the interpretations of the members of the
+    intersection...
 
     sub(q) ∩ out(v) ≠ ∅  means there's something in ⟦q⟧ that's not in ⟦v⟧.
 
@@ -130,20 +138,32 @@ See README.md for agenda.  Eventually put this in LaTeX.
      a <> b       none of the above (they overlap without either
                   containing the other)
 
-    Exactly one of these relations holds between any pair of taxa.  RCC-5
-    is the logic whose syntax is these formulas, and only these, and whose
-    rules of deduction are easily derivable given the intent.
-    (Transitivity of <, >, and =, symmetry of =, |, and <>, and a few
-    axioms relating the relations to one another.)
+    Exactly one of these relations holds between any pair of taxa.
+    RCC-5 is the logic whose syntax is these formulas, and only these,
+    and whose rules of deduction are easily derivable given the
+    intent.  (Transitivity of <, >, and =, symmetry of =, |, and <>,
+    heritability of |, and a few axioms relating the relations to one
+    another.)
+
+    An alternative interpretation is to take ⟦a⟧ to be a set of tips.
+    This is an idealization and will fail to accommodate some
+    perfectly fine biological interpretations [I think].
 
     A claim, expressed in RCC-5, that one of the RCC-5 relationships holds
     between taxa, is called an 'articulation'.
 
-    * If sub(v) ∩ out(q) ≠ ∅, we cannot have v=q or v<q; i.e. one of v>q,
+    * If sub(v) ∩ out(q) ≠ ∅, we cannot have v=q or v<q; one of v>q,
       v|q, or v<>q holds.
-    * Dually for sub(q) ∩ out(v) ≠ ∅ - neither v=q nor v>q.
+    * Dually for sub(q) ∩ out(v) ≠ ∅ - we have neither v=q nor v>q.
     * If both conditions hold, then the only possibilities are v|q and
       v<>q.
-    * If neither condition holds, then no possibility is ruled out.
     * During TAG generation we don't even look at pairs that are
-      known to be disjoint.
+      known to be disjoint - they won't be linked except as 
+      siblings, cousins, etc. in the TAG.  So if both conditions hold,
+      we know we have an inconsistency v<>q.
+    * If neither condition holds, then no possibility is ruled out.
+      This is the v ~ q case and is where we have the option of 
+      alignment.
+
+
+TBD: Compare to [this google doc](https://docs.google.com/document/d/1Ow70obuqaAS3Ga35yrjm95aN9GhDOkedPQ8ikL2g8Hk)
