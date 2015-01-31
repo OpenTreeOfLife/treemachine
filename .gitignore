@@ -16,4 +16,8 @@ save_trees
 data
 Probs
 .DS_Store
-dependency-reduced-pom.xml
+dependency-reduced-pom.xmlsimpleprob-test.db
+simpleprob-out
+simpleprob-test.db
+simpleprob-diff-order-out
+simpleprob-diff-order-test.db
