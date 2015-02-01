@@ -1,100 +1,128 @@
 See [the README](README.md) for agenda.  Eventually put this in LaTeX.
 
+The notation and terminology here is largely consistent with
+[SBH](http://dx.doi.org/10.1371/journal.pcbi.1003223), with a few
+exceptions, such as dropping subscripts and saying 'tip' instead of
+'taxon'.
 
-    alpha = number of source trees
-    beta = number of vertices in a source tree (average? maximum? depends?)
+### DAGs
 
-    x = a source tree = <V, parent>
-    V = vertices(x) = set of vertices of x
-    D = edges(x) = child/parent relation
-    #V = #D + 1
+    Let
+      G = a directed acyclic graph = <V, D>  
+      V = vertices(G) = set of vertices of G
+      D = edges(G) = child/parent relation
 
-    TAG = tree alignment graph = <Q, E>   acyclic, directed.
-    Q = set of nodes in TAG
-    E = set of edges connecting nodes in Q
-      [I think of these going tipward, like in the trees, but SBH
-      says the edges go rootward... I'll try to be explicit about
-      this saying 'rootward' or 'tipward' as needed]
+    Define a "tip" to be a terminal vertex (going away from the root).
 
-    Define a "tip" to be a terminal vertex (furthest away from root).
-    tips(x) = terminal vertices in vertices(x)
-    tips(TAG) = terminal vertices in Q
+    Assume that every tip has a label, and that within a graph, no two
+    tips have the same label.
 
-    Posit that if t ≠ t' then vertex sets, with the important exception of
-    tips, are disjoint.  A tip of x is never the internal node of x'.
-    This lets us write
+    Define
+      labels(G) = labels of tips in vertices(G)
 
-      tree(v) = the (unique) tree containing v  (assuming v not a tip)
+    Posit that the vertices of distinct graphs are disjoint except as
+    noted.  This lets us write
 
-    Define:
-    sub(v) = subtension of v in tree(v) (i.e. all tips that are tipward of
-       v in tree(v)) or {v} if v is a tip
-    sub(q) = subtension of q in TAG (all tips that are tipward of q in Q,
-       or {q})
-    out(v) = tips(tree(v)) - sub(v)    - v's "out-set"
-    out(q) = tips(TAG) - sub(q)        - varies
-    v ~ q  if sub(v) ∩ out(q) ≠ ∅ and sub(q) ∩ out(v) ≠ ∅ (compatible)
-    v → q  v 'maps to' or 'aligns to' q (see below) (a subrelation of ~)
-       v → v for all tips
-    q ⇀ q' = there exists v such v → q' and v- → q for some child of v
-             (same as E ???)
+      graph(v) = the unique graph containing vertex v
 
------------------------------------------------------------------------------
+    Define
+      sub(v) = subtension of v in graph(v) = the labels of all tips that
+        are tipward of v in graph(v)
+      out(v) = labels(graph(v)) - sub(v)    - v's "out-set"
 
-    Problem statement: compute [a? the?] TAG = <Q, E> and alignment
-    relation → having the following properties
+    Let v, v' come from different graphs.  Define
+      v ~ v'  if sub(v) ∩ out(v') = ∅ and sub(v') ∩ out(v) = ∅
+        [compatibility / unification candidates]
 
-    1. The tips of Q are all the tips of source trees, and no more
-    2. For any given set of tips s, there is at most one q in Q such that
-        sub(q) = q    [uniqueness - is this necessary??]
-    3. If v → q then v ~ q    [completeness]
-    4. If v → q and q is reachable rootward from q- then 
-         NOT(v → q-)     [minimality]
+### Source trees
 
-    ???? is this a necessary and sufficient set of conditions ????
+    If a DAG is a tree, denote it by 'x'
+    For trees we have #V = #D + 1
+    The trees we're dealing with are called 'source trees'
 
-    'Algorithm' (iterative)
+    Let
+      α = number of source trees
+      β = number of vertices in a source tree (average? maximum? depends?)
 
-    Start with Q = E = → = {}.  These will grow monotonically [I think] as
-    we proceed.
+### Tree alignment graphs (TAG)
 
-    Traverse all trees, each one in preorder.
-    For each internal node v:
+    Let
+      x ... be a set of source trees
+      TAG = a DAG <Q, E>
+      align = a function (v 'maps to' q or v 'aligns to' q) from
+        vertices of x ... to Q
+    such that
+      labels(TAG) = union of labels(x) for all source trees x ...
+      align(v) = q implies v ~ q
+      there's an edge from q to q' (rootward) in E, iff there
+        exists v' in vertices(some x), and v a child of v', such that
+          align(v') = q' and align(v) = q 
+      [??? double check this]
+
+    Call such a DAG, equipped with such an align() function, a 'tree
+    alignment graph'.
+
+### SBH algorithm
+
+    Given a set of source trees x ..., find a TAG for them.  (The TAG
+    is not unique; this is just one particular strategy for obtaining
+    one.)
+
+    Start with a graph <Q, {}> and align() = {}.  They will grow
+    monotonically as we proceed.  Q has one tip for each label
+    occurring in x ...
+
+    Traverse all source trees x ..., each one in preorder.
+    For each internal vertex v:
       For each child v- of v:
-        For each node q- such that v- → q-:
+        For each node q- such that align(v-) = q-:
           Search rootward from q- looking for q such that
           (a) v ~ q
-          (b) v not~ any rootward neighbor q
+          (b) v not~ any rootward neighbor of q
           [TBD: Explain how these are identified, and how the search space
            is pruned]
-      For q having properties (a) and (b):
-        Add  v → q  to →, for each such q found or added.
+        (Note that v ~ q is decided using information coming from
+          v's and q's children (tipward).)
+      For some q having properties (a) and (b) [first one encountered?]:
+        Set align(v) = q.
       If no such q is found:
-        Add  v → q  to →, for a new q.
+        Add a fresh q to Q, and set  align(v) = q.
 
-    [This pretty clearly solves the stated problem, which makes me think
-    either one or the other wrong.]
+    This pretty clearly finds a TAG.
 
-    TBD: Explain what is cached and why, vs. not
+    TBD: Explain which sub/out sets are cached and why, vs. not
 
     Do this twice ???? or keep going until a fixed point is reached?
 
------------------------------------------------------------------------------
+    TBD: What is the order of growth?
 
-    TBD: Synthesis.
+    [Hmm, some difficulty around the graph-disjointness
+    proclamation... 'note' that the TAGs in successive iterations will
+    share nodes]
+
+### TBD: Synthesis
+
+    Given a TAG <Q, E> with alignment function align() and an edge
+    preference rule [total order on edges?], construct the tree <V, D>
+    such that
+
+      V = Q
+      D ⊆ W
+      the edge from q to parent(q) has the highest edge priority among
+        all edges rootward from q
+      ???
 
     "To make a tree from an entire TAG the procedure starts at the root
     node. From this focal node, it proceeds breadth-first in determining
     which nodes to include in the synthesis as we traverse the TAG."
 
------------------------------------------------------------------------------
+### An aside on model theory
 
-    An aside on model theory:
-
-    Every vertex or node v is taken to be a symbol in the logic, to be
-    interpreted as a name for some biological taxon ('taxon' in the
-    sense of logical class of individual organisms or specimens),
-    denoted by ⟦v⟧.
+    To apply some model theory to this setup, take every vertex or
+    node v to be a symbol in a logic, to be interpreted as some
+    biological taxon ('taxon' in the sense of logical class of
+    individual organisms or specimens).  The taxon that v is
+    interpreted to be is denoted ⟦v⟧.
 
     (We could distinguish vertices/nodes from logical symbols, but
     that would be cumbersome.  Confusing the two is convenient and I
@@ -102,31 +130,25 @@ See [the README](README.md) for agenda.  Eventually put this in LaTeX.
     quite unlike confusing nodes and vertices with taxa, which leads
     to all sorts of problems!)
 
-    An edge rootward from v to v' in some tree x is interpreted as saying
-    that ⟦v⟧ is properly contained in ⟦v'⟧.  We interpret an edge from q
-    rootward to q' to mean that ⟦q⟧ is properly contained in ⟦q'⟧.
+    An edge rootward from v to v' in some DAG is interpreted as saying
+    that ⟦v⟧ is properly contained in ⟦v'⟧.
 
-    If v and v' share a parent p in some x, we interpret that to mean
-    that ⟦v⟧ and ⟦v'⟧ are disjoint.  This does not hold in the TAG
-    [although it should be possible to infer disjointness in the TAG
-    sometimes, right?].
+    If v and v' *in a tree* share a parent p, we interpret that to
+    mean that ⟦v⟧ and ⟦v'⟧ are disjoint.  This does not necessarily
+    hold in the TAG.
 
-    How do we interpret v ~ q and v → q ?  I think they're supposed to
-    mean that ⟦v⟧ = ⟦q⟧ - meaning that our interpretation of the
-    vertices depends on what the TAG turns out to be.  Maybe we could
-    also take it to mean that ⟦v⟧ ⊆ ⟦q⟧, or ⟦v⟧ ⊇ ⟦q⟧, or something
-    similar, taken together with some other constraint.  TBD: Figure
-    this out.  Goes to fidelity of the algorithm to biology.
+    How do we interpret v ~ q and align(v) = q ?  I align(v) = q is
+    supposed to mean that ⟦v⟧ = ⟦q⟧.  Our choice of interpretation of
+    the vertices of a tree therefore depends on what the TAG turns out
+    to be.  Maybe we could alternatively take it to mean that ⟦v⟧ ⊆
+    ⟦q⟧ or something similar, taken together with some other
+    constraint.  TBD: Figure this out.  Goes to fidelity of the
+    algorithm to biology.
 
     sub(v) ∩ out(q) ≠ ∅ means there's something in ⟦v⟧ that's not in
-    ⟦q⟧ - in particular, the interpretations of the members of the
-    intersection...
+    ⟦q⟧.
 
-    sub(q) ∩ out(v) ≠ ∅  means there's something in ⟦q⟧ that's not in ⟦v⟧.
-
------------------------------------------------------------------------------
-
-    An aside to review RCC-5:
+### An aside to review RCC-5
 
     The RCC-5 relation symbols are:
 
@@ -138,19 +160,20 @@ See [the README](README.md) for agenda.  Eventually put this in LaTeX.
      a <> b       none of the above (they overlap without either
                   containing the other)
 
-    Exactly one of these relations holds between any pair of taxa.
-    RCC-5 is the logic whose syntax is these formulas, and only these,
-    and whose rules of deduction are easily derivable given the
-    intent.  (Transitivity of <, >, and =, symmetry of =, |, and <>,
-    heritability of |, and a few axioms relating the relations to one
-    another.)
+    In a model, exactly one of these relations holds between any pair
+    of taxa.  RCC-5 is the logic whose syntax is these formulas, and
+    only these, and whose rules of deduction are derivable given the
+    intent (transitivity of <, >, and =, symmetry of =, |, and <>,
+    heritability of |, a rather complex axiom for <>, perhaps
+    others?).
 
     An alternative interpretation is to take ⟦a⟧ to be a set of tips.
-    This is an idealization and will fail to accommodate some
-    perfectly fine biological interpretations [I think].
+    This is an idealization and will lead to equations that do not
+    follow from the biology.
 
-    A claim, expressed in RCC-5, that one of the RCC-5 relationships holds
-    between taxa, is called an 'articulation'.
+    A claim that one of the RCC-5 relationships holds between two
+    taxa, when expressed in the RCC-5 logic, is called an
+    'articulation'.
 
     * If sub(v) ∩ out(q) ≠ ∅, we cannot have v=q or v<q; one of v>q,
       v|q, or v<>q holds.
