@@ -133,9 +133,9 @@ exceptions, such as dropping subscripts and saying 'tip' instead of
     An edge rootward from v to v' in some DAG is interpreted as saying
     that ⟦v⟧ is properly contained in ⟦v'⟧.
 
-    If v and v' *in a tree* share a parent p, we interpret that to
-    mean that ⟦v⟧ and ⟦v'⟧ are disjoint.  This does not necessarily
-    hold in the TAG.
+    If v and v' in a source tree share a parent p, we interpret that to
+    mean that ⟦v⟧ and ⟦v'⟧ are disjoint.  We should not assume this
+    holds in the TAG or in a synthetic tree, however.
 
     How do we interpret v ~ q and align(v) = q ?  I align(v) = q is
     supposed to mean that ⟦v⟧ = ⟦q⟧.  Our choice of interpretation of
