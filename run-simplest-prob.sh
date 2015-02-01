@@ -1,7 +1,7 @@
 #!/bin/sh
-outputdir="simplest-out"
-dbdir=simplest-test.db
-inputdir=simplestprob
+outputdir="trivialconf-out"
+dbdir=trivialconf-test.db
+inputdir=trivialconf
 if test -d "${dbdir}"
 then
     echo "${dbdir} exists. Move it and try again."
