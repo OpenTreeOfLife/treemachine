@@ -1,7 +1,7 @@
 #!/bin/sh
-outputdir="even-simplerprob-diff-order-out"
-dbdir=even-simplerprob-diff-order-test.db
-inputdir=even-simplerprob
+outputdir="reltaxaprob-out"
+dbdir=reltaxaprob-test.db
+inputdir=reltaxaprob
 if test -d "${dbdir}"
 then
     echo "${dbdir} exists. Move it and try again."
