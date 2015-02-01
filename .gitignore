@@ -27,7 +27,9 @@ simpleprob-one-tree-out
 simpleprob-one-tree-test.db
 simpleprob-with-answer-out
 simpleprob-with-answer-test.db
-
 even-simplerprob-diff-order-test.db
 even-simplerprob-diff-order-out
 dependency-reduced-pom.xml
+simplest-out
+simplest-test.db
+
