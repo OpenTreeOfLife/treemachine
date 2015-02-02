@@ -111,7 +111,13 @@ But it does not seem to be true of the algorithm that produced draftversion2.tre
 
 
 I *think* that one could modify the TAG rules to guarantee that the synthesis would be "full".
-You'd need to  add more edges in TAG creation. In addition to the current edges, you'd need to add some lower priority edges that correspond to less resolved forms of the input source tree.
+
+The easiest course of action to implement, would be to simply add trivial edges from the node to the excluded leaf nodes.
+This might result in polytomies that are bigger than they need to be (in the sense, there could be some phylogenetic statements about these tips
+which are compatible with the synthetic tree, but are ignored by creating a polytomy including all of these leaves).
+
+It might be possible to be smarter about it, if we added som more edges in TAG creation. In addition to the current edges, you'd need to add some lower priority edges that correspond to less resolved forms of the input source tree.
 This would enable a fall back during tracing of the synthetic tree:
   * ModSynth1 conduct synthesis as described above (Synth1 - Synth4), then
   * before leaving a node `V'`, check for any labels in `L(V')`. If any aren't included in the edges that have been accepted, start checking the low priority edges in an order that pays attention to source tree rank and whether the number of descendants of the node. The lowest priority fall back would be the set of edges that adds the culled taxa as children of node `V'`
+
