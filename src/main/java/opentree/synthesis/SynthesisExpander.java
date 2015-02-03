@@ -44,12 +44,14 @@ public class SynthesisExpander implements PathExpander {
 	private TLongHashSet dupMRCAS;
 	private TLongHashSet deadnodes;
 	private boolean checkForTrivialConflicts;
+	private boolean checkForSubsumedEdges;
 	
 	public SynthesisExpander() {
 		this.filter = null;
 		this.ranker = null;
 		this.resolver = null;
 		this.checkForTrivialConflicts = true; //@mth
+		this.checkForSubsumedEdges = true; //@mth
 		dupMRCAS = new TLongHashSet();
 		deadnodes = new TLongHashSet();
 	}
@@ -122,7 +124,8 @@ public class SynthesisExpander implements PathExpander {
 	private void resolveConflicts() {
 
 		if (resolver != null) {
-			if (this.checkForTrivialConflicts) {
+
+			if (this.checkForSubsumedEdges || this.checkForTrivialConflicts) {
 				ArrayList<Relationship> trivRels = new ArrayList<Relationship>();
 				ArrayList<Relationship> nontrivialRels = new ArrayList<Relationship>();
 				Iterator<Relationship> allRelsIt = candidateRels.iterator();
@@ -134,13 +137,21 @@ public class SynthesisExpander implements PathExpander {
 						nontrivialRels.add(candidate);
 					}
 				}
-
-				System.out.println("non trivial candidates: " + nontrivialRels);
-				bestRels = resolver.resolveConflicts(nontrivialRels, true);
-				System.out.println("trivial candidates: " + trivRels);
-				bestRels = resolver.resolveConflicts(trivRels, false);
-				dupMRCAS.addAll(resolver.getDupMRCAS());
-				System.out.println("dups from method: "+dupMRCAS.size());
+				if (this.checkForSubsumedEdges) {
+					System.out.println("non trivial candidates: " + nontrivialRels);
+					bestRels = resolver.resolveConflicts(nontrivialRels, true);
+					System.out.println("trivial candidates: " + trivRels);
+					bestRels = resolver.resolveConflicts(trivRels, false);
+					dupMRCAS.addAll(resolver.getDupMRCAS());
+					System.out.println("dups from method: " + dupMRCAS.size());
+				} else {
+					System.out.println("non trivial candidates: " + nontrivialRels);
+					bestRels = resolver.resolveConflicts(nontrivialRels, true);
+					System.out.println("trivial candidates: " + trivRels);
+					bestRels = resolver.resolveConflicts(trivRels, false);
+					dupMRCAS.addAll(resolver.getDupMRCAS());
+					System.out.println("dups from method: "+dupMRCAS.size());
+				}
 			} else {
 				System.out.println("candidates: "+candidateRels);
 				bestRels = resolver.resolveConflicts(candidateRels, true);
