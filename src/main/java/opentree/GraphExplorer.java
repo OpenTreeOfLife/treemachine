@@ -32,6 +32,7 @@ import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.synthesis.SynthesisExpander;
+import opentree.synthesis.conflictresolution.RankNontrivialNodeDesResolutionMethod; //@mth
 import opentree.synthesis.conflictresolution.RankNodeDesResolutionMethod; //@mth
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
 import opentree.synthesis.conflictresolution.RankResolutionMethodInferredPath;
@@ -1449,7 +1450,7 @@ public class GraphExplorer extends GraphBase {
 		//@pre-mth-issue-157:
 		//RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethod());//new RankResolutionMethodInferredPath());
 		//replaced with 
-		RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankNodeDesResolutionMethod());
+		RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankNontrivialNodeDesResolutionMethod());
 		
 		draftSynthesisMethod.setConflictResolver(rcr);
 		

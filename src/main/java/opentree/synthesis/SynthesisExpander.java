@@ -1,6 +1,9 @@
 package opentree.synthesis;
 
 import java.util.HashSet;
+import java.util.ArrayList;
+
+import java.util.Iterator;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
@@ -40,11 +43,13 @@ public class SynthesisExpander implements PathExpander {
 	private Iterable<Relationship> bestRels;
 	private TLongHashSet dupMRCAS;
 	private TLongHashSet deadnodes;
+	private boolean checkForTrivialConflicts;
 	
 	public SynthesisExpander() {
 		this.filter = null;
 		this.ranker = null;
 		this.resolver = null;
+		this.checkForTrivialConflicts = true; //@mth
 		dupMRCAS = new TLongHashSet();
 		deadnodes = new TLongHashSet();
 	}
@@ -115,12 +120,33 @@ public class SynthesisExpander implements PathExpander {
 	 * TODO: include the branch and bound option (new resolver?), size option (new resolver?), others?
 	 */
 	private void resolveConflicts() {
-		System.out.println("candidates: "+candidateRels);
+
 		if (resolver != null) {
-			bestRels = resolver.resolveConflicts(candidateRels);
-			dupMRCAS.addAll(resolver.getDupMRCAS());
-			System.out.println("dups from method: "+dupMRCAS.size());
-			//System.out.println(dupMRCAS);
+			if (this.checkForTrivialConflicts) {
+				ArrayList<Relationship> trivRels = new ArrayList<Relationship>();
+				ArrayList<Relationship> nontrivialRels = new ArrayList<Relationship>();
+				Iterator<Relationship> allRelsIt = candidateRels.iterator();
+				while (allRelsIt.hasNext()) {
+					Relationship candidate = allRelsIt.next();
+					if (((long[]) candidate.getStartNode().getProperty("mrca")).length == 1) {
+						trivRels.add(candidate);
+					} else {
+						nontrivialRels.add(candidate);
+					}
+				}
+
+				System.out.println("non trivial candidates: " + nontrivialRels);
+				bestRels = resolver.resolveConflicts(nontrivialRels, true);
+				System.out.println("trivial candidates: " + trivRels);
+				bestRels = resolver.resolveConflicts(trivRels, false);
+				dupMRCAS.addAll(resolver.getDupMRCAS());
+				System.out.println("dups from method: "+dupMRCAS.size());
+			} else {
+				System.out.println("candidates: "+candidateRels);
+				bestRels = resolver.resolveConflicts(candidateRels, true);
+				dupMRCAS.addAll(resolver.getDupMRCAS());
+				System.out.println("dups from method: "+dupMRCAS.size());
+			}
 		} else {
 			bestRels = candidateRels;
 		}

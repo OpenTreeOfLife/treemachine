@@ -21,7 +21,7 @@ import org.neo4j.graphdb.Relationship;
  * 
  * @author stephen smith and cody hinchliff and mark holder
  */
-public class RankNodeDesResolutionMethod implements ResolutionMethod {
+public class RankNontrivialNodeDesResolutionMethod implements ResolutionMethod {
 
 	// containers used to make decisions about best paths
 	HashMap<Relationship, TLongArrayList> candRelDescendantIdsMap;
@@ -29,7 +29,7 @@ public class RankNodeDesResolutionMethod implements ResolutionMethod {
 	//this will include all the mrcas that were found in this round that should be excluded
 	TLongHashSet dupMRCAS;
 	
-	public RankNodeDesResolutionMethod() {
+	public RankNontrivialNodeDesResolutionMethod() {
 		initialize();
 	}
 	
