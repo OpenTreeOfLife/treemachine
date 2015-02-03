@@ -21,7 +21,8 @@ function runsynthtest {
 }
 
 # detect that trivial edges don't conflict...
-runsynthtest trivialconf
+runsynthtest usenodetaxa
+echo "TEMPORARILY SKIPPING: runsynthtest trivialconf"
 
 
 cd - >/dev/null
