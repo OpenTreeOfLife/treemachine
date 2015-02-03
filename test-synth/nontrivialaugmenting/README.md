@@ -22,6 +22,5 @@ Just to get everything on one page, the expected tree (in the file 'expected.tre
 
 The delivered result is:
 
-    ((((A,E),B),F),C,D);
+    ((((A,E),B),C),D,F);
 
-Which seems to be correct.
