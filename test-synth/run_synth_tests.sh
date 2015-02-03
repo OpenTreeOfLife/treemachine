@@ -2,10 +2,11 @@
 TEST_DIR="$(dirname $0)"
 cd "$TEST_DIR" || exit
 failures=0
-
+conducted=0
+failed=""
 function runsynthtest {
     tag="$1"
-    echo "${tag}"
+    echo "running test tag: ${tag}"
     if test -d "${tag}"-out
     then
         rm -r "${tag}"-out
@@ -17,19 +18,33 @@ function runsynthtest {
     if ! bash ./run-"${tag}".sh
     then
         failures=$(expr 1 + $failures)
+        if test -z $failed
+        then
+            failed="$tag"
+        else
+            failed="${failed}, ${tag}"
+        fi
     fi
+    conducted=$(expr 1 + $conducted)
 }
 
-# detect that trivial edges don't conflict...
-runsynthtest trivialconf
-runsynthtest usenodetaxa
-runsynthtest nontrivialaugmenting
+if test -z $FAILING_TREEMACHINE_TEST
+then
+    echo "FAILING_TREEMACHINE_TEST not in env. All tests will be run..."
+    runsynthtest trivialconf
+    runsynthtest usenodetaxa
+    runsynthtest nontrivialaugmenting
+else
+    echo "Using FAILING_TREEMACHINE_TEST env to restrict to 1 test"
+    runsynthtest $FAILING_TREEMACHINE_TEST
+fi
 
 
 cd - >/dev/null
-echo $failures "failures"
+echo "Failed ${failures} out of ${conducted} tests(s)."
 if test $failures -gt 0
 then
+    echo "failing test tags: ${failed}"
     exit 1
 fi
 
