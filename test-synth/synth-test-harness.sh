@@ -45,6 +45,14 @@ function testsynthesis {
         shift
     done
     set -x
+    if ! $treemachine jsgol life "${dbdir}" >"${outputdir}"/jsgol.log 2>&1
+    then 
+        cat "${outputdir}"/jsgol.log
+        # exit 1
+        echo "tolerating failure to dump jsgol now"
+    else
+        mv life.json "${outputdir}"/life.json
+    fi
     if ! $treemachine graphml life "${outputdir}"/graphml.xml T "${dbdir}" >"${outputdir}"/graphml.log 2>&1
     then 
         cat "${outputdir}"/graphml.log
