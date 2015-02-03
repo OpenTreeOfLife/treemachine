@@ -20,4 +20,8 @@ Just to get everything on one page, the expected tree (in the file 'expected.tre
 
     (((((A,E),B),F),C),D);
 
-But this seems to use the type tree2 above.
+The delivered result is:
+
+    ((((A,E),B),F),C,D);
+
+Which seems to be correct.
