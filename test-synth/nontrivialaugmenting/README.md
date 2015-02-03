@@ -14,4 +14,10 @@ but compatible with tree2:
 
     ((((A,E),B),F),C);
 
-the taxonomy is a polytomy of the groups
+the taxonomy is a polytomy of the groups.
+
+Just to get everything on one page, the expected tree (in the file 'expected.tre') is:
+
+    (((((A,E),B),F),C),D);
+
+
