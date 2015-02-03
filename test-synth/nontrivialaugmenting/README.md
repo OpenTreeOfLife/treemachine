@@ -14,10 +14,12 @@ but compatible with tree2:
 
     ((((A,E),B),F),C);
 
-the taxonomy is a polytomy of the groups.
+So, tree2 is not compatible with tree1.
+
+The taxonomy is a polytomy of the groups.
 
 Just to get everything on one page, the expected tree (in the file 'expected.tre') is:
 
     (((((A,E),B),F),C),D);
 
-
+But this seems to use the type tree2 above.
