@@ -10,7 +10,7 @@ but compatible with tree2:
 
     ~~(((A,E),B),F);~~
 
-**EDIT** Stephen point3ed out this readme has a typo for tree2. It should instead read:
+**EDIT** Stephen pointed out this readme has a typo for tree2. It should instead read:
 
     ((((A,E),B),F),C);
 
