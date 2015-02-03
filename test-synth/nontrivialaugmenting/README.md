@@ -14,8 +14,6 @@ but compatible with tree2:
 
     ((((A,E),B),F),C);
 
-So, tree2 is not compatible with tree1.
-
 The taxonomy is a polytomy of the groups.
 
 Just to get everything on one page, the expected tree (in the file 'expected.tre') is:
