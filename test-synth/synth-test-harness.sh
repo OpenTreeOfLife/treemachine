@@ -37,7 +37,7 @@ function testsynthesis {
             orderstr="${orderstr},tree${treetag}"
         fi
         set -x
-        if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/addnewick-"${treetag}".log 2>&1
+        if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/addnewick-tree"${treetag}".log 2>&1
         then 
             cat "${outputdir}"/addnewick-tree"${treetag}".log
             exit
