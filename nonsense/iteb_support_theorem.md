@@ -66,7 +66,7 @@ MTH was assumes property "Synth3" because he understood that as the reason for t
 
 
 
-## input-tree-edge-display support
+## input-tree-edge-bijection support
 
 Let the "input-tree-edge-bijection support" (ITEB) be the 
 number of input trees which support the edge in the following sense of support.
