@@ -91,7 +91,7 @@ can correspond to 0 or 1 edge in the input tree.
 However, each edge in the input tree can map to any number of edges in supertree, because there may be
 redundant nodes in the supertree that resulted from pruning it down to the leaf set of this input tree.
 
-The cases that count as support in teh ITEB sense are cases in which there is a bijection in the mapping of pruned supertree to an input tree.
+The cases that count as support in the ITEB sense are cases in which there is a bijection in the mapping of pruned supertree to an input tree.
 
 
 ## Theorem
