@@ -1355,7 +1355,11 @@ public class MainRunner {
 		
 		GraphExporter ge = new GraphExporter(graphname);
 		try {
-			ge.writeGraphML(taxon, outfile, useTaxonomy);
+			if (outfile.endsWith(".dot")) {
+				ge.writeGraphDot(taxon, outfile, useTaxonomy);
+			} else {
+				ge.writeGraphML(taxon, outfile, useTaxonomy);
+			}
 		} finally {
 			ge.shutdownDB();
 		}

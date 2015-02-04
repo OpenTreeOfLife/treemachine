@@ -45,24 +45,26 @@ function testsynthesis {
         shift
     done
     set -x
-    if ! $treemachine jsgol life "${dbdir}" >"${outputdir}"/jsgol.log 2>&1
+    if ! $treemachine graphml life "${outputdir}"/pre-synthgraph.dot T "${dbdir}" >"${outputdir}"/pre-synthgraph.log 2>&1
     then 
-        cat "${outputdir}"/jsgol.log
-        # exit 1
-        echo "tolerating failure to dump jsgol now"
-    else
-        mv life.json "${outputdir}"/life.json
-    fi
-    if ! $treemachine graphml life "${outputdir}"/graphml.xml T "${dbdir}" >"${outputdir}"/graphml.log 2>&1
-    then 
-        cat "${outputdir}"/graphml.log
+        cat "${outputdir}"/pre-synthgraph.log
         exit 1
     fi
+    dot "${outputdir}"/pre-synthgraph.dot -Tsvg -o "${outputdir}"/pre-synthgraph.svg
+
     if ! $treemachine synthesizedrafttreelist_nodeid 1 "${orderstr},taxonomy" "${dbdir}" >"${outputdir}"/synthesize.log 2>&1
     then 
         cat "${outputdir}"/synthesize.log
         exit 1
     fi
+
+    if ! $treemachine graphml life "${outputdir}"/graph.dot T "${dbdir}" >"${outputdir}"/graph.log 2>&1
+    then 
+        cat "${outputdir}"/graph.log
+        exit 1
+    fi
+    dot "${outputdir}"/graph.dot -Tsvg -o "${outputdir}"/graph.svg
+
     if ! $treemachine extractdrafttree_nodeid 1 "${outputdir}"/synth.tre "${dbdir}" >"${outputdir}"/extract.log 2>&1
     then 
         cat "${outputdir}"/extract.log

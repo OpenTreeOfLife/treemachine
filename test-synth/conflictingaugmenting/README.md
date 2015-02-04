@@ -21,3 +21,7 @@ because:
   * `tree1` says `A` and `B` are sister relavtive to `C` and `D`. tree2 disagrees, but it is weak and ranked second.
   * tree2 says `A+E+B+C` vs `F` or `D`, and that is compatible with tree1
   * tree2 says `A+E+B+C+F` vs`D`, and that is compatible with tree1
+
+Synthesis is returning:
+
+    (((A,B),C),D,E,F);

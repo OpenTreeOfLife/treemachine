@@ -84,7 +84,19 @@ public class GraphExporter extends GraphBase {
 			sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
 		} */
 	}
-
+	public void writeGraphDot(String taxname, String outfile, boolean useTaxonomy) 
+				throws TaxonNotFoundException {
+		Node firstNode = findTaxNodeByName(taxname);
+		String tofile = getDot(firstNode);
+		PrintWriter outFile;
+		try {
+			outFile = new PrintWriter(new FileWriter(outfile));
+			outFile.write(tofile);
+			outFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) 
 				throws TaxonNotFoundException {
 		Node firstNode = findTaxNodeByName(taxname);
@@ -200,7 +212,79 @@ public class GraphExporter extends GraphBase {
 	}
 
 	
-	
+	private String getDot(Node startnode) {
+		HashSet<Node> nodes = new HashSet<Node>();
+		for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
+				.traverse(startnode).nodes()) {
+			nodes.add(tnode);
+		}
+		StringBuffer retstring = new StringBuffer("digraph G {\n");
+		HashMap<Long, String> nd2Name = new HashMap<Long, String>();
+		for (Node tnode: nodes) {
+			String name;
+			Long nid = tnode.getId();
+			if(tnode.hasProperty("name")){
+				name = "n" + nid + "_" + (String)tnode.getProperty("name");
+			} else {
+				name = "n" + nid;
+			}
+			nd2Name.put(nid, name);
+			retstring.append("  " + name + ";\n");
+		}
+		HashSet<Long> visitedRels = new HashSet<Long>();
+		String [] relColorArr = {"blue", "springgreen", "magenta", "darkorange", "lightblue", "goldenrod", "brown", "gray"};
+		HashMap<String, Integer> relSource2ColInd = new HashMap<String, Integer>();
+		for (Node tnode: nodes) {
+			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
+				Long relid = rel.getId();
+				if (!visitedRels.contains(relid)) {
+					String rname = "r" + relid;
+					Long snid = rel.getStartNode().getId();
+					Long enid = rel.getEndNode().getId();
+					String sns = nd2Name.get(snid);
+					String ens = nd2Name.get(enid);
+					String relSource = (String)rel.getProperty("source");
+					String relcolor;
+					if (relSource.equals("taxonomy")) {
+						relcolor = "crimson";
+						rname += "\" style=\"dashed";
+					} else {
+						Integer colorOffset;
+						if (relSource2ColInd.containsKey(relSource)) {
+							colorOffset = relSource2ColInd.get(relSource);
+						} else {
+							colorOffset = new Integer(relSource2ColInd.size());
+							if (colorOffset > relColorArr.length - 1) {
+								colorOffset = new Integer(relColorArr.length - 1);
+							}
+							relSource2ColInd.put(relSource, colorOffset);
+						}
+						relcolor = relColorArr[colorOffset];
+						rname += relSource;
+					}
+					
+					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" color=\"" + relcolor + "\"];\n");
+					visitedRels.add(relid);
+				}
+			}
+		}
+		for (Node tnode: nodes) {
+			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+				Long relid = rel.getId();
+				if (!visitedRels.contains(relid)) {
+					String rname = "r" + relid;
+					Long snid = rel.getStartNode().getId();
+					Long enid = rel.getEndNode().getId();
+					String sns = nd2Name.get(snid);
+					String ens = nd2Name.get(enid);
+					retstring.append("    " + sns + " -> " + ens + " [label=\"S\" style=\"bold\" color=\"black\"];\n");
+					visitedRels.add(relid);
+				}
+			}
+		}
+		retstring.append("}\n");
+		return retstring.toString();
+	}
 	
 	/**
 	 * creates a graphml for viewing in gephi Because gephi cannot view parallel lines, this will not output parallel edges. The properties that we have are
@@ -212,7 +296,6 @@ public class GraphExporter extends GraphBase {
 	 * @param startnode
 	 * @return
 	 */
-
 	private String getGraphML(Node startnode,boolean taxonomy,int depth){
 		StringBuffer retstring = new StringBuffer("<graphml>\n");
 		retstring.append("<key id=\"d0\" for=\"node\" attr.name=\"taxon\" attr.type=\"string\">\n");
