@@ -26,9 +26,11 @@ function testsynthesis {
         exit 1
     fi
     set +x
+    rm "${outputdir}"/tree-order.txt
     while (( "$#" ))
     do
         treetag="$1"
+        echo $treetag >> "${outputdir}"/tree-order.txt
         if test -z $orderstr
         then
             orderstr="tree${treetag}"
@@ -43,6 +45,24 @@ function testsynthesis {
         fi
         set +x
         shift
+    done
+    for rep in 1 2 3 4
+    do
+        for treetag in $(cat "${outputdir}"/tree-order.txt)
+        do
+            set -x
+            if ! $treemachine pgdelind "${dbdir}" tree"${treetag}" >"${outputdir}"/pgdelind-tree"${treetag}".log 2>&1
+            then 
+                cat "${outputdir}"/pgdelind-tree"${treetag}".log
+                exit 1
+            fi
+            if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/rep${rep}-addnewick-tree"${treetag}".log 2>&1
+            then 
+                cat "${outputdir}"/rep${rep}-addnewick-tree"${treetag}".log
+                exit 1
+            fi
+            set +x
+        done
     done
     set -x
     if ! $treemachine graphml life "${outputdir}"/pre-synthgraph.dot T "${dbdir}" >"${outputdir}"/pre-synthgraph.log 2>&1
