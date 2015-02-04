@@ -68,28 +68,40 @@ MTH was assumes property "Synth3" because he understood that as the reason for t
 
 ## input-tree-edge-display support
 
-Let the "input-tree-edge-display support" (ITED) be the 
+Let the "input-tree-edge-bijection support" (ITEB) be the 
 number of input trees which support the edge in the following sense of support.
 Input tree  `t` supports an edge `V->V'` in the synthetic tree if `t` 
 contains some edge `v->v'` such that:
   * ited1: `L(V) ∩ L(t) = L(t, v)`
   * ited2: `L(V') ∩ out(t, v)` is not empty
 
-If an edge has ITED > 0, then collapsing the
+If an edge has ITEB > 0, then collapsing the
 edge in the synthetic tree could be considered to result in a worse tree in the sense
 the collapsed tree
-would be further from ITED input trees (using the Robinson Foulds symmetric difference as distance).
+would be further from ITEB input trees (using the Robinson Foulds symmetric difference as distance).
 
+### explanation of the name
+Imagine that  we were restrict the supertree down to the leaf set of an input tree without deleting any redundant nodes
+that result from the pruning.
+We could then construct a mapping of edges in the supertree to edges in input tree where there is a correspondence if
+the children of each of the edges are the ancestors of the same set taxa.
+
+In this mapping (assuming no redundant nodes in the input tree, as stated above), and edge in the supertree
+can correspond to 0 or 1 edge in the input tree.
+However, each edge in the input tree can map to any number of edges in supertree, because there may be
+redundant nodes in the supertree that resulted from pruning it down to the leaf set of this input tree.
+
+The cases that count as support in teh ITEB sense are cases in which there is a bijection in the mapping of pruned supertree to an input tree.
 
 
 ## Theorem
 
-   If a SBH-TAG-synthetic tree displays a label set that is the union of all of the input trees, then every edge in a SBH-TAG-synthetic tree has ITED > 0.
+   If a SBH-TAG-synthetic tree displays a label set that is the union of all of the input trees, then every edge in a SBH-TAG-synthetic tree has ITEB > 0.
 
 ### Proof
    Let `S(V')` be the set of labels in the synthetic tree that are descendants of TAG node `V'`
 
-   Note that, by construction, if the `S(V') = L(V')` then each edge added has a ITED contribution of 1 from the input tree that caused the edge to be added to the TAG. This is true because properties prop2A and prop2B of edge addition are precisely properties ited1 and ited2 of the ITED criterion. If we are dealing with a "full" synthetic tree (no leaf labels lost), then the leaf sets relevant to the calculations of properties ited1 and ited2 are the same as those when the tree was added. Thus prop2A and prop2B imply ited1 and ited2.
+   Note that, by construction, if the `S(V') = L(V')` then each edge added has a ITEB contribution of 1 from the input tree that caused the edge to be added to the TAG. This is true because properties prop2A and prop2B of edge addition are precisely properties ited1 and ited2 of the ITEB criterion. If we are dealing with a "full" synthetic tree (no leaf labels lost), then the leaf sets relevant to the calculations of properties ited1 and ited2 are the same as those when the tree was added. Thus prop2A and prop2B imply ited1 and ited2.
 
    Synth1 guarantees that there are not other sources of edges that we have to worry about being in the synthetic tree.
 
