@@ -2,8 +2,8 @@
 function testsynthesis {
     tag="$1"
     shift
-    outputdir="${tag}-out"
-    dbdir="${tag}-test.db"
+    outputdir="${tag}/out"
+    dbdir="${tag}/test.db"
     inputdir="${tag}"
     treemachinejar=../target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar
     treemachine="java -enableassertions -jar $treemachinejar"

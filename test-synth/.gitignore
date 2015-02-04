@@ -1,3 +1,4 @@
-*-out
-*-test.db
+*/out
+*/test.db
 
+last-failed-test.db

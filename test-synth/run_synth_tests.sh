@@ -8,15 +8,15 @@ linkcreated=""
 function runsynthtest {
     tag="$1"
     echo "running test tag: ${tag}"
-    if test -d "${tag}"-out
+    if test -d "${tag}"/out
     then
-        rm -r "${tag}"-out
+        rm -r "${tag}"/out
     fi
-    if test -d "${tag}"-test.db
+    if test -d "${tag}"/test.db
     then
-        rm -r "${tag}"-test.db
+        rm -r "${tag}"/test.db
     fi
-    if ! bash ./run-"${tag}".sh
+    if ! bash ./"${tag}"/run.sh
     then
         failures=$(expr 1 + $failures)
         if test -z $failed
@@ -28,10 +28,10 @@ function runsynthtest {
         if test -L last-failed-test.db
         then
             rm last-failed-test.db
-            if ln -s "${tag}"-test.db last-failed-test.db
-            then
-                linkcreated="1"
-            fi
+        fi
+        if ln -s "${tag}"/test.db last-failed-test.db
+        then
+            linkcreated="1"
         fi
     fi
     conducted=$(expr 1 + $conducted)

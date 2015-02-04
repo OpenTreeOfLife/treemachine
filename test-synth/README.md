@@ -2,7 +2,7 @@
 
 **Note** the scripts need `bash` not (`sh` or `dash`)
 
-Each of the tests here creates an `<test-tag>-out` directory of the output of each treemachine step, and creates a tiny new db called `<test-tag>-test.db`
+Each of the tests here creates an `<test-tag>/out` directory of the output of each treemachine step, and creates a tiny new db called `<test-tag>/test.db`
 
 If you run an individual test, you have to remove these output **directories** before running the test.
 
