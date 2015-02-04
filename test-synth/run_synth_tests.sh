@@ -15,11 +15,37 @@ function runsynthtest {
     echo "running test tag: ${tag}"
     if test -d "${tag}"/out
     then
-        rm -r "${tag}"/out
+        rm "${tag}"/out/*
     fi
     if test -d "${tag}"/test.db
     then
-        rm -r "${tag}"/test.db
+        rm "${tag}"/test.db/index/lucene/node/graphNamedNodes/*
+        rmdir "${tag}"/test.db/index/lucene/node/graphNamedNodes
+        rm "${tag}"/test.db/index/lucene/node/graphTaxUIDNodes/*
+        rmdir "${tag}"/test.db/index/lucene/node/graphTaxUIDNodes
+        rm "${tag}"/test.db/index/lucene/node/sourceMetaNodes/*
+        rmdir "${tag}"/test.db/index/lucene/node/sourceMetaNodes
+        rm "${tag}"/test.db/index/lucene/node/sourceRootNodes/*
+        rmdir "${tag}"/test.db/index/lucene/node/sourceRootNodes
+        rm "${tag}"/test.db/index/lucene/node/synthMetaNodes/*
+        rmdir "${tag}"/test.db/index/lucene/node/synthMetaNodes
+        rmdir "${tag}"/test.db/index/lucene/node
+
+        rm "${tag}"/test.db/index/lucene/relationship/sourceRels/*
+        rmdir "${tag}"/test.db/index/lucene/relationship/sourceRels
+        rm "${tag}"/test.db/index/lucene/relationship/synthRels/*
+        rmdir "${tag}"/test.db/index/lucene/relationship/synthRels
+        rmdir "${tag}"/test.db/index/lucene/relationship
+
+        rm "${tag}"/test.db/index/lucene/*
+        rmdir "${tag}"/test.db/index/lucene
+
+        rm "${tag}"/test.db/index/*
+        rmdir "${tag}"/test.db/index
+        
+        rm -f "${tag}"/test.db/* 
+        rmdir "${tag}"/test.db || exit
+        
     fi
     if ! bash ./"${tag}"/run.sh
     then

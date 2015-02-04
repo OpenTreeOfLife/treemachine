@@ -14,10 +14,10 @@ function testsynthesis {
     fi
     if test -d "${outputdir}"
     then
-        echo "${outputdir} exists. Move it and try again."
-        exit 1
+        echo "${outputdir} exists. Overwriting its contents..."
+    else
+        mkdir "${outputdir}"
     fi
-    mkdir "${outputdir}"
     set -x
     orderstr=""
     if ! $treemachine inittax "${inputdir}"/taxonomy.tsv "${inputdir}"/synonyms.tsv "${dbdir}" >"${outputdir}"/inittax.log 2>&1
