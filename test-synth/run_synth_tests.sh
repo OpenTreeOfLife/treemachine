@@ -7,6 +7,11 @@ failed=""
 linkcreated=""
 function runsynthtest {
     tag="$1"
+    if test -z $tag
+    then
+        echo "An arg is required!"
+        exit
+    fi
     echo "running test tag: ${tag}"
     if test -d "${tag}"/out
     then
