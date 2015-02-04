@@ -43,6 +43,7 @@ then
     runsynthtest trivialconf
     runsynthtest usenodetaxa
     runsynthtest nontrivialaugmenting
+    runsynthtest conflictingaugmenting
 else
     echo "Using FAILING_TREEMACHINE_TEST env to restrict to 1 test"
     runsynthtest $FAILING_TREEMACHINE_TEST
