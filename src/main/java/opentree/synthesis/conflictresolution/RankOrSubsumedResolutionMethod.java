@@ -35,6 +35,11 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 	//this will include all the mrcas that were found in this round that should be excluded
 	TLongHashSet dupMRCAS;
 	
+	//@mth these use to be locals for the resolveConflicts, but we now call that method twice!
+	//these are all the mrcas that are actually included in the set of saveRels
+	TLongHashSet totalIncluded = new TLongHashSet();
+	
+	
 	public RankOrSubsumedResolutionMethod() {
 		initialize();
 	}
@@ -43,6 +48,7 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 		candRelDescendantIdsMap = new HashMap<Relationship, TLongArrayList>();
 		bestRels = new LinkedList<Relationship>();
 		dupMRCAS = new TLongHashSet();
+		totalIncluded = new TLongHashSet();
 	}
 	
 	private void storeDescendants(Relationship rel) {
@@ -74,21 +80,14 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 	}
 	
 	private boolean testForConflict(Relationship rel1, Relationship rel2) {
-
 		if (!candRelDescendantIdsMap.containsKey(rel1)) {
 			storeDescendants(rel1);
 		}
-		
 		if (!candRelDescendantIdsMap.containsKey(rel2)) {
 			storeDescendants(rel2);
 		}
-
 		// if the relationships share any descendant leaves, then they are in conflict
-		if (LicaUtil.containsAnyt4jUnsorted(candRelDescendantIdsMap.get(rel2), candRelDescendantIdsMap.get(rel1))) {
-			return true;
-		} else {
-			return false;
-		}
+		return LicaUtil.containsAnyt4jUnsorted(candRelDescendantIdsMap.get(rel2), candRelDescendantIdsMap.get(rel1));
 	}
 	
 	/*
@@ -161,10 +160,6 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 	}
 	public Iterable<Relationship> addNonConflictingOrSubsumed(Iterable<Relationship> rels) {
 		Iterator<Relationship> relsIter = rels.iterator();
-		//these are all the mrcas that are actually included in the set of saveRels
-		TLongHashSet totalIncluded = new TLongHashSet();
-		//these are all the mrcas that are included in the subtending nodes
-		TLongHashSet totalMRCAS = new TLongHashSet();
 		// for every candidate relationship
 		while (relsIter.hasNext()) {
 			Relationship candidate = relsIter.next();
@@ -192,26 +187,11 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 			if (firstConflicting == null || subsuming) {
 				if (subsuming) {
 					System.out.println("\t\t++rel " + candidate.getId() + " will be added. It subsumes " + firstConflicting.getId());
-					bestRels.remove(firstConflicting);
+					this.backOutSubsumedCandidate(firstConflicting);
 				} else {
 					System.out.println("\t\t++rel " + candidate.getId() + " passed, it will be added");
 				}
-					bestRels.add(candidate);
-				//THIS COULD POTENTIALLY BE MADE FASTER
-				//add the exclusive mrcas from the relationship to the totalIncluded
-				//System.out.println(candRelDescendantIdsMap.get(candidate));
-				if (!candRelDescendantIdsMap.containsKey(candidate)) {
-					storeDescendants(candidate);
-				}
-				totalIncluded.addAll(candRelDescendantIdsMap.get(candidate));
-				//get the full mrcas identify dups and add to dups
-				TLongHashSet fullmrcas = new TLongHashSet((long[])candidate.getStartNode().getProperty("mrca"));
-				fullmrcas.retainAll(totalMRCAS);
-				dupMRCAS.addAll(fullmrcas);
-				//System.out.println("dups:"+dupMRCAS.size());
-				//get the full mrcas and add any new ones to the totalmrcas
-				TLongHashSet fullmrcas2 = new TLongHashSet((long[])candidate.getStartNode().getProperty("mrca"));
-				totalMRCAS.addAll(fullmrcas2);
+				this.addApprovedCandidate(candidate);
 			}else{
 				System.out.println("\t\t--rel " + candidate.getId() + " had >1 conflict, or did not subsume the 1 conflict that it had. It will not be added.");
 			}
@@ -219,13 +199,52 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 		System.out.println("bestRels check:"+bestRels);
 		return bestRels;
 	}
+	private void recalculateDups() {
+		dupMRCAS = new TLongHashSet();
+		TLongHashSet enc = new TLongHashSet();
+		for (Relationship rel : bestRels) {
+			System.out.println("\tChecking for dups from rel " + rel.getId() + "...");
+			assert candRelDescendantIdsMap.containsKey(rel);
+			TLongArrayList fromRel = candRelDescendantIdsMap.get(rel);
+			TLongHashSet fromThisRel = new TLongHashSet(); // should not be necessary - mrcas should be sets! #TODO TMP
+			for(int i = 0; i < fromRel.size(); ++i) {
+				long taxonid = fromRel.get(i);
+				if (!fromThisRel.contains(taxonid)) {
+					fromThisRel.add(taxonid);
+					if (enc.contains(taxonid)) {
+						System.out.println("TAXON ID duplicated: " + taxonid);
+						assert false;
+						dupMRCAS.add(taxonid);
+					} else {
+						System.out.println("\t adding taxonid " + taxonid);
+						enc.add(taxonid);
+					}
+				}
+			}
+		}
+	}
+	private void backOutSubsumedCandidate(Relationship candidate) {
+		bestRels.remove(candidate);
+		//THIS COULD POTENTIALLY BE MADE FASTER
+		//add the exclusive mrcas from the relationship to the totalIncluded
+		//System.out.println(candRelDescendantIdsMap.get(candidate));
+		assert candRelDescendantIdsMap.containsKey(candidate);
+		totalIncluded.removeAll(candRelDescendantIdsMap.get(candidate));
+	}
+
+	private void addApprovedCandidate(Relationship candidate) {
+		bestRels.add(candidate);
+		//THIS COULD POTENTIALLY BE MADE FASTER
+		//add the exclusive mrcas from the relationship to the totalIncluded
+		//System.out.println(candRelDescendantIdsMap.get(candidate));
+		if (!candRelDescendantIdsMap.containsKey(candidate)) {
+			storeDescendants(candidate);
+		}
+		totalIncluded.addAll(candRelDescendantIdsMap.get(candidate));
+	}
 
 	private Iterable<Relationship> addNonConflictingStrict(Iterable<Relationship> rels) {
 		Iterator<Relationship> relsIter = rels.iterator();
-		//these are all the mrcas that are actually included in the set of saveRels
-		TLongHashSet totalIncluded = new TLongHashSet();
-		//these are all the mrcas that are included in the subtending nodes
-		TLongHashSet totalMRCAS = new TLongHashSet();
 		// for every candidate relationship
 		while (relsIter.hasNext()) {
 			Relationship candidate = relsIter.next();
@@ -243,26 +262,12 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 			// if no conflict was found, add this rel to the saved set
 			if (saveRel) {
 				System.out.println("\t\t++rel " + candidate.getId() + " passed, it will be added");
-				bestRels.add(candidate);
-				//THIS COULD POTENTIALLY BE MADE FASTER
-				//add the exclusive mrcas from the relationship to the totalIncluded
-				//System.out.println(candRelDescendantIdsMap.get(candidate));
-				if (!candRelDescendantIdsMap.containsKey(candidate)) {
-					storeDescendants(candidate);
-				}
-				totalIncluded.addAll(candRelDescendantIdsMap.get(candidate));
-				//get the full mrcas identify dups and add to dups
-				TLongHashSet fullmrcas = new TLongHashSet((long[])candidate.getStartNode().getProperty("mrca"));
-				fullmrcas.retainAll(totalMRCAS);
-				dupMRCAS.addAll(fullmrcas);
-				//System.out.println("dups:"+dupMRCAS.size());
-				//get the full mrcas and add any new ones to the totalmrcas
-				TLongHashSet fullmrcas2 = new TLongHashSet((long[])candidate.getStartNode().getProperty("mrca"));
-				totalMRCAS.addAll(fullmrcas2);
-			}else{
+				this.addApprovedCandidate(candidate);
+			} else {
 				System.out.println("\t\t--rel " + candidate.getId() + " failed, it will NOT be added");
 			}
 		}
+		this.recalculateDups();
 		return bestRels;
 	}
 	

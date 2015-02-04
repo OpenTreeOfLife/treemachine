@@ -273,7 +273,7 @@ public class SynthesisExpander implements PathExpander {
 			}
 			System.out.println("expand - tem:"+tem+" dupMRCAS:"+dupMRCAS);
 			tem.removeAll(dupMRCAS);
-			if (tem.size() >= 0) { //TODO: I don't understand what this part does just yet but changing to >= makes the test work, the offending relationship was adding 41
+			if (tem.size() > 0) { //@MTH changed back to see if we could deal with the dups elsewhere. I haven't looked at this code before... SAS: TODO: I don't understand what this part does just yet but changing to >= makes the test work, the offending relationship was adding 41
 				alldead = false;
 				rels.add(rel);
 			} else {

@@ -6,7 +6,7 @@ function testsynthesis {
     dbdir="${tag}-test.db"
     inputdir="${tag}"
     treemachinejar=../target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar
-    treemachine="java -jar $treemachinejar"
+    treemachine="java -enableassertions -jar $treemachinejar"
     if test -d "${dbdir}"
     then
         echo "${dbdir} exists. Move it and try again."
