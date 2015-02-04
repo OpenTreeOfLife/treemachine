@@ -770,7 +770,7 @@ public class MainRunner {
 			String graphname = args[2];
 			ge = new GraphExporter(graphname);
 			try {
-				System.out.println("constructing a json for: " + name);
+				System.out.println("constructing a json for: " + name + " from graph: " + graphname);
 				ge.writeJSONWithAltParentsToFile(name);
 			} finally {
 				ge.shutdownDB();
@@ -3228,7 +3228,7 @@ public class MainRunner {
 				cmdReturnCode = mr.treeCompare(args);
 			} else if (command.compareTo("taxcomp") == 0){
 				cmdReturnCode = mr.taxCompare(args);
-			}else {
+			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}

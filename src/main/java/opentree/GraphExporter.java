@@ -88,7 +88,7 @@ public class GraphExporter extends GraphBase {
 	public void writeGraphML(String taxname, String outfile, boolean useTaxonomy) 
 				throws TaxonNotFoundException {
 		Node firstNode = findTaxNodeByName(taxname);
-		String tofile = getGraphML(firstNode,useTaxonomy,0);
+		String tofile = getGraphML(firstNode, useTaxonomy, 0);
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(outfile));
@@ -199,9 +199,6 @@ public class GraphExporter extends GraphBase {
 		return retstring.toString();
 	}
 
-	
-	
-	
 	/**
 	 * creates a graphml for viewing in gephi Because gephi cannot view parallel lines, this will not output parallel edges. The properties that we have are
 	 * node taxon edge sourcename (this is more complicated because of not outputting parallel edges) node support edge support node effective parents node
@@ -242,12 +239,12 @@ public class GraphExporter extends GraphBase {
 		retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
 		// get the list of nodes
 		HashSet<Node> nodes = new HashSet<Node>();
-		if(depth > 0){
-		for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
-				.traverse(startnode).nodes()) {
-			nodes.add(tnode);
-		}
-		}else{
+		if (depth > 0) {
+			for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
+					.traverse(startnode).nodes()) {
+				nodes.add(tnode);
+			}
+		} else {
 			for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
 					.traverse(startnode).nodes()) {
 				nodes.add(tnode);
@@ -318,9 +315,7 @@ public class GraphExporter extends GraphBase {
 		 * of unique sources at each tip
 		 */
 		for (Node tnode : nodes) {
-			
 //			System.out.println(tnode.getProperty("name"));
-			
 			HashSet<String> sources = new HashSet<String>();
 			long[] mrcas = (long[]) tnode.getProperty("mrca");
 			for (int i = 0; i < mrcas.length; i++) {
@@ -349,9 +344,7 @@ public class GraphExporter extends GraphBase {
 			while (ndl.isEmpty() == false) {
 				Long curnodeid = ndl.pop();
 				done.add(curnodeid);
-
 //				System.out.println(parcounts.get(curnodeid));
-				
 				for (Long tndl : parcounts.get(curnodeid).keySet()) {
 					if (done.contains(tndl) == false) {
 						ndl.push(tndl);
@@ -390,10 +383,9 @@ public class GraphExporter extends GraphBase {
 		System.out.println("nodes traversed");
 		Transaction tx = null;
 		//nothing calculated beyond, this is just for writing the file
-		for(Node tnode: nodes){
-			try{
+		for (Node tnode: nodes) {
+			try {
 				tx = graphDb.beginTx();
-
 				if(nodesupport.get(tnode.getId())==0){
 					continue;
 				}
@@ -405,11 +397,11 @@ public class GraphExporter extends GraphBase {
 				//			else
 				//				retstring.append("<data key=\"d0\">"+tnode.getId()+"</data>\n");
 				//skip tips
-				if(tnode.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF)){
+				if (tnode.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF)) {
 					retstring.append("<data key=\"d2\">"+nodesupport.get(tnode.getId())+"</data>\n");
 					tnode.setProperty("nodesupport", nodesupport.get(tnode.getId()));
 				}
-				if(avgeffparnums.containsKey(tnode.getId())){
+				if (avgeffparnums.containsKey(tnode.getId())) {
 					double avgeffpar = avgeffparnums.get(tnode.getId()).get(0)/avgeffparnums.get(tnode.getId()).get(1);
 					retstring.append("<data key=\"d6\">"+(avgeffpar)+"</data>\n");
 					tnode.setProperty("avgeffpar", avgeffpar);
@@ -421,7 +413,7 @@ public class GraphExporter extends GraphBase {
 				tnode.setProperty("effpar", effpar.get(tnode.getId()));
 				retstring.append("<data key=\"d5\">"+effch.get(tnode.getId())+"</data>\n");
 				tnode.setProperty("effch", effch.get(tnode.getId()));
-				if (avgdelta.containsKey(tnode.getId())==true){
+				if (avgdelta.containsKey(tnode.getId()) == true) {
 					retstring.append("<data key=\"d7\">"+(avgdelta.get(tnode.getId())*nodesupport.get(tnode.getId()))+"</data>\n");
 				}
 				retstring.append("</node>\n");
@@ -547,8 +539,7 @@ public class GraphExporter extends GraphBase {
 	 * {"name":"Caprifoliaceae",nodeid:"nodeid"}]
 	 */
 
-	public void writeJSONWithAltParentsToFile(String taxname)
-				throws TaxonNotFoundException {
+	public void writeJSONWithAltParentsToFile(String taxname) throws TaxonNotFoundException {
 		Node firstNode = findTaxNodeByName(taxname);
 		if (firstNode == null) {
 			System.out.println("name not found");
@@ -557,6 +548,7 @@ public class GraphExporter extends GraphBase {
 		// String tofile = constructJSONAltParents(firstNode);
 		ArrayList<Long> alt = new ArrayList<Long>();
 		String tofile = constructJSONAltRels(firstNode, null, alt, 3);
+		System.out.println("Constructed JSON: " + tofile);
 		PrintWriter outFile;
 		try {
 			outFile = new PrintWriter(new FileWriter(taxname + ".json"));
@@ -577,8 +569,7 @@ public class GraphExporter extends GraphBase {
 		PathFinder<Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(RelType.MRCACHILDOF, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
 		root.setName((String) firstNode.getProperty("name"));
-		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description()
-				.relationships(RelType.MRCACHILDOF, Direction.INCOMING);
+		TraversalDescription MRCACHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.MRCACHILDOF, Direction.INCOMING);
 		ArrayList<Node> visited = new ArrayList<Node>();
 		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
 		HashMap<Node, JadeNode> nodejademap = new HashMap<Node, JadeNode>();
@@ -680,10 +671,7 @@ public class GraphExporter extends GraphBase {
 	 * 
 	 * Should work with taxonomy or with the graph and determines this based on relationships around the node
 	 */
-	public String constructJSONAltRels(Node firstNode,
-									   String domsource, 
-									   ArrayList<Long> altrels,
-									   int maxdepth) {
+	public String constructJSONAltRels(Node firstNode, String domsource, ArrayList<Long> altrels, int maxdepth) {
 		cne.setStartNode(firstNode);
 		cne.setChildThreshold(200);
 		se.setStartNode(firstNode);
@@ -704,8 +692,7 @@ public class GraphExporter extends GraphBase {
 		PathFinder<Path> pf = GraphAlgoFactory.shortestPath(Traversal.pathExpanderForTypes(defaultchildtype, Direction.OUTGOING), 100);
 		JadeNode root = new JadeNode();
 		root.setName((String) firstNode.getProperty("name"));
-		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description()
-				.relationships(defaultchildtype, Direction.INCOMING);
+		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(defaultchildtype, Direction.INCOMING);
 		ArrayList<Node> visited = new ArrayList<Node>();
 		ArrayList<Relationship> keepers = new ArrayList<Relationship>();
 		HashMap<Node, JadeNode> nodejademap = new HashMap<Node, JadeNode>();
@@ -716,7 +703,7 @@ public class GraphExporter extends GraphBase {
 		// These are the altrels that actually made it in the tree
 		ArrayList<Long> returnrels = new ArrayList<Long>();
 		for (Node friendnode : CHILDOF_TRAVERSAL.depthFirst().evaluator(Evaluators.toDepth(maxdepth)).evaluator(cne).evaluator(se).traverse(firstNode).nodes()) {
-			// System.out.println("visiting: "+friendnode.getProperty("name"));
+			System.out.println("visiting: " + friendnode.getProperty("name"));
 			if (friendnode == firstNode) {
 				continue;
 			}

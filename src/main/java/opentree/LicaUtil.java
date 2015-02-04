@@ -30,8 +30,12 @@ import org.neo4j.kernel.Traversal;
  *         of that higher taxon name.
  */
 
-public class LicaUtil {
 
+public class LicaUtil {
+	
+	public static boolean verbose = true; // testing junk
+	
+	
 	/**
 	 * This will assume that the taxon sampling is complete for the trees being added. It is significantly 
 	 * faster than the bipart calculator below.
@@ -69,7 +73,7 @@ public class LicaUtil {
 		TLongArrayList visited = new TLongArrayList();
 		ca.setVisitedSet(visited);
 		for (Node tnode : Traversal.description().depthFirst().evaluator(le).evaluator(ca).relationships(RelType.MRCACHILDOF, Direction.OUTGOING).traverse(innode).nodes()) {
-//			System.out.println("adding "+tnode);
+			if (verbose) System.out.println("adding: " + tnode);
 			ca.setVisitedSet(visited);
 			retaln.add(tnode);
 			visited = ca.getVisitedSet();
@@ -77,7 +81,7 @@ public class LicaUtil {
 		//System.out.println("elapsed inloop: "+elapsedTimeSec);
 		return retaln;
 	}
-
+	
 	/**
 	 * This will calculate the licas based on bipart assumption and that each of the trees being added
 	 * is not complete in terms of taxa

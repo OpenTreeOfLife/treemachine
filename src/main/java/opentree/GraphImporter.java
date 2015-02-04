@@ -73,6 +73,8 @@ public class GraphImporter extends GraphBase {
 	// just used for generating meaningful user output
 	private ArrayList<String> namesList;
 	
+	boolean verbose = true; // testing junk
+	
 	public GraphImporter(String graphName) {
 		super(graphName);
 	}
@@ -183,11 +185,11 @@ public class GraphImporter extends GraphBase {
 
 		this.runTestOnly = false;
 		this.allTreesHaveAllTaxa = allTreesHaveAllTaxa;
-		System.out.println("all trees have all taxa: " + this.allTreesHaveAllTaxa);
+		System.out.println("All trees have all taxa: " + this.allTreesHaveAllTaxa);
 		if (this.allTreesHaveAllTaxa) {
-			System.out.println("\tusing complete mapping technique");
+			System.out.println("\tUsing complete mapping technique");
 		} else {
-			System.out.println("\tusing bipartition technique");
+			System.out.println("\tUsing bipartition technique");
 		}
 		this.logger = msgLogger;
 		this.sourceName = sourceName;
@@ -331,7 +333,7 @@ public class GraphImporter extends GraphBase {
 		
 		// preserve the original taxon mappings so we can use these to generate sets of outgroup ids for each tip
 		HashMap<JadeNode, Long> shallowTaxonMappings = new HashMap<JadeNode, Long>(inputJadeTreeLeafToMatchedGraphNodeIdMap);
-		System.out.println("attempting to remap tips to deepest exemplified taxa");
+		System.out.println("Attempting to remap tips to deepest exemplified taxa");
 
 		tx = graphDb.beginTx();
 		try {
@@ -464,9 +466,8 @@ public class GraphImporter extends GraphBase {
 
 		tx = graphDb.beginTx();
 //		try {
-		if(runTestOnly == false) { // actually load the tree into the db
+		if (runTestOnly == false) { // actually load the tree into the db
 			postOrderAddProcessedTreeToGraph(inputTree.getRoot());
-
 		} else { // just test the loading process
 			postOrderAddProcessedTreeToGraphNoAdd(inputTree.getRoot());
 		}
@@ -479,6 +480,7 @@ public class GraphImporter extends GraphBase {
 		tx.finish();
 //		}
 	}
+	
 	
 	/**
 	 * Finish ingest a tree into the GoL. This is called after the names in the tree
@@ -521,9 +523,11 @@ public class GraphImporter extends GraphBase {
 		for (JadeNode child : curJadeNode.getDescendantLeaves()) {
 			namesList.add(child.getName());
 		}
-		//System.out.println("working on node: " + Arrays.toString(namesList.toArray()));
+		
+		if (verbose) System.out.println("Working on node: " + Arrays.toString(namesList.toArray()));
+		
 		if (curJadeNode.isTheRoot()) {
-			System.out.println("this is the ROOT");
+			System.out.println("This is the ROOT");
 		}
 
 		if (curJadeNode.getChildCount() == 0) { // this is a tip, not much to do here
@@ -540,7 +544,7 @@ public class GraphImporter extends GraphBase {
 //				mrcaDescendantIds.add(id);
 //			}
 			
-//			System.out.println("Mapping tip [" + curJadeNode.getName() + "] to " + Arrays.toString(licaMatches.toArray()));
+			if (verbose) System.out.println("Mapping tip [" + curJadeNode.getName() + "] to " + Arrays.toString(licaMatches.toArray()));
 						
 			// add all the ids for the mrca descendants of the mapped node to the 'exclusive_mrca' field
 			curJadeNode.assocObject("exclusive_mrca", mrcaDescendantIds.toArray());
@@ -553,7 +557,7 @@ public class GraphImporter extends GraphBase {
 			}
 
 			// testing
-//			System.out.println("looking for descendants of input node : \'" + curJadeNode.getName() + "\' " + Arrays.toString(childNames.toArray()));
+			if (verbose) System.out.println("Looking for descendants of input node: " + Arrays.toString(childNames.toArray()));
 
 			// NOTE: the following several variables contain similar information in different combinations and formats.
 			// They are used to optimize the LICA searches by attempting to perform less exhaustive tests whenever possible.
@@ -605,7 +609,7 @@ public class GraphImporter extends GraphBase {
 			curJadeNode.assocObject("exclusive_mrca", nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray());
 		
 			// testing
-//			System.out.println("mrca descendants for input node \'" + curJadeNode.getName() + "\' include: " + Arrays.toString(nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray()));
+			//System.out.println("mrca descendants for input node include: " + Arrays.toString(nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray()));
 			
 			nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.sort();
 			curJadeNode.assocObject("exclusive_mrca", nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray()); // moved up from below
@@ -631,14 +635,15 @@ public class GraphImporter extends GraphBase {
 			// input tree that are *not* descended from the current jade node
 			TLongArrayList licaOutgroupDescendantIdsForCurrentJadeNode = new TLongArrayList();
 			for (int i = 0; i < graphNodeIdsForInputLeaves.size(); i++) {
-				if(licaDescendantIdsForCurrentJadeNode_Hash.contains(graphNodeIdsForInputLeaves.getQuick(i))==false) {
+				if (licaDescendantIdsForCurrentJadeNode_Hash.contains(graphNodeIdsForInputLeaves.getQuick(i)) == false) {
 					licaOutgroupDescendantIdsForCurrentJadeNode.addAll((long[])graphDb.getNodeById(graphNodeIdsForInputLeaves.get(i)).getProperty("mrca"));
 				}
 			}
 			
 			// things that are in the ingroup of any child of this node are in the ingroup of this node (even if they're in the outgroup of another child)
-			while(licaOutgroupDescendantIdsForCurrentJadeNode.removeAll(licaDescendantIdsForCurrentJadeNode)==true)
+			while (licaOutgroupDescendantIdsForCurrentJadeNode.removeAll(licaDescendantIdsForCurrentJadeNode) == true) {
 				continue;
+			}
 			licaOutgroupDescendantIdsForCurrentJadeNode.sort();
 
 			// =================
@@ -647,7 +652,7 @@ public class GraphImporter extends GraphBase {
 			for (JadeNode d : curJadeNode.getDescendantLeaves()) {
 				names.add(d.getName());
 			}
-			//System.out.println("Looking for LICA Nodes of " + Arrays.toString(names.toArray()));
+			if (verbose) System.out.println("Looking for LICA Nodes of " + Arrays.toString(names.toArray()));
 			
 			// find all the compatible lica mappings for this jade node to existing graph nodes
 			HashSet<Node> licaMatches = null;
@@ -671,6 +676,8 @@ public class GraphImporter extends GraphBase {
 
 				// remember all the lica mappings
 				curJadeNode.assocObject("dbnodes", licaMatches);
+				
+				if (verbose) System.out.println("\tFound LICA matches: " + Arrays.toString(licaMatches.toArray()));
 
 				// remember the ids of the graph nodes mapped to all the jade tree leaves descended from this jade node
 //				long[] nodeIdsFor_graphNodesMappedToDescendantLeavesOfThisJadeNode = new long[graphNodesMappedToDescendantLeavesOfThisJadeNode.size()];
@@ -682,11 +689,13 @@ public class GraphImporter extends GraphBase {
 
 				
 			} else { // if there were no compatible lica mappings found for this jade node, then we need to make a new one
-
+				
+				if (verbose) System.out.println("\tNo existing LICA matches found.");
+				
 				// === step 1. create an new node in the graph
 				
 				Node newLicaNode = graphDb.createNode();
-				//System.out.println("\t\tnewnode: "+dbnode);
+				if (verbose) System.out.println("Creating new graph node: " + newLicaNode);
 
 				// === step 2. store the mrca information in the graph node properties
 
@@ -702,11 +711,11 @@ public class GraphImporter extends GraphBase {
 				/**
 				 * END get some information
 				 */
-				//System.out.println("\t\tmrca: "+childndids);
+				if (verbose) System.out.println("\tmrca: " +  Arrays.toString(licaDescendantIdsForCurrentJadeNode.toArray()));
 
 				// set outmrcas
 				newLicaNode.setProperty("outmrca", licaOutgroupDescendantIdsForCurrentJadeNode.toArray());
-				//System.out.println("\t\toutmrca: "+outndids);
+				if (verbose) System.out.println("\toutmrca: " + Arrays.toString(licaOutgroupDescendantIdsForCurrentJadeNode.toArray()));
 
 				// this is duplicated above
 				// set exclusive relationships
@@ -725,12 +734,13 @@ public class GraphImporter extends GraphBase {
 						graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode,
 						licaDescendantIdsForCurrentJadeNode);
-				//System.out.println("\t\tsuperlica: "+superlica);
+				if (verbose) System.out.println("\tsuperlica: " + Arrays.toString(superlicas.toArray()));
 				
 				Iterator<Node> itrsl = superlicas.iterator();
 				while (itrsl.hasNext()) {
 					Node itrnext = itrsl.next();
 					newLicaNode.createRelationshipTo(itrnext, RelType.MRCACHILDOF);
+					if (verbose) System.out.println("\t   -added MRCACHILDOF rel bewteen nodes: " + newLicaNode + " and " + itrnext);
 					updatedSuperLICAs.add(itrnext);
 				}
 				tx.success();
@@ -739,13 +749,16 @@ public class GraphImporter extends GraphBase {
 				updatedNodes.add(newLicaNode);
 			}
 
-//			System.out.println("Mapping " + Arrays.toString(names.toArray()) + " to " + Arrays.toString(((HashSet<Node>) curJadeNode.getObject("dbnodes")).toArray()));
+			if (verbose) System.out.println("Mapping " + Arrays.toString(names.toArray()) + " to " + Arrays.toString(((HashSet<Node>) curJadeNode.getObject("dbnodes")).toArray()));
 			
 			// now related nodes are prepared and we have the information we need to make relationships
+			if (verbose) System.out.println("Preparing to add node relationships...");
 			addProcessedNodeRelationships(curJadeNode);
 		}
-		//System.out.println("done with node " + Arrays.toString(namesList.toArray()));
+		if (verbose) System.out.println("Done with node " + Arrays.toString(namesList.toArray()) + "\n");
 	}
+	
+	
 
 	/**
 	 * Finish ingest a tree into the GoL. This is called after the names in the tree
@@ -852,7 +865,7 @@ public class GraphImporter extends GraphBase {
 				addRootProperties(currGoLNode);
 			}
 
-			System.out.println("adding relationships to licas for children");
+			System.out.println("Adding relationships to licas for children:");
 
 			// for each child of the jade node we are installing
 			for (JadeNode childJadeNode : inputJadeNode.getChildren()) {
@@ -863,21 +876,22 @@ public class GraphImporter extends GraphBase {
 				for (JadeNode child : childJadeNode.getDescendantLeaves()) {
 					childNamesList.add(child.getName());
 				}
-				// testing
-	//			System.out.println("\ton child1: " + Arrays.toString(childNamesList.toArray()));
+				
 				
 				for (Node childGoLNode : allChildGoLNodes) {
 					
 					// testing
-	//				System.out.println("\tchild node ID: " + childGoLNode.getId());
+					if (verbose) System.out.println("\tOn child: " + Arrays.toString(childNamesList.toArray()) + " = " + childGoLNode);
 					
 					if (childGoLNode.getId() == currGoLNode.getId()) {
 						System.out.println(childJadeNode.getNewick(false));
-						throw new IllegalStateException("this child is mapped the same graph node (" + currGoLNode + ") as its parent " + Arrays.toString(namesList.toArray()));
+						throw new IllegalStateException("This child is mapped the same graph node (" + currGoLNode + ") as its parent " + Arrays.toString(namesList.toArray()));
 					}
 					
 					Relationship rel = childGoLNode.createRelationshipTo(currGoLNode, RelType.STREECHILDOF);
 					sourceRelIndex.add(rel, "source", sourceName);
+					
+					if (verbose) System.out.println("\tSetting STREECHILDOF rel \'" + rel + "\' between nodes: " + childGoLNode + " and " + currGoLNode);
 					
 //					rel.setProperty("exclusive_mrca", inputJadeNode.getObject("exclusive_mrca"));
 					
@@ -965,7 +979,7 @@ public class GraphImporter extends GraphBase {
 	 */
 	private void addRootProperties(Node currGoLNode) {
 		// TODO: this will need to be updated when trees are updated
-		System.out.println("placing root in index");
+		System.out.println("Placing root in index");
 		sourceRootIndex.add(currGoLNode, "rootnode", sourceName);
 		if (treeID != null) {
 			sourceRootIndex.add(currGoLNode, "rootnodeForID", treeID);
@@ -990,11 +1004,21 @@ public class GraphImporter extends GraphBase {
 		metadataNode = graphDb.createNode();
 		metadataNode.createRelationshipTo(currGoLNode, RelType.METADATAFOR); // TODO: doesn't account for multiple root nodes (I don't think this is true anymore)
 		sourceMetaIndex.add(metadataNode, "source", sourceName);
-
+		
+		if (verbose) {
+			System.out.println("Setting metadata properties:");
+			System.out.println("\tsource: " + sourceName);
+			System.out.println("\ttreeID: " + treeID);
+			System.out.println("\tnewick: " + inputTreeNewick);
+		}
+		
 		// set metadata from tree
 		metadataNode.setProperty("source", sourceName);
 		metadataNode.setProperty("newick", inputTreeNewick);
 		metadataNode.setProperty("original_taxa_map", graphNodeIdsForInputLeaves.toArray()); // node ids for the taxon mappings
+		
+		
+		
 		if (treeID != null) {
 			metadataNode.setProperty("treeID", treeID);
 		}
@@ -1022,26 +1046,29 @@ public class GraphImporter extends GraphBase {
 	 */
 	public void deleteAllTreesAndReprocess() throws Exception {
 		IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
-		System.out.println(hits.size());
+		System.out.println("\nFound: " + hits.size() + " trees existing in the graph.");
 		for (Node itrel : hits) {
 			String source = (String)itrel.getProperty("source");
-			String trees = (String)itrel.getProperty("newick");
-			String treeID = (String)itrel.getProperty("treeID");
-			deleteTreeBySource(source);
-			TreeReader tr = new TreeReader();
-			inputTree = tr.readTree(trees);
-			inputTree.assocObject("id", treeID);
-			System.out.println("tree read");
-//			setTree(inputTree,trees);
-			setTree(inputTree);
-			try {
-				addSetTreeToGraph("life", source, false, null);
-			} catch (TaxonNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (TreeIngestException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			if (source.compareTo("taxonomy") != 0) {
+				String trees = (String)itrel.getProperty("newick");
+				String treeID = (String)itrel.getProperty("treeID");
+				deleteTreeBySource(source);
+				TreeReader tr = new TreeReader();
+				inputTree = tr.readTree(trees);
+				inputTree.assocObject("id", treeID);
+				System.out.println("tree read");
+				setTree(inputTree);
+				try {
+					addSetTreeToGraph("life", source, false, null);
+				} catch (TaxonNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TreeIngestException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			} else {
+				System.out.println("Silly, taxonomy is not a source tree...\n");
 			}
 		}
 	}
