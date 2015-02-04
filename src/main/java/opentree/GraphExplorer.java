@@ -1496,7 +1496,7 @@ public class GraphExplorer extends GraphBase {
 		try {
 			for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
 				// testing
-				//	System.out.println("now attempting to store rel " + rel.getId());
+					System.out.println("now attempting to store rel " + rel);
 				
 				// store the relationship
 				Node parentNode = rel.getEndNode();

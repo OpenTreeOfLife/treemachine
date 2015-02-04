@@ -216,6 +216,7 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 				System.out.println("\t\t--rel " + candidate.getId() + " had >1 conflict, or did not subsume the 1 conflict that it had. It will not be added.");
 			}
 		}
+		System.out.println("bestRels check:"+bestRels);
 		return bestRels;
 	}
 
