@@ -21,6 +21,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.TreeSet;
 import java.util.LinkedList;
 //import java.util.Iterator;
 import java.util.Stack;
@@ -234,6 +235,24 @@ public class GraphExporter extends GraphBase {
 		HashSet<Long> visitedRels = new HashSet<Long>();
 		String [] relColorArr = {"blue", "springgreen", "magenta", "darkorange", "lightblue", "goldenrod", "brown", "gray"};
 		HashMap<String, Integer> relSource2ColInd = new HashMap<String, Integer>();
+		TreeSet<String> relNames = new TreeSet<String>();
+		for (Node tnode: nodes) {
+			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
+				String relSource = (String)rel.getProperty("source");
+				if (!relSource.equals("taxonomy")) {
+					relNames.add(relSource);
+				}
+			}
+		}
+		for (String relSource : relNames) {
+			Integer colorOffset = new Integer(relSource2ColInd.size());
+			if (colorOffset > relColorArr.length - 1) {
+				colorOffset = new Integer(relColorArr.length - 1);
+			}
+			assert ! relSource2ColInd.containsKey(relSource);
+			relSource2ColInd.put(relSource, colorOffset);
+		}
+
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 				Long relid = rel.getId();
@@ -249,21 +268,13 @@ public class GraphExporter extends GraphBase {
 						relcolor = "crimson";
 						rname += "\" style=\"dashed";
 					} else {
-						Integer colorOffset;
-						if (relSource2ColInd.containsKey(relSource)) {
-							colorOffset = relSource2ColInd.get(relSource);
-						} else {
-							colorOffset = new Integer(relSource2ColInd.size());
-							if (colorOffset > relColorArr.length - 1) {
-								colorOffset = new Integer(relColorArr.length - 1);
-							}
-							relSource2ColInd.put(relSource, colorOffset);
-						}
+						assert relSource2ColInd.containsKey(relSource);
+						Integer colorOffset = relSource2ColInd.get(relSource);
 						relcolor = relColorArr[colorOffset];
 						rname += relSource;
 					}
 					
-					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" color=\"" + relcolor + "\"];\n");
+					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"" + relcolor + "\" color=\"" + relcolor + "\"];\n");
 					visitedRels.add(relid);
 				}
 			}
