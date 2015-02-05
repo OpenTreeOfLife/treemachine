@@ -47,6 +47,7 @@ public class GraphImporter extends GraphBase {
 	
 	private static final int commitFrequency = 1000;
 	private int nNodesToCommit;
+	public int newNodes = 0;
 
 	private JadeTree inputTree; // the jadetree that we are importing; was jt
 	private String inputTreeNewick; // original newick string for the inputTree; was treestring
@@ -1044,6 +1045,105 @@ public class GraphImporter extends GraphBase {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+
+	/**
+	 * Keep re-ingesting trees until no new nodes are created (i.e. all compatible nodes are mapped).
+	 * This code attempts to do this efficiently i.e. the minimum possible number of times, as 
+	 * tree ingestion can be a bottelneck.
+	 * 
+	 * Starts by iterating in the reverse order that studies were loaded, stopping with first study of 
+         * the initial loading order.
+	 * 
+	 * If nodes are added in the first pass, the study list is iterated in forward order, beginning with 
+	 * the study adjacent to the last study in the previous pass to have node(s) created.
+	 * 
+	 * Continue iterating through the study list (in alternating order) until no new nodes are created.
+	 * 
+	 * @param maxIter: the maximum number of passes. defaults to null, which means no maximum.
+	 * @throws Exception
+	 */
+	public void rigorousReprocess(Integer maxIter) throws Exception {
+		boolean going = true;
+		int count = 0;
+		boolean reverse = true;
+		int startIndex = 0; // where to begin in tree list
+		int iterMove = -1; // how to iterate through array, either forward or backward
+		int stopIndex = 0; // one off of actual stop index
+		int stopCrit = (maxIter != null) ? maxIter : -1;
+		
+		GraphExplorer ge = new GraphExplorer(graphDb);
+		ArrayList<String> sources = ge.getSourceList();
+		sources.remove("taxonomy");
+		
+		int numStudies = sources.size();
+		
+		if (numStudies <= 1) {
+			System.out.println("Need 2+ studies for reprocessing. Found " + numStudies + "studies. Exiting.");
+			ge.shutdownDB();
+			return;
+		}
+		
+		if (stopCrit == -1) {
+			System.out.println("\nRe-reading trees into graph until no new nodes are created.");
+		} else {
+			System.out.println("\nRe-reading trees into graph for a maximum of " + stopCrit +
+				" iterations, or until until no new nodes are created.");
+		}
+		startIndex = numStudies; // start going backwards.
+		
+		System.out.println("Dealing with " + numStudies + " studies: " + Arrays.toString(sources.toArray()));
+		
+		while (going) {
+			count += 1;
+			newNodes = 0;
+			
+			iterMove = reverse ? -1 : 1;
+			stopIndex = reverse ? -1 : numStudies;
+			startIndex += iterMove; // move to study adjacent to last one updated.
+			
+			System.out.println("\nIterating in " + (reverse ? "reverse" : "forward") + " order, beginning with study index #" + startIndex);
+			
+			for (int i = startIndex; i != stopIndex; i += iterMove) {
+				Node stree = ge.findTreeMetadataNodeFromTreeSourceName(sources.get(i));
+				String source = sources.get(i);
+				System.out.println("\nDealing with source: " + source + ".");
+				String trees = (String)stree.getProperty("newick");
+				String treeID = (String)stree.getProperty("treeID");
+				deleteTreeBySource(source);
+				TreeReader tr = new TreeReader();
+				inputTree = tr.readTree(trees);
+				inputTree.assocObject("id", treeID);
+				System.out.println("tree read");
+				setTree(inputTree);
+				int prevCount = newNodes;
+				try {
+					addSetTreeToGraph("life", source, false, null);
+				} catch (TaxonNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TreeIngestException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if (newNodes > prevCount) {
+					System.out.println("Added a new node for study index #" + i + "\n");
+					startIndex = i;
+				}
+			}
+			reverse = !reverse;
+			if (count == stopCrit) {
+				System.out.println("\nReached maximum number of specified iterations. Exiting.\n");
+				going = false;
+			} else if (newNodes > 0) {
+				System.out.println("\n" + newNodes + " new nodes were created. Going back in!\n");
+			} else {
+				System.out.println("No new nodes created after reprocessing " + count + " times. We should be cool now.\n");
+				going = false;
+			}
+		}
+		ge.shutdownDB();
 	}
 		
 	/**

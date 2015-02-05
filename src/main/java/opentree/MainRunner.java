@@ -485,19 +485,39 @@ public class MainRunner {
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphReloadTrees(String [] args) throws Exception {
 		GraphImporter gi = null;
-		if (args.length != 2) {
-			System.out.println("arguments should be: graphdbfolder");
-			return 1;
-		}
-		String graphname = args[1];
-		gi = new GraphImporter(graphname);
-		try {
-			gi.deleteAllTreesAndReprocess();
-		} finally {
-			gi.shutdownDB();
+		
+		if (args[0].compareTo("reprocess") == 0) {	
+			if (args.length != 2) {
+				System.out.println("arguments should be: graphdbfolder");
+				return 1;
+			}
+			String graphname = args[1];
+			gi = new GraphImporter(graphname);
+			try {
+				gi.deleteAllTreesAndReprocess();
+			} finally {
+				gi.shutdownDB();
+			}
+		} else { // reprocess until no new nodes are added
+			Integer maxIter = null;
+			if (args.length == 3) {
+				maxIter = Integer.valueOf(args[2]);
+			} else if (args.length < 2) {
+				System.out.println("arguments should be: graphdbfolder <maxIter>");
+				return 1;
+			}
+			String graphname = args[1];
+			gi = new GraphImporter(graphname);
+			
+			try {
+				gi.rigorousReprocess(maxIter);
+			} finally {
+				gi.shutdownDB();
+			}
 		}
 		return 0;
 	}
+
 	
 	
 	/// @returns 0 for success, 1 for poorly formed command
@@ -3032,8 +3052,10 @@ public class MainRunner {
 		System.out.println("  addnewick <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
 		System.out.println("  addnewickTNRS <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph with TNRS)");
 		System.out.println("  addnexson <filename> <taxacompletelyoverlap[T|F]> <focalgroup> <sourcename> <graphdbfolder> (add tree to graph)");
-		System.out.println("  pgloadind <graphdbfolder> <filepath> <treeid> [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).\n");
+		System.out.println("  pgloadind <graphdbfolder> <filepath> <treeid> [test] (add trees from the nexson file \"filepath\" into the db. If fourth arg is found the tree is just tested, not added).");
 		System.out.println("  mapcompat <graphdbfolder> <treeid> (maps the compatible nodes)");
+		System.out.println("  reprocess <graphdbfolder> (delete all trees from the graph and reload them; may find better/more mappings of nodes)");
+		System.out.println("  reprocesscomplete <graphdbfolder> [maximum iterations] (continually reingest all trees into the graph until no new nodes are created)\n");
 		
 		System.out.println("---graph output---");
 		System.out.println("  jsgol <name> <graphdbfolder> (construct a json file from a particular node)");
@@ -3154,6 +3176,8 @@ public class MainRunner {
 			} else if (command.compareTo("mapsupport") == 0) {
 				cmdReturnCode = mr.graphExplorerMapSupport(args);
 			} else if (command.compareTo("reprocess") == 0) {
+				cmdReturnCode = mr.graphReloadTrees(args);
+			} else if (command.compareTo("reprocesscomplete") == 0) {
 				cmdReturnCode = mr.graphReloadTrees(args);
 			} else if (command.compareTo("deletetrees") == 0) {
 				cmdReturnCode = mr.graphDeleteTrees(args);
