@@ -1,6 +1,6 @@
 # trivialconf synthesis test
 
-Here tree1 no real help:
+Here tree1 is no real help:
 
     (A,B)
 

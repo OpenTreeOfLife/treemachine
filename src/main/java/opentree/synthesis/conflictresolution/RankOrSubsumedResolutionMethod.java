@@ -180,7 +180,7 @@ public class RankOrSubsumedResolutionMethod implements ResolutionMethod {
 				}
 			}
 			boolean subsuming = false;
-			if (firstConflicting != null && subsumes(candidate, firstConflicting)) {
+			if (firstConflicting != null && secondConflicting == null && subsumes(candidate, firstConflicting)) {
 				subsuming = true;
 			}
 			// if no conflict was found, add this rel to the saved set
