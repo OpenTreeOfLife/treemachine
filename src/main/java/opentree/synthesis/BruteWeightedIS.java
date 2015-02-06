@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import opentree.TLongBitSet;
+import opentree.TLongBitArraySet;
 import scala.actors.threadpool.Arrays;
 
 public class BruteWeightedIS implements Iterable<Long> {
 	
 	private Long[] ids;
-	private TLongBitSet[] descendants;
+	private TLongBitArraySet[] descendants;
 
 	private List<Long> bestSet;
 	private double bestScore;
 	
-	public BruteWeightedIS(Long[] ids, TLongBitSet[] descendants) {
+	public BruteWeightedIS(Long[] ids, TLongBitArraySet[] descendants) {
 		this.ids = ids;
 		this.descendants = descendants;
 		System.out.println("brute initialized with: " + Arrays.toString(ids) + " and " + Arrays.toString(descendants));
@@ -54,7 +54,7 @@ public class BruteWeightedIS implements Iterable<Long> {
 	}
 
 	private boolean validate(BitMask candidate) {
-		TLongBitSet S = new TLongBitSet();
+		TLongBitArraySet S = new TLongBitArraySet();
 
 		for (int j : candidate) {
 			if (S.containsAny(descendants[j])) {
@@ -88,16 +88,16 @@ public class BruteWeightedIS implements Iterable<Long> {
 		
 		Long[] ids = new Long[] {1L, 2L, 3L, 4L};
 		
-		TLongBitSet a = new TLongBitSet();
+		TLongBitArraySet a = new TLongBitArraySet();
 		a.addAll(new int[] {1,3,5});
 		
-		TLongBitSet b = new TLongBitSet();
+		TLongBitArraySet b = new TLongBitArraySet();
 		b.addAll(new int[] {3,8});
 		
-		TLongBitSet c = new TLongBitSet();
+		TLongBitArraySet c = new TLongBitArraySet();
 		c.addAll(new int[] {4,9,10});
 		
-		TLongBitSet d = new TLongBitSet();
+		TLongBitArraySet d = new TLongBitArraySet();
 		d.addAll(new int[] {11});
 /*		
 		TLongBitArray e = new TLongBitArray();
@@ -118,7 +118,7 @@ public class BruteWeightedIS implements Iterable<Long> {
 		TLongBitArray j = new TLongBitArray();
 		j.addAll(new int[] {1,2,3,4,5}); */
 		
-		TLongBitSet[] descendants = new TLongBitSet[] {a, b, c, d};
+		TLongBitArraySet[] descendants = new TLongBitArraySet[] {a, b, c, d};
 		
 		BruteWeightedIS B = new BruteWeightedIS(ids, descendants);
 

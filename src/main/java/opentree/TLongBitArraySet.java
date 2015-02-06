@@ -19,7 +19,7 @@ import java.util.Random;
  * A container class combining the features of TLongArrayList and BitSet. DOES NOT ALLOW DUPLICATES, AND ITERATES IN SORTED ORDER.
  * @author cody hinchliff
  */
-public class TLongBitSet implements Iterable<Long> {
+public class TLongBitArraySet implements Iterable<Long> {
 
 	private static boolean testing = false; // set to true when performing unit tests 
 	
@@ -28,37 +28,37 @@ public class TLongBitSet implements Iterable<Long> {
 	
 	// ==== constructors
 	
-	public TLongBitSet(Iterable<Long> longArr) {
+	public TLongBitArraySet(Iterable<Long> longArr) {
 		tl = new TLongArrayList();
 		bs = new BitSet();
 		this.addAll(longArr);
 	}
 
-	public TLongBitSet(int[] intArr) {
+	public TLongBitArraySet(int[] intArr) {
 		tl = new TLongArrayList();
 		bs = new BitSet();
 		this.addAll(intArr);
 	}
 	
-	public TLongBitSet(long[] longArr) {
+	public TLongBitArraySet(long[] longArr) {
 		tl = new TLongArrayList();
 		bs = new BitSet();
 		this.addAll(longArr);
 	}
 
-	public TLongBitSet(TLongArrayList tLongArr) {
+	public TLongBitArraySet(TLongArrayList tLongArr) {
 		tl = new TLongArrayList();
 		bs = new BitSet();
 		this.addAll(tLongArr);
 	}
 	
-	public TLongBitSet(BitSet bs) {
+	public TLongBitArraySet(BitSet bs) {
 		tl = new TLongArrayList();
 		this.bs = bs;
 		this.addAll(bs);
 	}
 	
-	public TLongBitSet() {
+	public TLongBitArraySet() {
 		tl = new TLongArrayList();
 		bs = new BitSet();
 	}
@@ -208,7 +208,7 @@ public class TLongBitSet implements Iterable<Long> {
 	 * Add all the values to the array and the bitset.
 	 * @param toAdd
 	 */
-	public void addAll(TLongBitSet toAdd) {
+	public void addAll(TLongBitArraySet toAdd) {
 		this.addAll((Iterable<Long>) toAdd); // use the iterator method
 	}
 	
@@ -315,7 +315,7 @@ public class TLongBitSet implements Iterable<Long> {
 	 * Remove all the values to the array and the bitset.
 	 * @param toRemove
 	 */
-	public void removeAll(TLongBitSet toRemove) {
+	public void removeAll(TLongBitArraySet toRemove) {
 		this.removeAll((Iterable<Long>) toRemove); // use the iterator method
 		updateBitSet();
 	}
@@ -344,11 +344,11 @@ public class TLongBitSet implements Iterable<Long> {
 	 * @param compBS
 	 * @return
 	 */
-	public TLongBitSet andNot(BitSet compBS) {
+	public TLongBitArraySet andNot(BitSet compBS) {
 		if (testing) {testInternalState();}
 		BitSet result = (BitSet) this.bs.clone();
 		result.andNot(compBS);
-		return new TLongBitSet(result);
+		return new TLongBitArraySet(result);
 	}
 	
 	/**
@@ -357,9 +357,9 @@ public class TLongBitSet implements Iterable<Long> {
 	 * @param compArr
 	 * @return
 	 */
-	public TLongBitSet andNot(TLongBitSet compArr) {
+	public TLongBitArraySet andNot(TLongBitArraySet compArr) {
 		if (testing) {testInternalState();}
-		return new TLongBitSet(this.andNot(compArr.bs));
+		return new TLongBitArraySet(this.andNot(compArr.bs));
 	}
 	
 	/**
@@ -367,7 +367,7 @@ public class TLongBitSet implements Iterable<Long> {
 	 * @param compArr
 	 * @return
 	 */
-	public boolean containsAny(TLongBitSet compArr) {
+	public boolean containsAny(TLongBitArraySet compArr) {
 		if (testing) {testInternalState();}
 		return this.containsAny(compArr.getBitSet());
 	}
@@ -387,7 +387,7 @@ public class TLongBitSet implements Iterable<Long> {
 	 * @param compArr
 	 * @return
 	 */
-	public boolean containsAll(TLongBitSet compArr) {
+	public boolean containsAll(TLongBitArraySet compArr) {
 		if (testing) {testInternalState();}
 		return this.containsAll(compArr.bs);
 	}
@@ -413,11 +413,11 @@ public class TLongBitSet implements Iterable<Long> {
 	 * @param compArr
 	 * @return
 	 */
-	public TLongBitSet getIntersection(TLongBitSet compArr) {
+	public TLongBitArraySet getIntersection(TLongBitArraySet compArr) {
 		if (testing) {testInternalState();}
 		BitSet intersection = (BitSet) bs.clone();
 		intersection.and(compArr.bs);
-		return new TLongBitSet(intersection);
+		return new TLongBitArraySet(intersection);
 	}
 
 	/**
@@ -425,11 +425,11 @@ public class TLongBitSet implements Iterable<Long> {
 	 * @param compArr
 	 * @return
 	 */
-	public TLongBitSet getIntersection(BitSet compBS) {
+	public TLongBitArraySet getIntersection(BitSet compBS) {
 		if (testing) {testInternalState();}
 		BitSet intersection = (BitSet) bs.clone();
 		intersection.and(compBS);
-		return new TLongBitSet(intersection);
+		return new TLongBitArraySet(intersection);
 	}
 	
 	@Override
@@ -559,13 +559,13 @@ public class TLongBitSet implements Iterable<Long> {
 		
 		// test setting and getting
 		System.out.println("Testing adding and getting");
-		TLongBitSet test1 = new TLongBitSet();
+		TLongBitArraySet test1 = new TLongBitArraySet();
 		for (int k : arr1) {
 			test1.add(k);
 		}
 		test1.updateBitSet();
 		test1.testInternalState();
-		TLongBitSet test2 = new TLongBitSet();
+		TLongBitArraySet test2 = new TLongBitArraySet();
 		for (int k : arr1) {
 			if (test1.contains(k) == false) {
 				throw new AssertionError("Adding and getting failed. BitArray 1 should have contained " + k + " but it did not");
@@ -573,7 +573,7 @@ public class TLongBitSet implements Iterable<Long> {
 				test2.add(k);
 			}
 		}
-		test1 = new TLongBitSet(arr1);
+		test1 = new TLongBitArraySet(arr1);
 		for (Long l : test2) {
 			if (test1.contains(l) == false) {
 				throw new AssertionError("Adding and getting failed. BitArray 1 should have contained " + l + " but it did not");
@@ -593,7 +593,7 @@ public class TLongBitSet implements Iterable<Long> {
 		     bs1Vals[j++] = i;
 		}
 		System.out.println("the BitSet contains " + testBS1.cardinality() + " values: " + Arrays.toString(bs1Vals));
-		test1 = new TLongBitSet(testBS1);
+		test1 = new TLongBitArraySet(testBS1);
 		System.out.println("The BitArray constructed from the BitSet contains: " + Arrays.toString(test1.toArray()));
 		j = 0;
 		for (Long l : test1) {
@@ -611,7 +611,7 @@ public class TLongBitSet implements Iterable<Long> {
 			testTL.add(i);
 		}
 		System.out.println("the TLongArrayList contains " + testTL.size() + " values: " + Arrays.toString(testTL.toArray()));
-		test1 = new TLongBitSet(testTL);
+		test1 = new TLongBitArraySet(testTL);
 		System.out.println("The BitArray constructed from the TLongArrayList contains: " + Arrays.toString(test1.toArray()));
 		Arrays.sort(arr1); // has to be on because testInternalState calls sort the bitarray
 		HashSet<Integer> uniqueInts = new HashSet<Integer>();
@@ -629,9 +629,9 @@ public class TLongBitSet implements Iterable<Long> {
 
 		// test instantiating a BitArray from another BitArray
 		System.out.println("Testing BitArray construction from another BitArray");
-		test2 = new TLongBitSet(arr1);
+		test2 = new TLongBitArraySet(arr1);
 		System.out.println("The starting BitArray contains " + test2.size() + " values: " + Arrays.toString(test2.toArray()));
-		test1 = new TLongBitSet(test2);
+		test1 = new TLongBitArraySet(test2);
 		System.out.println("The BitArray constructed from the starting BitArray contains: " + Arrays.toString(test1.toArray()));
 		uniqueInts = new HashSet<Integer>();
 		for (int k = 0; k < arr1.length; k++) {
@@ -653,7 +653,7 @@ public class TLongBitSet implements Iterable<Long> {
 			testArrLong[k] = r.nextInt(maxVal);
 		}
 		System.out.println("The long array contains " + testArrLong.length + " values: " + Arrays.toString(testArrLong));
-		test1 = new TLongBitSet(testArrLong);
+		test1 = new TLongBitArraySet(testArrLong);
 		System.out.println("The BitArray constructed from the TLongArrayList contains: " + Arrays.toString(test1.toArray()));
 		Arrays.sort(testArrLong); // has to be on because testInternalState calls sort the bitarray
 		HashSet<Long> uniqueLongs = new HashSet<Long>();
@@ -676,7 +676,7 @@ public class TLongBitSet implements Iterable<Long> {
 			testArrLong[k] = r.nextInt(maxVal);
 		}
 		System.out.println("The int array contains " + testArrLong.length + " values: " + Arrays.toString(testArrLong));
-		test1 = new TLongBitSet(testArrLong);
+		test1 = new TLongBitArraySet(testArrLong);
 		System.out.println("The BitArray constructed from the TLongArrayList contains: " + Arrays.toString(test1.toArray()));
 		Arrays.sort(testArrLong); // has to be on because testInternalState calls sort the bitarray
 		uniqueLongs = new HashSet<Long>();
@@ -751,7 +751,7 @@ public class TLongBitSet implements Iterable<Long> {
 		}
 		System.out.println("Intersection should be: " + Arrays.toString(bsVals));
 		
-		test1 = new TLongBitSet(arr1);
+		test1 = new TLongBitArraySet(arr1);
 		System.out.println("Intersecting BitArray: " + Arrays.toString(test1.toArray()));
 		System.out.println("with BitSet containing: " + Arrays.toString(arr2));
 
@@ -760,7 +760,7 @@ public class TLongBitSet implements Iterable<Long> {
 		for (int i : arr2) {
 			testBS2.set(i, true);
 		}
-		TLongBitSet intersection = test1.getIntersection(testBS2);
+		TLongBitArraySet intersection = test1.getIntersection(testBS2);
 
 		System.out.println("Intersection is: " + Arrays.toString(intersection.toArray()));
 		for (Long l : intersection) {
@@ -776,7 +776,7 @@ public class TLongBitSet implements Iterable<Long> {
 		System.out.println("Intersection with BitSet passed\n");
 
 		System.out.println("Testing intersection with BitArray:");
-		test2 = new TLongBitSet(arr2);
+		test2 = new TLongBitArraySet(arr2);
 		intersection = test1.getIntersection(test2);
 		System.out.println("Intersection is: " + Arrays.toString(intersection.toArray()));
 		for (Long l : intersection) {
@@ -878,8 +878,8 @@ public class TLongBitSet implements Iterable<Long> {
 		}
 
 		System.out.println("Testing contains any");
-		test1 = new TLongBitSet(arr1);
-		test2 = new TLongBitSet(arr2);
+		test1 = new TLongBitArraySet(arr1);
+		test2 = new TLongBitArraySet(arr2);
 		System.out.println("BitArray 1 contains: " + Arrays.toString(test1.toArray()));
 		System.out.println("BitArray 2 contains: " + Arrays.toString(test2.toArray()));
 
@@ -990,8 +990,8 @@ public class TLongBitSet implements Iterable<Long> {
 		maxOps = 100;
 		int nOps1 = r.nextInt(maxOps);
 		int nOps2 = maxOps - nOps1;
-		test1 = new TLongBitSet();
-		test2 = new TLongBitSet();
+		test1 = new TLongBitArraySet();
+		test2 = new TLongBitArraySet();
 		
 		int nAddOps = 0;
 		int nRemoveOps = 0;

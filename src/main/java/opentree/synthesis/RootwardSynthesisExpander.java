@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import opentree.TLongBitSet;
+import opentree.TLongBitArraySet;
 import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
@@ -23,7 +23,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			
 	private TopologicalOrder topologicalOrder;
 	private Map<Long, HashSet<Relationship>> childRels;
-	private Map<Long, TLongBitSet> nodeMrca;
+	private Map<Long, TLongBitArraySet> nodeMrca;
 	private GraphDatabaseAgent gdb;
 
 	private boolean trivialTestCase = false;
@@ -31,13 +31,13 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	public RootwardSynthesisExpander(Node root) {
 		topologicalOrder = new TopologicalOrder(root, RelType.MRCACHILDOF);
 		childRels = new HashMap<Long, HashSet<Relationship>>();
-		nodeMrca = new HashMap<Long, TLongBitSet>();
+		nodeMrca = new HashMap<Long, TLongBitArraySet>();
 		gdb = new GraphDatabaseAgent(root.getGraphDatabase());
 		
 		for (Node n : topologicalOrder) {
 			System.out.println("visiting node " + n);
 
-			TLongBitSet descendants = new TLongBitSet();
+			TLongBitArraySet descendants = new TLongBitArraySet();
 			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 			for (Long relId : findBestNonOverlapping(getCandidateRelationships(n))) {
 				
@@ -69,10 +69,10 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			return new ArrayList<Long>();
 		}
 		
-		TLongBitSet[] mrcaSetsForRels = new TLongBitSet[relIds.length];
+		TLongBitArraySet[] mrcaSetsForRels = new TLongBitArraySet[relIds.length];
 		for (int i = 0; i < relIds.length; i++) {
 			Long childNodeId = getStartNodeId(relIds[i]);
-			mrcaSetsForRels[i] = new TLongBitSet();
+			mrcaSetsForRels[i] = new TLongBitArraySet();
 			System.out.println("setting mrca for relationship " + relIds[i] + " to " + nodeMrca.get(childNodeId));
 			mrcaSetsForRels[i].addAll(nodeMrca.get(childNodeId));
 		}
@@ -144,7 +144,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	
 	/** simple weight based only on the size of the mrca set of the node */
 	private int getWeight(long id) {
-		TLongBitSet m = nodeMrca.get(id);
+		TLongBitArraySet m = nodeMrca.get(id);
 		if (m == null) {
 			return 1;
 		} else {
