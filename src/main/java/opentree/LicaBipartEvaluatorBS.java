@@ -139,7 +139,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 							}
 							//have to match at least 2 relationships from the set in the database sources
 							//have to match all of the lineages from the sources tree
-							if(relmatched.size() >=2 && childmatched.size() == jadenode.getChildCount()){
+							if(relmatched.size() >=2 ){//&& childmatched.size() == jadenode.getChildCount()){
 								passed = true;
 								break;
 							}
