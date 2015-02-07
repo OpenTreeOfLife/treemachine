@@ -5,6 +5,7 @@ import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.TreeReader;
+
 import org.opentree.utils.GeneralUtils;
 
 import java.io.BufferedReader;
@@ -27,10 +28,13 @@ import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
+
 import opentree.synthesis.DraftTreePathExpander;
+import opentree.synthesis.RootwardSynthesisExpander;
 import opentree.synthesis.SynthesisExpander;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
 import opentree.synthesis.conflictresolution.RankResolutionMethodInferredPath;
@@ -1448,9 +1452,14 @@ public class GraphExplorer extends GraphBase {
 		RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethod());//new RankResolutionMethodInferredPath());
 		draftSynthesisMethod.setConflictResolver(rcr);
 		
+		// ================================ TESTING =================================
+		// 
+		draftSynthesisMethod = new RootwardSynthesisExpander(startNode);
+		//
+		// ================================ TESTING =================================
+		
 		// user feedback
 		System.out.println("\n" + draftSynthesisMethod.getDescription());
-		
 		
 		//make the metadatanode
 		Transaction tx = graphDb.beginTx();
@@ -1490,7 +1499,7 @@ public class GraphExplorer extends GraphBase {
 		try {
 			for (Relationship rel: Traversal.description().breadthFirst().expand(draftSynthesisMethod).traverse(startNode).relationships()) {
 				// testing
-				//	System.out.println("now attempting to store rel " + rel.getId());
+				System.out.println("now attempting to store rel " + rel.getId());
 				
 				// store the relationship
 				Node parentNode = rel.getEndNode();
