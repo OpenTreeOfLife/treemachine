@@ -27,6 +27,7 @@ function testsynthesis {
     fi
     set +x
     rm "${outputdir}"/tree-order.txt
+    echo '#inputs in order:' > "${outputdir}"/summary.tre
     while (( "$#" ))
     do
         treetag="$1"
@@ -37,6 +38,8 @@ function testsynthesis {
         else
             orderstr="${orderstr},tree${treetag}"
         fi
+        cat "${inputdir}"/tree"${treetag}".tre >> "${outputdir}"/summary.tre
+        echo >> "${outputdir}"/summary.tre
         set -x
         if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/addnewick-tree"${treetag}".log 2>&1
         then 
@@ -113,6 +116,19 @@ function testsynthesis {
         cat "${outputdir}"/extract.log
         exit 1
     fi
+    echo "#expected output" >> "${outputdir}"/summary.tre
+    cat "${inputdir}"/expected.tre >> "${outputdir}"/summary.tre
+    echo >> "${outputdir}"/summary.tre
+    echo "#synthetic tree returned" >> "${outputdir}"/summary.tre
+    cat "${outputdir}"/synth.tre >> "${outputdir}"/summary.tre
+    echo >> "${outputdir}"/summary.tre
+        
     set +x
-    python rooted-tree-diff.py "${inputdir}"/expected.tre "${outputdir}"/synth.tre || exit
+    if python rooted-tree-diff.py "${inputdir}"/expected.tre "${outputdir}"/synth.tre
+    then
+        echo "# Passed" >> "${outputdir}"/summary.tre
+    else
+        echo "# FAILED" >> "${outputdir}"/summary.tre
+        exit 1
+    fi
 }
