@@ -1,5 +1,9 @@
 # testing synthesis
 
+**WARNING** these tests are still a work in progress. Make sure that you agree that the tag/expected.tre is indeed the
+tree that should be expected for the inputs before you spend a lot of time trying to figure out why the test is failing.
+
+
 **Note** the scripts need `bash` not (`sh` or `dash`)
 
 Each of the tests here creates an `<test-tag>/out` directory of the output of each treemachine step, and creates a tiny new db called `<test-tag>/test.db`
