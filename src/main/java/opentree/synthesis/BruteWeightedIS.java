@@ -61,6 +61,11 @@ public class BruteWeightedIS implements Iterable<Long> {
 		System.out.println("combinations tried: " + count);
 	}
 		
+	public Long[] best() {
+		Long[] l = new Long[bestSet.size()];
+		return this.bestSet.toArray(l);
+	}
+
 	/**
 	 * Recursive procedure takes incoming bitmask, opens each additional position (to the
 	 * right of the last position), and checks if each updated bitmask still represents a
@@ -137,13 +142,18 @@ public class BruteWeightedIS implements Iterable<Long> {
 			bestSet = R;
 		}
 	}
-	
-	public static void main(String[] args) {
-		simpleTest();
-//		arbitrarySizeRandomTest(Integer.valueOf(args[0]));
+
+	private static long randomInt(int max) {
+		return Math.round(Math.random() * max);
 	}
 	
-	private static void arbitrarySizeRandomTest(int numberOfSets) {
+	public static void main(String[] args) {
+		simpleTest1();
+		simpleTest2();
+		randomInputTest(Integer.valueOf(args[0]));
+	}
+	
+	private static void randomInputTest(int numberOfSets) {
 		int setSize = 10;
 		int maxItemValue = 1000;
 		
@@ -167,37 +177,36 @@ public class BruteWeightedIS implements Iterable<Long> {
 
 		System.out.println("\nproduced: " + Arrays.toString(B.best()));
 	}
-	
-	private static long randomInt(int max) {
-		return Math.round(Math.random() * max);
+		
+	private static void simpleTest1() {
+		Long[] ids = new Long[] {44L, 40L, 1L, 0L};
+		long[][] sets = new long[][] {{7}, {3}, {1,2,4,5,6}, {2,3,4,5,6,7}};
+		long[] expected = new long[] {44,40,1};
+		doSimpleTest(ids, sets, expected);
 	}
 	
-	public Long[] best() {
-		Long[] l = new Long[bestSet.size()];
-		return this.bestSet.toArray(l);
+	private static void simpleTest2() {
+		Long[] ids = new Long[] {1L, 2L, 3L, 4L, 5L, 6L, 7L};
+		long[][] sets = new long[][] {{1}, {2}, {3}, {4}, {5}, {6}, {7}};
+		long[] expected = new long[] {1, 2, 3, 4, 5, 6, 7};
+		doSimpleTest(ids, sets, expected);
 	}
 	
-	private static void simpleTest() {
-		Long[] ids = new Long[] {44L, 40L, 1L};
+	private static void doSimpleTest(Long[] ids, long[][] sets, long[] expected) {
 		
-		TLongBitArraySet a = new TLongBitArraySet();
-		a.addAll(new int[] {7});
-		
-		TLongBitArraySet b = new TLongBitArraySet();
-		b.addAll(new int[] {3});
-		
-		TLongBitArraySet c = new TLongBitArraySet();
-		c.addAll(new int[] {1,2,4,5,6});
-		
-		TLongBitArraySet d = new TLongBitArraySet();
-		d.addAll(new int[] {2,3,4,5,6,7});
-		
-		TLongBitArraySet[] descendants = new TLongBitArraySet[] {a, b, c};
-		
+		TLongBitArraySet[] descendants = new TLongBitArraySet[sets.length];
+		for (int i = 0; i < sets.length; i++) {
+			descendants[i] = new TLongBitArraySet();
+			descendants[i].addAll(sets[i]);
+		}
+
 		BruteWeightedIS B = new BruteWeightedIS(ids, descendants);
 
-		Long[] e = new Long[] {44L, 40L, 1L};
-		System.out.println("\nexpected: " + Arrays.toString(e));
-		System.out.println("produced: " + Arrays.toString(B.best()));
+		Long[] b = B.best();
+		System.out.println("\nexpected: " + Arrays.toString(expected));
+		System.out.println("produced: " + Arrays.toString(b) + "\n");
+		for (int i = 0; i < b.length; i++) {
+			assert b[i] == expected[i];
+		}
 	}
 }
