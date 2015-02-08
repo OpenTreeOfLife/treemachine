@@ -10,7 +10,13 @@ If you run an individual test, you have to remove these output **directories** b
 
 # `run_synth_tests.sh` control script
 
+    bash run_synth_tests.sh
+
 This runs all of the tests
+
+    FAILING_TREEMACHINE_TEST=conflictingaugmenting ./run_synth_tests.sh
+
+will just run the tag specified (conflictingaugmenting in this case).
 
 # `synth-test-harness.sh`
 
