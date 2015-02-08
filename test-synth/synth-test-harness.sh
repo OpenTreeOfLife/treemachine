@@ -43,24 +43,47 @@ function testsynthesis {
             cat "${outputdir}"/addnewick-tree"${treetag}".log
             exit 1
         fi
+        if ! $treemachine mapcompat "${dbdir}" tree"${treetag}" >"${outputdir}"/mapcompat-tree"${treetag}".log 2>&1
+        then
+            cat "${outputdir}"/mapcompat-tree"${treetag}".log
+            exit 1
+        fi
+        if ! $treemachine exporttodot life "${outputdir}"/pre-synthgraph-after-tree"${treetag}".dot T "${dbdir}" >"${outputdir}"/pre-synthgraph-after-tree"${treetag}".log 2>&1
+        then
+            cat "${outputdir}"/pre-synthgraph-after-tree"${treetag}".log
+            exit 1
+        fi
+        dot "${outputdir}"/pre-synthgraph-after-tree"${treetag}".dot -Tsvg -o "${outputdir}"/pre-synthgraph-after-tree"${treetag}".svg
+
         set +x
         shift
     done
-    for rep in 1 2 3 4
+    for rep in 1 #2 3 4
     do
         for treetag in $(cat "${outputdir}"/tree-order.txt)
         do
             set -x
             if ! $treemachine pgdelind "${dbdir}" tree"${treetag}" >"${outputdir}"/pgdelind-tree"${treetag}".log 2>&1
-            then 
+            then
                 cat "${outputdir}"/pgdelind-tree"${treetag}".log
                 exit 1
             fi
             if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/rep${rep}-addnewick-tree"${treetag}".log 2>&1
-            then 
+            then
                 cat "${outputdir}"/rep${rep}-addnewick-tree"${treetag}".log
                 exit 1
             fi
+            if ! $treemachine mapcompat "${dbdir}" tree"${treetag}" >"${outputdir}"/rep${rep}-mapcompat-tree"${treetag}".log 2>&1
+            then 
+                cat "${outputdir}"/rep${rep}-mapcompat-tree"${treetag}".log
+                exit 1
+            fi
+            if ! $treemachine exporttodot life "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".dot T "${dbdir}" >"${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".log 2>&1
+            then
+                cat "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".log
+                exit 1
+            fi
+            dot "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".dot -Tsvg -o "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".svg
             set +x
         done
     done

@@ -50,7 +50,7 @@ function runsynthtest {
     if ! bash ./"${tag}"/run.sh
     then
         failures=$(expr 1 + $failures)
-        if test -z $failed
+        if test -z "$failed"
         then
             failed="$tag"
         else
@@ -71,11 +71,11 @@ function runsynthtest {
 if test -z $FAILING_TREEMACHINE_TEST
 then
     echo "FAILING_TREEMACHINE_TEST not in env. All tests will be run..."
-    runsynthtest trivialconf
-    runsynthtest usenodetaxa
-    runsynthtest nontrivialaugmenting
-    runsynthtest conflictingaugmenting
-    runsynthtest ranksforextras
+    for tagrun in */run.sh
+    do
+        tag=$(dirname ${tagrun})
+        runsynthtest "${tag}"
+    done
 else
     echo "Using FAILING_TREEMACHINE_TEST env to restrict to 1 test"
     runsynthtest $FAILING_TREEMACHINE_TEST
