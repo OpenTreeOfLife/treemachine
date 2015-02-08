@@ -1332,7 +1332,35 @@ public class MainRunner {
 		return 0;
 	}
 	
-	
+	/// @returns 0 for success, 1 for poorly formed command
+	public int dotGraphExporter(String [] args) throws TaxonNotFoundException {
+		String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
+		if (args.length != 5) {
+			System.out.println(usageString);
+			return 1;
+		}
+		String taxon = args[1];
+		String outfile = args[2];
+		String _useTaxonomy = args[3];
+		String graphname = args[4];
+		
+		boolean useTaxonomy = false;
+		if (_useTaxonomy.equals("T")) {
+			useTaxonomy = true;
+		} else if (!(_useTaxonomy.equals("F"))) {
+			System.out.println(usageString);
+			return 1;
+		}
+		
+		GraphExporter ge = new GraphExporter(graphname);
+		try {
+			ge.writeGraphDot(taxon, outfile, useTaxonomy);
+		} finally {
+			ge.shutdownDB();
+		}
+		return 0;
+	}
+
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExporter(String [] args) throws TaxonNotFoundException {
 		String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
@@ -3010,6 +3038,7 @@ public class MainRunner {
 		System.out.println("	\033[1msourceexplorer\033[0m <sourcename> <graphdbfolder>");
 		System.out.println("");
 		System.out.println("WORK WITH GRAPH");
+		System.out.println("	\033[1mexporttodot\033[0m <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder>");
 		System.out.println("  Export the graph in graphml format with statistics embedded");
 		System.out.println("	\033[1mgraphml\033[0m <name> <outfile> <usetaxonomy[T|F]>  <graphdbfolder>");
 		System.out.println("  Synthesize the graph");
@@ -3041,6 +3070,7 @@ public class MainRunner {
 		System.out.println("  fulltree_sources <name> <preferred sources csv> <graphdbfolder> usetaxonomy[T|F] sinklostchildren[T|F] (construct a newick file from a particular node, break ties preferring sources)");
 		System.out.println("  fulltreelist <filename list of taxa> <preferred sources csv> <graphdbfolder> (construct a newick tree for a group of species)");
 		System.out.println("  mrpdump <name> <outfile> <graphdbfolder> (dump the mrp matrix for a subgraph without the taxonomy branches)");
+		System.out.println("  exporttodot <name> <outfile> <usetaxonomy[T|F]> <graphdbfolder> (construct a dot file of the region starting from the name)");
 		System.out.println("  graphml <name> <outfile> <usetaxonomy[T|F]> <graphdbfolder> (construct a graphml file of the region starting from the name)");
 		System.out.println("  csvdump <name> <outfile> <graphdbfolder> (dump the graph in format node,parent,nodename,parentname,source,brlen)");
 		System.out.println("  taxtree <name> <outfile> <graphdbfolder> (dump the taxonomy as a tree with UIDs as the tips)\n");
@@ -3145,6 +3175,8 @@ public class MainRunner {
 			} else if (command.compareTo("listsources") == 0
 					|| command.compareTo("getsourcetreeids") == 0) {
 				cmdReturnCode = mr.listSources(args);
+			} else if (command.compareTo("exporttodot") == 0) {
+				cmdReturnCode = mr.dotGraphExporter(args);
 			} else if (command.compareTo("graphml") == 0) {
 				cmdReturnCode = mr.graphExporter(args);
 			} else if (command.compareTo("graphml_ottolid") == 0) {

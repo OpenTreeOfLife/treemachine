@@ -65,7 +65,7 @@ function testsynthesis {
         done
     done
     set -x
-    if ! $treemachine graphml life "${outputdir}"/pre-synthgraph.dot T "${dbdir}" >"${outputdir}"/pre-synthgraph.log 2>&1
+    if ! $treemachine exporttodot life "${outputdir}"/pre-synthgraph.dot T "${dbdir}" >"${outputdir}"/pre-synthgraph.log 2>&1
     then 
         cat "${outputdir}"/pre-synthgraph.log
         exit 1
@@ -78,7 +78,7 @@ function testsynthesis {
         exit 1
     fi
 
-    if ! $treemachine graphml life "${outputdir}"/graph.dot T "${dbdir}" >"${outputdir}"/graph.log 2>&1
+    if ! $treemachine exporttodot life "${outputdir}"/graph.dot T "${dbdir}" >"${outputdir}"/graph.log 2>&1
     then 
         cat "${outputdir}"/graph.log
         exit 1
