@@ -1,6 +1,7 @@
 package opentree.synthesis;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -21,7 +22,7 @@ public class BruteWeightedIS implements Iterable<Long> {
 	private final int MAX_BITSET_MASK_SIZE;
 
 	public BruteWeightedIS(Long[] ids, TLongBitArraySet[] descendants) {
-		MAX_LONG_BITMASK_SIZE = new IntegerBitMask(0).maxSize();
+		MAX_LONG_BITMASK_SIZE = new LongBitMask(0).maxSize();
 		MAX_BITSET_MASK_SIZE = new BitSetMask(0).maxSize();
 		
 		this.ids = ids;
@@ -87,7 +88,7 @@ public class BruteWeightedIS implements Iterable<Long> {
 		if (size > MAX_LONG_BITMASK_SIZE) {
 			return new BitSetMask(size);
 		} else {
-			return new IntegerBitMask(size);
+			return new LongBitMask(size);
 		}
 	}
 	
@@ -95,7 +96,7 @@ public class BruteWeightedIS implements Iterable<Long> {
 		if (mask.size() > MAX_LONG_BITMASK_SIZE) {
 			return new BitSetMask((BitSetMask) mask);
 		} else {
-			return new IntegerBitMask((IntegerBitMask) mask);
+			return new LongBitMask((LongBitMask) mask);
 		}
 	}
 
@@ -164,19 +165,16 @@ public class BruteWeightedIS implements Iterable<Long> {
 		
 		BruteWeightedIS B = new BruteWeightedIS(ids, descendants);
 
-		printBest(B);
+		System.out.println("\nproduced: " + Arrays.toString(B.best()));
 	}
 	
 	private static long randomInt(int max) {
 		return Math.round(Math.random() * max);
 	}
 	
-	private static void printBest(BruteWeightedIS B) {
-		System.out.print("\nbest set: ");
-		for (Long relId : B) {
-			System.out.print(relId + " ");
-		}
-		System.out.println();
+	public Long[] best() {
+		Long[] l = new Long[bestSet.size()];
+		return this.bestSet.toArray(l);
 	}
 	
 	private static void simpleTest() {
@@ -198,7 +196,8 @@ public class BruteWeightedIS implements Iterable<Long> {
 		
 		BruteWeightedIS B = new BruteWeightedIS(ids, descendants);
 
-		System.out.println("expected: 44 40 1");
-		printBest(B);
+		Long[] e = new Long[] {44L, 40L, 1L};
+		System.out.println("\nexpected: " + Arrays.toString(e));
+		System.out.println("produced: " + Arrays.toString(B.best()));
 	}
 }

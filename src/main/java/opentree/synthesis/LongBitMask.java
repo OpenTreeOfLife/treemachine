@@ -9,43 +9,47 @@ import java.util.TreeSet;
 
 import scala.actors.threadpool.Arrays;
 
-public class IntegerBitMask implements BitMask {
+public class LongBitMask implements BitMask {
 
 	private long mask;
 	private int size;
 
-	public IntegerBitMask(int size) {
+	public LongBitMask(int size) {
 		if (size > maxSize()) {throw new IllegalArgumentException();}
 		mask = 0;
 		this.size = size;
 	}
 	
-	public IntegerBitMask (IntegerBitMask original) {
+	public LongBitMask (LongBitMask original) {
 		mask = original.mask;
 		size = original.size;
 	}
 
-	public void open(int position) {
-		if (! (position < size())) {throw new IllegalArgumentException();};
-		mask = mask | v(position);
+	public void open(int i) {
+		if (i >= size()) {throw new IllegalArgumentException();};
+		mask = mask | i2b(i);
 	}
 	
-	public void close(int position) {
-		if (! (position < size())) {throw new IllegalArgumentException();};
-		open(position);
-		mask = mask ^ v(position);
+	public void close(int i) {
+		if (i >= size()) {throw new IllegalArgumentException();};
+		open(i);
+		mask = mask ^ i2b(i);
 	}
 	
-	public boolean isSet(int position) {
-		return v(position) == 1;
+	public boolean isSet(int i) {
+		return getBit(mask, i) == 1;
 	}
 	
 	public int size() {
 		return size;
 	}
 
-	private long v(int i) {
-		return (int) Math.pow(2, i);
+	/**
+	 * Return the integer where the bit at position i is 1 and
+	 * all other bits are zero.
+	 */
+	private long i2b(int i) {
+		return (long) Math.pow(2, i);
 	}
 	
 	@Override
@@ -76,7 +80,7 @@ public class IntegerBitMask implements BitMask {
 	}
 	
 	public int maxSize() {
-		return maxBitPosition(Integer.MAX_VALUE);
+		return maxBitPosition(Long.MAX_VALUE);
 	}
 	
 	@Override
@@ -84,7 +88,7 @@ public class IntegerBitMask implements BitMask {
 		if (o.getClass() != this.getClass()) {
 			return false;
 		}
-		IntegerBitMask that = (IntegerBitMask) o;
+		LongBitMask that = (LongBitMask) o;
 		return this.mask == that.mask && this.size == that.size;
 	}
 	
@@ -101,14 +105,28 @@ public class IntegerBitMask implements BitMask {
 	}
 	
 	public static void main(String[] args) {
+		basicLongBitTest();
 		checkOpenFromOtherIntegerBitMask(1024);
-		checkOpenRandom(1000, 30);
+		checkOpenRandom(1000, maxBitPosition(Long.MAX_VALUE) - 1);
+	}
+	
+	private static void basicLongBitTest() {
+		LongBitMask A = new LongBitMask(maxBitPosition(Long.MAX_VALUE));
+		A.open(30);
+		System.out.println(A);
+
+//		IntegerBitMask B = new IntegerBitMask(maxBitPosition(Long.MAX_VALUE));
+		for (int i = 30; i < A.maxSize(); i++) {
+			System.out.println("attempting to open " + i);
+			A.open(i);
+			System.out.println(A);
+		}
 	}
 
 	private static void checkOpenRandom(int N, int maxSize) {
 		for (int i = 0; i < N; i++) {
 			int size = (int) (Math.random() * maxSize);
-			IntegerBitMask A = new IntegerBitMask(size);
+			LongBitMask A = new LongBitMask(size);
 			TreeSet<Integer> B = new TreeSet<Integer>();
 			for (int j = 0; j < size; j++) {
 				int x = (int) (Math.random() * size);
@@ -126,16 +144,15 @@ public class IntegerBitMask implements BitMask {
 		}
 		System.out.println("\npassed");
 	}
-
 	
 	private static void checkOpenFromOtherIntegerBitMask(int N) {
 		int size = maxBitPosition(N);
 		for (int i = 0; i < N; i++) {
 			System.out.println(i);
-			IntegerBitMask A = new IntegerBitMask(size);
+			LongBitMask A = new LongBitMask(size);
 			A.mask = i;
 			
-			IntegerBitMask B = new IntegerBitMask(size);
+			LongBitMask B = new LongBitMask(size);
 			for (int j : A) {
 				B.open(j);
 			}
