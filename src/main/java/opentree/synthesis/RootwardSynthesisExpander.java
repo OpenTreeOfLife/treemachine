@@ -35,16 +35,19 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		gdb = new GraphDatabaseAgent(root.getGraphDatabase());
 		
 		for (Node n : topologicalOrder) {
-			System.out.println("visiting node " + n);
+			System.out.println("\nvisiting node " + n);
 
 			TLongBitArraySet descendants = new TLongBitArraySet();
 			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
-			for (Long relId : findBestNonOverlapping(getCandidateRelationships(n))) {
+			System.out.println("looking for best non-overlapping rels");
+			Iterable<Long> X = findBestNonOverlapping(getCandidateRelationships(n));
+			System.out.println("selected relationships for " + n);
+			for (Long relId : X) {
 				
 				// testing
 				Relationship r = n.getGraphDatabase().getRelationshipById(relId);
 				long childId = r.getStartNode().getId();
-				System.out.println("on rel " + relId + " between " + r.getStartNode() + " and " + r.getEndNode());
+				System.out.println("Relationship[" + relId + "] between " + r.getStartNode() + " and " + r.getEndNode());
 
 				incomingRels.add(n.getGraphDatabase().getRelationshipById(relId));
 				descendants.add(childId);
@@ -66,6 +69,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	public Iterable<Long> findBestNonOverlapping(Long[] relIds) {
 
 		if (relIds.length < 1) {
+			System.out.println("(no incoming rels)");
 			return new ArrayList<Long>();
 		}
 		
@@ -73,7 +77,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		for (int i = 0; i < relIds.length; i++) {
 			Long childNodeId = getStartNodeId(relIds[i]);
 			mrcaSetsForRels[i] = new TLongBitArraySet();
-			System.out.println("setting mrca for relationship " + relIds[i] + " to " + nodeMrca.get(childNodeId));
+			System.out.println("Relationship[" + relIds[i] + "]: " + nodeMrca.get(childNodeId));
 			mrcaSetsForRels[i].addAll(nodeMrca.get(childNodeId));
 		}
 		
@@ -108,9 +112,9 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		throw new UnsupportedOperationException();
 	}
 
-	/* THIS SECTION IN STASIS. =================================================================
-	 * 
-	 * Currently working with brute force non-graph version **/
+	/* THIS SECTION IN STASIS. Efficient solution to the MWIS problem appears to require linear
+	 * programming algoritm, which we are putting off for now. Currently working with brute force
+	 * version of the solution, hoping that it will be effective for most cases. **/
 	public Iterable<Long> findBestNonOverlappingGraph(Long[] relIds) {
 
 		if (trivialTestCase) {

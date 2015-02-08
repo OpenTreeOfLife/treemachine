@@ -1,22 +1,17 @@
-// to perform unit testing, first comment out the `package` line, then call the java compiler/vm from the command line:
-// javac -cp ~/.m2/repository/net/sf/trove4j/trove4j/3.0.3/trove4j-3.0.3.jar TLongBitArray.java 
-// java -cp ~/.m2/repository/net/sf/trove4j/trove4j/3.0.3/trove4j-3.0.3.jar:. TLongBitArray
-
-package opentree; // comment out for unit testing
+package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
 
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Random;
 
 /**
- * A container class combining the features of TLongArrayList and BitSet. DOES NOT ALLOW DUPLICATES, AND ITERATES IN SORTED ORDER.
+ * A container class combining the features of TLongArrayList and BitSet.
+ * DOES NOT ALLOW DUPLICATES, AND PROVIDES ITERATOR IN SORTED ORDER.
  * @author cody hinchliff
  */
 public class TLongBitArraySet implements Iterable<Long> {
