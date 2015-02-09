@@ -8,7 +8,7 @@ import opentree.synthesis.BitMask;
 public class BruteWeightedIS extends BaseWeightedIS {
 	
 	private int count;
-	public static final int MAX_TRACTABLE_N = 20;
+	public static final int MAX_TRACTABLE_N = 25;
 	
 	public BruteWeightedIS(Long[]ids, TLongBitArraySet[] descendants) {
 		super(ids, descendants);
