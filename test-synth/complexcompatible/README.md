@@ -12,6 +12,6 @@ but contains fewer exemplar taxa than the compatible tree2:
 
 The taxonomy conflicts with tree2 but not tree1.
 
-Synthesis should recover a topology consistent with both trees, but should include all taxa, even those not sampled by either tree.
+Synthesis should recover a topology consistent with both trees, but should also include those taxa not sampled by either tree.
 
-Currently it fails because it doesn't recognize that taxonomy should be ranked lower than trees.
+Currently it fails because it doesn't do any ranking, so taxonomy ends up trumping some relationships from the trees.

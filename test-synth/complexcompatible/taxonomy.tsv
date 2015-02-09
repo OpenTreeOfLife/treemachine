@@ -35,7 +35,7 @@ uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|
 33	|	36	|	Q1	|	no rank	|		|		|		|
 34	|	36	|	Q2	|	no rank	|		|		|		|
 35	|	36	|	Q3	|	no rank	|		|		|		|
-36	|	32	|	PQ	|	no rank	|		|		|		|
+36	|	32	|	Q	|	no rank	|		|		|		|
 37	|	39	|	S1	|	no rank	|		|		|		|
 38	|	39	|	S2	|	no rank	|		|		|		|
 39	|	8	|	S	|	no rank	|		|		|		|
