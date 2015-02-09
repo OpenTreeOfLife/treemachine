@@ -10,6 +10,7 @@ import opentree.TLongBitArraySet;
 import opentree.constants.RelType;
 import opentree.synthesis.mwis.BruteWeightedIS;
 import opentree.synthesis.mwis.GreedyApproximateWeightedIS;
+import opentree.synthesis.mwis.TopologicalOrder;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;

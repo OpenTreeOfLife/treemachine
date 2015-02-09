@@ -1,9 +1,10 @@
 package opentree.synthesis.mwis;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 
 import opentree.TLongBitArraySet;
-import opentree.synthesis.BitMask;
 
 public class BruteWeightedIS extends BaseWeightedIS {
 	
@@ -46,6 +47,7 @@ public class BruteWeightedIS extends BaseWeightedIS {
 	private void findBestSet() {
 		count = 0;
 		sample(getEmptyBitMask(ids.length), -1);
+		Collections.sort(bestSet);
 		System.out.println("combinations tried: " + count);
 	}
 	

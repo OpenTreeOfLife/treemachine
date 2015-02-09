@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.mwis;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;

@@ -1,11 +1,11 @@
 package opentree.synthesis.mwis;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
 import opentree.TLongBitArraySet;
-import opentree.synthesis.BitMask;
 
 public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 
@@ -55,6 +55,8 @@ public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 				}
 			}
 		}
+
+		Collections.sort(bestSet);
 	}
 	
 	private double getScoreForRel(int i) {

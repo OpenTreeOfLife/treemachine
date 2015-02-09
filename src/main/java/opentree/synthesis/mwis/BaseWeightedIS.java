@@ -1,14 +1,10 @@
 package opentree.synthesis.mwis;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
 import opentree.TLongBitArraySet;
-import opentree.synthesis.BitMask;
-import opentree.synthesis.BitSetMask;
-import opentree.synthesis.LongBitMask;
 
 public abstract class BaseWeightedIS implements Iterable<Long> {
 

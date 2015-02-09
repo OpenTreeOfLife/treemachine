@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.mwis;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +30,7 @@ public class LongBitMask implements BitMask {
 		mask = mask | i2b(i);
 	}
 	
-	public void close(int i) { // need to test this
+	public void close(int i) { // need to test this more
 		if (i >= size()) {throw new IllegalArgumentException();};
 		open(i);
 		mask = mask ^ i2b(i);
@@ -59,7 +59,7 @@ public class LongBitMask implements BitMask {
 	@Override
 	public String toString() {
 		StringBuffer s = new StringBuffer();
-		s.append("[");
+		s.append("{");
 		boolean first = true;
 		for (int i : this) {
 			if (first) {
@@ -69,7 +69,7 @@ public class LongBitMask implements BitMask {
 			}
 			s.append(i);
 		}
-		s.append("]");
+		s.append("}");
 		return s.toString();
 	}
 	

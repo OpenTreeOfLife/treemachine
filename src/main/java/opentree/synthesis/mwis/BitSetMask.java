@@ -1,12 +1,38 @@
-package opentree.synthesis;
+package opentree.synthesis.mwis;
 
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
-import java.util.List;
 
 public class BitSetMask implements BitMask {
 
+	private class BitSetIterator implements Iterator<Integer> {
+		
+		BitSet bs;
+		Integer nextBit;
+		
+		public BitSetIterator(BitSet bs) {
+			this.bs = bs;
+			this.nextBit = bs.nextSetBit(0);
+		}
+
+		@Override
+		public boolean hasNext() {
+			return nextBit >= 0;
+		}
+
+		@Override
+		public Integer next() {
+			int thisBit = nextBit;
+			nextBit = bs.nextSetBit(nextBit+1);
+			return thisBit;
+		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
+	}
+	
 	private BitSet mask;
 	private int size;
 
@@ -39,15 +65,14 @@ public class BitSetMask implements BitMask {
 	public int openBits() {
 		return mask.cardinality();
 	}
+	
+	@Override
+	public String toString() {
+		return mask.toString();
+	}
 		
 	public Iterator<Integer> iterator() {
-		List<Integer> positions = new ArrayList<Integer>();
-		int j = mask.nextSetBit(0);
-		while (j > 0) {
-			positions.add(j);
-			j = mask.nextSetBit(j);
-		}
-		return positions.iterator();
+		return new BitSetIterator(mask);
 	}
 	
 	public int maxSize() {

@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.mwis;
 
 public class Logarithm {
 	public static double logb(double a, double b) {

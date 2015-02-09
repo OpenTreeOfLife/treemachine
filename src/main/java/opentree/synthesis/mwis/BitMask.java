@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree.synthesis.mwis;
 
 public interface BitMask extends Iterable<Integer> {
 	public void open(int position);
