@@ -5,5 +5,6 @@ public interface BitMask extends Iterable<Integer> {
 	public void close(int position);
 	public boolean isSet(int position);
 	public int size();
+	public int openBits();
 	public int maxSize();
 }

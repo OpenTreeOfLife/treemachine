@@ -8,6 +8,8 @@ import java.util.Map;
 
 import opentree.TLongBitArraySet;
 import opentree.constants.RelType;
+import opentree.synthesis.mwis.BruteWeightedIS;
+import opentree.synthesis.mwis.GreedyApproximateWeightedIS;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -81,7 +83,11 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			mrcaSetsForRels[i].addAll(nodeMrca.get(childNodeId));
 		}
 		
-		return new BruteWeightedIS(relIds, mrcaSetsForRels);
+		if (relIds.length <= BruteWeightedIS.MAX_TRACTABLE_N) {
+			return new BruteWeightedIS(relIds, mrcaSetsForRels);
+		} else {
+			return new GreedyApproximateWeightedIS(relIds, mrcaSetsForRels);
+		}
 	}
 		
 	private static Long[] getCandidateRelationships(Node n) {

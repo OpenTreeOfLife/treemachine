@@ -36,6 +36,10 @@ public class BitSetMask implements BitMask {
 		return size;
 	}
 	
+	public int openBits() {
+		return mask.cardinality();
+	}
+		
 	public Iterator<Integer> iterator() {
 		List<Integer> positions = new ArrayList<Integer>();
 		int j = mask.nextSetBit(0);

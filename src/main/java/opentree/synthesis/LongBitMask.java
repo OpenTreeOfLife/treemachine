@@ -30,7 +30,7 @@ public class LongBitMask implements BitMask {
 		mask = mask | i2b(i);
 	}
 	
-	public void close(int i) {
+	public void close(int i) { // need to test this
 		if (i >= size()) {throw new IllegalArgumentException();};
 		open(i);
 		mask = mask ^ i2b(i);
@@ -42,6 +42,10 @@ public class LongBitMask implements BitMask {
 	
 	public int size() {
 		return size;
+	}
+	
+	public int openBits() {
+		return Long.bitCount(mask);
 	}
 
 	/**
@@ -105,6 +109,7 @@ public class LongBitMask implements BitMask {
 	}
 	
 	public static void main(String[] args) {
+		openAndCloseTest();
 		basicLongBitTest();
 		checkOpenFromOtherIntegerBitMask(1024);
 		checkOpenRandom(1000, maxBitPosition(Long.MAX_VALUE) - 1);
@@ -115,12 +120,31 @@ public class LongBitMask implements BitMask {
 		A.open(30);
 		System.out.println(A);
 
-//		IntegerBitMask B = new IntegerBitMask(maxBitPosition(Long.MAX_VALUE));
 		for (int i = 30; i < A.maxSize(); i++) {
 			System.out.println("attempting to open " + i);
 			A.open(i);
 			System.out.println(A);
 		}
+	}
+	
+	private static void openAndCloseTest() {
+		LongBitMask A = new LongBitMask(maxBitPosition(Long.MAX_VALUE));
+		A.open(1);
+		A.open(2);
+		A.open(3);
+		A.open(4);
+		A.open(5);
+		System.out.println(A);
+		A.close(1);
+		System.out.println(A);
+		A.close(2);
+		System.out.println(A);
+		A.close(3);
+		System.out.println(A);
+		A.close(4);
+		System.out.println(A);
+		A.close(5);
+		System.out.println(A);
 	}
 
 	private static void checkOpenRandom(int N, int maxSize) {
