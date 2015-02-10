@@ -3,19 +3,22 @@ package opentree.plugins;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.Map.Entry;
 
+import jade.tree.JadeNode;
 import jade.tree.JadeTree;
+
 import org.opentree.utils.GeneralUtils;
+
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -41,6 +44,7 @@ public class tree_of_life extends ServerPlugin {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		GraphExplorer ge = new GraphExplorer(gdb);
+		ge.setQuiet(); // turn off logging
 		HashMap<String, Object> draftTreeInfo = null;
 		Boolean returnStudyList = true; // default to true for now
 		
@@ -119,6 +123,7 @@ public class tree_of_life extends ServerPlugin {
 		ArrayList<Long> ottIdsNotInSynth = new ArrayList<Long>();
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
+		ge.setQuiet(); // turn off logging
 		
 		// *** provided nodeIds MUST be in the synthesis tree
 		if (nodeIds != null && nodeIds.length > 0) {
@@ -249,6 +254,7 @@ public class tree_of_life extends ServerPlugin {
 		HashMap<String, Object> vals = null;
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
+		ge.setQuiet(); // turn off logging
 		
 		if (nodeIds != null && nodeIds.length > 0) {
 			numQueryNodes += nodeIds.length;
@@ -333,8 +339,16 @@ public class tree_of_life extends ServerPlugin {
 			@Description("The ott id of the node in the tree that should serve as the root of the tree returned. This "
 					+ "argument may not be used in combination with `node_id`.")
 			@Parameter(name = "ott_id", optional = true) Long subtreeOttId) throws TreeNotFoundException {
-
+		
+		System.out.println(GeneralUtils.getTimestamp() + "  Running subtree service.");
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		args.put("tree_id", treeID);
+		args.put("node_id", subtreeNodeId);
+		args.put("ott_id", subtreeOttId);
+		logArguments(args);
+		
 		GraphExplorer ge = new GraphExplorer(graphDb);
+		ge.setQuiet(); // turn off logging
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
 		
 		// set default param values
@@ -345,6 +359,7 @@ public class tree_of_life extends ServerPlugin {
 		// get start node
 		if (subtreeNodeId != null && subtreeOttId != null) {
 			responseMap.put("error", "Provide only one \"node_id\" or \"ott_id\" argument.");
+			logError(responseMap);
 			return OTRepresentationConverter.convert(responseMap);
 		}
 		if (subtreeNodeId != null) {
@@ -359,11 +374,13 @@ public class tree_of_life extends ServerPlugin {
 			}
 			if (startNodeID == -1) {
 				responseMap.put("error", "Invalid \"ott_id\" argument.");
+				logError(responseMap);
 				return OTRepresentationConverter.convert(responseMap);
 			}
 		} else {
 			responseMap.put("error", "Must provide a \"node_id\" or \"ott_id\" argument to indicate the location of the root "
 					+ "node of the subtree.");
+			logError(responseMap);
 			return OTRepresentationConverter.convert(responseMap);
 		}
 		
@@ -372,18 +389,22 @@ public class tree_of_life extends ServerPlugin {
 		if (n == null) {
 			if (subtreeNodeId != null) {
 				responseMap.put("error", "Invalid \"node_id\" argument.");
+				logError(responseMap);
 				return OTRepresentationConverter.convert(responseMap);
 			} else {
 				responseMap.put("error", "Invalid \"ott_id\" argument.");
+				logError(responseMap);
 				return OTRepresentationConverter.convert(responseMap);
 			}
 		} else {
 			if (!ge.nodeIsInSyntheticTree(n)) {
 				if (subtreeNodeId != null) {
 					responseMap.put("error", "Provided \"node_id\" is in the graph, but not part of the current synthetic tree.");
+					logError(responseMap);
 					return OTRepresentationConverter.convert(responseMap);
 				} else {
 					responseMap.put("error", "Provided \"ott_id\" is in the graph, but not part of the current synthetic tree.");
+					logError(responseMap);
 					return OTRepresentationConverter.convert(responseMap);
 				}
 			}
@@ -394,6 +415,7 @@ public class tree_of_life extends ServerPlugin {
 		if (numMRCA > maxNumTips) {
 			responseMap.put("error", "Requested tree is larger than currently allowed by this service (" 
 					+ maxNumTips + " tips). For larger trees, download the tree directly.");
+			logError(responseMap);
 			return OTRepresentationConverter.convert(responseMap);
 		}
 		
@@ -403,6 +425,7 @@ public class tree_of_life extends ServerPlugin {
 				synthTreeID = treeID;
 			} else {
 				responseMap.put("error", "Unrecognized \"tree_id\" argument. Leave blank to default to the current synthetic tree.");
+				logError(responseMap);
 				return OTRepresentationConverter.convert(responseMap);
 			}
 		}
@@ -417,8 +440,26 @@ public class tree_of_life extends ServerPlugin {
 		
 		responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
 		responseMap.put("tree_id", synthTreeID);
+		
+		System.out.println(GeneralUtils.getTimestamp() + "  Exiting subtree service on success.");
 		return OTRepresentationConverter.convert(responseMap);
 	}
 	
+	// Send error message to console
+	public void logError (HashMap<String, Object> responseMap) {
+		System.out.println("\tError: " + responseMap.get("error"));
+		System.out.println(GeneralUtils.getTimestamp() + "  Exiting subtree service on error.");
+	}
+	
+	// Send passed arguments to console
+	public void logArguments (HashMap<String, Object> args) {
+		for (Entry<String, Object> entry: args.entrySet()) {
+			String key = entry.getKey();
+			Object val = entry.getValue();
+			if (val != null) {
+				System.out.println("\tArgument '" + key + "' = " + val);
+			}
+		}
+	}
 }
 
