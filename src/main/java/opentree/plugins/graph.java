@@ -4,13 +4,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Date;
+import java.util.Map.Entry;
+
 import jade.tree.JadeTree;
 import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
@@ -37,25 +39,29 @@ public class graph extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation about(@Source GraphDatabaseService graphDb) throws TaxonNotFoundException,
 			MultipleHitsException {
-
+		
+		System.out.println(GeneralUtils.getTimestamp() + "  Running 'graph/about' service.");
+		
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		GraphExplorer ge = new GraphExplorer(gdb);
-		HashMap<String, Object> graphInfo = new HashMap<String, Object>();
+		ge.setQuiet(); // turn off logging
 
 		Node root = ge.getGraphRootNode();
 
-		graphInfo.put("graph_root_node_id", root.getId());
-		graphInfo.put("graph_root_ott_id", Long.valueOf((String) root.getProperty(NodeProperty.TAX_UID.propertyName)));
-		graphInfo.put("graph_root_name", String.valueOf(root.getProperty(NodeProperty.NAME.propertyName)));
-		graphInfo.put("graph_taxonomy_version", ge.getTaxonomyVersion());
-		graphInfo.put("graph_num_tips", ((long[]) root.getProperty(NodeProperty.MRCA.propertyName)).length);
+		responseMap.put("graph_root_node_id", root.getId());
+		responseMap.put("graph_root_ott_id", Long.valueOf((String) root.getProperty(NodeProperty.TAX_UID.propertyName)));
+		responseMap.put("graph_root_name", String.valueOf(root.getProperty(NodeProperty.NAME.propertyName)));
+		responseMap.put("graph_taxonomy_version", ge.getTaxonomyVersion());
+		responseMap.put("graph_num_tips", ((long[]) root.getProperty(NodeProperty.MRCA.propertyName)).length);
 
 		// *** do we want to return the _list_ of studies?
-		graphInfo.put("graph_num_source_trees", ge.getSourceList().size());
+		responseMap.put("graph_num_source_trees", ge.getSourceList().size());
 
 		ge.shutdownDB();
-
-		return OTRepresentationConverter.convert(graphInfo);
+		logSuccess();
+		return OTRepresentationConverter.convert(responseMap);
 	}
 	
 	
@@ -77,7 +83,18 @@ public class graph extends ServerPlugin {
 					name = "git_sha", optional = false) String gitSHA,
 			@Description("The name of the return format. The only currently supported format is newick.") @Parameter(
 					name = "format", optional = true) String format) throws TreeNotFoundException {
-
+		
+		System.out.println(GeneralUtils.getTimestamp() + "  Running 'graph/source_tree' service.");
+		
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		args.put("study_id", studyID);
+		args.put("tree_id", treeID);
+		args.put("git_sha", gitSHA);
+		args.put("format", format);
+		logArguments(args);
+		
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+		
 		String source = studyID + "_" + treeID + "_" + gitSHA;
 		
 		// get the tree
@@ -91,15 +108,14 @@ public class graph extends ServerPlugin {
 			ge.shutdownDB();
 		}
 
-		// return results
-		HashMap<String, Object> responseMap = new HashMap<String, Object>();
-
 		if (tree == null) {
 			responseMap.put("error", "Invalid source id provided.");
+			logError(responseMap);
 			return OTRepresentationConverter.convert(responseMap);
 		}
 
 		responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()) + ";");
+		logSuccess();
 		return OTRepresentationConverter.convert(responseMap);
 	}
 	
@@ -111,76 +127,88 @@ public class graph extends ServerPlugin {
 	public Representation node_info(
 			@Source GraphDatabaseService graphDb,
 			@Description("The node id of the node of interest. This argument may not be combined with `ott_id`.") @Parameter(
-					name = "node_id", optional = true) Long queryNodeId,
+					name = "node_id", optional = true) Long nodeId,
 			@Description("The ott id of the node of interest. This argument may not be combined with `node_id`.") @Parameter(
-					name = "ott_id", optional = true) Long queryOttId,
+					name = "ott_id", optional = true) Long ottId,
 			@Description("Include the ancestral lineage of the node in the draft tree. If this argument is `true`, then "
 					+ "a list of all the ancestors of this node in the draft tree, down to the root of the tree itself, "
 					+ "will be included in the results. Higher list indices correspond to more incluive (i.e. deeper) "
 					+ "ancestors, with the immediate parent of the specified node occupying position 0 in the list.") 
 			@Parameter(name = "include_lineage", optional = true) Boolean includeLineage) {
 
-		HashMap<String, Object> nodeIfo = new HashMap<String, Object>();
-
-		Long ottId = null;
+		System.out.println(GeneralUtils.getTimestamp() + "  Running 'graph/node_info' service.");
+		
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		args.put("node_id", nodeId);
+		args.put("ott_id", ottId);
+		args.put("include_lineage", includeLineage);
+		logArguments(args);
+		
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+		
+		Long graphOttId = null;
 		String name = "";
 		String rank = "";
 		String taxSource = "";
-		Long nodeId = null;
+		Long graphNodeId = null;
 		boolean inGraph = false;
 		boolean inSynthTree = false;
 		Integer numSynthChildren = 0;
 		Integer numMRCA = 0;
 		LinkedList<HashMap<String, Object>> synthSources = new LinkedList<HashMap<String, Object>>();
 		LinkedList<HashMap<String, Object>> treeSources = new LinkedList<HashMap<String, Object>>();
-
-		if (queryNodeId == null && queryOttId == null) {
-			nodeIfo.put("error", "Must provide a \"node_id\" or \"ott_id\" argument.");
-			return OTRepresentationConverter.convert(nodeIfo);
-		} else if (queryNodeId != null && queryOttId != null) {
-			nodeIfo.put("error", "Provide only one \"node_id\" or \"ott_id\" argument.");
-			return OTRepresentationConverter.convert(nodeIfo);
+		
+		if (nodeId == null && ottId == null) {
+			responseMap.put("error", "Must provide a \"node_id\" or \"ott_id\" argument.");
+			logError(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
+		} else if (nodeId != null && ottId != null) {
+			responseMap.put("error", "Provide only one \"node_id\" or \"ott_id\" argument.");
+			logError(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
 		}
-
+		
 		GraphExplorer ge = new GraphExplorer(graphDb);
-
-		if (queryOttId != null) {
+		
+		if (ottId != null) {
 			Node n = null;
 			try {
-				n = ge.findGraphTaxNodeByUID(String.valueOf(queryOttId));
+				n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
 			} catch (TaxonNotFoundException e) {
 			}
 			if (n != null) {
-				nodeId = n.getId();
+				graphNodeId = n.getId();
 			} else {
-				nodeIfo.put("error", "Could not find any graph nodes corresponding to the ott id provided.");
-				return OTRepresentationConverter.convert(nodeIfo);
+				responseMap.put("error", "Could not find any graph nodes corresponding to the ott id provided.");
+				logError(responseMap);
+				return OTRepresentationConverter.convert(responseMap);
 			}
-
-		} else if (queryNodeId != null) {
+			
+		} else if (nodeId != null) {
 			Node n = null;
 			try {
-				n = graphDb.getNodeById(queryNodeId);
+				n = graphDb.getNodeById(nodeId);
 			} catch (NotFoundException e) {
 
 			} catch (NullPointerException e) {
 
 			}
 			if (n != null) {
-				nodeId = queryNodeId;
+				graphNodeId = nodeId;
 			} else {
-				nodeIfo.put("error", "Could not find any graph nodes corresponding to the node id provided.");
-				return OTRepresentationConverter.convert(nodeIfo);
+				responseMap.put("error", "Could not find any graph nodes corresponding to the node id provided.");
+				logError(responseMap);
+				return OTRepresentationConverter.convert(responseMap);
 			}
 		}
-
-		if (nodeId != null) {
-			Node n = graphDb.getNodeById(nodeId);
+		
+		if (graphNodeId != null) {
+			Node n = graphDb.getNodeById(graphNodeId);
 			if (n.hasProperty(NodeProperty.NAME.propertyName)) {
 				name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
 				rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
 				taxSource = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
-				ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
+				graphOttId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
 			}
 			inGraph = true;
 			numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
@@ -204,27 +232,27 @@ public class graph extends ServerPlugin {
 		}
 		
 		// problem: can't pass null objects.
-		nodeIfo.put("name", name);
-		nodeIfo.put("rank", rank);
-		nodeIfo.put("tax_source", taxSource);
-		nodeIfo.put("node_id", nodeId);
+		responseMap.put("name", name);
+		responseMap.put("rank", rank);
+		responseMap.put("tax_source", taxSource);
+		responseMap.put("node_id", graphNodeId);
 		// a hack, since OTRepresentationConverter apparently cannot use null values
-		if (ottId != null) {
-			nodeIfo.put("ott_id", ottId);
+		if (graphOttId != null) {
+			responseMap.put("ott_id", graphOttId);
 		} else {
-			nodeIfo.put("ott_id", "null");
+			responseMap.put("ott_id", "null");
 		}
-		nodeIfo.put("in_graph", inGraph);
-		nodeIfo.put("in_synth_tree", inSynthTree);
-		nodeIfo.put("num_synth_children", numSynthChildren);
-		nodeIfo.put("num_tips", numMRCA);
-		nodeIfo.put("synth_sources", synthSources);
-		nodeIfo.put("tree_sources", treeSources);
+		responseMap.put("in_graph", inGraph);
+		responseMap.put("in_synth_tree", inSynthTree);
+		responseMap.put("num_synth_children", numSynthChildren);
+		responseMap.put("num_tips", numMRCA);
+		responseMap.put("synth_sources", synthSources);
+		responseMap.put("tree_sources", treeSources);
 		
 		if (includeLineage != null && includeLineage == true) {
 			LinkedList<HashMap<String, Object>> lineage = new LinkedList<HashMap<String, Object>>();
 			if (inSynthTree) {
-				Node n = graphDb.getNodeById(nodeId);
+				Node n = graphDb.getNodeById(graphNodeId);
 				List<Long> nodeList = getDraftTreePathToRoot(n);
 
 				for (Long node : nodeList) {
@@ -233,12 +261,12 @@ public class graph extends ServerPlugin {
 					lineage.add(info);
 				}
 			}
-			nodeIfo.put("draft_tree_lineage", lineage);
+			responseMap.put("draft_tree_lineage", lineage);
 		}
-
+		
 		ge.shutdownDB();
-
-		return OTRepresentationConverter.convert(nodeIfo);
+		logSuccess();
+		return OTRepresentationConverter.convert(responseMap);
 	}
 	
 	
@@ -289,6 +317,27 @@ public class graph extends ServerPlugin {
 			results.put("ott_id", ottId);
 		} else {
 			results.put("ott_id", "null");
+		}
+	}
+	
+	// Send error message to console
+	public void logError (HashMap<String, Object> responseMap) {
+		System.out.println("\tError: " + responseMap.get("error"));
+		System.out.println(GeneralUtils.getTimestamp() + "  Exiting service on error.");
+	}
+	
+	public void logSuccess () {
+		System.out.println(GeneralUtils.getTimestamp() + "  Exiting service on success.");
+	}
+	
+	// Send passed arguments to console
+	public void logArguments (HashMap<String, Object> args) {
+		for (Entry<String, Object> entry: args.entrySet()) {
+			String key = entry.getKey();
+			Object val = entry.getValue();
+			if (val != null) {
+				System.out.println("\tArgument '" + key + "' = " + val);
+			}
 		}
 	}
 

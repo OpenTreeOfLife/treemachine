@@ -42,10 +42,15 @@ public class tree_of_life extends ServerPlugin {
 			@Source GraphDatabaseService graphDb,
 			@Description("Return a list of source studies") @Parameter(name = "study_list", optional = true) Boolean study_list) throws TaxonNotFoundException, MultipleHitsException {
 		
+		System.out.println(GeneralUtils.getTimestamp() + "  Running 'tree_of_life/about' service.");
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		args.put("study_list", study_list);
+		logArguments(args);
+		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		GraphExplorer ge = new GraphExplorer(gdb);
 		ge.setQuiet(); // turn off logging
-		HashMap<String, Object> draftTreeInfo = null;
+		HashMap<String, Object> responseMap = null;
 		Boolean returnStudyList = true; // default to true for now
 		
 		if (study_list != null && study_list == false) {
@@ -56,46 +61,47 @@ public class tree_of_life extends ServerPlugin {
 		try {
 			Node meta = ge.getSynthesisMetaNode();
 			if (meta != null) {
-		//		String [] sourceList = (String []) meta.getProperty("sourcenames");
 				ArrayList<String> sourceList = ge.getSynthesisSourceList();
 				Node startNode = gdb.getNodeById((Long) gdb.getGraphProperty("draftTreeRootNodeId"));
 				Integer numMRCA = ((long[]) startNode.getProperty(NodeProperty.MRCA.propertyName)).length;
 				Integer numStudies = sourceList.size();
-				draftTreeInfo = new HashMap<String, Object>();
+				responseMap = new HashMap<String, Object>();
 				
 				// general info
-				draftTreeInfo.put("tree_id", meta.getProperty("name"));
-				draftTreeInfo.put("date", meta.getProperty("date"));
+				responseMap.put("tree_id", meta.getProperty("name"));
+				responseMap.put("date", meta.getProperty("date"));
 				
 				// currently comes from root node of graph. should bake into metadatanode of synth tree 
-				draftTreeInfo.put("taxonomy_version", ge.getTaxonomyVersion());
+				responseMap.put("taxonomy_version", ge.getTaxonomyVersion());
 				
 				// root node info
-				draftTreeInfo.put("root_node_id", startNode.getId());
-				draftTreeInfo.put("root_taxon_name", String.valueOf(startNode.getProperty(NodeProperty.NAME.propertyName)));
-				draftTreeInfo.put("root_ott_id", Long.valueOf((String) startNode.getProperty(NodeProperty.TAX_UID.propertyName)));
+				responseMap.put("root_node_id", startNode.getId());
+				responseMap.put("root_taxon_name", String.valueOf(startNode.getProperty(NodeProperty.NAME.propertyName)));
+				responseMap.put("root_ott_id", Long.valueOf((String) startNode.getProperty(NodeProperty.TAX_UID.propertyName)));
 				
 				// tree constituents
-				draftTreeInfo.put("num_tips", numMRCA);
-				draftTreeInfo.put("num_source_studies", numStudies);
+				responseMap.put("num_tips", numMRCA);
+				responseMap.put("num_source_studies", numStudies);
 				if (returnStudyList) {
 					LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
 					for (String study : sourceList) {
 						HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(study);
 						sources.add(indStudy);
 					}
-					draftTreeInfo.put("study_list", sources);
+					responseMap.put("study_list", sources);
 				}
 				
 			} else {
-				draftTreeInfo = new HashMap<String, Object>();
-				draftTreeInfo.put("error", "No synthetic tree found in the graph.");
-				return OTRepresentationConverter.convert(draftTreeInfo);
+				responseMap = new HashMap<String, Object>();
+				responseMap.put("error", "No synthetic tree found in the graph.");
+				logError(responseMap);
+				return OTRepresentationConverter.convert(responseMap);
 			}	
 		} finally {
 			ge.shutdownDB();
 		}
-		return OTRepresentationConverter.convert(draftTreeInfo);
+		logSuccess();
+		return OTRepresentationConverter.convert(responseMap);
 	}
 	
 	
@@ -111,12 +117,22 @@ public class tree_of_life extends ServerPlugin {
 			@Description("A set of node ids") @Parameter(name = "node_ids", optional = true) long[] nodeIds,
 			@Description("A set of ott ids") @Parameter(name = "ott_ids", optional = true) long[] ottIds) throws MultipleHitsException {
 		
+		System.out.println(GeneralUtils.getTimestamp() + "  Running 'tree_of_life/mrca' service.");
+		
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		args.put("node_ids", nodeIds);
+		args.put("ott_ids", ottIds);
+		logArguments(args);
+		
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+		
 		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
-			throw new IllegalArgumentException("You must supply at least one node_id or ott_id.");
+			responseMap.put("error", "You must supply at least one \"node_id\" or \"ott_id\".");
+			logError(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
 		}
 		
 		ArrayList<Node> tips = new ArrayList<Node>();
-		
 		ArrayList<Long> invalidNodesIds = new ArrayList<Long>();
 		ArrayList<Long> invalidOttIds = new ArrayList<Long>();
 		ArrayList<Long> nodeIdsNotInSynth = new ArrayList<Long>();
@@ -165,11 +181,10 @@ public class tree_of_life extends ServerPlugin {
 		}
 
 		if (tips.size() < 1) {
-			HashMap<String, Object> vals = new HashMap<String, Object>();
-			vals.put("error", "Could not find any graph nodes corresponding to the ids provided.");
-			return OTRepresentationConverter.convert(vals);
+			responseMap.put("error", "Could not find any graph nodes corresponding to the ids provided.");
+			logError(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
 		} else {
-			HashMap<String, Object> vals = new HashMap<String, Object>();
 			//Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
 			Node mrca = ge.getDraftTreeMRCA(tips);
 			
@@ -178,7 +193,7 @@ public class tree_of_life extends ServerPlugin {
 			while (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
 				mrta = mrta.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
 			}
-			vals.put("mrca_node_id", mrca.getId());
+			responseMap.put("mrca_node_id", mrca.getId());
 			
 			String name = "";
 			String unique = "";
@@ -191,30 +206,31 @@ public class tree_of_life extends ServerPlugin {
 				rank = (String) mrca.getProperty(NodeProperty.TAX_RANK.propertyName);
 				ottID = Long.valueOf((String)mrca.getProperty(NodeProperty.TAX_UID.propertyName));
 			}
-			vals.put("mrca_name", name);
-			vals.put("mrca_unique_name", unique);
-			vals.put("mrca_rank", rank);
+			responseMap.put("mrca_name", name);
+			responseMap.put("mrca_unique_name", unique);
+			responseMap.put("mrca_rank", rank);
 			// a hack, since OTRepresentationConverter apparently cannot use null values
 			if (ottID != null) {
-				vals.put("ott_id", ottID);
+				responseMap.put("ott_id", ottID);
 			} else {
-				vals.put("ott_id", "null");
+				responseMap.put("ott_id", "null");
 			}
 			
-			vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
-			vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-			vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-			vals.put("nearest_taxon_mrca_ott_id", Long.valueOf((String)mrta.getProperty(NodeProperty.TAX_UID.propertyName)));
-			vals.put("nearest_taxon_mrca_node_id", mrta.getId());
+			responseMap.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
+			responseMap.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+			responseMap.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
+			responseMap.put("nearest_taxon_mrca_ott_id", Long.valueOf((String)mrta.getProperty(NodeProperty.TAX_UID.propertyName)));
+			responseMap.put("nearest_taxon_mrca_node_id", mrta.getId());
 			
 			// report 'bad' ids
-			vals.put("invalid_node_ids", invalidNodesIds);
-			vals.put("invalid_ott_ids", invalidOttIds);
-			vals.put("node_ids_not_in_tree", nodeIdsNotInSynth);
-			vals.put("ott_ids_not_in_tree", ottIdsNotInSynth);
+			responseMap.put("invalid_node_ids", invalidNodesIds);
+			responseMap.put("invalid_ott_ids", invalidOttIds);
+			responseMap.put("node_ids_not_in_tree", nodeIdsNotInSynth);
+			responseMap.put("ott_ids_not_in_tree", ottIdsNotInSynth);
 						
 			ge.shutdownDB();
-			return OTRepresentationConverter.convert(vals);
+			logSuccess();
+			return OTRepresentationConverter.convert(responseMap);
 		}
 	}
 	
@@ -232,15 +248,23 @@ public class tree_of_life extends ServerPlugin {
 	public Representation induced_subtree (@Source GraphDatabaseService graphDb,
 			
 			@Description("Node ids indicating nodes to be used as tips in the induced tree")
-			@Parameter(name = "node_ids", optional = true)
-			long[] nodeIds,
-			
+			@Parameter(name = "node_ids", optional = true) long[] nodeIds,
 			@Description("OTT ids indicating nodes to be used as tips in the induced tree")
-			@Parameter(name = "ott_ids", optional = true)
-			long[] ottIds) {
+			@Parameter(name = "ott_ids", optional = true) long[] ottIds) {
+		
+		System.out.println(GeneralUtils.getTimestamp() + "  Running 'tree_of_life/induced_subtree' service.");
+		
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		args.put("node_ids", nodeIds);
+		args.put("ott_ids", ottIds);
+		logArguments(args);
+		
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
 		
 		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
-			throw new IllegalArgumentException("You must supply at least two node or ott ids.");
+			responseMap.put("error", "You must supply at least two \"node_ids\" or \"ott_ids\".");
+			logError(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
 		}
 		
 		ArrayList<Node> tips = new ArrayList<Node>();
@@ -250,8 +274,6 @@ public class tree_of_life extends ServerPlugin {
 		ArrayList<Long> ottIdsNotInSynth = new ArrayList<Long>();
 		
 		Integer numQueryNodes = 0;
-		
-		HashMap<String, Object> vals = null;
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		ge.setQuiet(); // turn off logging
@@ -302,24 +324,25 @@ public class tree_of_life extends ServerPlugin {
 		}
 		
 		if (numQueryNodes < 2) { // too few nodes given
-			vals = new HashMap<String, Object>();
-			vals.put("error", "Must supply 2 or more node or ott ids.");
-			return OTRepresentationConverter.convert(vals);
+			responseMap.put("error", "You must supply at least two \"node_ids\" or \"ott_ids\".");
+			logError(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
 		}
 		
-		vals = new HashMap<String, Object>();
 		// 'bad' nodes
-		vals.put("node_ids_not_in_graph", invalidNodesIds);
-		vals.put("ott_ids_not_in_graph", invalidOttIds);
-		vals.put("node_ids_not_in_tree", nodeIdsNotInSynth);
-		vals.put("ott_ids_not_in_tree", ottIdsNotInSynth);
+		responseMap.put("node_ids_not_in_graph", invalidNodesIds);
+		responseMap.put("ott_ids_not_in_graph", invalidOttIds);
+		responseMap.put("node_ids_not_in_tree", nodeIdsNotInSynth);
+		responseMap.put("ott_ids_not_in_tree", ottIdsNotInSynth);
 		
 		if (tips.size() < 2) {
-			vals.put("error", "Not enough valid node or ott ids provided to construct a subtree (there must be at least two).");
-			return OTRepresentationConverter.convert(vals);
+			responseMap.put("error", "Not enough valid \"node_ids\" or \"ott_ids\" provided to construct a subtree (there must be at least two).");
+			logError(responseMap);
+			return OTRepresentationConverter.convert(responseMap);
 		} else {
-			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
-			return OTRepresentationConverter.convert(vals);
+			responseMap.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
+			logSuccess();
+			return OTRepresentationConverter.convert(responseMap);
 		}
 	}
 	
@@ -335,21 +358,23 @@ public class tree_of_life extends ServerPlugin {
 			@Parameter(name = "tree_id", optional = true) String treeID,
 			@Description("The node id of the node in the tree that should serve as the root of the tree returned. This "
 					+ "argument may not be used in combination with `ott_id`.")
-			@Parameter(name = "node_id", optional = true) Long subtreeNodeId,
+			@Parameter(name = "node_id", optional = true) Long nodeId,
 			@Description("The ott id of the node in the tree that should serve as the root of the tree returned. This "
 					+ "argument may not be used in combination with `node_id`.")
-			@Parameter(name = "ott_id", optional = true) Long subtreeOttId) throws TreeNotFoundException {
+			@Parameter(name = "ott_id", optional = true) Long ottId) throws TreeNotFoundException {
 		
-		System.out.println(GeneralUtils.getTimestamp() + "  Running subtree service.");
+		System.out.println(GeneralUtils.getTimestamp() + "  Running 'tree_of_life/subtree' service.");
+		
 		HashMap<String, Object> args = new HashMap<String, Object>();
 		args.put("tree_id", treeID);
-		args.put("node_id", subtreeNodeId);
-		args.put("ott_id", subtreeOttId);
+		args.put("node_id", nodeId);
+		args.put("ott_id", ottId);
 		logArguments(args);
+		
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
 		
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		ge.setQuiet(); // turn off logging
-		HashMap<String, Object> responseMap = new HashMap<String, Object>();
 		
 		// set default param values
 		long startNodeID = -1;
@@ -357,16 +382,16 @@ public class tree_of_life extends ServerPlugin {
 		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
 		
 		// get start node
-		if (subtreeNodeId != null && subtreeOttId != null) {
+		if (nodeId != null && ottId != null) {
 			responseMap.put("error", "Provide only one \"node_id\" or \"ott_id\" argument.");
 			logError(responseMap);
 			return OTRepresentationConverter.convert(responseMap);
 		}
-		if (subtreeNodeId != null) {
-			startNodeID = subtreeNodeId;
-		} else if (subtreeOttId != null) {
+		if (nodeId != null) {
+			startNodeID = nodeId;
+		} else if (ottId != null) {
 			try {
-				startNodeID = ge.findGraphTaxNodeByUID(String.valueOf(subtreeOttId)).getId();
+				startNodeID = ge.findGraphTaxNodeByUID(String.valueOf(ottId)).getId();
 			} catch (MultipleHitsException e) {
 				
 			} catch (TaxonNotFoundException e) {
@@ -387,7 +412,7 @@ public class tree_of_life extends ServerPlugin {
 		// check that startNode is indeed in the synthetic tree
 		Node n = graphDb.getNodeById(startNodeID);
 		if (n == null) {
-			if (subtreeNodeId != null) {
+			if (nodeId != null) {
 				responseMap.put("error", "Invalid \"node_id\" argument.");
 				logError(responseMap);
 				return OTRepresentationConverter.convert(responseMap);
@@ -398,7 +423,7 @@ public class tree_of_life extends ServerPlugin {
 			}
 		} else {
 			if (!ge.nodeIsInSyntheticTree(n)) {
-				if (subtreeNodeId != null) {
+				if (nodeId != null) {
 					responseMap.put("error", "Provided \"node_id\" is in the graph, but not part of the current synthetic tree.");
 					logError(responseMap);
 					return OTRepresentationConverter.convert(responseMap);
@@ -441,14 +466,18 @@ public class tree_of_life extends ServerPlugin {
 		responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
 		responseMap.put("tree_id", synthTreeID);
 		
-		System.out.println(GeneralUtils.getTimestamp() + "  Exiting subtree service on success.");
+		logSuccess();
 		return OTRepresentationConverter.convert(responseMap);
 	}
 	
 	// Send error message to console
 	public void logError (HashMap<String, Object> responseMap) {
 		System.out.println("\tError: " + responseMap.get("error"));
-		System.out.println(GeneralUtils.getTimestamp() + "  Exiting subtree service on error.");
+		System.out.println(GeneralUtils.getTimestamp() + "  Exiting service on error.");
+	}
+	
+	public void logSuccess () {
+		System.out.println(GeneralUtils.getTimestamp() + "  Exiting service on success.");
 	}
 	
 	// Send passed arguments to console
