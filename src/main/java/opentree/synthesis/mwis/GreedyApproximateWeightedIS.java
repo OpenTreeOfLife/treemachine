@@ -27,18 +27,18 @@ public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 		bestSet = new ArrayList<Long>();
 
 		// all sets begin available -- open all sites in a bitmask
-		BitMask notExcluded = getEmptyBitMask(ids.length);
+		BitMask available = getEmptyBitMask(ids.length);
 		for (int i = 0; i < ids.length; i++) {
-			notExcluded.open(i);
+			available.open(i);
 		}
 		
 		// repeatedly find the best set out of all the available sets
-		while (notExcluded.openBits() > 0) {
+		while (available.openBits() > 0) {
 			Integer bestRel = null;
 			double bestScore = 0;
 
 			// find the rel with the highest score
-			for (int i : notExcluded) {
+			for (int i : available) {
 				double s = getScoreForRel(i);
 				if (s > bestScore) {
 					bestRel = i;
@@ -48,10 +48,10 @@ public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 			
 			// found a best rel, now save it and exclude it and all overlapping rels
 			bestSet.add(ids[bestRel]);
-			notExcluded.close(bestRel);
-			for (int i : notExcluded) {
+			available.close(bestRel);
+			for (int i : available) {
 				if (descendants[bestRel].containsAny(descendants[i])) {
-					notExcluded.close(i);
+					available.close(i);
 				}
 			}
 		}
