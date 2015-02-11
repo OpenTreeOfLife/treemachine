@@ -30,6 +30,7 @@ import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
 
+import org.opentree.bitarray.TLongBitArray;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
@@ -71,6 +72,7 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 
 import scala.actors.threadpool.Arrays;
+
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class GraphExplorer extends GraphBase {

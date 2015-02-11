@@ -17,6 +17,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.kernel.Traversal;
+import org.opentree.bitarray.TLongBitArray;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 /**

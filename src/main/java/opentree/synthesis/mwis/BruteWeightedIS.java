@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 
-import opentree.TLongBitArraySet;
+import org.opentree.bitarray.TLongBitArraySet;
 
 public class BruteWeightedIS extends BaseWeightedIS {
 	

@@ -10,8 +10,9 @@ import java.util.LinkedList;
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 import opentree.constants.RelType;
-import org.opentree.graphdb.GraphDatabaseAgent;
 
+import org.opentree.bitarray.TLongBitArray;
+import org.opentree.graphdb.GraphDatabaseAgent;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;

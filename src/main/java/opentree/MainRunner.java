@@ -2990,7 +2990,7 @@ public class MainRunner {
 			return 1;
 		}
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
-		TreeComparator tc = new TreeComparator(false,args[2],args[3],graphDb);
+		TreeComparator tc = new TreeComparator(false, args[2], args[3], graphDb);
 		tc.processNexson();
 		try {
 			tc.compareTree();

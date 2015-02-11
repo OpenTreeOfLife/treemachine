@@ -4,6 +4,7 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
+import org.opentree.bitarray.TLongBitArray;
 
 /**
  * Neo4j Traversal Evaluator that checks nodes to make sure their mrca and outmrca properties are set. Nodes that need
