@@ -13,12 +13,9 @@
  * high priority.
  */
 
-package jade.tree;
+package jade.tree.deprecated;
 
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
-
-import jade.MessageLogger;
+import jade.deprecated.MessageLogger;
 
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;

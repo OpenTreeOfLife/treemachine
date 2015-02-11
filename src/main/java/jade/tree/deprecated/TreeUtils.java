@@ -1,4 +1,6 @@
-package jade.tree;
+package jade.tree.deprecated;
+
+import jade.tree.deprecated.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;

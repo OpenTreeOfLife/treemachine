@@ -1,4 +1,4 @@
-package jade;
+package jade.deprecated;
 
 import org.apache.commons.lang3.StringUtils;
 

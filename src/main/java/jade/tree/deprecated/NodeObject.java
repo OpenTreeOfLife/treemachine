@@ -1,4 +1,4 @@
-package jade.tree;
+package jade.tree.deprecated;
 
 /**
  * Like TreeObject this class is just a (String, Object) pair. 

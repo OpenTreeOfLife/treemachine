@@ -1,18 +1,10 @@
 package opentree;
 
-/*
- * GraphExporter is meant to export the graph in a variety of 
- * formats
- * GraphExporter major functions
- * =============================
- * mrpdump
- * write graph ml
- * write json
- */
 
 import gnu.trove.set.hash.TLongHashSet;
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
+import jade.tree.deprecated.JadeNode;
+import jade.tree.deprecated.JadeTree;
+
 import org.opentree.utils.GeneralUtils;
 
 import java.io.FileWriter;
@@ -29,8 +21,8 @@ import java.util.Stack;
 import opentree.constants.NodeProperty;
 //import opentree.RelTypes;
 import opentree.constants.RelType;
-import org.opentree.exceptions.TaxonNotFoundException;
 
+import org.opentree.exceptions.TaxonNotFoundException;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphalgo.PathFinder;
@@ -45,32 +37,33 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 
+/**
+ * GraphExporter is meant to export the graph in a variety of 
+ * formats
+ * GraphExporter major functions<br/>
+ * =============================<br/>
+ * mrpdump<br/>
+ * write graph ml<br/>
+ * write json<br/>
+ */
 public class GraphExporter extends GraphBase {
 
 	private SpeciesEvaluator se;
 	private ChildNumberEvaluator cne;
 	private TaxaListEvaluator tle;
 
-	/*
-	public GraphExporter() {
-		finishInitialization();
-	} */
-
 	public GraphExporter(String graphname) {
 		super(graphname);
-//		graphDb = new GraphDatabaseAgent(graphname);
 		finishInitialization();
 	}
 
 	public GraphExporter(EmbeddedGraphDatabase embeddedGraph) {
-//		graphDb = new GraphDatabaseAgent(embeddedGraph);
 		super(embeddedGraph);
 		finishInitialization();
 	}
 
 	public GraphExporter(GraphDatabaseService gdb) {
 		super(gdb);
-//		graphDb = new GraphDatabaseAgent(gdb);
 		finishInitialization();
 	}
 
@@ -79,11 +72,6 @@ public class GraphExporter extends GraphBase {
 		cne.setChildThreshold(100);
 		se = new SpeciesEvaluator();
 		tle = new TaxaListEvaluator();
-/*		if (graphDb != null) {
-			graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
-			sourceRelIndex = graphDb.getRelIndex("sourceRels");
-			sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
-		} */
 	}
 	public void writeGraphDot(String taxname, String outfile, boolean useTaxonomy) 
 				throws TaxonNotFoundException {

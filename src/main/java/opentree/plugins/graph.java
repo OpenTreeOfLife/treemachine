@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import jade.tree.JadeTree;
-import opentree.GraphDatabaseAgent;
+
+import jade.tree.deprecated.JadeTree;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
@@ -26,6 +27,7 @@ import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
 import org.opentree.utils.GeneralUtils;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 // Graph of Life Services 
 public class graph extends ServerPlugin {

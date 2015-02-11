@@ -1,4 +1,4 @@
-package opentree;
+package opentree.deprecated;
 
 import java.util.Map;
 
@@ -17,7 +17,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
  * @author cody hinchliff and stephen smith
  *
  */
-public class GraphDatabaseAgent {
+public class GraphDatabaseAgentDeprecated {
 
 	/*
 	private static EmbeddedGraphDatabase embeddedGraphDb;
@@ -29,17 +29,17 @@ public class GraphDatabaseAgent {
 	private GraphDatabaseService graphDbService;
 	private boolean embedded;
 
-	public GraphDatabaseAgent(GraphDatabaseService gdbs) {
+	public GraphDatabaseAgentDeprecated(GraphDatabaseService gdbs) {
 		graphDbService = gdbs;
 		embedded = false;
 	}
 
-	public GraphDatabaseAgent(EmbeddedGraphDatabase egdb) {
+	public GraphDatabaseAgentDeprecated(EmbeddedGraphDatabase egdb) {
 		embeddedGraphDb = egdb;
 		embedded = true;
 	}
 
-	public GraphDatabaseAgent(String graphDbName) {
+	public GraphDatabaseAgentDeprecated(String graphDbName) {
 		embeddedGraphDb = new EmbeddedGraphDatabase(graphDbName);
 		embedded = true;
 	}

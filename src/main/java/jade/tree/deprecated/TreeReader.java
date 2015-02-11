@@ -1,7 +1,10 @@
 /**
  * 
  */
-package jade.tree;
+package jade.tree.deprecated;
+
+import jade.tree.deprecated.JadeNode;
+import jade.tree.deprecated.JadeTree;
 
 /**
  * @author smitty

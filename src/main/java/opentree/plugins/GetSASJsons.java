@@ -1,7 +1,7 @@
 package opentree.plugins;
 
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
+import jade.tree.deprecated.JadeNode;
+import jade.tree.deprecated.JadeTree;
 import opentree.GraphExplorer;
 import opentree.GraphExporter;
 

@@ -1,4 +1,4 @@
-package jade;
+package jade.deprecated;
 
 import java.io.PrintStream;
 

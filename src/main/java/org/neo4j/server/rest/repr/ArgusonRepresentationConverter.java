@@ -1,6 +1,6 @@
 package org.neo4j.server.rest.repr;
 
-import jade.tree.JadeNode;
+import jade.tree.deprecated.JadeNode;
 
 import java.net.URI;
 import java.util.ArrayList;

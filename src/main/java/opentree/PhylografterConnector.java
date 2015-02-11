@@ -2,9 +2,10 @@ package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
-import jade.tree.NexsonReader;
+import jade.deprecated.MessageLogger;
+import jade.tree.deprecated.JadeNode;
+import jade.tree.deprecated.JadeTree;
+import jade.tree.deprecated.NexsonReader;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,10 +18,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+
 import javax.ws.rs.core.MediaType;
 
 import opentree.constants.RelType;
-import jade.MessageLogger;
 
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
@@ -29,11 +30,15 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+
+
+
 
 // for gzipped nexsons
 import java.util.zip.GZIPInputStream;
@@ -295,7 +300,7 @@ public class PhylografterConnector {
 							}
 						}
 					}
-					Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes" ); // name is the key
+					Index<Node> graphNodeIndex = graphDb.getNodeIndex( "graphNamedNodes", "type", "exact", "to_lower_case", "true"); // name is the key
 
 					// check to make sure that they aren't already in the new index
 					ArrayList<String> removenames = new ArrayList<String>();
@@ -356,7 +361,7 @@ public class PhylografterConnector {
 						logger.indentMessageLong(3, "duplicate", "OTT ID", tid);
 						pru.add(currNd);
 					} else {
-						IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+						IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get("tax_uid", String.valueOf(tid));
 						if (hits.size() == 0) {
 							logger.indentMessage(2, "OTT ID not in database (probably dubious)");
 							logger.indentMessageStrStr(3, "dubious", "name", currNd.getName(), "nexsonid", (String)currNd.getObject("nexsonid"));
@@ -376,7 +381,7 @@ public class PhylografterConnector {
 						continue;
 					}
 					Long tid = (Long)currNdJ.getObject("ot:ottId");
-					IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+					IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get("tax_uid", String.valueOf(tid));
 					Node firstNode = hits.getSingle();
 					hits.close();
 					TLongArrayList t1 = new TLongArrayList((long [])firstNode.getProperty("mrca"));
@@ -386,7 +391,7 @@ public class PhylografterConnector {
 							continue;
 						}
 						Long tid2 = (Long)currNdK.getObject("ot:ottId");
-						IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid2));
+						IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get("tax_uid", String.valueOf(tid2));
 						Node secondNode = hits2.getSingle();
 						hits2.close();
 						if (secondNode == null) {
@@ -429,7 +434,7 @@ public class PhylografterConnector {
 			for (int k = 0; k < currTree.getExternalNodeCount(); k++) {
 				JadeNode ndK = currTree.getExternalNode(k);
 				Long tid = (Long)ndK.getObject("ot:ottId");
-				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get("tax_uid", String.valueOf(tid));
 				Node firstNode = hits.getSingle();
 				hits.close();
 				Node cnode = firstNode;
@@ -528,7 +533,7 @@ public class PhylografterConnector {
 					logger.indentMessageLong(3, "duplicate", "OTT ID", tid);
 					pru.add(currNd);
 				} else {
-					IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+					IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get("tax_uid", String.valueOf(tid));
 					if (hits.size() == 0) {
 						logger.indentMessage(2, "OTT ID not in database (probably dubious)");
 						logger.indentMessageStrStr(3, "dubious", "name", currNd.getName(), "nexsonid", (String)currNd.getObject("nexsonid"));
@@ -548,7 +553,7 @@ public class PhylografterConnector {
 					continue;
 				}
 				Long tid = (Long)currNdJ.getObject("ot:ottId");
-				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get("tax_uid", String.valueOf(tid));
 				Node firstNode = hits.getSingle();
 				hits.close();
 				TLongArrayList t1 = new TLongArrayList((long [])firstNode.getProperty("mrca"));
@@ -558,7 +563,7 @@ public class PhylografterConnector {
 						continue;
 					}
 					Long tid2 = (Long)currNdK.getObject("ot:ottId");
-					IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid2));
+					IndexHits<Node> hits2 = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get("tax_uid", String.valueOf(tid2));
 					Node secondNode = hits2.getSingle();
 					hits2.close();
 					if (secondNode == null) {
@@ -601,7 +606,7 @@ public class PhylografterConnector {
 			for (int k = 0; k < currTree.getExternalNodeCount(); k++) {
 				JadeNode ndK = currTree.getExternalNode(k);
 				Long tid = (Long)ndK.getObject("ot:ottId");
-				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes").get("tax_uid", String.valueOf(tid));
+				IndexHits<Node> hits = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get("tax_uid", String.valueOf(tid));
 				Node firstNode = hits.getSingle();
 				hits.close();
 				Node cnode = firstNode;

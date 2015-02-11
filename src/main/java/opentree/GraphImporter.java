@@ -2,8 +2,8 @@ package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
-import jade.tree.*;
-import jade.MessageLogger;
+import jade.deprecated.MessageLogger;
+import jade.tree.deprecated.*;
 
 import java.lang.StringBuffer;
 import java.util.ArrayList;
@@ -15,8 +15,10 @@ import java.util.LinkedList;
 import java.util.Map.Entry;
 
 import opentree.constants.RelType;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
+
 import opentree.exceptions.TreeIngestException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -33,6 +35,7 @@ import org.neo4j.kernel.Traversal;
 import org.opentree.exceptions.AmbiguousTaxonException;
 
 import scala.actors.threadpool.Arrays;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 /**
  * GraphImporter is intended to control the initial creation 

@@ -1,11 +1,9 @@
-package jade.tree;
+package jade.tree.deprecated;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
-
-import org.opentree.utils.GeneralUtils;
 
 public class JadeNode {
     

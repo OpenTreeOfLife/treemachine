@@ -1,4 +1,6 @@
-package jade.tree;
+package jade.tree.deprecated;
+
+import jade.tree.deprecated.JadeNode;
 
 import java.util.*;
 

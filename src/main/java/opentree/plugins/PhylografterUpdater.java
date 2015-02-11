@@ -1,22 +1,26 @@
 package opentree.plugins;
 
-import jade.tree.JadeTree;
+import jade.deprecated.MessageLogger;
+import jade.tree.deprecated.JadeTree;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import opentree.GraphDatabaseAgent;
+
 import opentree.GraphImporter;
 import opentree.PhylografterConnector;
+
 import org.opentree.exceptions.TaxonNotFoundException;
+
 import opentree.exceptions.TreeIngestException;
-import jade.MessageLogger;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class PhylografterUpdater extends ServerPlugin {
 

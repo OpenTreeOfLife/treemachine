@@ -1,4 +1,4 @@
-package jade.tree;
+package jade.tree.deprecated;
 
 public class TreeSimulator {
 	public TreeSimulator(){

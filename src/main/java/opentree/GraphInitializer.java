@@ -1,8 +1,7 @@
 package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
-
-import jade.tree.JadeTree;
+import jade.tree.deprecated.JadeTree;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -17,8 +16,8 @@ import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
-import org.opentree.exceptions.TaxonNotFoundException;
 
+import org.opentree.exceptions.TaxonNotFoundException;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -27,6 +26,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class GraphInitializer extends GraphBase{
 

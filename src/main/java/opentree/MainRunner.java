@@ -1,11 +1,13 @@
 package opentree;
 
 import gnu.trove.set.hash.TLongHashSet;
-import jade.tree.JadeNode;
-import jade.tree.JadeNode.NodeOrder;
-import jade.tree.TreeReader;
-import jade.tree.JadeTree;
-import jade.tree.NexsonReader;
+import jade.deprecated.JSONMessageLogger;
+import jade.deprecated.MessageLogger;
+import jade.tree.deprecated.JadeNode;
+import jade.tree.deprecated.JadeTree;
+import jade.tree.deprecated.NexsonReader;
+import jade.tree.deprecated.TreeReader;
+import jade.tree.deprecated.JadeNode.NodeOrder;
 
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.utils.GeneralUtils;
@@ -57,8 +59,7 @@ import org.opentree.exceptions.TreeNotFoundException;
 
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.testing.TreeUtils;
-import jade.MessageLogger;
-import jade.JSONMessageLogger;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class MainRunner {
 	//static Logger _LOG = Logger.getLogger(MainRunner.class);
@@ -446,7 +447,7 @@ public class MainRunner {
 		HashMap<JadeNode,String> orignames = new HashMap<JadeNode,String>();
 		for (JadeNode jd: taxastart.keySet()) {
 			Long taxUID = (Long)jd.getObject("ot:ottId");
-			IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
+			IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get(NodeProperty.TAX_UID.propertyName, taxUID);
 			Node startnode = null;
 			try {
 				startnode = hts.getSingle();
@@ -1554,7 +1555,7 @@ public class MainRunner {
 			for (int i = 0; i < jt.get(0).getExternalNodeCount(); i++) {
 				JadeNode jd = jt.get(0).getExternalNode(i);
 				Long taxUID = Long.valueOf(jd.getName().replaceAll("\\s+",""));
-				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
+				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get(NodeProperty.TAX_UID.propertyName, taxUID);
 				Node startnode = null;
 				try {
 					startnode = hts.getSingle();
@@ -1569,7 +1570,7 @@ public class MainRunner {
 				JadeNode jd = jt.get(0).getInternalNode(i);
 				try {
 					Long taxUID = Long.valueOf(jd.getName().replaceAll("\\s+",""));
-					IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
+					IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get(NodeProperty.TAX_UID.propertyName, taxUID);
 					Node startnode = null;
 					try {
 						startnode = hts.getSingle();
@@ -1835,7 +1836,7 @@ public class MainRunner {
 			HashSet<Node> nodes = new HashSet<Node>();
 			for (int i = 0; i < jt.get(0).getExternalNodeCount(); i++) {
 				Long taxUID = Long.valueOf(jt.get(0).getExternalNode(i).getName());
-				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes").get(NodeProperty.TAX_UID.propertyName, taxUID);
+				IndexHits<Node> hts = graphDb.getNodeIndex("graphTaxUIDNodes","type", "exact", "to_lower_case", "true").get(NodeProperty.TAX_UID.propertyName, taxUID);
 				Node startnode = null;
 				try {
 					startnode = hts.getSingle();
@@ -2390,7 +2391,7 @@ public class MainRunner {
 	public static boolean checkTreeNewToGraph (String sourcename, GraphDatabaseAgent graphDb) {
 		boolean newTree = true;
 		// test to see if the tree is already in graph
-		Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
+		Index<Node> sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes","type", "exact", "to_lower_case", "true");
 		IndexHits<Node > hits = sourceMetaIndex.get("source", sourcename);
 		if (hits.size() > 0) {
 			return false;

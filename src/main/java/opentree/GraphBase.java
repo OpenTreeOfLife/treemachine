@@ -8,9 +8,10 @@ import opentree.constants.GraphProperty;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
-
+import org.opentree.graphdb.GraphDatabaseAgent;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -387,17 +388,16 @@ public abstract class GraphBase {
 	 */
 	private void initNodeIndexes() {
 		// TODO: should move this to an enum to make management/index access easier to deal with
-		graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes");
-		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
-		sourceRelIndex = graphDb.getRelIndex("sourceRels");
-		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes");
-		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes");
-		graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes");
-		synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns");
-		graphTaxNewNodes = graphDb.getNodeIndex(""); // not sure what the name of this one is in the graphdb. it doesn't seem to be used (for now)
+		graphNodeIndex = graphDb.getNodeIndex("graphNamedNodes", "type", "exact", "to_lower_case", "true");
+		synNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns", "type", "exact", "to_lower_case", "true");
+		sourceRelIndex = graphDb.getRelationshipIndex("sourceRels", "type", "exact", "to_lower_case", "true");
+		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes", "type", "exact", "to_lower_case", "true");
+		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes", "type", "exact", "to_lower_case", "true");
+		graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
+		synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns", "type", "exact", "to_lower_case", "true");
 		
-	// synthetic tree indices
-		synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes");
-		synthRelIndex = graphDb.getRelIndex("synthRels");
+		// synthetic tree indices
+		synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes", "type", "exact", "to_lower_case", "true");
+		synthRelIndex = graphDb.getRelationshipIndex("synthRels", "type", "exact", "to_lower_case", "true");
 	}
 }

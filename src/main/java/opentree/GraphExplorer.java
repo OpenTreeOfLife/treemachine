@@ -2,9 +2,10 @@ package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
-import jade.tree.TreeReader;
+import jade.deprecated.MessageLogger;
+import jade.tree.deprecated.JadeNode;
+import jade.tree.deprecated.JadeTree;
+import jade.tree.deprecated.TreeReader;
 
 import org.opentree.utils.GeneralUtils;
 
@@ -52,7 +53,6 @@ import opentree.synthesis.ranking.RankingOrder;
 import opentree.synthesis.ranking.RelationshipRanker;
 import opentree.synthesis.ranking.SourcePropertyPrioritizedRankingCriterion;
 import opentree.synthesis.ranking.SourcePropertyRankingCriterion;
-import jade.MessageLogger;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
@@ -71,6 +71,7 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 
 import scala.actors.threadpool.Arrays;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class GraphExplorer extends GraphBase {
 	//static Logger _LOG = Logger.getLogger(GraphExplorer.class);

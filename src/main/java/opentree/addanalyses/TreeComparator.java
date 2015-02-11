@@ -28,14 +28,14 @@ import org.opentree.exceptions.AmbiguousTaxonException;
 import org.opentree.exceptions.TaxonNotFoundException;
 
 import opentree.GraphBase;
-import opentree.GraphDatabaseAgent;
 import opentree.LicaUtil;
 import opentree.PhylografterConnector;
 import opentree.constants.RelType;
-import jade.MessageLogger;
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
-import jade.tree.NexsonReader;
+import jade.deprecated.MessageLogger;
+import jade.tree.deprecated.JadeNode;
+import jade.tree.deprecated.JadeTree;
+import jade.tree.deprecated.NexsonReader;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class TreeComparator extends GraphBase{
 	private boolean taxtree = false;
