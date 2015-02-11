@@ -245,7 +245,6 @@ public class tree_of_life extends ServerPlugin {
 			+ "parent of another, the returned tree may be incorrect.** Please avoid this input case.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation induced_subtree (@Source GraphDatabaseService graphDb,
-			
 			@Description("Node ids indicating nodes to be used as tips in the induced tree")
 			@Parameter(name = "node_ids", optional = true) long[] nodeIds,
 			@Description("OTT ids indicating nodes to be used as tips in the induced tree")

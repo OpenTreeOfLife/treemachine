@@ -75,14 +75,14 @@ public class graph extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation source_tree(
 			@Source GraphDatabaseService graphDb,
-			@Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")") @Parameter(
-					name = "study_id", optional = false) String studyID,
-			@Description("The tree identifier for a given study.") @Parameter(
-					name = "tree_id", optional = false) String treeID,
-			@Description("The git SHA identifying a particular source version.") @Parameter(
-					name = "git_sha", optional = false) String gitSHA,
-			@Description("The name of the return format. The only currently supported format is newick.") @Parameter(
-					name = "format", optional = true) String format) throws TreeNotFoundException {
+			@Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")")
+			@Parameter(name = "study_id", optional = false) String studyID,
+			@Description("The tree identifier for a given study.")
+			@Parameter(name = "tree_id", optional = false) String treeID,
+			@Description("The git SHA identifying a particular source version.")
+			@Parameter(name = "git_sha", optional = false) String gitSHA,
+			@Description("The name of the return format. The only currently supported format is newick.")
+			@Parameter(name = "format", optional = true) String format) throws TreeNotFoundException {
 		
 		System.out.println(GeneralUtils.getTimestamp() + "  Running 'graph/source_tree' service.");
 		
@@ -126,10 +126,10 @@ public class graph extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation node_info(
 			@Source GraphDatabaseService graphDb,
-			@Description("The node id of the node of interest. This argument may not be combined with `ott_id`.") @Parameter(
-					name = "node_id", optional = true) Long nodeId,
-			@Description("The ott id of the node of interest. This argument may not be combined with `node_id`.") @Parameter(
-					name = "ott_id", optional = true) Long ottId,
+			@Description("The node id of the node of interest. This argument may not be combined with `ott_id`.")
+			@Parameter(name = "node_id", optional = true) Long nodeId,
+			@Description("The ott id of the node of interest. This argument may not be combined with `node_id`.")
+			@Parameter(name = "ott_id", optional = true) Long ottId,
 			@Description("Include the ancestral lineage of the node in the draft tree. If this argument is `true`, then "
 					+ "a list of all the ancestors of this node in the draft tree, down to the root of the tree itself, "
 					+ "will be included in the results. Higher list indices correspond to more incluive (i.e. deeper) "
