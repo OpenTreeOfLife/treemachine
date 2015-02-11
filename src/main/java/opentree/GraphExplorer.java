@@ -77,6 +77,7 @@ public class GraphExplorer extends GraphBase {
 	private HashSet<Long> knownIdsInTree;
 	public boolean verbose = true; // used for controlling logging for plugins
 	
+	// turn off System.out calls, as they get logged in plugin calls
 	public void setQuiet() {
 		verbose = false;
 	}
@@ -198,6 +199,7 @@ public class GraphExplorer extends GraphBase {
 	 * @param stopNode
 	 * @return
 	 */
+	// verbose is used because plugins call this code
 	private Map<Node, ArrayList<Node>> getTreeTipRootPathTaxonomyMap(Iterable<Node> tips, Node stopNode) throws UnsupportedOperationException {
 		if (stopNode != null) {
 			if (verbose) System.out.println("setting stop node to " + stopNode);
@@ -275,6 +277,7 @@ public class GraphExplorer extends GraphBase {
 	 * @param stopNode
 	 * @return
 	 */
+	// verbose is used because plugins call this code
 	private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips, Node stopNode) {
 		
 		if (stopNode != null) {
@@ -489,6 +492,7 @@ public class GraphExplorer extends GraphBase {
 	 * @return draftSubtree
 	 */
 	// TODO: detect if some nodes are ancestors of other nodes
+	// verbose is used because plugins call this code
 	public JadeNode extractDraftSubtreeForTipNodes(List<Node> tips) {
 		
 		if (tips.size() < 2) {

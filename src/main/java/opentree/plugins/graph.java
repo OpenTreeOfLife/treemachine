@@ -320,11 +320,13 @@ public class graph extends ServerPlugin {
 		}
 	}
 	
+	
 	// Send error message to console
 	public void logError (HashMap<String, Object> responseMap) {
 		System.out.println("\tError: " + responseMap.get("error"));
 		System.out.println(GeneralUtils.getTimestamp() + "  Exiting service on error.");
 	}
+	
 	
 	public void logSuccess () {
 		System.out.println(GeneralUtils.getTimestamp() + "  Exiting service on success.");

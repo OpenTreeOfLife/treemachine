@@ -4,8 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
-
-import jade.tree.JadeNode;
+import java.util.Arrays;
 import jade.tree.JadeTree;
 
 import org.opentree.utils.GeneralUtils;
@@ -120,8 +119,8 @@ public class tree_of_life extends ServerPlugin {
 		System.out.println(GeneralUtils.getTimestamp() + "  Running 'tree_of_life/mrca' service.");
 		
 		HashMap<String, Object> args = new HashMap<String, Object>();
-		args.put("node_ids", nodeIds);
-		args.put("ott_ids", ottIds);
+		if (nodeIds != null) args.put("node_ids", Arrays.toString(nodeIds));
+		if (ottIds != null) args.put("ott_ids", Arrays.toString(ottIds));
 		logArguments(args);
 		
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
@@ -255,8 +254,8 @@ public class tree_of_life extends ServerPlugin {
 		System.out.println(GeneralUtils.getTimestamp() + "  Running 'tree_of_life/induced_subtree' service.");
 		
 		HashMap<String, Object> args = new HashMap<String, Object>();
-		args.put("node_ids", nodeIds);
-		args.put("ott_ids", ottIds);
+		if (nodeIds != null) args.put("node_ids", Arrays.toString(nodeIds));
+		if (ottIds != null) args.put("ott_ids", Arrays.toString(ottIds));
 		logArguments(args);
 		
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
@@ -470,15 +469,18 @@ public class tree_of_life extends ServerPlugin {
 		return OTRepresentationConverter.convert(responseMap);
 	}
 	
+	
 	// Send error message to console
 	public void logError (HashMap<String, Object> responseMap) {
 		System.out.println("\tError: " + responseMap.get("error"));
 		System.out.println(GeneralUtils.getTimestamp() + "  Exiting service on error.");
 	}
 	
+	
 	public void logSuccess () {
 		System.out.println(GeneralUtils.getTimestamp() + "  Exiting service on success.");
 	}
+	
 	
 	// Send passed arguments to console
 	public void logArguments (HashMap<String, Object> args) {
