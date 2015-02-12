@@ -75,7 +75,12 @@ public class GraphExplorer extends GraphBase {
 	private TaxaListEvaluator tle;
 	private boolean sinkLostChildren;
 	private HashSet<Long> knownIdsInTree;
+	public boolean verbose = true; // used for controlling logging for plugins
 	
+	// turn off System.out calls, as they get logged in plugin calls
+	public void setQuiet() {
+		verbose = false;
+	}
 	
 	public GraphExplorer(String graphname) {
 		super(graphname);
@@ -83,13 +88,11 @@ public class GraphExplorer extends GraphBase {
 		finishInitialization();
 	}
 	
-	
 	public GraphExplorer(GraphDatabaseService gdb) {
 		super(gdb);
 		setDefaultParameters();
 		finishInitialization();
 	}
-	
 	
 	public GraphExplorer(GraphDatabaseAgent gdb) {
 		super(gdb);
@@ -97,14 +100,12 @@ public class GraphExplorer extends GraphBase {
 		finishInitialization();
 	}
 	
-	
 	private void finishInitialization() {
 		cne = new ChildNumberEvaluator();
 		cne.setChildThreshold(100);
 		se = new SpeciesEvaluator();
 		tle = new TaxaListEvaluator();
 	}
-	
 	
 	private void setDefaultParameters() {
 		sinkLostChildren = false;
@@ -118,7 +119,6 @@ public class GraphExplorer extends GraphBase {
 	 * the node where the tie-breaking event occurred (i.e. they are "sunk" to that level in the tree). This will result in very conservative (in this case
 	 * meaning deep and imprecise) assignment of "lost child" taxa.
 	 */
-	
 	
 	// appends '_ottNNNNN' to name, and ensures it is newick-compliant
 	public String getOttName (Node curNode) {
@@ -199,9 +199,10 @@ public class GraphExplorer extends GraphBase {
 	 * @param stopNode
 	 * @return
 	 */
+	// verbose is used because plugins call this code
 	private Map<Node, ArrayList<Node>> getTreeTipRootPathTaxonomyMap(Iterable<Node> tips, Node stopNode) throws UnsupportedOperationException {
 		if (stopNode != null) {
-			System.out.println("setting stop node to " + stopNode);
+			if (verbose) System.out.println("setting stop node to " + stopNode);
 		}
 		HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<Node, ArrayList<Node>>();
 		HashSet<Node> removeTips = new HashSet<Node>();
@@ -234,9 +235,7 @@ public class GraphExplorer extends GraphBase {
 	
 	public Node getTaxonomyMRCA(Iterable<Node> nodeset) {
 		Node mrca = null;
-		
 		ArrayList<Node> holder = null;
-		
 		int index = 10000000;
 		
 		for (Node curNode : nodeset) {
@@ -278,10 +277,11 @@ public class GraphExplorer extends GraphBase {
 	 * @param stopNode
 	 * @return
 	 */
+	// verbose is used because plugins call this code
 	private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips, Node stopNode) {
 		
 		if (stopNode != null) {
-			System.out.println("setting stop node to " + stopNode);
+			if (verbose) System.out.println("setting stop node to " + stopNode);
 		}
 		
 		// TODO: check if there is only 1 tip, and if it is the same as the mrca. if so, throw UnsupportedOperationException
@@ -313,11 +313,8 @@ public class GraphExplorer extends GraphBase {
 	// Assumes all query nodes are in the synthetic tree. Doesn't calculate all paths.
 	public Node getDraftTreeMRCA(Iterable<Node> nodeset) {
 		Node mrca = null;
-		
 		ArrayList<Node> holder = null;
-		
 		int index = 10000000;
-		
 		for (Node curNode : nodeset) {
 			if (holder != null) {
 				for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
@@ -423,7 +420,7 @@ public class GraphExplorer extends GraphBase {
 	}
 	
 	public JadeNode extractTaxonomySubtreeForTipNodes(Iterable<Node> tips) {
-		Node mrca = getDraftTreeMRCAForNodes(tips,true);
+		Node mrca = getDraftTreeMRCAForNodes(tips, true);
 		System.out.println("identified mrca " + mrca);
 		HashMap<Node,JadeNode> mapnodes = new HashMap<Node,JadeNode>();
 		HashMap<JadeNode,Node> mapjnodes = new HashMap<JadeNode,Node>();
@@ -495,6 +492,7 @@ public class GraphExplorer extends GraphBase {
 	 * @return draftSubtree
 	 */
 	// TODO: detect if some nodes are ancestors of other nodes
+	// verbose is used because plugins call this code
 	public JadeNode extractDraftSubtreeForTipNodes(List<Node> tips) {
 		
 		if (tips.size() < 2) {
@@ -502,9 +500,9 @@ public class GraphExplorer extends GraphBase {
 		}
 		
 		// get the mrca. should check if the mrca is equal to one of the query nodes
-		Node mrca = getDraftTreeMRCAForNodes(tips,false);
+		Node mrca = getDraftTreeMRCAForNodes(tips, false);
 		
-		System.out.println("identified mrca " + mrca);
+		if (verbose) System.out.println("identified mrca " + mrca);
 		
 		// get all the paths from the tips to the mrca
 		Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = getTreeTipRootPathMap(tips, mrca);
@@ -537,12 +535,11 @@ public class GraphExplorer extends GraphBase {
 		// set start conditions (add root to stack)
 		JadeNode root = new JadeNode();
 		stack.add(root);
-		System.out.println("adding root node to stack");
+		if (verbose) System.out.println("adding root node to stack");
 		treeNodeTreeTipDescendantsMap.put(root, new LinkedList<JadeNode>(graphNodeTreeNodeMap.values()));
 		
 		while (stack.size() > 0) {
-			
-			System.out.println(stack.size() + " nodes in stack");
+			if (verbose) System.out.println(stack.size() + " nodes in stack");
 			//System.out.println("current topology: \n" + root.getNewick(false) + "\n");
 			
 			JadeNode treeNode = stack.remove(0);
@@ -564,7 +561,7 @@ public class GraphExplorer extends GraphBase {
 			}
 			
 			// testing
-			System.out.println("inferred node mapping in graph is " + graphNode + " name = '" + treeNode.getName() + "'");
+			if (verbose) System.out.println("inferred node mapping in graph is " + graphNode + " name = '" + treeNode.getName() + "'");
 			
 			// make a container to hold mrca tipsets for nodes to be added as children of this tree node
 			HashMap<Node, LinkedList<JadeNode>> childNodeTreeTipDescendantsMap = new HashMap<Node, LinkedList<JadeNode>>();
@@ -572,7 +569,7 @@ public class GraphExplorer extends GraphBase {
 			// for each leaf descendant of the current node
 			for (JadeNode curDescendantTreeNode : treeNodeTreeTipDescendantsMap.get(treeNode)) {
 				// testing
-				System.out.println("\tdescendant " + curDescendantTreeNode.getName());
+				if (verbose) System.out.println("\tdescendant " + curDescendantTreeNode.getName());
 				
 				Node curDescendantGraphNode = treeNodeGraphNodeMap.get(curDescendantTreeNode);
 				
@@ -609,7 +606,7 @@ public class GraphExplorer extends GraphBase {
 			if (childNodeTreeTipDescendantsMap.size() == 1) {
 				Node onlyDescendant = childNodeTreeTipDescendantsMap.keySet().iterator().next();
 				if (childNodeTreeTipDescendantsMap.get(onlyDescendant).size() > 1) {
-					System.out.println("\tthe current node has only one child (name='" + treeNode.getName() + "') with multiple descendants. the child will be replace the parent and be reprocessed.");
+					if (verbose) System.out.println("\tthe current node has only one child (name='" + treeNode.getName() + "') with multiple descendants. the child will be replace the parent and be reprocessed.");
 					stack.add(0, treeNode);
 					continue;
 				}
@@ -698,7 +695,7 @@ public class GraphExplorer extends GraphBase {
 			}
 		}
 		
-		System.out.println("\n" + root.getNewick(false) + "\n");
+		if (verbose) System.out.println("\n" + root.getNewick(false) + "\n");
 		
 		return root;
 	}
