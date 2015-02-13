@@ -1,0 +1,162 @@
+package org.opentree.tag.treeimport;
+
+import java.util.Map;
+
+import org.opentree.bitarray.TLongBitArraySet;
+
+public class TLongBipartition {
+
+	private TLongBitArraySet ingroup;
+	private TLongBitArraySet outgroup;
+
+	public TLongBipartition(long[] ingroup, long[] outgroup) {
+		this.ingroup = new TLongBitArraySet(ingroup);
+		this.outgroup = new TLongBitArraySet(outgroup);
+	}
+
+	public TLongBipartition(TLongBitArraySet ingroup, TLongBitArraySet outgroup) {
+		this.ingroup = new TLongBitArraySet(ingroup);
+		this.outgroup = new TLongBitArraySet(outgroup);
+	}
+
+	public TLongBitArraySet ingroup() {
+		return ingroup;
+	}
+
+	public TLongBitArraySet outgroup() {
+		return outgroup;
+	}
+
+	public TLongBipartition sum(TLongBipartition that) {
+
+		if (!this.isCompatibleWith(that)) {
+			return null;
+		}
+
+		if (this.equals(that)) {
+			return new TLongBipartition(ingroup, outgroup);
+		}
+
+		TLongBitArraySet sumIn = new TLongBitArraySet();
+		sumIn.addAll(this.ingroup);
+		sumIn.addAll(that.ingroup);
+
+		TLongBitArraySet sumOut = new TLongBitArraySet();
+		sumOut.addAll(this.outgroup);
+		sumOut.addAll(that.outgroup);
+
+		return new TLongBipartition(sumIn, sumOut);
+	}
+
+	/**
+	 * Returns true if there is no conflict between these bipartitions. More formally, let A be the bipartition on which
+	 * the method is called and B the bipartition passed to the method. Then, we return true if and only if (1) the
+	 * intersection of A's ingroup and B's outgroup is null, and (2) the intersection of B's ingroup and A's outgroup is
+	 * null.
+	 * 
+	 * @param that
+	 * @return
+	 */
+	public boolean isCompatibleWith(TLongBipartition that) {
+		return !(this.ingroup.containsAny(that.outgroup) || this.outgroup.containsAny(that.ingroup));
+	}
+
+	/**
+	 * Returns true if the called bipartition contains information that could be used to further resolve relationships
+	 * among the ingroup of the bipartition passed to the method. This is an asymmetrical relationship--no bipartition
+	 * may be a resolving child of a second bipartition which is in turn a resolving child of the first.<br/>
+	 * <br/>
+	 * Let B be the potentially nested bipartition and A be the bipartition it is proposed to be nested within. Then, B
+	 * is nested within A if and only if B's ingroup does not contain anything in the outgroup of A (if it did then B
+	 * could not be a child of A), *and* A's outgroup contains at least something in the ingroup of B. This second
+	 * condition implies that the relationships among A's ingroup can be further resolved by the inclusion of B as a
+	 * child of A.
+	 * 
+	 * @param A
+	 *            the potentially more inclusive bipartition
+	 * @return	true if this bipartition is nested within A
+	 */
+	public boolean isNestedPartitionOf(TLongBipartition B) {
+		if (B.outgroup.containsAny(this.ingroup)) {
+			return false; // a cannot be nested within b
+		} 
+		return B.ingroup.containsAny(this.outgroup); // a can be nested within b
+	}
+
+	@Override
+	public boolean equals(Object that) {
+		boolean result = false;
+		if (that != null && that instanceof TLongBipartition) {
+			TLongBipartition b = (TLongBipartition) that;
+			result = ingroup.size() == b.ingroup.size() && outgroup.size() == b.outgroup.size()
+					&& ingroup.containsAll(b.ingroup) && outgroup.containsAll(b.outgroup);
+		}
+		return result;
+	}
+
+	@Override
+	public int hashCode() {
+		// have not tested this hash function for performance. be wary.
+		long h = 0;
+		for (long p : ingroup) {
+			h = (h * (59 + p)) + p;
+		}
+		for (long p : outgroup) {
+			h = (h * (73 + p)) + p;
+		}
+		return (int) h;
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer s = new StringBuffer();
+		s.append("{");
+		boolean first = true;
+		for (long l : ingroup) {
+			if (first) {
+				first = false;
+			} else {
+				s.append(", ");
+			}
+			s.append(l);
+		}
+		s.append("} | {");
+		first = true;
+		for (long l : outgroup) {
+			if (first) {
+				first = false;
+			} else {
+				s.append(", ");
+			}
+			s.append(l);
+		}
+		s.append("}");
+		return s.toString();
+	}
+	
+	public String toString(Map<Integer, String> names) {
+		StringBuffer s = new StringBuffer();
+		s.append("{");
+		boolean first = true;
+		for (long l : ingroup) {
+			if (first) {
+				first = false;
+			} else {
+				s.append(", ");
+			}
+			s.append(names.get((int)l));
+		}
+		s.append("} | {");
+		first = true;
+		for (long l : outgroup) {
+			if (first) {
+				first = false;
+			} else {
+				s.append(", ");
+			}
+			s.append(names.get((int)l));
+		}
+		s.append("}");
+		return s.toString();
+	}
+}

@@ -8,39 +8,49 @@ import java.util.Set;
 
 import org.opentree.bitarray.TLongBitArraySet;
 
-public class BipartSetSum implements Iterable<Bipartition> {
+public class BipartSetSum implements Iterable<TLongBipartition> {
 	
-	private final List<Bipartition> originals;
-	private boolean[] compatible;
-	private Set<Bipartition> sum = new HashSet<Bipartition>();
+	private final TLongBipartition[] bipart;
 	
-	public BipartSetSum(List<Bipartition> biparts) {
+	public BipartSetSum(TLongBipartition[] original) {
 		
-		this.originals = biparts;
-		
-		// currently we don't use this but if it turns out we may be able to exclude
-		// any original biparts that have been combined with others then we will
-		this.compatible = new boolean[originals.size()];
-		
-		// for now we add all the original biparts to the set sum
-		sum.addAll(originals);
+		// keep track of biparts compatible with others.
+		// in the future we may not keep these.
+		boolean[] compatible = new boolean[original.length];
 
-		// and attempt to combine every pair
-		for (int i = 0; i < originals.size(); i++) {
-			for (int j = i+1; j < originals.size(); j++) {
-				Bipartition b = originals.get(i).sum(originals.get(j));
-				if (b != null && !sum.contains(b)) {
-					sum.add(b);
+		// combine every pair of compatible biparts
+		List<TLongBipartition> sumResults = new ArrayList<TLongBipartition>();
+		for (int i = 0; i < original.length; i++) {
+			for (int j = i+1; j < original.length; j++) {
+				TLongBipartition b = original[i].sum(original[j]);
+				if (b != null && !sumResults.contains(b)) {
+					sumResults.add(b);
 					compatible[i] = true;
 					compatible[j] = true;
 				}
 			}
 		}
+
+		// record the originals in the summed set. if we chose to exclude
+		// originals that have been combined with others, it would happen here.
+		bipart = new TLongBipartition[original.length + sumResults.size()];
+		for (int i = 0; i < original.length; i++) {
+			bipart[i] = original[i];
+		}
+
+		// record the results of the sum operation
+		for (int i = 0; i < sumResults.size(); i++) {
+			bipart[i + original.length] = sumResults.get(i);
+		}
 	}
 
 	@Override
-	public Iterator<Bipartition> iterator() {
-		return sum.iterator();
+	public Iterator<TLongBipartition> iterator() {
+		return new ArrayIterator();
+	}
+	
+	public TLongBipartition[] toArray() {
+		return bipart;
 	}
 	
 	public static void main(String[] args) {
@@ -105,21 +115,21 @@ public class BipartSetSum implements Iterable<Bipartition> {
 		
 		System.out.println("testing: " + name);
 		
-		List<Bipartition> inSet = makeBipartList(in, out);
-		HashSet<Bipartition> expected = new HashSet<Bipartition>(makeBipartList(inE, outE));
-		for (Bipartition bi : inSet) {
+		List<TLongBipartition> inSet = makeBipartList(in, out);
+		HashSet<TLongBipartition> expected = new HashSet<TLongBipartition>(makeBipartList(inE, outE));
+		for (TLongBipartition bi : inSet) {
 			expected.add(bi);
 		}
 		
-		BipartSetSum b = new BipartSetSum(inSet);
-		Set<Bipartition> observed = new HashSet<Bipartition>();
-		for (Bipartition bi : b) {
+		BipartSetSum b = new BipartSetSum(inSet.toArray(new TLongBipartition[0]));
+		Set<TLongBipartition> observed = new HashSet<TLongBipartition>();
+		for (TLongBipartition bi : b) {
 			observed.add(bi);
 		}
 		
-		for (Bipartition o : observed) {
+		for (TLongBipartition o : observed) {
 			boolean found = false;
-			for (Bipartition e : expected) {
+			for (TLongBipartition e : expected) {
 				if (o.equals(e)) { found = true; break; }
 			}
 			if (! found) {
@@ -128,9 +138,9 @@ public class BipartSetSum implements Iterable<Bipartition> {
 			}
 		}
 
-		for (Bipartition e : expected) {
+		for (TLongBipartition e : expected) {
 			boolean found = false;
-			for (Bipartition o : observed) {
+			for (TLongBipartition o : observed) {
 				if (o.equals(e)) { found = true; break; }
 			}
 			if (! found) {
@@ -148,14 +158,14 @@ public class BipartSetSum implements Iterable<Bipartition> {
 	}
 		
 	private static void printBipartSum(BipartSetSum b) {
-		for (Bipartition bi : b) {
+		for (TLongBipartition bi : b) {
 			System.out.println(bi);
 		}
 		System.out.println();
 	}
 	
-	private static List<Bipartition> makeBipartList(long[][] ins, long[][] outs) {
-		ArrayList<Bipartition> biparts = new ArrayList<Bipartition>();
+	private static List<TLongBipartition> makeBipartList(long[][] ins, long[][] outs) {
+		ArrayList<TLongBipartition> biparts = new ArrayList<TLongBipartition>();
 		assert ins.length == outs.length;
 		for (int i = 0; i < ins.length; i++) {
 			biparts.add(makeBipart(ins[i],outs[i]));
@@ -163,8 +173,24 @@ public class BipartSetSum implements Iterable<Bipartition> {
 		return biparts;
 	}
 	
-	private static Bipartition makeBipart(long[] ingroup, long[] outgroup) {
-		return new Bipartition(new TLongBitArraySet(ingroup), new TLongBitArraySet(outgroup));
+	private static TLongBipartition makeBipart(long[] ingroup, long[] outgroup) {
+		return new TLongBipartition(new TLongBitArraySet(ingroup), new TLongBitArraySet(outgroup));
 	}
 
+	private class ArrayIterator implements Iterator<TLongBipartition> {
+		int i = 0;
+		public ArrayIterator() { }
+		@Override
+		public boolean hasNext() {
+			return i < bipart.length;
+		}
+		@Override
+		public TLongBipartition next() {
+			return bipart[i++];
+		}
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
+	}
 }
