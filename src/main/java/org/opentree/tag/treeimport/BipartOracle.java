@@ -25,6 +25,7 @@ import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opentree.bitarray.TLongBitArraySet;
@@ -290,11 +291,32 @@ public class BipartOracle {
 		}
 		if (parentNode != null) {
 			System.out.println("Creating relationship from " + node + " to " + parentNode);
-			node.createRelationshipTo(parentNode, RelType.MRCACHILDOF);
+			//this is trying not to replcate the relationships from each node, without it there are many duplicates created
+			boolean testrelexist=false;
+			for(Relationship trel: node.getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)){
+				if(trel.getEndNode().equals(parentNode)){
+					testrelexist = true;
+					break;
+				}
+			}
+			if (testrelexist == false)
+				node.createRelationshipTo(parentNode, RelType.MRCACHILDOF);
 		}
+		/*
+		 * this should probably be done just by loading the trees themselves
+		 */
 		if (position == 0) { // connect terminal node in path to ingroup tips
 			for (Long tipId : parent.ingroup()) {
-				gdb.getNodeById(tipId).createRelationshipTo(node, RelType.MRCACHILDOF);
+				//this is trying not to replicate the relationships from each node, without it there are many duplicates created
+				boolean testrelexist=false;
+				for(Relationship trel: gdb.getNodeById(tipId).getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)){
+					if(trel.getEndNode().equals(node)){
+						testrelexist = true;
+						break;
+					}
+				}
+				if (testrelexist == false)
+					gdb.getNodeById(tipId).createRelationshipTo(node, RelType.MRCACHILDOF);
 			}
 		}
 		
@@ -415,6 +437,8 @@ public class BipartOracle {
 	private static void loadTreesTest4(ArrayList<JadeTree> t) throws TreeParseException {
 		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
 		t.add(TreeReader.readTree("((((A,C),B),F),D);"));
+		t.add(TreeReader.readTree("((A,F),C);"));
+		t.add(TreeReader.readTree("((A,E),D);"));
 	}
 
 	public static void main(String[] args) throws Exception {
