@@ -130,13 +130,27 @@ public class BipartOracle {
 			}
 		}
 		
+		nodeForBipart = new HashMap<TLongBipartition, Node>();
+
+		
 		// now walk the bipart nestings and build the potential paths.
 		// here we could just walk from any given bipart to the biparts mapped to that tree node.
 		// this would reduce the size of the graph but not sure whether it would find all the relevant paths.
 		paths = new HashSet<Path>();
 		for (int i = 0; i < bipart.length; i++) {
 			if (bipart[i].outgroup().size() > 0) {
-				findPaths(i, new TLongBitArraySet(), new ArrayList<Integer>(), 0);
+				TLongBitArraySet retval = findPaths(i, new TLongBitArraySet(), new ArrayList<Integer>(), 0);
+				//these need to be made into nodes
+				if (retval == null){
+					tx = gdb.beginTx();
+					Node node = gdb.createNode();
+					node.setProperty(NodeProperty.MRCA.propertyName, bipart[i].ingroup().toArray());
+					node.setProperty(NodeProperty.OUTMRCA.propertyName, bipart[i].outgroup().toArray());
+					nodeForBipart.put(bipart[i], node);
+					System.out.println();
+					tx.success();
+					tx.finish();
+				}
 			}
 		}
 		
@@ -144,7 +158,6 @@ public class BipartOracle {
 			System.out.println(p);
 		}
 		
-		nodeForBipart = new HashMap<TLongBipartition, Node>();
 		
 		tx = gdb.beginTx();
 //		try {
@@ -289,6 +302,9 @@ public class BipartOracle {
 			nodeForBipart.put(b, node);
 			System.out.println();
 		}
+		//This won't make all the possible mrca child ofs. Not sure if we need that. Might need to 
+		// A) make them all (all by all comparison) or B) use the trees to create additional ones
+		// Preference for B if we can do it as obviously more efficient
 		if (parentNode != null) {
 			System.out.println("Creating relationship from " + node + " to " + parentNode);
 			//this is trying not to replcate the relationships from each node, without it there are many duplicates created
@@ -304,7 +320,7 @@ public class BipartOracle {
 		}
 		/*
 		 * this should probably be done just by loading the trees themselves
-		 */
+		 *
 		if (position == 0) { // connect terminal node in path to ingroup tips
 			for (Long tipId : parent.ingroup()) {
 				//this is trying not to replicate the relationships from each node, without it there are many duplicates created
@@ -319,6 +335,7 @@ public class BipartOracle {
 					gdb.getNodeById(tipId).createRelationshipTo(node, RelType.MRCACHILDOF);
 			}
 		}
+		*/
 		
 		return new Object[] {node, cumulativeOutgroup};
 	}
@@ -329,8 +346,11 @@ public class BipartOracle {
 	
 	private void gatherTreeData(List<JadeTree> trees) {
 		int treeNodeCount = 0;
+		//if we don't need the root, this is the right way to get the count
 		for (JadeTree t : trees) { 
-			treeNodeCount += t.internalNodeCount();
+			treeNodeCount += t.internalNodeCount()-1;
+			//System.out.println(t.getRoot().getNewick(false)+" "+(t.internalNodeCount()-1));
+
 		}
 		
 		// make nodes for all unique tip names and remember them
@@ -348,23 +368,29 @@ public class BipartOracle {
 			
 		// gather the tree nodes, tree structure, and tip labels.
 		// for nexson, we would want ott ids instead of tip labels.
+		// we should have treeNodeCount be the internal nodes - root
 		treeNode = new JadeNode[treeNodeCount];
 		childrenOf = new int[treeNodeCount][];
 		original = new TLongBipartition[treeNodeCount];
 		internalNodeCounter = -1;
 		for (JadeTree t : trees) {
-			recurRecordTree(t.getRoot(), ++internalNodeCounter, t);
+			//don't need to include root as far as I can tell, so you can do the children of the root
+			for (JadeNode child: t.getRoot().getChildren()){
+				if (child.isInternal())
+					recurRecordTree(child, ++internalNodeCounter, t);
+			}
 		}
 	}
 
 	private void recurRecordTree(JadeNode p, int nodeId, JadeTree tree) {
-
 		treeNode[nodeId] = p;
 
 		// collect the internal children and send the tips for processing
 		ArrayList<JadeNode> internalChildren = new ArrayList<JadeNode>();
 		for (JadeNode child : p.getChildren()) {
-			if (child.isInternal()) { internalChildren.add(child); }
+			if (child.isInternal()) { 
+				internalChildren.add(child); 
+			}
 		}
 		
 		// process the internal children
@@ -454,10 +480,17 @@ public class BipartOracle {
 			System.out.println(i + ": " + bi.bipart[i].toString(bi.nameForNodeId));
 		}
 		
+		System.out.println("node for bipart:");
+		
+		for (TLongBipartition tlb: bi.nodeForBipart.keySet()){
+			System.out.println(tlb+" "+bi.nodeForBipart.get(tlb));
+		}
+		
 		System.out.println("paths through: ");
 		for (Path p : bi.paths) {
 			System.out.println(p);
 		}
-
+		
+		//map the trees to connect the trees and create the streechildof and the roots
 	}
 }
