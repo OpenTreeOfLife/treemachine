@@ -83,7 +83,7 @@ def process_pairs(start,pairs,bpslf,bpsrt,curlf,currt,path,level):
 
     i1 = curlf.intersection(rt) # child in intersection with parent out
     i2 = curlf.intersection(lf) # child in intersection with parent in
-    i3 = currt.intersection(rt) # child out intersection with parent out
+#    i3 = currt.intersection(rt) # child out intersection with parent out
 
     if len(i1) > 0:
         print "\t"*level, "child ingroup contains some parent outgroup, die"  

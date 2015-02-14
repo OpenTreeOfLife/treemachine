@@ -13,7 +13,8 @@ public enum NodeProperty {
 
 	// ===== All nodes
 	MRCA ("mrca", long[].class, "An array containing the node ids of all descendant nodes of this node. Used in graph algorithms."),
-	NESTED_MRCA ("nested_mrca", long[].class, ""),
+	OUTMRCA ("outmrca", long[].class, "An array containing the node ids of all nodes known *not* to descend from this node. Used in graph algorithms."),
+	NESTED_MRCA ("nested_mrca", long[].class, "??"),
 	
 	// ===== Taxonomy nodes
 	NAME ("name", String.class, "The taxonomic name of this node. Generally used only for taxonomy nodes..."),

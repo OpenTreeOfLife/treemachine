@@ -9,6 +9,7 @@ import jade.tree.TreePrinter;
 import jade.tree.TreeReader;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,7 +19,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import opentree.GraphBase;
+import opentree.constants.NodeProperty;
+import opentree.constants.RelType;
+
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opentree.bitarray.TLongBitArraySet;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 /*
  * TODO: create interfaces for Tree and TreeNode, and implement them on JadeTree/JadeNode,
@@ -28,116 +38,271 @@ import org.opentree.bitarray.TLongBitArraySet;
 
 public class BipartOracle {
 
-	Map<String, Integer> idForName = new HashMap<String, Integer>();
-	Map<Integer, String> nameForId = new HashMap<Integer, String>();
+	private final GraphDatabaseAgent gdb;
+
+	// these are just for associating input names with temporary ids. we should be using neo4j node ids.
+	Map<String, Long> nodeIdForName = new HashMap<String, Long>();
+	Map<Long, String> nameForNodeId = new HashMap<Long, String>();
 	
 	// indices in these correspond nodes in input trees
 	JadeNode[] treeNode;
 	int[][] childrenOf;
 	TLongBipartition[] original;
+
+	// these map biparts to tree nodes
+	ArrayList<Integer>[] treeNodesForBipart;
+	ArrayList<Integer>[] bipartsForTreeNode;
 	
-	// indices/ints in these correspond to summed bipartitions
+	// === indices/ints in these correspond to summed bipartitions ============
 	TLongBipartition[] bipart;
-	ArrayList<Integer>[] nestedWithin;
-	HashSet<ArrayList<Integer>> paths;
+	HashSet<Path> paths;
+
+	// nestedChildren[i] contains the ids of all the biparts that are nested within bipart i
+	// nestedParents[i] contains the ids of all the biparts that bipart i *is* a nested child of
+	ArrayList<Integer>[] nestedChildren;
+	ArrayList<Integer>[] nestedParents;
+	boolean[] isNested; // indicates whether this bipartition is nested at all
+
+	private HashMap<TLongBipartition, Node> nodeForBipart; // neo4j node for each bipartition
 
 	int internalNodeCounter = 0;
 
 	@SuppressWarnings("unchecked")
-	public BipartOracle(List<JadeTree> trees) {
+	public BipartOracle(List<JadeTree> trees, GraphDatabaseAgent gdb) throws Exception {
+		
+		this.gdb = gdb;
 
+		Transaction tx = gdb.beginTx();
 		gatherTreeData(trees); // populate 'treeNode', 'childrenOf', and 'original' arrays
+		tx.success();
+		tx.finish();
 		
 		// get pairwise sums of all tree biparts
 		bipart = new BipartSetSum(original).toArray();
-
-		// find compatible child mappings among the summed biparts:
-		nestedWithin = new ArrayList[bipart.length];
+		
 		for (int i = 0; i < bipart.length; i++) {
-			nestedWithin[i] = new ArrayList<Integer>();
+			System.out.println(i + " " + bipart[i].toString(nameForNodeId));
+		}
+
+		// find compatible child mappings among the summed biparts.
+		// could be smarter about only looking for these when required during tree traversal
+		nestedChildren = new ArrayList[bipart.length];
+		nestedParents = new ArrayList[bipart.length];
+		isNested = new boolean[bipart.length];
+		for (int i = 0; i < bipart.length; i++) {
+
+			// find all biparts nested within this one
+			nestedChildren[i] = new ArrayList<Integer>();
+
+			if (bipart[i].outgroup().size() < 1) { // don't check roots of input trees
+				continue;
+			}
 			for (int j = 0; j < bipart.length; j++) {
+				if (nestedParents[j] == null) {
+					nestedParents[j] = new ArrayList<Integer>();
+				}
 				if (i != j && bipart[j].isNestedPartitionOf(bipart[i])) {
-					nestedWithin[i].add(j);
+					nestedChildren[i].add(j);
+					nestedParents[j].add(i);
+					isNested[j] = true;
 				}
 			}
 		}
 		
+//		System.out.println("nested parents: " + Arrays.toString(nestedParents));
+//		System.out.println("nested children: " + Arrays.toString(nestedChildren));
+//		System.exit(0);
+		
 		// map all tree nodes to all summed biparts
-		int[][] treeNodesForBipart = new int[bipart.length][];
+		treeNodesForBipart = new ArrayList[bipart.length];
+		bipartsForTreeNode = new ArrayList[original.length];
 		for (int i = 0; i < bipart.length; i++) {
-			ArrayList<Integer> accepted = new ArrayList<Integer>();
+			treeNodesForBipart[i] = new ArrayList<Integer>();
 			for (int j = 0; j < treeNode.length; j++) {
-				if (bipart[i].isCompatibleWith(original[j])) {
-					accepted.add(i);
+				if (bipartsForTreeNode[j] == null) {
+					bipartsForTreeNode[j] = new ArrayList<Integer>();
 				}
-			}
-			// store the compatible bipart ids
-			treeNodesForBipart[i] = new int[accepted.size()];
-			for (int j = 0; j < accepted.size(); j++) {
-				treeNodesForBipart[i][j] = accepted.get(j).intValue();
+				if (bipart[i].isCompatibleWith(original[j])) {
+					treeNodesForBipart[i].add(j);
+					bipartsForTreeNode[j].add(i);
+				}
 			}
 		}
 		
 		// now walk the bipart nestings and build the potential paths.
-		paths = new HashSet<ArrayList<Integer>>();
+		// here we could just walk from any given bipart to the biparts mapped to that tree node.
+		// this would reduce the size of the graph but not sure whether it would find all the relevant paths.
+		paths = new HashSet<Path>();
 		for (int i = 0; i < bipart.length; i++) {
-			makePathsRecursive(i, new TLongBipartition(new TLongBitArraySet(), new TLongBitArraySet()), new ArrayList<Integer>());
+			if (bipart[i].outgroup().size() > 0) {
+				findPaths(i, new TLongBitArraySet(), new ArrayList<Integer>(), 0);
+			}
 		}
 		
+		for (Path p : paths) {
+			System.out.println(p);
+		}
 		
-		// for each tree node A in tree T, start at each bipart which could be mapped to A,
-		// and generate paths to all the bipartitions mapped to children of A in T, updating
-		// the outgroups of bipartitions
-
+		nodeForBipart = new HashMap<TLongBipartition, Node>();
+		
+		tx = gdb.beginTx();
+//		try {
+			for (Path p : paths) {
+				generateNodesFromPaths(0, new TLongBitArraySet(), p.toArray());
+			}
+			tx.success();
+			tx.finish();
+//		} catch (Exception ex) {
+//			tx.failure();
+//			throw ex;
+//		}// finally {
+//			tx.finish();
+//		}
+		
 	}
-
-	private TLongBipartition makePathsRecursive(int parentId, TLongBipartition nested, ArrayList<Integer> path) {
+	
+	private static String indent(int level) {
+		StringBuffer s = new StringBuffer();
+		for (int i = 0; i < level; i++) {
+			s.append("\t");
+		}
+		return s.toString();
+	}
+	
+	/** 
+	 * Starting at each bipartition B, follow all paths to all bipartitions for which this B could be a nested child.
+	 * At each level on the recursion down this tree, record the union I of all the ingroups of all bipartitions "above"
+	 * this, i.e. those previously visited on the traversal. At each level on the recursion back up the tree, record
+	 * the union O of all the ingroups of all bipartitions "below" this, i.e. those that have previously finished been
+	 * finished before the return to this node. When a node is completed, define a bipartition X = I | O representing a node 
+	 * to be created in the graph, children {X'1, X'2, ..., X'N} corresponding to the bipartitions defined in this way at
+	 * each of this bipartition's N *completed* nested children. Sometimes the recursion stops without creating a node
+	 * (see cases below).
+	 * 
+	 * @param parentId
+	 * @param nested
+	 * @param path
+	 * @param level
+	 * @return
+	 */
+	private TLongBitArraySet findPaths(int parentId, TLongBitArraySet cumulativeIngroup, ArrayList<Integer> path, int level) {
 
 		TLongBipartition parent = bipart[parentId];
 		
-		// three cases where we stop traversing this path:
-		if (hasNoNestedBiparts(parentId)) { return null;
-
-		// these two cases result from updates to the child performed earlier on this path
-		} else if (nested.ingroup().containsAny(parent.outgroup())) { return null; // conflict
-		} else if (nested.ingroup().containsAll(parent.ingroup())) { return null; // no information
-
-		} else { // update the child and keep going down the path
-
-			nested.ingroup().addAll(parent.ingroup()); // ingroup
-
-			if (nested.ingroup().containsAny(nested.outgroup())) {
-				// if the child's updated ingroup overlaps with its outgroup,
-				// just replace the child's outgroup with the parent's.
-				// not clear why this works. is it a shortcut? does the child's outgroup
-				// really not matter? if so, why do we even check?
-				nested.outgroup().clear();
-			}
-
-			nested.outgroup().addAll(parent.outgroup());
+		// three cases where we exit without defining a node:
+		if (hasNoNestedBiparts(parentId) || 					// found a dead end path
+			cumulativeIngroup.containsAny(parent.outgroup()) || // conflict between potential node and its parent
+			cumulativeIngroup.containsAll(parent.ingroup())) { 	// child that already contains entire parent
+        	return null;
 		}
 		
+		// otherwise prepare to define a new bipart
 		path.add(parentId);
-		
-		for (int nextParentId : nestedWithin[parentId]) {
+	    System.out.println("\n" + indent(level) + "current path is: " + path);
+
+		// collect the ingroup from all downstream (child) biparts' ingroups'
+		System.out.println(indent(level) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
+		System.out.println(indent(level) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
+		cumulativeIngroup.addAll(parent.ingroup());
+		System.out.println(indent(level) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
+
+		// collect the outgroup from all upstream (parent) biparts' outgroups
+	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
+	    boolean newline = false;
+	    for (int nextParentId : nestedParents[parentId]) {
 			if (path.contains(nextParentId)) { continue; }
-			TLongBipartition result = makePathsRecursive(nextParentId, nested, path);
-			if (result != null) { // did not encounter a dead end path
-				
-				// why?
-				nested.outgroup().addAll(result.ingroup());
+			TLongBitArraySet outgroupsToAdd = findPaths(nextParentId, new TLongBitArraySet(cumulativeIngroup), path, level+1);
+			if (outgroupsToAdd != null) { // did not encounter a dead end path
+		    	newline = true;
+				cumulativeOutgroup.addAll(outgroupsToAdd);
+			}
+		}
+		System.out.println((newline ? "\n" : "") + indent(level) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
+	    System.out.println(indent(level) + "done with parent " + parent.toString(nameForNodeId));
+		System.out.println(indent(level) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + path);
+
+		assert ! cumulativeIngroup.containsAny(cumulativeOutgroup);
+
+		paths.add(new Path(path));
+		return cumulativeOutgroup;
+	}
+	
+	
+	private Object[] generateNodesFromPaths(int position, TLongBitArraySet cumulativeIngroup, int[] path) {
+
+		int parentId = path[position];
+		TLongBipartition parent = bipart[parentId];
+
+		// three cases where we exit without making a node:
+		if (hasNoNestedBiparts(parentId) || 					// found a dead end path
+			cumulativeIngroup.containsAny(parent.outgroup()) || // conflict between potential node and its parent
+			cumulativeIngroup.containsAll(parent.ingroup())) { 	// child that already contains entire parent
+        	return null;
+		}
+		
+		// otherwise prepare to define a new node
+	    System.out.println("\n" + indent(position) + "path is: " + Arrays.toString(path) + " and current bipart id is: " + path[position]);
+
+		// collect the ingroup from all downstream (child) biparts' ingroups'
+		System.out.println(indent(position) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
+		System.out.println(indent(position) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
+		cumulativeIngroup.addAll(parent.ingroup());
+		System.out.println(indent(position) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
+
+	    // collect the outgroup this node
+	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
+
+	    // perform the recursion down all the childen, returning each child node (once it has been created) along
+	    // with its outgroups. using an Object[] as a return value to provide two object in the return is weird.
+	    // Should update this to use a private class container for the return value or figure out something else.
+	    Node parentNode = null;
+	    boolean newline = false;
+		if (position < path.length - 1) {
+			Object[] result = generateNodesFromPaths(position+1, new TLongBitArraySet(cumulativeIngroup), path);
+			if (result != null) {
+				parentNode = (Node) result[0];
+				TLongBitArraySet outgroupsToAdd = (TLongBitArraySet) result[1];
+				cumulativeOutgroup.addAll(outgroupsToAdd);
+				newline = true;
+			}
+		} else {
+			
+		}
+
+		System.out.println((newline ? "\n" : "") + indent(position) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
+	    System.out.println(indent(position) + "done with parent " + parent.toString(nameForNodeId));
+		System.out.println(indent(position) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + Arrays.toString(path));
+
+		assert ! cumulativeIngroup.containsAny(cumulativeOutgroup);
+
+		// warning: mrca and outmrca must contain neo4j node ids, but for now just using the
+		// temp ids from the ingroup/outgroup bipartitions. Need yet another lookup table. nodeForTipLabel or something like that.
+		TLongBipartition b = new TLongBipartition(cumulativeIngroup, cumulativeOutgroup);
+		Node node = null;
+		if (nodeForBipart.containsKey(b)) {
+			node = nodeForBipart.get(b);
+		} else {
+			node = gdb.createNode();
+			node.setProperty(NodeProperty.MRCA.propertyName, cumulativeIngroup.toArray());
+			node.setProperty(NodeProperty.OUTMRCA.propertyName, cumulativeOutgroup.toArray());
+			nodeForBipart.put(b, node);
+			System.out.println();
+		}
+		if (parentNode != null) {
+			System.out.println("Creating relationship from " + node + " to " + parentNode);
+			node.createRelationshipTo(parentNode, RelType.MRCACHILDOF);
+		}
+		if (position == 0) { // connect terminal node in path to ingroup tips
+			for (Long tipId : parent.ingroup()) {
+				gdb.getNodeById(tipId).createRelationshipTo(node, RelType.MRCACHILDOF);
 			}
 		}
 		
-		System.out.println("Will create node " + nested + " based on path " + path);
-		assert ! nested.ingroup().containsAny(nested.outgroup());
-
-		paths.add(path);
-		return nested;
+		return new Object[] {node, cumulativeOutgroup};
 	}
 	
 	private boolean hasNoNestedBiparts(int parent) {
-		return nestedWithin[parent].size() == 0;
+		return nestedChildren[parent].size() == 0;
 	}
 	
 	private void gatherTreeData(List<JadeTree> trees) {
@@ -146,14 +311,15 @@ public class BipartOracle {
 			treeNodeCount += t.internalNodeCount();
 		}
 		
-		// mint ids for all unique tip names
-		int tipCounter = 0;
+		// make nodes for all unique tip names and remember them
 		for (JadeTree t : trees) {
 			for (JadeNode l : t.externalNodes()) {
 				String n = l.getName();
-				if (! idForName.containsKey(n)) {
-					idForName.put(n, tipCounter);
-					nameForId.put(tipCounter++, n);
+				if (! nodeIdForName.containsKey(n)) {
+					Node tip = gdb.createNode();
+					tip.setProperty(NodeProperty.NAME.propertyName, n); // should store different info if we are using nexson
+					nodeIdForName.put(n, tip.getId());
+					nameForNodeId.put(tip.getId(), n);
 				}
 			}
 		}
@@ -181,8 +347,10 @@ public class BipartOracle {
 		
 		// process the internal children
 		childrenOf[nodeId] = new int[internalChildren.size()];
+//		childrenOf[nodeId] = new int[p.getChildCount()];
 		int k = 0;
 		for (JadeNode child : internalChildren) {
+//		for (JadeNode child : p.getChildren()) {
 			childrenOf[nodeId][k++] = ++internalNodeCounter;
 			recurRecordTree(child, internalNodeCounter, tree);
 		}
@@ -191,23 +359,81 @@ public class BipartOracle {
 		TLongBitArraySet ingroup = new TLongBitArraySet();
 		TLongBitArraySet outgroup = new TLongBitArraySet();
 		JadeBipartition b = tree.getBipartition(p);
-		for (JadeNode n : b.ingroup())  { ingroup.add(idForName.get(n.getName()));  }
-		for (JadeNode n : b.outgroup()) { outgroup.add(idForName.get(n.getName())); }
+		for (JadeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getName()));  }
+		for (JadeNode n : b.outgroup()) { outgroup.add(nodeIdForName.get(n.getName())); }
 		original[nodeId] = new TLongBipartition(ingroup, outgroup);
 	}
 
-	public static void main(String[] args) throws TreeParseException {
+	private class Path {
+		
+		private final int[] path;
+		public Path (int[] path) { this.path = path; }
 
-		ArrayList<JadeTree> t = new ArrayList<JadeTree>();
-		t.add(TreeReader.readTree("((A,B),C);"));
+		public Path (List<Integer> path) {
+			this.path = new int[path.size()];
+			for (int i = 0; i < path.size(); i++) {
+				this.path[i] = path.get(i);
+			}
+		}
+
+		@Override
+		public boolean equals(Object other) {
+			if (other == null || ! (other instanceof Path)) { return false; }
+
+			int[] o = ((Path) other).path;
+			if (path.length != o.length) { return false; }
+
+			for (int i = 0; i < path.length; i++) {
+				if (path[i] != o[i]) { return false; }
+			}
+			return true;
+		}
+		
+		@Override 
+		public int hashCode() {
+			int h = 1;
+			for (int i : path) { h = h * (i + 31) + i; }
+			return h;
+		}
+		
+		@Override
+		public String toString() {
+			return Arrays.toString(path);
+		}
+		
+		public int[] toArray() {
+			return path;
+		}
+	}
+
+	private static void loadTreesCycleConflict(ArrayList<JadeTree> t) throws TreeParseException {
 		t.add(TreeReader.readTree("((A,C),D);"));
 		t.add(TreeReader.readTree("((A,D),B);"));
+		t.add(TreeReader.readTree("((A,B),C);"));
+	}
 
-		BipartOracle bi = new BipartOracle(t);
+	private static void loadTreesTest4(ArrayList<JadeTree> t) throws TreeParseException {
+		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
+		t.add(TreeReader.readTree("((((A,C),B),F),D);"));
+	}
 
-		System.out.println("ids: " + bi.nameForId);
-		for (TLongBipartition s : bi.bipart) {
-			System.out.println(s.toString(bi.nameForId));
+	public static void main(String[] args) throws Exception {
+
+		ArrayList<JadeTree> t = new ArrayList<JadeTree>();
+
+		loadTreesTest4(t);
+
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase("test.db")));
+
+		System.out.println("original bipartitions: ");
+		for (int i = 0; i < bi.bipart.length; i++) {
+			System.out.println(i + ": " + bi.bipart[i].toString(bi.nameForNodeId));
 		}
+		
+		System.out.println("paths through: ");
+		for (Path p : bi.paths) {
+			System.out.println(p);
+		}
+
 	}
 }

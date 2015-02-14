@@ -19,6 +19,11 @@ public class TLongBipartition {
 		this.outgroup = new TLongBitArraySet(outgroup);
 	}
 
+	public TLongBipartition(TLongBipartition nested) {
+		ingroup = new TLongBitArraySet(nested.ingroup);
+		outgroup = new TLongBitArraySet(nested.outgroup);
+	}
+
 	public TLongBitArraySet ingroup() {
 		return ingroup;
 	}
@@ -29,7 +34,7 @@ public class TLongBipartition {
 
 	public TLongBipartition sum(TLongBipartition that) {
 
-		if (!this.isCompatibleWith(that)) {
+		if (!this.isCompatibleWith(that) || !this.overlapsWith(that)) {
 			return null;
 		}
 
@@ -82,6 +87,11 @@ public class TLongBipartition {
 		} 
 		return B.ingroup.containsAny(this.outgroup); // a can be nested within b
 	}
+	
+	public boolean overlapsWith(TLongBipartition that) {
+		return this.ingroup.containsAny(that.ingroup) || this.ingroup.containsAny(that.outgroup) ||
+			   this.outgroup.containsAny(that.ingroup) || this.outgroup.containsAny(that.outgroup);
+	}
 
 	@Override
 	public boolean equals(Object that) {
@@ -97,13 +107,9 @@ public class TLongBipartition {
 	@Override
 	public int hashCode() {
 		// have not tested this hash function for performance. be wary.
-		long h = 0;
-		for (long p : ingroup) {
-			h = (h * (59 + p)) + p;
-		}
-		for (long p : outgroup) {
-			h = (h * (73 + p)) + p;
-		}
+		long h = 1;
+		for (long p : ingroup) { h = (h * (59 + p)) + p; }
+		for (long p : outgroup) { h = (h * (73 + p)) + p; }
 		return (int) h;
 	}
 
@@ -134,7 +140,7 @@ public class TLongBipartition {
 		return s.toString();
 	}
 	
-	public String toString(Map<Integer, String> names) {
+	public String toString(Map<Long, String> names) {
 		StringBuffer s = new StringBuffer();
 		s.append("{");
 		boolean first = true;
@@ -144,7 +150,7 @@ public class TLongBipartition {
 			} else {
 				s.append(", ");
 			}
-			s.append(names.get((int)l));
+			s.append(names.get(l));
 		}
 		s.append("} | {");
 		first = true;
@@ -154,9 +160,21 @@ public class TLongBipartition {
 			} else {
 				s.append(", ");
 			}
-			s.append(names.get((int)l));
+			s.append(names.get(l));
 		}
 		s.append("}");
 		return s.toString();
 	}
+
+	public static void main(String[] args) {
+		nestedTest(new long[][] {{1,2},{3}}, new long[][] {{1,4},{2}}, true);
+		nestedTest(new long[][] {{0,2},{3}}, new long[][] {{0,1,2,3},{}}, false);
+	}
+	
+	private static void nestedTest(long[][] parent, long[][] child, boolean valid) {
+		TLongBipartition A = new TLongBipartition(parent[0], parent[1]);
+		TLongBipartition B = new TLongBipartition(child[0], child[1]);
+		assert B.isNestedPartitionOf(A) == valid;
+	}
+	
 }

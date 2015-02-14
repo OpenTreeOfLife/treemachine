@@ -6,8 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.opentree.bitarray.TLongBitArraySet;
-
 public class BipartSetSum implements Iterable<TLongBipartition> {
 	
 	private final TLongBipartition[] bipart;
@@ -15,15 +13,15 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	public BipartSetSum(TLongBipartition[] original) {
 		
 		// keep track of biparts compatible with others.
-		// in the future we may not keep these.
+		// currently this is unused
 		boolean[] compatible = new boolean[original.length];
 
 		// combine every pair of compatible biparts
-		List<TLongBipartition> sumResults = new ArrayList<TLongBipartition>();
+		Set<TLongBipartition> sumResults = new HashSet<TLongBipartition>();
 		for (int i = 0; i < original.length; i++) {
 			for (int j = i+1; j < original.length; j++) {
 				TLongBipartition b = original[i].sum(original[j]);
-				if (b != null && !sumResults.contains(b)) {
+				if (b != null) {
 					sumResults.add(b);
 					compatible[i] = true;
 					compatible[j] = true;
@@ -33,15 +31,11 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 
 		// record the originals in the summed set. if we chose to exclude
 		// originals that have been combined with others, it would happen here.
-		bipart = new TLongBipartition[original.length + sumResults.size()];
 		for (int i = 0; i < original.length; i++) {
-			bipart[i] = original[i];
+			sumResults.add(original[i]);
 		}
-
-		// record the results of the sum operation
-		for (int i = 0; i < sumResults.size(); i++) {
-			bipart[i + original.length] = sumResults.get(i);
-		}
+		
+		bipart = sumResults.toArray(new TLongBipartition[0]);
 	}
 
 	@Override
@@ -60,7 +54,16 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		testFiveSymmetrical();
 		testDuplicateSum();
 		testDuplicateInputs();
+		testNoOverlap();
 		// need test for duplicates from equivalent overlapping
+	}
+
+	private static void testNoOverlap() {
+		long[][] in = new long[][]   {{1,2},  {4,5},  {7,8}};
+		long[][] out = new long[][]  {{3},    {6},    {9}};
+		long[][] inE = new long[][]  {};
+		long[][] outE = new long[][] {};
+		test("simple no overlap: sum should only contain original biparts", in, out, inE, outE);
 	}
 
 	private static void testSimplePartialOverlap() {
@@ -90,9 +93,9 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	private static void testFiveSymmetrical() {
 		long[][] in = new long[][]   {{1,2},  {3,4},  {5,6},  {7,8}, {9,10}};
 		long[][] out = new long[][]  {{5,6},  {7,8},  {9,10}, {1,2}, {3,4}};
-		long[][] inE = new long[][]  {{1,2,3,4}, {1,2,9,10}, {3,4,5,6},  {5,6,7,8},  {7,8,9,10}};
-		long[][] outE = new long[][] {{5,6,7,8}, {3,4,5,6},  {7,8,9,10}, {1,2,9,10}, {1,2,3,4}};
-		test("five symmetrical sets", in, out, inE, outE);
+		long[][] inE = new long[][]  {};
+		long[][] outE = new long[][] {};
+		test("five symmetrical non overlap: sum should only contain original biparts", in, out, inE, outE);
 	}
 	
 	private static void testDuplicateSum() {
@@ -108,7 +111,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		long[][] out = new long[][]  {{5}, {5}, {5}, {5}};
 		long[][] inE = new long[][]  {{1,2}};
 		long[][] outE = new long[][] {{5}};
-		test("duplication - looking for more than one instance of {1,2} | {5}", in, out, inE, outE);
+		test("duplication - looking for more than one instance of any bipart", in, out, inE, outE);
 	}
 
 	private static void test(String name, long[][] in, long[][] out, long[][] inE, long[][] outE) {
@@ -116,6 +119,11 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		System.out.println("testing: " + name);
 		
 		List<TLongBipartition> inSet = makeBipartList(in, out);
+		System.out.println("input:");
+		for (TLongBipartition b : inSet) {
+			System.out.println(b);
+		}
+		
 		HashSet<TLongBipartition> expected = new HashSet<TLongBipartition>(makeBipartList(inE, outE));
 		for (TLongBipartition bi : inSet) {
 			expected.add(bi);
@@ -154,6 +162,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 			throw new AssertionError();
 		}
 
+		System.out.println("output:");
 		printBipartSum(b);
 	}
 		
@@ -168,13 +177,9 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		ArrayList<TLongBipartition> biparts = new ArrayList<TLongBipartition>();
 		assert ins.length == outs.length;
 		for (int i = 0; i < ins.length; i++) {
-			biparts.add(makeBipart(ins[i],outs[i]));
+			biparts.add(new TLongBipartition(ins[i],outs[i]));
 		}
 		return biparts;
-	}
-	
-	private static TLongBipartition makeBipart(long[] ingroup, long[] outgroup) {
-		return new TLongBipartition(new TLongBitArraySet(ingroup), new TLongBitArraySet(outgroup));
 	}
 
 	private class ArrayIterator implements Iterator<TLongBipartition> {

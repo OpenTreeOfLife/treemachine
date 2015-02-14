@@ -1,17 +1,17 @@
-package opentree.synthesis;
+package opentree.synthesis.mwis;
 
 import java.util.HashMap;
 import java.util.HashSet;
 
 public class WeightedUndirectedGraph {
 		
-	class Node {
+	public class Node {
 		
 		private long id;
 		private int weight;
 		private HashSet<Long> edges = new HashSet<Long>();
 		
-		public Node(long id, int weight) {
+		private Node(long id, int weight) {
 			this.id = id;
 			this.weight = weight;
 		}
