@@ -65,6 +65,7 @@ public class BipartOracle {
 	boolean[] isNested; // indicates whether this bipartition is nested at all
 
 	private HashMap<TLongBipartition, Node> nodeForBipart; // neo4j node for each bipartition
+	private HashMap<Node,TLongBipartition> bipartForNode; //bipartiton for neo4j node
 
 	int internalNodeCounter = 0;
 
@@ -131,6 +132,7 @@ public class BipartOracle {
 		}
 		
 		nodeForBipart = new HashMap<TLongBipartition, Node>();
+		bipartForNode = new HashMap<Node,TLongBipartition>();
 
 		
 		// now walk the bipart nestings and build the potential paths.
@@ -147,7 +149,8 @@ public class BipartOracle {
 					node.setProperty(NodeProperty.MRCA.propertyName, bipart[i].ingroup().toArray());
 					node.setProperty(NodeProperty.OUTMRCA.propertyName, bipart[i].outgroup().toArray());
 					nodeForBipart.put(bipart[i], node);
-					System.out.println();
+					bipartForNode.put(node, bipart[i]);
+					//System.out.println();
 					tx.success();
 					tx.finish();
 				}
@@ -180,31 +183,102 @@ public class BipartOracle {
 		 * only connect the parent to child that are possible
 		 */
 		for(JadeTree t: trees){
-			//connect the external nodes to the database nodes
+			//connect the internal nodes to the database nodes
+			for(JadeNode in: t.internalNodes(NodeOrder.PREORDER)){
+				if (in == t.getRoot()){
+					TLongBitArraySet ingroup = new TLongBitArraySet();
+					JadeBipartition b = t.getBipartition(in);
+					for (JadeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getName()));  }
+					TLongBipartition tlb = new TLongBipartition(ingroup,new TLongBitArraySet());
+					HashSet<Node> hs = new HashSet<Node>();
+					for(TLongBipartition nfbtlb: nodeForBipart.keySet()){
+						if(nfbtlb.isEquivalentTo(tlb)){
+							hs.add(nodeForBipart.get(nfbtlb));
+						}
+					}
+					/*
+					 * probably should do this first, but should really be replaced with taxonomy anyway
+					 */
+					if (hs.size()==0){
+						System.out.println("need to make a node for the root");
+						System.out.println("\t"+tlb);
+						tx = gdb.beginTx();
+						Node node = gdb.createNode();
+						node.setProperty(NodeProperty.MRCA.propertyName, tlb.ingroup().toArray());
+						node.setProperty(NodeProperty.OUTMRCA.propertyName, tlb.outgroup().toArray());
+						//System.out.println();
+						hs.add(node);
+						nodeForBipart.put(tlb, node);
+						bipartForNode.put(node, tlb);
+						tx.success();
+						tx.finish();
+					}
+					in.assocObject("dbnodes",hs);
+					//need to do a check here that says that if you don't find one, you need to make one. It will likely 
+					//be replaced by taxonomy but not necessarily
+					//steps: make the bipartition
+				}else{
+					//get the parent biparts
+					HashSet<Node> parenths = (HashSet<Node>) in.getParent().getAssoc().get("dbnodes");
+					System.out.println(parenths);
+					
+					//find the bipart nodes that match
+					TLongBipartition tlb = original[(Integer) in.getAssoc().get("nodeId")];
+					HashSet<Node> hs = new HashSet<Node>();
+					for(TLongBipartition nfbtlb: nodeForBipart.keySet()){
+						if(nfbtlb.isEquivalentTo(tlb)){
+							for(Node phsn:parenths){
+								if(nfbtlb.isNestedPartitionOf(bipartForNode.get(phsn))){
+									hs.add(nodeForBipart.get(nfbtlb));
+									System.out.println("would make relationship between "+nfbtlb+" "+bipartForNode.get(phsn));
+									//make sure that there is the MRCACHILDOF
+									boolean relpresent = false;
+									for(Relationship rel: phsn.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
+										if (rel.getStartNode() == nodeForBipart.get(nfbtlb)){
+											relpresent = true;
+											break;
+										}
+									}
+									tx = gdb.beginTx();
+									if(relpresent == false){
+										nodeForBipart.get(nfbtlb).createRelationshipTo(phsn, RelType.MRCACHILDOF);
+									}
+									//make the STREECHILDOF
+									nodeForBipart.get(nfbtlb).createRelationshipTo(phsn, RelType.STREECHILDOF);
+									tx.success();
+									tx.finish();
+								}
+							}
+						}
+					}
+					//THERE has to be at least one node match unless the root where one may need to be added
+					assert hs.size() > 0;
+					in.assocObject("dbnodes", hs);
+				}
+			}
+		}
+		for(JadeTree t: trees){
+			//connect the external nodes to the database nodes and make the STREECHILDOFs
 			for(JadeNode ex: t.externalNodes()){
 				HashSet<Node> hs = new HashSet<Node>();
-				hs.add(gdb.getNodeById(nodeIdForName.get(ex.getIdentifier())));
-				ex.getAssoc().put("dbnodes", hs);
-			}
-			//connect the internal nodes to the database nodes
-			for(JadeNode in: t.internalNodes(NodeOrder.POSTORDER)){
-				if (in == t.getRoot()){
-					//need to do a check here that says that if you don't find one, you need to make one. It will likely 
-					//be replaced by taxonomy
-					continue;
-				}
-				//find the bipart nodes that match
-				TLongBipartition tlb = original[(Integer) in.getAssoc().get("nodeId")];
-				HashSet<Node> hs = new HashSet<Node>();
-				for (int i=0;i<bipart.length;i++){
-					if(bipart[i].isEquivalentTo(tlb)){
-						hs.add(nodeForBipart.get(bipart[i]));
+				Node tnode = gdb.getNodeById(nodeIdForName.get(ex.getIdentifier()));
+				HashSet<Node> parenths = (HashSet<Node>) ex.getParent().getAssoc().get("dbnodes");
+				for(Node phsn: parenths){
+					boolean relpresent = false;
+					for(Relationship rel: phsn.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
+						if (rel.getStartNode() == tnode){
+							relpresent = true;
+							break;
+						}
 					}
+					tx = gdb.beginTx();
+					if(relpresent == false){
+						tnode.createRelationshipTo(phsn, RelType.MRCACHILDOF);
+					}
+					tnode.createRelationshipTo(phsn, RelType.STREECHILDOF);
+					tx.success();
+					tx.finish();
 				}
-				//THERE has to be at least one node match unless the root where one may need to be added
-				assert hs.size() > 0;
-				in.assocObject("dbnodes", hs);
-				//connect to the children with MRCA child ofs if necessary and STREECHILDOFs
 			}
 		}
 		
@@ -335,6 +409,7 @@ public class BipartOracle {
 			node.setProperty(NodeProperty.MRCA.propertyName, cumulativeIngroup.toArray());
 			node.setProperty(NodeProperty.OUTMRCA.propertyName, cumulativeOutgroup.toArray());
 			nodeForBipart.put(b, node);
+			bipartForNode.put(node, b);
 			System.out.println();
 		}
 		//This won't make all the possible mrca child ofs. Not sure if we need that. Might need to 
