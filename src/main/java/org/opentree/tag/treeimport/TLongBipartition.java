@@ -67,6 +67,19 @@ public class TLongBipartition {
 	}
 
 	/**
+	 * Returns true if the ingroups is completely contained within the ingroup and the outgroup is contained completely 
+	 * within the outgroup (a potential lica). 
+	 */
+	public boolean isEquivalentTo(TLongBipartition that){
+		if (this.ingroup.containsAny(that.outgroup) || this.outgroup.containsAny(that.ingroup))
+			return false;
+		if (this.ingroup.containsAll(that.ingroup) && this.outgroup.containsAll(that.outgroup))
+			return true;
+		return false;
+	}
+	
+	
+	/**
 	 * Returns true if the called bipartition contains information that could be used to further resolve relationships
 	 * among the ingroup of the bipartition passed to the method. This is an asymmetrical relationship--no bipartition
 	 * may be a resolving child of a second bipartition which is in turn a resolving child of the first.<br/>

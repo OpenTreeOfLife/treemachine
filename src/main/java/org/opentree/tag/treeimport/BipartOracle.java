@@ -140,7 +140,7 @@ public class BipartOracle {
 		for (int i = 0; i < bipart.length; i++) {
 			if (bipart[i].outgroup().size() > 0) {
 				TLongBitArraySet retval = findPaths(i, new TLongBitArraySet(), new ArrayList<Integer>(), 0);
-				//these need to be made into nodes
+				//these that have no pairwise relationships also need to be made into nodes
 				if (retval == null){
 					tx = gdb.beginTx();
 					Node node = gdb.createNode();
@@ -158,7 +158,6 @@ public class BipartOracle {
 			System.out.println(p);
 		}
 		
-		
 		tx = gdb.beginTx();
 //		try {
 			for (Path p : paths) {
@@ -172,6 +171,42 @@ public class BipartOracle {
 //		}// finally {
 //			tx.finish();
 //		}
+			
+		/*
+		 * seems like the trees should be processed here to make the relationships to the tips
+		 * and potentially other mrca relationships
+		 * 
+		 * I think a postorder traversal through each tree, a list of all the nodes at each jadenode
+		 * only connect the parent to child that are possible
+		 */
+		for(JadeTree t: trees){
+			//connect the external nodes to the database nodes
+			for(JadeNode ex: t.externalNodes()){
+				HashSet<Node> hs = new HashSet<Node>();
+				hs.add(gdb.getNodeById(nodeIdForName.get(ex.getIdentifier())));
+				ex.getAssoc().put("dbnodes", hs);
+			}
+			//connect the internal nodes to the database nodes
+			for(JadeNode in: t.internalNodes(NodeOrder.POSTORDER)){
+				if (in == t.getRoot()){
+					//need to do a check here that says that if you don't find one, you need to make one. It will likely 
+					//be replaced by taxonomy
+					continue;
+				}
+				//find the bipart nodes that match
+				TLongBipartition tlb = original[(Integer) in.getAssoc().get("nodeId")];
+				HashSet<Node> hs = new HashSet<Node>();
+				for (int i=0;i<bipart.length;i++){
+					if(bipart[i].isEquivalentTo(tlb)){
+						hs.add(nodeForBipart.get(bipart[i]));
+					}
+				}
+				//THERE has to be at least one node match unless the root where one may need to be added
+				assert hs.size() > 0;
+				in.assocObject("dbnodes", hs);
+				//connect to the children with MRCA child ofs if necessary and STREECHILDOFs
+			}
+		}
 		
 	}
 	
@@ -409,6 +444,7 @@ public class BipartOracle {
 		JadeBipartition b = tree.getBipartition(p);
 		for (JadeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getName()));  }
 		for (JadeNode n : b.outgroup()) { outgroup.add(nodeIdForName.get(n.getName())); }
+		p.assocObject("nodeId", nodeId);
 		original[nodeId] = new TLongBipartition(ingroup, outgroup);
 	}
 
