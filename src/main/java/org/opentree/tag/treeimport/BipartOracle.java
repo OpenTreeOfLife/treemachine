@@ -162,19 +162,94 @@ public class BipartOracle {
 		}
 		
 		tx = gdb.beginTx();
-//		try {
-			for (Path p : paths) {
-				generateNodesFromPaths(0, new TLongBitArraySet(), p.toArray());
+		for (Path p : paths) {
+			generateNodesFromPaths(0, new TLongBitArraySet(), p.toArray());
+		}
+		tx.success();
+		tx.finish();
+		
+		
+		/*
+		 * root nodes need to be added here if they are needed to keep this order independent
+		 * When that happens it needs to be removed from the part below starting (hs.size==0)
+		 */
+		
+		for(JadeTree t: trees){
+			JadeNode in = t.getRoot();
+			TLongBitArraySet ingroup = new TLongBitArraySet();
+			JadeBipartition b = t.getBipartition(in);
+			for (JadeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getName()));  }
+			TLongBipartition tlb = new TLongBipartition(ingroup,new TLongBitArraySet());
+			HashSet<Node> hs = new HashSet<Node>();
+			for(TLongBipartition nfbtlb: nodeForBipart.keySet()){
+				if(nfbtlb.isEquivalentTo(tlb)){
+					hs.add(nodeForBipart.get(nfbtlb));
+				}
 			}
-			tx.success();
-			tx.finish();
-//		} catch (Exception ex) {
-//			tx.failure();
-//			throw ex;
-//		}// finally {
-//			tx.finish();
-//		}
-			
+			if (hs.size()==0){
+				System.out.println("need to make a node for the root");
+				System.out.println("\t"+tlb);
+				tx = gdb.beginTx();
+				Node node = gdb.createNode();
+				node.setProperty(NodeProperty.MRCA.propertyName, tlb.ingroup().toArray());
+				node.setProperty(NodeProperty.OUTMRCA.propertyName, tlb.outgroup().toArray());
+				hs.add(node);
+				nodeForBipart.put(tlb, node);
+				bipartForNode.put(node, tlb);
+				tx.success();
+				tx.finish();
+			}
+			in.assocObject("dbnodes",hs);
+		}
+		
+		generateMRCAChildOfs();
+		
+		loadTreesAndSTreeChildOfs(trees);
+		
+		
+	}
+	
+	/**
+	 * The purpose of this is to create all the MRCACHild ofs with an all by all
+	 * This should make it so that loading trees just has to look at the parent rels
+	 * instead of all the biparts
+	 */
+	private void generateMRCAChildOfs(){
+		Transaction tx;
+		/*
+		 * create the MRCAChildOfs
+		 * although this is all by all, should make the tree loading way quicker 
+		 * because then we can just use parent MRCAChildofs instead of checking each node
+		 */
+		tx = gdb.beginTx();
+		for(TLongBipartition tlb: nodeForBipart.keySet()){
+			for(TLongBipartition ntlb: nodeForBipart.keySet()){//potential nested
+				if(ntlb.isNestedPartitionOf(tlb) && ntlb.equals(tlb) == false){
+					boolean relpresent = false;
+					for(Relationship rel: nodeForBipart.get(tlb).getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
+						if (rel.getStartNode().equals(nodeForBipart.get(ntlb))){
+							relpresent = true;
+							break;
+						}
+					}
+					
+					if(relpresent == false){
+						System.out.println("make mrcachildof between "+ntlb+" "+tlb);
+						nodeForBipart.get(ntlb).createRelationshipTo(nodeForBipart.get(tlb), RelType.MRCACHILDOF);
+					}
+				}
+			}
+		}
+		tx.success();
+		tx.finish();
+	}
+	
+	/**
+	 * The purpose of this is to load each tree. First the internal nodes and then the external
+	 * @param trees
+	 */
+	private void loadTreesAndSTreeChildOfs(List<JadeTree> trees){
+		Transaction tx;
 		/*
 		 * seems like the trees should be processed here to make the relationships to the tips
 		 * and potentially other mrca relationships
@@ -186,61 +261,33 @@ public class BipartOracle {
 			//connect the internal nodes to the database nodes
 			for(JadeNode in: t.internalNodes(NodeOrder.PREORDER)){
 				if (in == t.getRoot()){
-					TLongBitArraySet ingroup = new TLongBitArraySet();
-					JadeBipartition b = t.getBipartition(in);
-					for (JadeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getName()));  }
-					TLongBipartition tlb = new TLongBipartition(ingroup,new TLongBitArraySet());
-					HashSet<Node> hs = new HashSet<Node>();
-					for(TLongBipartition nfbtlb: nodeForBipart.keySet()){
-						if(nfbtlb.isEquivalentTo(tlb)){
-							hs.add(nodeForBipart.get(nfbtlb));
-						}
-					}
-					/*
-					 * probably should do this first, but should really be replaced with taxonomy anyway
-					 */
-					if (hs.size()==0){
-						System.out.println("need to make a node for the root");
-						System.out.println("\t"+tlb);
-						tx = gdb.beginTx();
-						Node node = gdb.createNode();
-						node.setProperty(NodeProperty.MRCA.propertyName, tlb.ingroup().toArray());
-						node.setProperty(NodeProperty.OUTMRCA.propertyName, tlb.outgroup().toArray());
-						//System.out.println();
-						hs.add(node);
-						nodeForBipart.put(tlb, node);
-						bipartForNode.put(node, tlb);
-						tx.success();
-						tx.finish();
-					}
-					in.assocObject("dbnodes",hs);
-					//need to do a check here that says that if you don't find one, you need to make one. It will likely 
-					//be replaced by taxonomy but not necessarily
-					//steps: make the bipartition
+					continue; // just did this up top
 				}else{
 					//get the parent biparts
 					HashSet<Node> parenths = (HashSet<Node>) in.getParent().getAssoc().get("dbnodes");
-					System.out.println(parenths);
+					//System.out.println(parenths);
 					
 					//find the bipart nodes that match
 					TLongBipartition tlb = original[(Integer) in.getAssoc().get("nodeId")];
 					HashSet<Node> hs = new HashSet<Node>();
+					//if you don't create the mrca child ofs earlier then you need to do this
+					/*
 					for(TLongBipartition nfbtlb: nodeForBipart.keySet()){
 						if(nfbtlb.isEquivalentTo(tlb)){
 							for(Node phsn:parenths){
 								if(nfbtlb.isNestedPartitionOf(bipartForNode.get(phsn))){
 									hs.add(nodeForBipart.get(nfbtlb));
-									System.out.println("would make relationship between "+nfbtlb+" "+bipartForNode.get(phsn));
 									//make sure that there is the MRCACHILDOF
 									boolean relpresent = false;
 									for(Relationship rel: phsn.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
-										if (rel.getStartNode() == nodeForBipart.get(nfbtlb)){
+										if (rel.getStartNode().equals(nodeForBipart.get(nfbtlb))){
 											relpresent = true;
 											break;
 										}
 									}
 									tx = gdb.beginTx();
 									if(relpresent == false){
+										System.out.println("make mrcachildof between "+nfbtlb+" "+bipartForNode.get(phsn));
 										nodeForBipart.get(nfbtlb).createRelationshipTo(phsn, RelType.MRCACHILDOF);
 									}
 									//make the STREECHILDOF
@@ -248,11 +295,32 @@ public class BipartOracle {
 									tx.success();
 									tx.finish();
 								}
+								
 							}
+						}
+					}*/
+					//if you create the mrcachildofs before, then you can do this
+					for(Node phsn:parenths){
+						for(Relationship prel: phsn.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
+							Node potentialChild = prel.getStartNode();
+							TLongBipartition ctlb = bipartForNode.get(potentialChild);
+							//BE CAREFUL isequivalent is directional
+							if(ctlb.isEquivalentTo(tlb) && ctlb.isNestedPartitionOf(bipartForNode.get(phsn))){
+								//System.out.println("SUCCESS");
+								hs.add(potentialChild);
+								//make the STREECHILDOF
+								tx = gdb.beginTx();
+								potentialChild.createRelationshipTo(phsn, RelType.STREECHILDOF);
+								tx.success();
+								tx.finish();
+							}	
 						}
 					}
 					//THERE has to be at least one node match unless the root where one may need to be added
-					assert hs.size() > 0;
+					if(hs.size() == 0){
+						System.out.println("hs: "+hs+" "+in.getNewick(false));
+						return;
+					}
 					in.assocObject("dbnodes", hs);
 				}
 			}
@@ -266,7 +334,7 @@ public class BipartOracle {
 				for(Node phsn: parenths){
 					boolean relpresent = false;
 					for(Relationship rel: phsn.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
-						if (rel.getStartNode() == tnode){
+						if (rel.getStartNode().equals(tnode)){
 							relpresent = true;
 							break;
 						}
@@ -276,12 +344,12 @@ public class BipartOracle {
 						tnode.createRelationshipTo(phsn, RelType.MRCACHILDOF);
 					}
 					tnode.createRelationshipTo(phsn, RelType.STREECHILDOF);
+					//of course the information on which tree should be added here
 					tx.success();
 					tx.finish();
 				}
 			}
 		}
-		
 	}
 	
 	private static String indent(int level) {
@@ -412,9 +480,11 @@ public class BipartOracle {
 			bipartForNode.put(node, b);
 			System.out.println();
 		}
-		//This won't make all the possible mrca child ofs. Not sure if we need that. Might need to 
-		// A) make them all (all by all comparison) or B) use the trees to create additional ones
-		// Preference for B if we can do it as obviously more efficient
+		//This won't make all the possible mrca child ofs. We need more than what is created here. 
+		//I would suggest pulling this part out and creating them above in an all by all comparison
+		//The you can use the tree structure to lower the number of things you compare to when 
+		//mapping the trees. 
+		//Going to leave this here but doing the all by all now
 		if (parentNode != null) {
 			System.out.println("Creating relationship from " + node + " to " + parentNode);
 			//this is trying not to replcate the relationships from each node, without it there are many duplicates created
@@ -428,25 +498,6 @@ public class BipartOracle {
 			if (testrelexist == false)
 				node.createRelationshipTo(parentNode, RelType.MRCACHILDOF);
 		}
-		/*
-		 * this should probably be done just by loading the trees themselves
-		 *
-		if (position == 0) { // connect terminal node in path to ingroup tips
-			for (Long tipId : parent.ingroup()) {
-				//this is trying not to replicate the relationships from each node, without it there are many duplicates created
-				boolean testrelexist=false;
-				for(Relationship trel: gdb.getNodeById(tipId).getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)){
-					if(trel.getEndNode().equals(node)){
-						testrelexist = true;
-						break;
-					}
-				}
-				if (testrelexist == false)
-					gdb.getNodeById(tipId).createRelationshipTo(node, RelType.MRCACHILDOF);
-			}
-		}
-		*/
-		
 		return new Object[] {node, cumulativeOutgroup};
 	}
 	
@@ -571,6 +622,11 @@ public class BipartOracle {
 		t.add(TreeReader.readTree("((A,B),C);"));
 	}
 
+	private static void loadTreesNonOverlap(ArrayList<JadeTree> t) throws TreeParseException {
+		t.add(TreeReader.readTree("((A,C),D);"));
+		t.add(TreeReader.readTree("((E,F),G);"));
+	}
+	
 	private static void loadTreesTest4(ArrayList<JadeTree> t) throws TreeParseException {
 		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
 		t.add(TreeReader.readTree("((((A,C),B),F),D);"));
@@ -582,7 +638,7 @@ public class BipartOracle {
 
 		ArrayList<JadeTree> t = new ArrayList<JadeTree>();
 
-		loadTreesTest4(t);
+		loadTreesCycleConflict(t);
 
 		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase("test.db")));
 
