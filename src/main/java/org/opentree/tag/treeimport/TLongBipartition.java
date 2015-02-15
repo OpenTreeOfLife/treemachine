@@ -70,7 +70,7 @@ public class TLongBipartition {
 	 * Returns true if the ingroups is completely contained within the ingroup and the outgroup is contained completely 
 	 * within the outgroup (a potential lica). 
 	 */
-	public boolean isEquivalentTo(TLongBipartition that){
+	public boolean containsAll(TLongBipartition that){
 		if (this.ingroup.containsAny(that.outgroup) || this.outgroup.containsAny(that.ingroup))
 			return false;
 		if (this.ingroup.containsAll(that.ingroup) && this.outgroup.containsAll(that.outgroup))
@@ -153,7 +153,8 @@ public class TLongBipartition {
 		return s.toString();
 	}
 	
-	public String toString(Map<Long, String> names) {
+//	public String toString(Map<Long, String> names) {
+	public String toString(Map<Long, Object> names) {
 		StringBuffer s = new StringBuffer();
 		s.append("{");
 		boolean first = true;
