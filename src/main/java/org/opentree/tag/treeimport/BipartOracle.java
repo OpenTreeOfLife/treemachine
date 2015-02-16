@@ -56,6 +56,9 @@ public class BipartOracle {
 	private Map<TLongBipartition, Node> nodeForBipart; // neo4j node for each bipartition
 	private Map<Node,TLongBipartition> bipartForNode;  // bipartition for neo4j node
 	private Map<TreeNode, HashSet<Node>> graphNodesForTreeNode;
+	
+	// keep track of rels we've made to cut down on database queries
+	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
 
 	int nodeId = 0;
 
@@ -468,10 +471,23 @@ public class BipartOracle {
 		return node;
 	}
 
+	/**
+	 * This will check to see if an MRCACHILDOF rel already exists between the child and the
+	 * parent, and if not it will make one.
+	 * @param child
+	 * @param parent
+	 */
 	private void updateMRCAChildOf(Node child, Node parent) {
+		if (hasMRCAChildOf.get(child.getId()) == null) {
+			hasMRCAChildOf.put(child.getId(), new HashSet<Long>());
+		} else {
+			if (hasMRCAChildOf.get(child.getId()).contains(parent.getId())) {
+				return;
+			}
+		}
 		boolean alreadyExists = false;
-		for (Relationship trel : child.getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)){
-			if(trel.getEndNode().equals(parent)){
+		for (Relationship r : child.getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)){
+			if (r.getEndNode().equals(parent)){
 				alreadyExists = true;
 				break;
 			}
@@ -479,6 +495,7 @@ public class BipartOracle {
 		if (! alreadyExists) {
 			child.createRelationshipTo(parent, RelType.MRCACHILDOF);
 		}
+		hasMRCAChildOf.get(child.getId()).add(parent.getId());
 	}
 	
 	private boolean hasNoNestedBiparts(int parent) {
