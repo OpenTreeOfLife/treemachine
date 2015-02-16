@@ -7,6 +7,9 @@ import jade.tree.Tree;
 import jade.tree.TreeParseException;
 import jade.tree.TreeReader;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,6 +34,7 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 public class BipartOracle {
 
 	private final GraphDatabaseAgent gdb;
+	boolean VERBOSE = false;
 
 	// associate input names with neo4j node ids
 	Map<Object, Long> nodeIdForName = new HashMap<Object, Long>();
@@ -360,13 +364,17 @@ public class BipartOracle {
 		
 		// otherwise prepare to define a new bipart
 		path.add(parentId);
-	    System.out.println("\n" + indent(level) + "current path is: " + path);
+		if(VERBOSE)
+			System.out.println("\n" + indent(level) + "current path is: " + path);
 
 		// collect the ingroup from all downstream (child) biparts' ingroups'
-		System.out.println(indent(level) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
-		System.out.println(indent(level) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
+		if(VERBOSE){
+			System.out.println(indent(level) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
+			System.out.println(indent(level) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
+		}
 		cumulativeIngroup.addAll(parent.ingroup());
-		System.out.println(indent(level) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
+		if(VERBOSE)
+			System.out.println(indent(level) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
 
 		// collect the outgroup from all upstream (parent) biparts' outgroups
 	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
@@ -379,10 +387,11 @@ public class BipartOracle {
 				cumulativeOutgroup.addAll(outgroupsToAdd);
 			}
 		}
-		System.out.println((newline ? "\n" : "") + indent(level) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
-	    System.out.println(indent(level) + "done with parent " + parent.toString(nameForNodeId));
-		System.out.println(indent(level) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + path);
-
+	    if(VERBOSE){
+			System.out.println((newline ? "\n" : "") + indent(level) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
+		    System.out.println(indent(level) + "done with parent " + parent.toString(nameForNodeId));
+			System.out.println(indent(level) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + path);
+	    }
 		assert ! cumulativeIngroup.containsAny(cumulativeOutgroup);
 
 		paths.add(new Path(path));
@@ -408,14 +417,17 @@ public class BipartOracle {
         	return null;
 		}
 		
-		// otherwise prepare to define a new node
-	    System.out.println("\n" + indent(position) + "path is: " + Arrays.toString(path) + " and current bipart id is: " + path[position]);
+		if (VERBOSE){
+			// otherwise prepare to define a new node
+			System.out.println("\n" + indent(position) + "path is: " + Arrays.toString(path) + " and current bipart id is: " + path[position]);
 
-		// collect the ingroup from all downstream (child) biparts' ingroups'
-		System.out.println(indent(position) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
-		System.out.println(indent(position) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
+			// collect the ingroup from all downstream (child) biparts' ingroups'
+			System.out.println(indent(position) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
+			System.out.println(indent(position) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
+		}
 		cumulativeIngroup.addAll(parent.ingroup());
-		System.out.println(indent(position) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
+		if(VERBOSE)
+			System.out.println(indent(position) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
 
 	    // collect the outgroup this node
 	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
@@ -435,10 +447,12 @@ public class BipartOracle {
 			}
 		}
 
-		System.out.println((newline ? "\n" : "") + indent(position) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
-	    System.out.println(indent(position) + "done with parent " + parent.toString(nameForNodeId));
-		System.out.println(indent(position) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + Arrays.toString(path));
-
+		if(VERBOSE){
+			System.out.println((newline ? "\n" : "") + indent(position) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
+		    System.out.println(indent(position) + "done with parent " + parent.toString(nameForNodeId));
+			System.out.println(indent(position) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + Arrays.toString(path));
+		}
+		
 		assert ! cumulativeIngroup.containsAny(cumulativeOutgroup);
 
 		TLongBipartition b = new TLongBipartition(cumulativeIngroup, cumulativeOutgroup);
@@ -447,7 +461,8 @@ public class BipartOracle {
 			node = nodeForBipart.get(b);
 		} else {
 			node = createNode(new TLongBipartition(cumulativeIngroup, cumulativeOutgroup));
-			System.out.println();
+			if(VERBOSE)
+				System.out.println();
 		}
 
 		/*
@@ -605,12 +620,29 @@ public class BipartOracle {
 
 		runOTNewickTest();
 	}
-	
+
+	/*
+	 * be careful, this one takes a while
+	 */
+	private static void loadATOLTrees(List<Tree> t) throws TreeParseException {
+		try {
+			BufferedReader br = new BufferedReader(new FileReader("data/examples/atol/RAxML_bootstrap.ONLY_CP_BS100.rr"));
+			String str;
+			while((str = br.readLine())!=null){
+				t.add(TreeReader.readTree(str));
+			}
+			br.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("trees read");
+	}
 	
 	private void runSimpleTest() throws Exception {
 		ArrayList<Tree> t = new ArrayList<Tree>();
 
-		loadTreesTestInterleaved(t);
+		loadTreesCycleConflict(t);
 
 		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase("test.db")));
 
