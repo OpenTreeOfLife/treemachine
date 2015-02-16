@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
@@ -32,11 +33,16 @@ public final class TipExploder {
 			for (TreeNode tip : tree.externalNodes()) {
 			
 				Object ottId = tip.getLabel();
-				System.out.println("searching for: " + ottId);
+				System.out.print("searching for ott id: " + ottId);
 
-				for (Node hit : ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottId)) {
-					System.out.println("checking for tips below " + hit + " (ott id " + ottId + ")");
-
+				Node hit = null;
+				try {
+					hit = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottId).getSingle();
+					if (hit == null) {
+						System.out.println(". WARNING: could not find match this ott id.");
+						continue;
+					}
+					System.out.print(". Found a node: " + hit + ". checking for tips below");
 					JadeNode polytomy = new JadeNode();
 					for (Node n : Traversal.description().breadthFirst().relationships(RelType.TAXCHILDOF, Direction.INCOMING).traverse(hit).nodes()) {
 						if (! n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
@@ -44,17 +50,19 @@ public final class TipExploder {
 							JadeNode c = new JadeNode();
 							c.setName((String) label);
 							polytomy.addChild(c);
-							System.out.println("found a tip " + label);
 						}
 					}
-					if (polytomy.getChildCount() > 1) {
+					if (polytomy.getChildCount() > 0) {
+						System.out.println(". Found " + polytomy.getChildCount() + " tips, remapping.");
 						TreeNode parent = tip.getParent();
 						parent.removeChild(tip);
 						parent.addChild(polytomy);
 					}
+				} catch (NoSuchElementException ex) {
+					System.out.println("WARNING: more than one match was found for ott id " + ottId + ". this tip will not be exploded.");
 				}
-				((JadeTree) tree).update();
 			}
+			((JadeTree) tree).update();
 		}
 		return trees;
 	}
