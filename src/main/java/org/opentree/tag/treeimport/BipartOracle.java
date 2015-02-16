@@ -1,9 +1,9 @@
 package org.opentree.tag.treeimport;
 
-import jade.tree.JadeBipartition;
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
+import jade.tree.TreeBipartition;
+import jade.tree.TreeNode;
 import jade.tree.NodeOrder;
+import jade.tree.Tree;
 import jade.tree.TreeParseException;
 import jade.tree.TreeReader;
 
@@ -26,12 +26,6 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opentree.bitarray.TLongBitArraySet;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
-/*
- * TODO: create interfaces for Tree and TreeNode, and implement them on JadeTree/JadeNode,
- * NexsonTree/NexsonNode. Then, adjust import procedures to be ambivalent to source of the
- * tree.
- */
-
 public class BipartOracle {
 
 	private final GraphDatabaseAgent gdb;
@@ -41,9 +35,8 @@ public class BipartOracle {
 	Map<Long, Object> nameForNodeId = new HashMap<Long, Object>();
 	
 	// indices in these correspond nodes in input trees
-	HashMap<JadeNode, Integer> treeNodeIds;
-	JadeNode[] treeNode;
-//	int[][] childrenOf;
+	Map<TreeNode, Integer> treeNodeIds;
+	TreeNode[] treeNode;
 	TLongBipartition[] original;
 
 	// these map biparts to tree nodes
@@ -58,119 +51,33 @@ public class BipartOracle {
 	// nestedParents[i] contains the ids of all the biparts that bipart i *is* a nested child of
 	ArrayList<Integer>[] nestedChildren;
 	ArrayList<Integer>[] nestedParents;
-	boolean[] isNested; // indicates whether this bipartition is nested at all
+	boolean[] isNested; // indicates whether this bipartition is nested at all // might not be used?
 
-	private HashMap<TLongBipartition, Node> nodeForBipart; // neo4j node for each bipartition
-	private HashMap<Node,TLongBipartition> bipartForNode; //bipartiton for neo4j node
-	
-	private HashMap<JadeNode, HashSet<Node>> graphNodesForTreeNode;
+	// maps of graph nodes to various things
+	private Map<TLongBipartition, Node> nodeForBipart; // neo4j node for each bipartition
+	private Map<Node,TLongBipartition> bipartForNode; //bipartiton for neo4j node
+	private Map<TreeNode, HashSet<Node>> graphNodesForTreeNode;
 
-	int internalNodeCounter = 0;
+	int nodeId = 0;
 
-	@SuppressWarnings("unchecked")
-	public BipartOracle(List<JadeTree> trees, GraphDatabaseAgent gdb) throws Exception {
+	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb) throws Exception {
 		
 		this.gdb = gdb;
 
-		Transaction tx = gdb.beginTx();
-		gatherTreeData(trees); // populate 'treeNode', 'childrenOf', and 'original' arrays
-		tx.success();
-		tx.finish();
+		gatherTreeData(trees); // populate 'treeNode' and 'original' arrays with nodes and corresponding biparts
 		
-		// get pairwise sums of all tree biparts
-		bipart = new BipartSetSum(original).toArray();
+		bipart = new BipartSetSum(original).toArray(); // get pairwise sums of all tree biparts
 		
 		for (int i = 0; i < bipart.length; i++) {
 			System.out.println(i + " " + bipart[i].toString(nameForNodeId));
 		}
 
-		// find compatible child mappings among the summed biparts.
-		// could be smarter about only looking for these when required during tree traversal
-		nestedChildren = new ArrayList[bipart.length];
-		nestedParents = new ArrayList[bipart.length];
-		isNested = new boolean[bipart.length];
-		for (int i = 0; i < bipart.length; i++) {
-
-			// find all biparts nested within this one
-			nestedChildren[i] = new ArrayList<Integer>();
-
-			if (bipart[i].outgroup().size() < 1) { // don't check roots of input trees
-				continue;
-			}
-			for (int j = 0; j < bipart.length; j++) {
-				if (nestedParents[j] == null) {
-					nestedParents[j] = new ArrayList<Integer>();
-				}
-				if (i != j && bipart[j].isNestedPartitionOf(bipart[i])) {
-					nestedChildren[i].add(j);
-					nestedParents[j].add(i);
-					isNested[j] = true;
-				}
-			}
-		}
+		createLicaNodesFromBiparts(); // creates nodes and MRCACHILDOF rels corresponding to nested bipartitions
 		
-//		System.out.println("nested parents: " + Arrays.toString(nestedParents));
-//		System.out.println("nested children: " + Arrays.toString(nestedChildren));
-//		System.exit(0);
-		
-		/* this does not seem necessary
-		// map all tree nodes to all summed biparts
-		treeNodesForBipart = new ArrayList[bipart.length];
-		bipartsForTreeNode = new ArrayList[original.length];
-		for (int i = 0; i < bipart.length; i++) {
-			treeNodesForBipart[i] = new ArrayList<Integer>();
-			for (int j = 0; j < treeNode.length; j++) {
-				if (bipartsForTreeNode[j] == null) {
-					bipartsForTreeNode[j] = new ArrayList<Integer>();
-				}
-				if (bipart[i].isCompatibleWith(original[j])) {
-					treeNodesForBipart[i].add(j);
-					bipartsForTreeNode[j].add(i);
-				}
-			}
-		} */
-		
-		nodeForBipart = new HashMap<TLongBipartition, Node>();
-		bipartForNode = new HashMap<Node,TLongBipartition>();
-		
-		// now walk the bipart nestings and build the potential paths.
-		// here we could just walk from any given bipart to the biparts mapped to that tree node.
-		// this would reduce the size of the graph but not sure whether it would find all the relevant paths.
-		paths = new HashSet<Path>();
-		for (int i = 0; i < bipart.length; i++) {
-			if (bipart[i].outgroup().size() > 0) {
-				TLongBitArraySet pathResult = findPaths(i, new TLongBitArraySet(), new ArrayList<Integer>(), 0);
-				if (pathResult == null) {
-					// no paths found/saved for this bipart, so just make a node for it
-					tx = gdb.beginTx();
-					createNode(bipart[i]);
-					tx.success();
-					tx.finish();
-				}
-			}
-		}
-		
-		for (Path p : paths) {
-			System.out.println(p);
-		}
-		
-		tx = gdb.beginTx();
-		for (Path p : paths) {
-			generateNodesFromPaths(0, new TLongBitArraySet(), p.toArray());
-		}
-		tx.success();
-		tx.finish();
-			
-		graphNodesForTreeNode = new HashMap<JadeNode, HashSet<Node>>();
-
-		/*
-		 * seems like the trees should be processed here to make the relationships to the tips
-		 * and potentially other mrca relationships
-		 * 
-		 * I think a postorder traversal through each tree, a list of all the nodes at each jadenode
-		 * only connect the parent to child that are possible
-		 */
-		for (JadeTree tree : trees) {
+		// now import the trees
+		Transaction tx;
+		graphNodesForTreeNode = new HashMap<TreeNode, HashSet<Node>>();
+		for (Tree tree : trees) {
 			
 			// one transaction for the entire tree
 			tx = gdb.beginTx();
@@ -179,7 +86,7 @@ public class BipartOracle {
 			graphNodesForTreeNode.put(tree.getRoot(), (HashSet<Node>) mapGraphNodesToRoot(tree));
 
 			// now map the internal nodes other than the root
-			for(JadeNode treeNode : tree.internalNodes(NodeOrder.PREORDER)){
+			for(TreeNode treeNode : tree.internalNodes(NodeOrder.PREORDER)){
 				if (! treeNode.isTheRoot()){
 					
 					Set<Node> graphNodes = mapGraphNodesToInternalNode(treeNode);
@@ -190,7 +97,7 @@ public class BipartOracle {
 			}
 
 			// now connect all the tips to their parent nodes
-			for(JadeNode treeTip : tree.externalNodes()) {
+			for(TreeNode treeTip : tree.externalNodes()) {
 				mapGraphNodesToTip(treeTip);
 			}
 			tx.success();
@@ -198,8 +105,8 @@ public class BipartOracle {
 		}	
 	}
 	
-	private Set<Node> mapGraphNodesToRoot(JadeTree tree) {
-		JadeNode treeRoot = tree.getRoot();
+	private Set<Node> mapGraphNodesToRoot(Tree tree) {
+		TreeNode treeRoot = tree.getRoot();
 		TLongBipartition rootBipart = getGraphBipartForTreeNode(treeRoot, tree);
 		
 		HashSet<Node> graphNodes = new HashSet<Node>();
@@ -219,7 +126,7 @@ public class BipartOracle {
 		return graphNodes;
 	}
 	
-	private Set<Node> mapGraphNodesToInternalNode(JadeNode treeNode) {
+	private Set<Node> mapGraphNodesToInternalNode(TreeNode treeNode) {
 
 		// get the graph nodes that match this node's parent
 		HashSet<Node> graphNodesForParent = graphNodesForTreeNode.get(treeNode.getParent());
@@ -245,7 +152,7 @@ public class BipartOracle {
 		return graphNodes;
 	}
 	
-	private void mapGraphNodesToTip(JadeNode treeTip) {
+	private void mapGraphNodesToTip(TreeNode treeTip) {
 		Node tip = gdb.getNodeById(nodeIdForName.get(treeTip.getLabel()));
 		for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
 			updateMRCAChildOf(tip, parent);
@@ -268,6 +175,65 @@ public class BipartOracle {
 			s.append("\t");
 		}
 		return s.toString();
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void createLicaNodesFromBiparts() {
+		nestedChildren = new ArrayList[bipart.length];
+		nestedParents = new ArrayList[bipart.length];
+		isNested = new boolean[bipart.length];
+		for (int i = 0; i < bipart.length; i++) {
+
+			// find all biparts nested within this one
+			nestedChildren[i] = new ArrayList<Integer>();
+
+			if (bipart[i].outgroup().size() < 1) { // don't check roots of input trees
+				continue;
+			}
+			for (int j = 0; j < bipart.length; j++) {
+				if (nestedParents[j] == null) {
+					nestedParents[j] = new ArrayList<Integer>();
+				}
+				if (i != j && bipart[j].isNestedPartitionOf(bipart[i])) {
+					nestedChildren[i].add(j);
+					nestedParents[j].add(i);
+					isNested[j] = true;
+				}
+			}
+		}
+		
+		nodeForBipart = new HashMap<TLongBipartition, Node>();
+		bipartForNode = new HashMap<Node,TLongBipartition>();
+		
+		// now walk the bipart nestings and build the potential paths.
+		// here we could just walk from any given bipart to the biparts mapped to that tree node.
+		// this would reduce the size of the graph but not sure whether it would find all the relevant paths.
+		paths = new HashSet<Path>();
+		Transaction tx = gdb.beginTx();
+		for (int i = 0; i < bipart.length; i++) {
+			if (bipart[i].outgroup().size() > 0) {
+				TLongBitArraySet pathResult = findPaths(i, new TLongBitArraySet(), new ArrayList<Integer>(), 0);
+				if (pathResult == null) {
+					// no paths found/saved for this bipart, so just make a node for it
+					createNode(bipart[i]);
+				}
+			}
+		}
+		tx.success();
+		tx.finish();
+
+		// report results
+		for (Path p : paths) {
+			System.out.println(p);
+		}
+		
+		// create nodes based on paths
+		tx = gdb.beginTx();
+		for (Path p : paths) {
+			generateNodesFromPaths(0, new TLongBitArraySet(), p.toArray());
+		}
+		tx.success();
+		tx.finish();
 	}
 	
 	/** 
@@ -421,15 +387,18 @@ public class BipartOracle {
 		return nestedChildren[parent].size() == 0;
 	}
 	
-	private void gatherTreeData(List<JadeTree> trees) {
+	private void gatherTreeData(List<Tree> trees) {
+
 		int treeNodeCount = 0;
-		for (JadeTree t : trees) { 
+		for (Tree t : trees) { 
 			treeNodeCount += t.internalNodeCount() - 1; // don't count the root
 		}
 		
+		Transaction tx = gdb.beginTx();
+		
 		// make nodes for all unique tip names and remember them
-		for (JadeTree t : trees) {
-			for (JadeNode l : t.externalNodes()) {
+		for (Tree t : trees) {
+			for (TreeNode l : t.externalNodes()) {
 				Object n = l.getLabel();
 				if (! nodeIdForName.containsKey(n)) {
 					Node tip = gdb.createNode();
@@ -442,55 +411,33 @@ public class BipartOracle {
 				}
 			}
 		}
+		tx.success();
+		tx.finish();
 			
 		// gather the tree nodes, tree structure, and tip labels.
 		// for nexson, we would want ott ids instead of tip labels.
 		// we should have treeNodeCount be the internal nodes - root
-		treeNode = new JadeNode[treeNodeCount];
-//		childrenOf = new int[treeNodeCount][];
+		treeNode = new TreeNode[treeNodeCount];
 		original = new TLongBipartition[treeNodeCount];
-		treeNodeIds = new HashMap<JadeNode, Integer>();
-		internalNodeCounter = -1;
-		for (JadeTree t : trees) {
-			//don't need to include root as far as I can tell, so you can do the children of the root
-			for (JadeNode child: t.getRoot().getChildren()){
-				if (child.isInternal())
-					recurRecordTree(child, ++internalNodeCounter, t);
+		treeNodeIds = new HashMap<TreeNode, Integer>();
+		nodeId = 0;
+		for (Tree tree : trees) {
+			for (TreeNode node: tree.internalNodes(NodeOrder.PREORDER)){
+				if (! node.isTheRoot()) { // we deal with the root later
+					treeNode[nodeId] = node;
+					treeNodeIds.put(node, nodeId);
+					original[nodeId++] = getGraphBipartForTreeNode(node, tree);
+				}
 			}
 		}
 	}
 
-	private void recurRecordTree(JadeNode p, int treeNodeId, JadeTree tree) {
-		treeNode[treeNodeId] = p;
-
-		// collect the internal children
-		ArrayList<JadeNode> internalChildren = new ArrayList<JadeNode>();
-		for (JadeNode child : p.getChildren()) {
-			if (child.isInternal()) { 
-				internalChildren.add(child); 
-			}
-		}
-		
-		// process the internal children
-//		childrenOf[treeNodeId] = new int[internalChildren.size()];
-//		int k = 0;
-		for (JadeNode child : internalChildren) {
-//			childrenOf[treeNodeId][k++] = ++internalNodeCounter;
-			recurRecordTree(child, ++internalNodeCounter, tree);
-		}
-		
-		// record the bipartition
-//		p.assocObject("nodeId", treeNodeId); // is this used for anything later? if so we should just record it in a hashmap
-		treeNodeIds.put(p, treeNodeId);
-		original[treeNodeId] = getGraphBipartForTreeNode(p, tree);
-	}
-
-	private TLongBipartition getGraphBipartForTreeNode(JadeNode p, JadeTree t) {
+	private TLongBipartition getGraphBipartForTreeNode(TreeNode p, Tree t) {
 		TLongBitArraySet ingroup = new TLongBitArraySet();
 		TLongBitArraySet outgroup = new TLongBitArraySet();
-		JadeBipartition b = t.getBipartition(p);
-		for (JadeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getLabel()));  }
-		for (JadeNode n : b.outgroup()) { outgroup.add(nodeIdForName.get(n.getLabel())); }
+		TreeBipartition b = t.getBipartition(p);
+		for (TreeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getLabel()));  }
+		for (TreeNode n : b.outgroup()) { outgroup.add(nodeIdForName.get(n.getLabel())); }
 		return new TLongBipartition(ingroup, outgroup);
 	}
 	
@@ -536,24 +483,30 @@ public class BipartOracle {
 		}
 	}
 
-	private static void loadTreesCycleConflict(ArrayList<JadeTree> t) throws TreeParseException {
+	private static void loadTreesCycleConflict(ArrayList<Tree> t) throws TreeParseException {
 		t.add(TreeReader.readTree("((A,C),D);"));
 		t.add(TreeReader.readTree("((A,D),B);"));
 		t.add(TreeReader.readTree("((A,B),C);"));
 	}
 
-	private static void loadTreesTest4(ArrayList<JadeTree> t) throws TreeParseException {
+	private static void loadTreesTest4(ArrayList<Tree> t) throws TreeParseException {
 		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
 		t.add(TreeReader.readTree("((((A,C),B),F),D);"));
 		t.add(TreeReader.readTree("((A,F),C);"));
 		t.add(TreeReader.readTree("((A,E),D);"));
 	}
+	
+	private static void loadTreesTest5(ArrayList<Tree> t) throws TreeParseException {
+		t.add(TreeReader.readTree("(((((A,B),C),D),E),F);"));
+		t.add(TreeReader.readTree("(((A,G),H),I);"));
+		t.add(TreeReader.readTree("(((B,D),Q,I);"));
+	}
 
 	public static void main(String[] args) throws Exception {
 
-		ArrayList<JadeTree> t = new ArrayList<JadeTree>();
+		ArrayList<Tree> t = new ArrayList<Tree>();
 
-		loadTreesTest4(t);
+		loadTreesCycleConflict(t);
 
 		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase("test.db")));
 
