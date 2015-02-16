@@ -7,6 +7,9 @@ import jade.tree.Tree;
 import jade.tree.TreeParseException;
 import jade.tree.TreeReader;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -584,11 +587,29 @@ public class BipartOracle {
 		t.add(TreeReader.readTree("((I,J),K);"));
 	}
 
+	/*
+	 * be careful, this one takes a while
+	 */
+	private static void loadATOLTrees(List<Tree> t) throws TreeParseException {
+		try {
+			BufferedReader br = new BufferedReader(new FileReader("data/examples/atol/RAxML_bootstrap.ONLY_CP_BS100.rr"));
+			String str;
+			while((str = br.readLine())!=null){
+				t.add(TreeReader.readTree(str));
+			}
+			br.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("trees read");
+	}
+	
 	public static void main(String[] args) throws Exception {
 
 		ArrayList<Tree> t = new ArrayList<Tree>();
 
-		loadTreesTestInterleaved(t);
+		loadTreesCycleConflict(t);
 
 		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase("test.db")));
 
