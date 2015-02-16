@@ -362,13 +362,17 @@ public class BipartOracle {
 		
 		// otherwise prepare to define a new bipart
 		path.add(parentId);
-	    System.out.println("\n" + indent(level) + "current path is: " + path);
+		if(VERBOSE)
+			System.out.println("\n" + indent(level) + "current path is: " + path);
 
 		// collect the ingroup from all downstream (child) biparts' ingroups'
-		System.out.println(indent(level) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
-		System.out.println(indent(level) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
+		if(VERBOSE){
+			System.out.println(indent(level) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
+			System.out.println(indent(level) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
+		}
 		cumulativeIngroup.addAll(parent.ingroup());
-		System.out.println(indent(level) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
+		if(VERBOSE)
+			System.out.println(indent(level) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
 
 		// collect the outgroup from all upstream (parent) biparts' outgroups
 	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
@@ -381,10 +385,11 @@ public class BipartOracle {
 				cumulativeOutgroup.addAll(outgroupsToAdd);
 			}
 		}
-		System.out.println((newline ? "\n" : "") + indent(level) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
-	    System.out.println(indent(level) + "done with parent " + parent.toString(nameForNodeId));
-		System.out.println(indent(level) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + path);
-
+	    if(VERBOSE){
+			System.out.println((newline ? "\n" : "") + indent(level) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
+		    System.out.println(indent(level) + "done with parent " + parent.toString(nameForNodeId));
+			System.out.println(indent(level) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + path);
+	    }
 		assert ! cumulativeIngroup.containsAny(cumulativeOutgroup);
 
 		paths.add(new Path(path));
