@@ -8,6 +8,7 @@ import jade.tree.TreeParseException;
 import jade.tree.TreeReader;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,13 +23,13 @@ import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 
+import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opentree.bitarray.TLongBitArraySet;
-import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class BipartOracle {
@@ -44,10 +45,6 @@ public class BipartOracle {
 	Map<TreeNode, Integer> treeNodeIds;
 	TreeNode[] treeNode;
 	TLongBipartition[] original;
-
-	// these map biparts to tree nodes... and don't seem to be used
-//	ArrayList<Integer>[] treeNodesForBipart;
-//	ArrayList<Integer>[] bipartsForTreeNode;
 	
 	// indices/ints in these correspond to summed bipartitions
 	TLongBipartition[] bipart;
@@ -72,6 +69,11 @@ public class BipartOracle {
 		
 		this.gdb = gdb;
 
+		// if the trees have tips whose labels are ott ids than can be mapped to taxon nodes in the database,
+		// then this will replace those tips in the tree with polytomies containing nodes for all the descendant
+		// leaves of the indicated taxon.
+		trees = TipExploder.explodeTips(trees, gdb);
+		
 		gatherTreeData(trees); // populate 'treeNode' and 'original' arrays with nodes and corresponding biparts
 		
 		bipart = new BipartSetSum(original).toArray(); // get pairwise sums of all tree biparts
@@ -117,7 +119,6 @@ public class BipartOracle {
 			
 		// gather the tree nodes, tree structure, and tip labels.
 		// for nexson, we would want ott ids instead of tip labels.
-		// we should have treeNodeCount be the internal nodes - root
 		treeNode = new TreeNode[treeNodeCount];
 		original = new TLongBipartition[treeNodeCount];
 		treeNodeIds = new HashMap<TreeNode, Integer>();
@@ -167,7 +168,8 @@ public class BipartOracle {
 			if (bipart[i].outgroup().size() > 0) {
 				TLongBitArraySet pathResult = findPaths(i, new TLongBitArraySet(), new ArrayList<Integer>(), 0);
 				if (pathResult == null) {
-					// make nodes now for any biparts that are not nested in any others
+					// make nodes now for any biparts that are not nested in any others.
+					// we won't see them again until we start mapping trees
 					createNode(bipart[i]);
 				}
 			}
@@ -199,11 +201,9 @@ public class BipartOracle {
 	*/
 	private void generateMRCAChildOfs(){
 		Transaction tx;
-		/*
-		 * create the MRCAChildOfs
-		 * although this is all by all, should make the tree loading way quicker 
-		 * because then we can just use parent MRCAChildofs instead of checking each node
-		 */
+		 
+		// create the MRCAChildOfs. this is the last all by all step and makes tree loading way quicker 
+		// because then we can just use parent MRCAChildofs instead of checking each node
 		tx = gdb.beginTx();
 		for (TLongBipartition parent: nodeForBipart.keySet()) {
 			for (TLongBipartition nestedChild: nodeForBipart.keySet()) { // potential nested
@@ -294,13 +294,12 @@ public class BipartOracle {
 		TLongBipartition nodeBipart = original[treeNodeIds.get(treeNode)];
 		HashSet<Node> graphNodes = new HashSet<Node>();
 		
-		
-		// if you create the mrcachildofs before, then you can do this // This wasn't working
+		// if you create the mrcachildofs before, then you can do this
 		for (Node parent : graphNodesForParent){
 			for (Relationship r: parent.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
 				Node potentialChild = r.getStartNode();
 				TLongBipartition childBipart = bipartForNode.get(potentialChild);
-				//BE CAREFUL containsAll is directional
+				// BE CAREFUL containsAll is directional
 				if (childBipart != null && childBipart.containsAll(nodeBipart) && childBipart.isNestedPartitionOf(bipartForNode.get(parent))){
 					graphNodes.add(potentialChild);
 					potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
@@ -309,8 +308,8 @@ public class BipartOracle {
 		}
 
 		/*
-		// if you don't create the mrca child ofs earlier then you need to do this
-		// trying to make the mrca child of rels earlier was not working so reverting to this for now...
+		// if you don't create the mrca child ofs earlier then you need to do this.
+		// it's slower than making all the pairwise mrcachildofs earlier
 		for (TLongBipartition b: nodeForBipart.keySet()){
 			if (b.containsAll(nodeBipart)) {
 				for (Node parentNode : graphNodesForParent){
@@ -364,17 +363,19 @@ public class BipartOracle {
 		
 		// otherwise prepare to define a new bipart
 		path.add(parentId);
-		if(VERBOSE)
-			System.out.println("\n" + indent(level) + "current path is: " + path);
 
-		// collect the ingroup from all downstream (child) biparts' ingroups'
-		if(VERBOSE){
+		if (VERBOSE) {
+			System.out.println("\n" + indent(level) + "current path is: " + path);
 			System.out.println(indent(level) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
 			System.out.println(indent(level) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
 		}
+
+		// collect the ingroup from all downstream (child) biparts' ingroups'
 		cumulativeIngroup.addAll(parent.ingroup());
-		if(VERBOSE)
+
+		if (VERBOSE) {
 			System.out.println(indent(level) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
+		}
 
 		// collect the outgroup from all upstream (parent) biparts' outgroups
 	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
@@ -387,7 +388,8 @@ public class BipartOracle {
 				cumulativeOutgroup.addAll(outgroupsToAdd);
 			}
 		}
-	    if(VERBOSE){
+	    
+	    if (VERBOSE) {
 			System.out.println((newline ? "\n" : "") + indent(level) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
 		    System.out.println(indent(level) + "done with parent " + parent.toString(nameForNodeId));
 			System.out.println(indent(level) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + path);
@@ -416,18 +418,21 @@ public class BipartOracle {
 			cumulativeIngroup.containsAll(parent.ingroup())) { 	// child that already contains entire parent
         	return null;
 		}
-		
-		if (VERBOSE){
-			// otherwise prepare to define a new node
-			System.out.println("\n" + indent(position) + "path is: " + Arrays.toString(path) + " and current bipart id is: " + path[position]);
 
-			// collect the ingroup from all downstream (child) biparts' ingroups'
+		// otherwise prepare to define a new node
+
+		if (VERBOSE) {
+			System.out.println("\n" + indent(position) + "path is: " + Arrays.toString(path) + " and current bipart id is: " + path[position]);
 			System.out.println(indent(position) + "on parent" + parentId + ": " + parent.toString(nameForNodeId));
 			System.out.println(indent(position) + "incoming ingroup: " + cumulativeIngroup.toString(nameForNodeId));
 		}
+
+		// collect the ingroup from all downstream (child) biparts' ingroups'
 		cumulativeIngroup.addAll(parent.ingroup());
-		if(VERBOSE)
+
+		if (VERBOSE) {
 			System.out.println(indent(position) + "cumulative ingroup is: " + cumulativeIngroup.toString(nameForNodeId));
+		}
 
 	    // collect the outgroup this node
 	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
@@ -447,7 +452,7 @@ public class BipartOracle {
 			}
 		}
 
-		if(VERBOSE){
+		if (VERBOSE) {
 			System.out.println((newline ? "\n" : "") + indent(position) + "cumulative outgroup is: " + cumulativeOutgroup.toString(nameForNodeId));
 		    System.out.println(indent(position) + "done with parent " + parent.toString(nameForNodeId));
 			System.out.println(indent(position) + "Will create node " + cumulativeIngroup.toString(nameForNodeId) + " | " + cumulativeOutgroup.toString(nameForNodeId) + " based on path " + Arrays.toString(path));
@@ -461,8 +466,7 @@ public class BipartOracle {
 			node = nodeForBipart.get(b);
 		} else {
 			node = createNode(new TLongBipartition(cumulativeIngroup, cumulativeOutgroup));
-			if(VERBOSE)
-				System.out.println();
+			if (VERBOSE) { System.out.println(); }
 		}
 
 		/*
@@ -570,58 +574,18 @@ public class BipartOracle {
 		}
 	}
 
-	private static void loadTreesCycleConflict(List<Tree> t) throws TreeParseException {
-		t.add(TreeReader.readTree("((A,C),D);"));
-		t.add(TreeReader.readTree("((A,D),B);"));
-		t.add(TreeReader.readTree("((A,B),C);"));
-	}
-
-	private static void loadTreesNonOverlap(List<Tree> t) throws TreeParseException {
-		t.add(TreeReader.readTree("((A,C),D);"));
-		t.add(TreeReader.readTree("((E,F),G);"));
-	}
-	
-	private static void loadTreesTest4(List<Tree> t) throws TreeParseException {
-		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
-		t.add(TreeReader.readTree("((((A,C),B),F),D);"));
-		t.add(TreeReader.readTree("((A,F),C);"));
-		t.add(TreeReader.readTree("((A,E),D);"));
-	}
-	
-	private static void loadTreesTest3(List<Tree> t) throws TreeParseException {
-		t.add(TreeReader.readTree("(((((A,B),C),D),E),F);"));
-		t.add(TreeReader.readTree("(((A,G),H),I);"));
-		t.add(TreeReader.readTree("(((B,D),Q,I);"));
-	}
-	
-	private static void loadTreesTestInterleaved(List<Tree> t) throws TreeParseException {
-		t.add(TreeReader.readTree("(((((A,C),E),G),I),K);"));
-		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
-		t.add(TreeReader.readTree("((((D,G),H),I),J);"));
-		t.add(TreeReader.readTree("((I,J),K);"));
-	}
-
-	private static void runOTNewickTest() throws TaxonNotFoundException, TreeParseException {
-		
-		ArrayList<Tree> t = new ArrayList<Tree>();
-
-		t.add(TreeReader.readTree("((1,2),3);"));
-		t.add(TreeReader.readTree("((1,3),2);"));
-
-		String taxonomy = "test-synth/maptohigher/taxonomy.tsv";
-		String synonyms = "test-synth/maptohigher/synonyms.tsv";
-		String version = "1";
-
-		ShortcutBipartInitializer init = new ShortcutBipartInitializer(t, "test.db", taxonomy, synonyms, version);
-
-	}
-
 	public static void main(String[] args) throws Exception {
+		
+		String dbname = "test.db";
 
-		runOTNewickTest();
+		runSimpleTest(cycleConflictTrees(), dbname);
+		runSimpleTest(nonOverlapTrees(), dbname);
+		runSimpleTest(test4Trees(), dbname);
+		runSimpleTest(test3Trees(), dbname);
+		runSimpleTest(testInterleavedTrees(), dbname);
 	}
-
-	/*
+	
+	/**
 	 * be careful, this one takes a while
 	 */
 	private static void loadATOLTrees(List<Tree> t) throws TreeParseException {
@@ -639,12 +603,10 @@ public class BipartOracle {
 		System.out.println("trees read");
 	}
 	
-	private void runSimpleTest() throws Exception {
-		ArrayList<Tree> t = new ArrayList<Tree>();
+	private static void runSimpleTest(List<Tree> t, String dbname) throws Exception {
 
-		loadTreesCycleConflict(t);
-
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase("test.db")));
+		FileUtils.deleteDirectory(new File(dbname));
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)));
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.length; i++) {
@@ -661,7 +623,46 @@ public class BipartOracle {
 		for (Path p : bi.paths) {
 			System.out.println(p);
 		}
-		
-		//map the trees to connect the trees and create the streechildof and the roots
+	}
+	
+	private static List<Tree> cycleConflictTrees() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		t.add(TreeReader.readTree("((A,C),D);"));
+		t.add(TreeReader.readTree("((A,D),B);"));
+		t.add(TreeReader.readTree("((A,B),C);"));
+		return t;
+	}
+
+	private static List<Tree> nonOverlapTrees() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		t.add(TreeReader.readTree("((A,C),D);"));
+		t.add(TreeReader.readTree("((E,F),G);"));
+		return t;
+	}
+	
+	private static List<Tree> test4Trees() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
+		t.add(TreeReader.readTree("((((A,C),B),F),D);"));
+		t.add(TreeReader.readTree("((A,F),C);"));
+		t.add(TreeReader.readTree("((A,E),D);"));
+		return t;
+	}
+	
+	private static List<Tree> test3Trees() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		t.add(TreeReader.readTree("(((((A,B),C),D),E),F);"));
+		t.add(TreeReader.readTree("(((A,G),H),I);"));
+		t.add(TreeReader.readTree("(((B,D),Q,I);"));
+		return t;
+	}
+	
+	private static List<Tree> testInterleavedTrees() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		t.add(TreeReader.readTree("(((((A,C),E),G),I),K);"));
+		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
+		t.add(TreeReader.readTree("((((D,G),H),I),J);"));
+		t.add(TreeReader.readTree("((I,J),K);"));
+		return t;
 	}
 }

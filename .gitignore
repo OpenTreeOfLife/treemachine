@@ -4,6 +4,7 @@
 .project
 .classpath
 *.pyc
+test.db
 data/examples*
 data/taxonomies*
 target*
