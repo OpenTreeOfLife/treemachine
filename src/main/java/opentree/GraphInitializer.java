@@ -1,14 +1,12 @@
 package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
-import jade.tree.deprecated.JadeTree;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 
@@ -24,6 +25,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opentree.bitarray.TLongBitArraySet;
+import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class BipartOracle {
@@ -584,8 +586,28 @@ public class BipartOracle {
 		t.add(TreeReader.readTree("((I,J),K);"));
 	}
 
+	private static void runOTNewickTest() throws TaxonNotFoundException, TreeParseException {
+		
+		ArrayList<Tree> t = new ArrayList<Tree>();
+
+		t.add(TreeReader.readTree("((1,2),3);"));
+		t.add(TreeReader.readTree("((1,3),2);"));
+
+		String taxonomy = "test-synth/maptohigher/taxonomy.tsv";
+		String synonyms = "test-synth/maptohigher/synonyms.tsv";
+		String version = "1";
+
+		ShortcutBipartInitializer init = new ShortcutBipartInitializer(t, "test.db", taxonomy, synonyms, version);
+
+	}
+
 	public static void main(String[] args) throws Exception {
 
+		runOTNewickTest();
+	}
+	
+	
+	private void runSimpleTest() throws Exception {
 		ArrayList<Tree> t = new ArrayList<Tree>();
 
 		loadTreesTestInterleaved(t);
