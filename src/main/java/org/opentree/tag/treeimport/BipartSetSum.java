@@ -1,17 +1,35 @@
 package org.opentree.tag.treeimport;
 
+import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.opentree.bitarray.TLongBitArraySet;
+
+import static java.util.stream.Collectors.*;
+
 public class BipartSetSum implements Iterable<TLongBipartition> {
 	
-	private final TLongBipartition[] bipart;
+	private TLongBipartition[] bipart;
+
+	public BipartSetSum(Collection<TLongBipartition> original) {
+		sum(original);
+	}
 	
 	public BipartSetSum(TLongBipartition[] original) {
+
+		Collection<TLongBipartition> b = new HashSet<TLongBipartition>();
+		for (int i = 0; i < original.length; i++) {
+			b.add(original[i]);
+		}
 		
+		sum(b);
+		
+		/*
 		// keep track of biparts compatible with others.
 		// currently this is unused
 		boolean[] compatible = new boolean[original.length];
@@ -35,7 +53,21 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 			sumResults.add(original[i]);
 		}
 		
-		bipart = sumResults.toArray(new TLongBipartition[0]);
+		bipart = sumResults.toArray(new TLongBipartition[0]); */
+	}
+
+	private static Set<TLongBipartition> combineWithAll(TLongBipartition b, Collection<TLongBipartition> others) {
+		Set<TLongBipartition> x =
+				(others.parallelStream().map(a -> a.sum(b)).collect(toSet())) // sum this bipart against all others
+					.stream().filter(r -> r != null).collect(toSet()); // and filter null entries from the results
+		return x;
+	}
+	
+	private void sum(Collection<TLongBipartition> original) {
+		// sum all biparts against all others, and collect all the results into one set
+		bipart = (TLongBipartition[]) original.parallelStream().map(b -> combineWithAll(b, original))
+				.collect(() -> new HashSet(), (a, b) -> a.addAll(b), (a, b) -> a.addAll(b))
+				.toArray(new TLongBipartition[0]);
 	}
 
 	@Override
@@ -56,6 +88,31 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		testDuplicateInputs();
 		testNoOverlap();
 		// need test for duplicates from equivalent overlapping
+		testManyRandom();
+	}
+	
+	private static void testManyRandom() {
+
+		int maxId = 1000000;
+		int count = 1000;
+		int size = 100;
+		
+		Set<TLongBipartition> input = new HashSet<TLongBipartition>();
+		
+		for (int i = 0; i < count; i++) {
+			TLongBitArraySet ingroup = new TLongBitArraySet ();
+			TLongBitArraySet outgroup = new TLongBitArraySet ();
+			while(ingroup.size() + outgroup.size() < size) {
+				int id = (int) Math.round(Math.random() * maxId);
+				if (! (ingroup.contains(id) || outgroup.contains(id))) {
+					if (Math.random() > 0.5) { outgroup.add(id); } else { ingroup.add(id); };
+				}
+			}
+			input.add(new TLongBipartition(new TLongBitArraySet(ingroup), new TLongBitArraySet(outgroup)));
+		}
+		System.out.println("start: " + Clock.systemUTC().instant());
+		new BipartSetSum(input);
+		System.out.println("stop: " + Clock.systemUTC().instant());
 	}
 
 	private static void testNoOverlap() {
