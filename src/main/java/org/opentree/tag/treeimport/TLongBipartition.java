@@ -2,26 +2,31 @@ package org.opentree.tag.treeimport;
 
 import java.util.Map;
 
+import org.opentree.bitarray.FastLongSet;
 import org.opentree.bitarray.TLongBitArraySet;
 
 public class TLongBipartition {
 
-	private TLongBitArraySet ingroup;
-	private TLongBitArraySet outgroup;
+	// TODO: just use bitset instead of TLongBitArraySet to reduce memory footprint
+	
+//	private TLongBitArraySet ingroup;
+//	private TLongBitArraySet outgroup;
+	private FastLongSet ingroup;
+	private FastLongSet outgroup;
 
 	public TLongBipartition(long[] ingroup, long[] outgroup) {
-		this.ingroup = new TLongBitArraySet(ingroup);
-		this.outgroup = new TLongBitArraySet(outgroup);
+		this.ingroup = new FastLongSet(ingroup);
+		this.outgroup = new FastLongSet(outgroup);
 	}
 
-	public TLongBipartition(TLongBitArraySet ingroup, TLongBitArraySet outgroup) {
-		this.ingroup = new TLongBitArraySet(ingroup);
-		this.outgroup = new TLongBitArraySet(outgroup);
+	public TLongBipartition(FastLongSet ingroup, FastLongSet outgroup) {
+		this.ingroup = new FastLongSet(ingroup);
+		this.outgroup = new FastLongSet(outgroup);
 	}
 
 	public TLongBipartition(TLongBipartition nested) {
-		ingroup = new TLongBitArraySet(nested.ingroup);
-		outgroup = new TLongBitArraySet(nested.outgroup);
+		ingroup = new FastLongSet(nested.ingroup);
+		outgroup = new FastLongSet(nested.outgroup);
 	}
 
 	public TLongBitArraySet ingroup() {
