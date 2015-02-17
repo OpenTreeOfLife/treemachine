@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import opentree.GraphInitializer;
@@ -28,7 +29,9 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.index.Index;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.kernel.Traversal;
 import org.opentree.bitarray.TLongBitArraySet;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
@@ -49,7 +52,10 @@ public class BipartOracle {
 	// indices/ints in these correspond to summed bipartitions
 	TLongBipartition[] bipart;
 	HashSet<Path> paths;
-
+	
+	// hashmap for the exploded tips. key is id for tip, value is hashset of ids that are exploded with this id
+	HashMap<Object, HashSet<String> > explodedTipsHash;
+	
 	// nestedChildren[i] contains the ids of all the biparts that are nested within bipart i
 	// nestedParents[i] contains the ids of all the biparts that bipart i *is* a nested child of
 	ArrayList<Integer>[] nestedChildren;
@@ -65,14 +71,22 @@ public class BipartOracle {
 
 	int nodeId = 0;
 
+	/**
+	 * instantiation runs the entire analysis
+	 * @param trees
+	 * @param gdb
+	 * @throws Exception
+	 */
 	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb) throws Exception {
 		
 		this.gdb = gdb;
 
 		// if the trees have tips whose labels are ott ids than can be mapped to taxon nodes in the database,
-		// then this will replace those tips in the tree with polytomies containing nodes for all the descendant
-		// leaves of the indicated taxon.
-		trees = TipExploder.explodeTips(trees, gdb);
+		// this will add the id to the hash so that it can be referenced for making the bipartitions but 
+		// original ids can be kept for when mapping the trees at the end
+		//creating the hashmap of the taxa with exploded ids
+		explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb);
+		//System.out.println(explodedTipsHash);
 		
 		gatherTreeData(trees); // populate 'treeNode' and 'original' arrays with nodes and corresponding biparts
 		
@@ -100,18 +114,73 @@ public class BipartOracle {
 		Transaction tx = gdb.beginTx();
 		
 		// make nodes for all unique tip names and remember them
+		//we are either making new nodes or we are matching those already in the database
+		boolean makingnewnodes = false;
+		boolean matchingids = false;
+		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
 		for (Tree t : trees) {
 			for (TreeNode l : t.externalNodes()) {
+				for(String lab: explodedTipsHash.get(l)){
+					if (! nodeIdForName.containsKey(lab)) {
+						Node tip = null;
+						try {
+							tip = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, lab).getSingle();
+							if(tip != null){
+								matchingids = true;
+								if(makingnewnodes == true){
+									System.err.println("you were making nodeIds in the database and this one matched: "+lab);
+									System.exit(1);
+								}
+							}
+						} catch (NoSuchElementException ex) {}
+						if(tip == null){
+							makingnewnodes = true;
+							if (matchingids == true){
+								System.err.println("you were matching nodeIds in the database and this one didn't match: "+lab);
+								System.exit(1);
+							}
+							tip = gdb.createNode();
+							tip.setProperty(NodeProperty.NAME.propertyName, lab);
+						}
+						nodeIdForName.put(lab, tip.getId());
+						nameForNodeId.put(tip.getId(), lab);
+					}
+				}
+				//doing this for the actual tip name as well if it isn't already in the database
+				//might be the case if there are exploded tips
 				Object n = l.getLabel();
 				if (! nodeIdForName.containsKey(n)) {
-					Node tip = gdb.createNode();
-					
-					// TODO here is where would store different info if we were using nexson
-					tip.setProperty(NodeProperty.NAME.propertyName, n);
-					
+					Node tip = null;
+					try {
+						tip = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, n).getSingle();
+						if(tip != null){
+							matchingids = true;
+							if(makingnewnodes == true){
+								System.err.println("you were making nodeIds in the database and this one matched: "+n);
+								System.exit(1);
+							}
+						}
+					} catch (NoSuchElementException ex) {}
+					if(tip == null){
+						makingnewnodes = true;
+						if (matchingids == true){
+							System.err.println("you were matching nodeIds in the database and this one didn't match: "+n);
+							System.exit(1);
+						}
+						tip = gdb.createNode();
+						tip.setProperty(NodeProperty.NAME.propertyName, n);
+					}
 					nodeIdForName.put(n, tip.getId());
 					nameForNodeId.put(tip.getId(), n);
 				}
+				/*
+				if (! nodeIdForName.containsKey(n)) {
+					Node tip = gdb.createNode();
+					tip.setProperty(NodeProperty.NAME.propertyName, n);
+					nodeIdForName.put(n, tip.getId());
+					nameForNodeId.put(tip.getId(), n);
+				}
+				*/
 			}
 		}
 		tx.success();
@@ -527,8 +596,21 @@ public class BipartOracle {
 		TLongBitArraySet ingroup = new TLongBitArraySet();
 		TLongBitArraySet outgroup = new TLongBitArraySet();
 		TreeBipartition b = t.getBipartition(p);
-		for (TreeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getLabel()));  }
-		for (TreeNode n : b.outgroup()) { outgroup.add(nodeIdForName.get(n.getLabel())); }
+		/*
+		 * this is using the explodedTipsHash now
+		 */
+		//for (TreeNode n : b.ingroup())  { ingroup.add(nodeIdForName.get(n.getLabel()));  }
+		//for (TreeNode n : b.outgroup()) { outgroup.add(nodeIdForName.get(n.getLabel())); }
+		for (TreeNode n : b.ingroup())  { 
+			for(String s: explodedTipsHash.get(n)){
+				ingroup.add(nodeIdForName.get(s));  
+			}
+		}
+		for (TreeNode n : b.outgroup()) {
+			for(String s: explodedTipsHash.get(n)){
+				outgroup.add(nodeIdForName.get(s));  
+			}
+		}
 		return new TLongBipartition(ingroup, outgroup);
 	}
 	
@@ -578,11 +660,21 @@ public class BipartOracle {
 		
 		String dbname = "test.db";
 
+		/*
+		 * these are tests for order
+		 *
 		runSimpleTest(cycleConflictTrees(), dbname);
 		runSimpleTest(nonOverlapTrees(), dbname);
 		runSimpleTest(test4Trees(), dbname);
 		runSimpleTest(test3Trees(), dbname);
 		runSimpleTest(testInterleavedTrees(), dbname);
+		*/
+		/*
+		 * these are tests for taxonomy
+		 */
+		dbname = "tax.db";
+		runSimpleOTTTest(plantTestOttTrees(),dbname);
+		
 	}
 	
 	/**
@@ -601,6 +693,34 @@ public class BipartOracle {
 			e.printStackTrace();
 		}
 		System.out.println("trees read");
+	}
+	
+	private static List<Tree> plantTestOttTrees() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		try {
+			String str;
+			BufferedReader br = new BufferedReader(new FileReader("data/ott/plants/pg_424_532.tre"));
+			while((str = br.readLine())!=null){
+				t.add(TreeReader.readTree(str));
+			}
+			br.close();
+			br = new BufferedReader(new FileReader("data/ott/plants/pg_1962_6580.tre"));
+			while((str = br.readLine())!=null){
+				t.add(TreeReader.readTree(str));
+			}
+			br.close();
+			br = new BufferedReader(new FileReader("data/ott/plants/pg_2828_6578.tre"));
+			while((str = br.readLine())!=null){
+				t.add(TreeReader.readTree(str));
+			}
+			br.close();
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("trees read");
+		return t;
 	}
 	
 	private static void runSimpleTest(List<Tree> t, String dbname) throws Exception {
@@ -623,6 +743,29 @@ public class BipartOracle {
 		for (Path p : bi.paths) {
 			System.out.println(p);
 		}
+		bi.gdb.shutdownDb();
+	}
+	
+	private static void runSimpleOTTTest(List<Tree> t, String dbname) throws Exception {
+
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)));
+
+		System.out.println("original bipartitions: ");
+		for (int i = 0; i < bi.bipart.length; i++) {
+			System.out.println(i + ": " + bi.bipart[i].toString(bi.nameForNodeId));
+		}
+		
+		System.out.println("node for bipart:");
+		
+		for (TLongBipartition tlb: bi.nodeForBipart.keySet()){
+			System.out.println(tlb+" "+bi.nodeForBipart.get(tlb));
+		}
+		
+		System.out.println("paths through: ");
+		for (Path p : bi.paths) {
+			System.out.println(p);
+		}
+		bi.gdb.shutdownDb();
 	}
 	
 	private static List<Tree> cycleConflictTrees() throws TreeParseException {

@@ -10,6 +10,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -65,6 +67,50 @@ public final class TipExploder {
 			((JadeTree) tree).update();
 		}
 		return trees;
+	}
+	
+	/**
+	 * Instead of taking the tree, this just takes the tip and returns the hash with the 
+	 * id and the list of ids that are in the hash
+	 * @param identifier
+	 * @param gdb
+	 * @return
+	 */
+	public static HashMap<Object,HashSet<String> > explodeTipsReturnHash(List<Tree> trees, GraphDatabaseAgent gdb) {
+		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
+
+		HashMap<Object,HashSet<String> > explodedTipsHash = new HashMap<Object,HashSet<String> >();
+		
+		for (Tree tree : trees) {
+			for (TreeNode tip : tree.externalNodes()) {
+			
+				Object ottId = tip.getLabel();
+				HashSet<String> hs = new HashSet<String> ();
+				System.out.print("searching for ott id: " + ottId);
+
+				Node hit = null;
+				try {
+					hit = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottId).getSingle();
+					if (hit == null) {
+						System.out.println(". WARNING: could not find match this ott id.");
+						hs.add((String) ottId);
+						explodedTipsHash.put(tip, hs);
+						continue;
+					}
+					System.out.print(". Found a node: " + hit + ". checking for tips below\n");
+					for (Node n : Traversal.description().breadthFirst().relationships(RelType.TAXCHILDOF, Direction.INCOMING).traverse(hit).nodes()) {
+						if (! n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
+							Object label = n.getProperty(NodeProperty.TAX_UID.propertyName);
+							hs.add((String) label);
+						}
+					}
+					explodedTipsHash.put(tip, hs);
+				} catch (NoSuchElementException ex) {
+					System.out.println("WARNING: more than one match was found for ott id " + ottId + ". this tip will not be exploded.");
+				}
+			}
+		}
+		return explodedTipsHash;
 	}
 	
 	public static void main(String[] args) throws Exception {
