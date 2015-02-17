@@ -38,7 +38,7 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 public class BipartOracle {
 
 	private final GraphDatabaseAgent gdb;
-	boolean VERBOSE = false;
+	boolean VERBOSE = true;
 
 	// associate input names with neo4j node ids
 	Map<Object, Long> nodeIdForName = new HashMap<Object, Long>();
@@ -554,6 +554,7 @@ public class BipartOracle {
 	
 	private Node createNode(TLongBipartition b) {
 		Node node = gdb.createNode();
+		System.out.println(node);
 		node.setProperty(NodeProperty.MRCA.propertyName, b.ingroup().toArray());
 		node.setProperty(NodeProperty.OUTMRCA.propertyName, b.outgroup().toArray());
 		nodeForBipart.put(b, node);
@@ -671,10 +672,11 @@ public class BipartOracle {
 		*/
 		/*
 		 * these are tests for taxonomy
-		 */
+		 *
 		dbname = "tax.db";
 		runSimpleOTTTest(plantTestOttTrees(),dbname);
-		
+		*/
+		loadTaxonomyAndTreesTest();
 	}
 	
 	/**
@@ -693,6 +695,41 @@ public class BipartOracle {
 			e.printStackTrace();
 		}
 		System.out.println("trees read");
+	}
+	
+	private static void loadTaxonomyAndTreesTest() throws Exception {
+		String dbname = "test.db";
+		String version = "1";
+		
+		FileUtils.deleteDirectory(new File(dbname));
+		
+		String taxonomy = "test-taxonomy-bipart/Dipsacales.tax";
+		String synonyms = "";
+		
+		GraphInitializer tl = new GraphInitializer(dbname);
+		tl.addInitialTaxonomyTableIntoGraph(taxonomy, synonyms, version);
+		tl.shutdownDB();
+
+		List <Tree> t = new ArrayList<Tree>();
+		
+
+		BufferedReader br = new BufferedReader(new FileReader("test-taxonomy-bipart/tree1.tre"));
+		String str = br.readLine();
+		t.add(TreeReader.readTree(str));
+		br.close();
+		br = new BufferedReader(new FileReader("test-taxonomy-bipart/tree2.tre"));
+		str = br.readLine();
+		t.add(TreeReader.readTree(str));
+		br.close();
+		br = new BufferedReader(new FileReader("test-taxonomy-bipart/tree3.tre"));
+		str = br.readLine();
+		t.add(TreeReader.readTree(str));
+		br.close();
+
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
+
+		BipartOracle bi = new BipartOracle(t, gdb);
+
 	}
 	
 	private static List<Tree> plantTestOttTrees() throws TreeParseException {
