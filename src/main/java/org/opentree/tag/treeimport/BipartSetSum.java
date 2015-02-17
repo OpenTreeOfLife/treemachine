@@ -1,8 +1,12 @@
 package org.opentree.tag.treeimport;
 
+import jade.tree.Tree;
+
 import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -16,44 +20,33 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	
 	private TLongBipartition[] bipart;
 
-	public BipartSetSum(Collection<TLongBipartition> original) {
-		sum(original);
+	public BipartSetSum(Collection<TLongBipartition> A) {
+		bipart = sum(A, A).toArray(new TLongBipartition[0]);
 	}
 	
 	public BipartSetSum(TLongBipartition[] original) {
-
-		Collection<TLongBipartition> b = new HashSet<TLongBipartition>();
+		Collection<TLongBipartition> A = new HashSet<TLongBipartition>();
 		for (int i = 0; i < original.length; i++) {
-			b.add(original[i]);
+			A.add(original[i]);
 		}
-		
-		sum(b);
-		
-		/*
-		// keep track of biparts compatible with others.
-		// currently this is unused
-		boolean[] compatible = new boolean[original.length];
-
-		// combine every pair of compatible biparts
-		Set<TLongBipartition> sumResults = new HashSet<TLongBipartition>();
-		for (int i = 0; i < original.length; i++) {
-			for (int j = i+1; j < original.length; j++) {
-				TLongBipartition b = original[i].sum(original[j]);
-				if (b != null) {
-					sumResults.add(b);
-					compatible[i] = true;
-					compatible[j] = true;
-				}
+		bipart = sum(A, A).toArray(new TLongBipartition[0]);
+	}
+	
+	/**
+	 * The bipart sum can be performed more efficiently if some biparts are known to originate from
+	 * the same tree, because no two biparts within a single tree may be completely overlapping. In
+	 * this constructor, biparts from within a single tree can be supplied in groups corresponding
+	 * to collections within a list. No biparts from within the same collection will be compared.
+	 * @param trees
+	 */
+	public BipartSetSum(List<Collection<TLongBipartition>> bipartsByTree) {
+		Set<TLongBipartition> biparts = new HashSet<TLongBipartition>();
+		for (int i = 0; i < bipartsByTree.size(); i++) {
+			for (int j = i+1; j < bipartsByTree.size(); j++) {
+				biparts.addAll(sum(bipartsByTree.get(i), bipartsByTree.get(j)));
 			}
 		}
-
-		// record the originals in the summed set. if we chose to exclude
-		// originals that have been combined with others, it would happen here.
-		for (int i = 0; i < original.length; i++) {
-			sumResults.add(original[i]);
-		}
-		
-		bipart = sumResults.toArray(new TLongBipartition[0]); */
+		bipart = biparts.toArray(new TLongBipartition[0]);
 	}
 
 	private static Set<TLongBipartition> combineWithAll(TLongBipartition b, Collection<TLongBipartition> others) {
@@ -63,11 +56,10 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		return x;
 	}
 	
-	private void sum(Collection<TLongBipartition> original) {
+	private Collection<TLongBipartition> sum(Collection<TLongBipartition> A, Collection<TLongBipartition> B) {
 		// sum all biparts against all others, and collect all the results into one set
-		bipart = (TLongBipartition[]) original.parallelStream().map(b -> combineWithAll(b, original))
-				.collect(() -> new HashSet(), (a, b) -> a.addAll(b), (a, b) -> a.addAll(b))
-				.toArray(new TLongBipartition[0]);
+		return A.parallelStream().map(a -> combineWithAll(a, B))
+				.collect(() -> new HashSet(), (x, y) -> x.addAll(y), (x, y) -> x.addAll(y));
 	}
 
 	@Override
@@ -87,15 +79,15 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		testDuplicateSum();
 		testDuplicateInputs();
 		testNoOverlap();
-		// need test for duplicates from equivalent overlapping
-		testManyRandom();
+//		testManyRandomAllByAll();
+		testManyRandomGroups();
 	}
 	
-	private static void testManyRandom() {
+	private static void testManyRandomAllByAll() {
 
 		int maxId = 1000000;
 		int count = 1000;
-		int size = 100;
+		int size = 100; // 1000 x 1000 takes a long time. should check into pure bitset implementation
 		
 		Set<TLongBipartition> input = new HashSet<TLongBipartition>();
 		
@@ -110,9 +102,61 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 			}
 			input.add(new TLongBipartition(new TLongBitArraySet(ingroup), new TLongBitArraySet(outgroup)));
 		}
-		System.out.println("start: " + Clock.systemUTC().instant());
+		System.out.println("attempting " + count + " random bipartitions of size " + size + " (ingroup + outgroup)");
+		long z = new Date().getTime();
 		new BipartSetSum(input);
-		System.out.println("stop: " + Clock.systemUTC().instant());
+		System.out.println("elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
+	}
+
+	private static void testManyRandomGroups() {
+
+		int maxId = 1000000;
+		int n = 100;
+		int count = 10;
+		int size = 1000;
+		
+		//  on macbook pro 2.5Ghz i7 x 8 cores, running in Eclipse debugger
+		//    3.0 secs : n =  60, count =  10, size =   10
+		//    3.9 secs : n =  70, count =  10, size =   10
+		//    5.9 secs : n =  80, count =  10, size =   10
+		//    8.2 secs : n =  90, count =  10, size =   10
+		//   11.9 secs : n = 100, count =  10, size =   10
+
+		//   22   secs : n = 100, count =  20, size =   10
+		//   52   secs : n = 100, count =  30, size =   10
+		//   92   secs : n = 100, count =  40, size =   10
+		//  146   secs : n = 100, count =  50, size =   10
+
+		//    7.6 secs : n = 100, count =  10, size =   20
+		//    8.1 secs : n = 100, count =  10, size =   30
+		//    8.2 secs : n = 100, count =  10, size =   40
+		//    8.6 secs : n = 100, count =  10, size =   50
+		//        secs : n = 100, count =  10, size =  500
+		//        secs : n = 100, count =  10, size = 1000  // out of memory, -Xmx16G
+		
+		
+		List<Collection<TLongBipartition>> input = new ArrayList<Collection<TLongBipartition>>();
+		
+		for (int h = 0; h < n; h++) {
+			HashSet<TLongBipartition> group = new HashSet<TLongBipartition>();
+			for (int i = 0; i < count; i++) {
+				TLongBitArraySet ingroup = new TLongBitArraySet ();
+				TLongBitArraySet outgroup = new TLongBitArraySet ();
+				while(ingroup.size() + outgroup.size() < size) {
+					int id = (int) Math.round(Math.random() * maxId);
+					if (! (ingroup.contains(id) || outgroup.contains(id))) {
+						if (Math.random() > 0.5) { outgroup.add(id); } else { ingroup.add(id); };
+					}
+				}
+				group.add(new TLongBipartition(new TLongBitArraySet(ingroup), new TLongBitArraySet(outgroup)));
+			}
+			input.add(group);
+		}
+		
+		System.out.println("attempting " + n + " groups of "  + count + " random bipartitions (" + n*count + " total) of size " + size + " (ingroup + outgroup)");
+		long z = new Date().getTime();
+		new BipartSetSum(input);
+		System.out.println("elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 	}
 
 	private static void testNoOverlap() {
