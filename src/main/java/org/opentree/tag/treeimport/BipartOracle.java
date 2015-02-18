@@ -1,5 +1,6 @@
 package org.opentree.tag.treeimport;
 
+import static java.util.stream.Collectors.toSet;
 import jade.tree.TreeBipartition;
 import jade.tree.TreeNode;
 import jade.tree.NodeOrder;
@@ -13,6 +14,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -91,7 +93,7 @@ public class BipartOracle {
 		
 		gatherTreeData(trees); // populate 'treeNode' and 'original' arrays with nodes and corresponding biparts
 		
-		bipart = new BipartSetSum(original).toArray(); // get pairwise sums of all tree biparts
+		bipart = new BipartSetSum(original).toArray(); // get pairwise sums of all tree biparts -- QUADRATIC
 		
 		// create nodes for all the nested bipartitions
 		nodeForBipart = new HashMap<TLongBipartition, Node>();
@@ -262,29 +264,52 @@ public class BipartOracle {
 	}
 
 	/**
-	* The purpose of this is to create all the MRCACHild ofs with an all by all
-	* This should make it so that loading trees just has to look at the parent rels
-	* instead of all the biparts
-	* 
-	* But this doesn't find all the rels that should exist. Not clear why, since it should
-	* be comparing all the nodes. Perhaps a problem with the comparison itself.
-	*/
+	 * This creates all the MRCACHILDOF rels among all graph nodes. It uses an all by all pairwise
+	 * comparison, which has quadratic order of growth. We do this because it makes tree loading trivial:
+	 * after mapping a tree node x just to graph node(s) g(x), just look at all the graph nodes connected
+	 * to g(x) by MRCACHILDOF rels to find all the graph nodes that may possibly be mapped to the
+	 * parent/child nodes of x in the tree.
+	 */
 	private void generateMRCAChildOfs(){
-		Transaction tx;
-		 
-		// create the MRCAChildOfs. this is the last all by all step and makes tree loading way quicker 
-		// because then we can just use parent MRCAChildofs instead of checking each node
-		tx = gdb.beginTx();
+
+		// gather information about which rels to create. this is the full n^2 comparisons among all nodes (i.e. biparts)
+		Map<TLongBipartition, Set<TLongBipartition>> nestedChildren = new HashMap<TLongBipartition, Set<TLongBipartition>>();
+		for (TLongBipartition parent: nodeForBipart.keySet()) {
+
+			Set<TLongBipartition> children = nodeForBipart.keySet().parallelStream()
+				.map( child -> { // map all biparts that can be nested within this parent
+					if (child.isNestedPartitionOf(parent) && (! child.equals(parent))) { return child; }
+					else { return null; }})
+				.collect(() -> new HashSet<TLongBipartition>(), (a,b) -> a.add(b), (a,b) -> a.addAll(b)).stream()
+				.filter(r -> r != null).collect(toSet()); // filter nulls out of results
+
+			nestedChildren.put(parent, children);
+		}
+		
+		// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
+		Transaction tx = gdb.beginTx();
+		for (TLongBipartition parent : nestedChildren.keySet()) {
+			for (TLongBipartition child : nestedChildren.get(parent)) {
+				updateMRCAChildOf(nodeForBipart.get(child), nodeForBipart.get(parent));
+			}
+		}
+		tx.success();
+		tx.finish();
+		
+		
+		/* old code left here for convenience in case the parallel stream borks
+		 * 
+		Transaction tx = gdb.beginTx();
 		for (TLongBipartition parent: nodeForBipart.keySet()) {
 			for (TLongBipartition nestedChild: nodeForBipart.keySet()) { // potential nested
 				if (nestedChild.isNestedPartitionOf(parent) && (! nestedChild.equals(parent))) {
 					updateMRCAChildOf(nodeForBipart.get(nestedChild),nodeForBipart.get(parent));
 				}
 			}
-		}
-				
 		tx.success();
 		tx.finish();
+		} */
+
 	}
 	
 	/**
@@ -664,16 +689,16 @@ public class BipartOracle {
 		String dbname = "test.db";
 
 		// these are tests for order
-/*		runSimpleTest(cycleConflictTrees(), dbname);
+		runSimpleTest(cycleConflictTrees(), dbname);
 		runSimpleTest(nonOverlapTrees(), dbname);
 		runSimpleTest(test4Trees(), dbname);
 		runSimpleTest(test3Trees(), dbname);
-		runSimpleTest(testInterleavedTrees(), dbname); */
+		runSimpleTest(testInterleavedTrees(), dbname);
 
 		// these are tests for taxonomy
 /*		dbname = "tax.db";
 		runSimpleOTTTest(plantTestOttTrees(),dbname); */
-		loadTaxonomyAndTreesTest();
+//		loadTaxonomyAndTreesTest();
 	}
 	
 	/**

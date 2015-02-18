@@ -76,7 +76,7 @@ public final class TipExploder {
 	 * @param gdb
 	 * @return
 	 */
-	public static HashMap<Object,HashSet<String> > explodeTipsReturnHash(List<Tree> trees, GraphDatabaseAgent gdb) {
+	public static HashMap<Object,HashSet<String>> explodeTipsReturnHash(List<Tree> trees, GraphDatabaseAgent gdb) {
 		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
 
 		HashMap<Object,HashSet<String> > explodedTipsHash = new HashMap<Object,HashSet<String> >();

@@ -112,7 +112,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		int maxId = 1000000;	// maximum id. this affects the size of the underlying bitset(s)
 		int n = 100;			// number of groups (e.g. trees, though for this test they are random so not trees)
 		int count = 10;			// number of bipartitions per group
-		int size = 1000;		// size of bipartitions (if these were trees then the count and size would be the same)
+		int size = 500;			// size of bipartitions (if these were trees then the count and size would be the same)
 
 		//  on macbook pro 2.5Ghz i7 x 8 cores, running in Eclipse debugger
 		//
