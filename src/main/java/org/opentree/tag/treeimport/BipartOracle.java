@@ -790,7 +790,6 @@ public class BipartOracle {
 
 		// these are tests for taxonomy
 		dbname = "tax.db";
-		runSimpleOTTTest(plantTestOttTrees(),dbname);
 //		loadTaxonomyAndTreesTest();
 	}
 	
@@ -848,35 +847,6 @@ public class BipartOracle {
 
 		BipartOracle bi = new BipartOracle(t, gdb, true);
 
-	}
-	
-	@SuppressWarnings("unused")
-	private static List<Tree> plantTestOttTrees() throws TreeParseException {
-		List<Tree> t = new ArrayList<Tree>();
-		try {
-			String str;
-			BufferedReader br = new BufferedReader(new FileReader("data/ott/plants/pg_424_532.tre"));
-			while((str = br.readLine())!=null){
-				t.add(TreeReader.readTree(str));
-			}
-			br.close();
-			br = new BufferedReader(new FileReader("data/ott/plants/pg_1962_6580.tre"));
-			while((str = br.readLine())!=null){
-				t.add(TreeReader.readTree(str));
-			}
-			br.close();
-			br = new BufferedReader(new FileReader("data/ott/plants/pg_2828_6578.tre"));
-			while((str = br.readLine())!=null){
-				t.add(TreeReader.readTree(str));
-			}
-			br.close();
-
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println("trees read");
-		return t;
 	}
 	
 	@SuppressWarnings("unused")
