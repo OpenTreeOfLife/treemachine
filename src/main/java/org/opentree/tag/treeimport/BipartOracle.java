@@ -32,6 +32,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
+import org.opentree.bitarray.CompactLongSet;
 import org.opentree.bitarray.TLongBitArraySet;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
@@ -319,7 +320,7 @@ public class BipartOracle {
 		Transaction tx = gdb.beginTx();
 		for (int i = 0; i < bipart.length; i++) {
 			if (bipart[i].outgroup().size() > 0) {
-				TLongBitArraySet pathResult = findPaths(i, new TLongBitArraySet(), new ArrayList<Integer>(), 0);
+				CompactLongSet pathResult = findPaths(i, new CompactLongSet(), new ArrayList<Integer>(), 0);
 				if (pathResult == null) {
 					// make nodes now for any biparts that are not nested in any others.
 					// we won't see them again until we start mapping trees
@@ -338,7 +339,7 @@ public class BipartOracle {
 		// create nodes based on paths
 		tx = gdb.beginTx();
 		for (Path p : paths) {
-			generateNodesFromPaths(0, new TLongBitArraySet(), p.toArray());
+			generateNodesFromPaths(0, new CompactLongSet(), p.toArray());
 		}
 		tx.success();
 		tx.finish();
@@ -453,7 +454,8 @@ public class BipartOracle {
 				Node potentialChild = r.getStartNode();
 				TLongBipartition childBipart = bipartForNode.get(potentialChild);
 				// BE CAREFUL containsAll is directional
-				if (childBipart != null && childBipart.containsAll(nodeBipart) && childBipart.isNestedPartitionOf(bipartForNode.get(parent))){
+				if (childBipart != null && childBipart.containsAll(nodeBipart) 
+						&& childBipart.isNestedPartitionOf(bipartForNode.get(parent))){
 					graphNodes.add(potentialChild);
 					potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
 				}	
@@ -491,8 +493,8 @@ public class BipartOracle {
 	 * Starting at each bipartition B, follow all paths to all bipartitions for which this B could be a nested child.
 	 * At each level on the recursion down this tree, record the union I of all the ingroups of all bipartitions "above"
 	 * this, i.e. those previously visited on the traversal. At each level on the recursion back up the tree, record
-	 * the union O of all the ingroups of all bipartitions "below" this, i.e. those that have previously finished been
-	 * finished before the return to this node. When a node is completed, define a bipartition X = I | O representing a node 
+	 * the union O of all the ingroups of all bipartitions "below" this, i.e. those that have previously been finished
+	 * before the return to this node. When a node is completed, define a bipartition X = I | O representing a node 
 	 * to be created in the graph, with children {X'1, X'2, ..., X'N} corresponding to the bipartitions defined in this way at
 	 * each of this bipartition's N *completed* nested children. Sometimes the recursion stops without creating a node
 	 * (see cases below).
@@ -503,7 +505,7 @@ public class BipartOracle {
 	 * @param level
 	 * @return
 	 */
-	private TLongBitArraySet findPaths(int parentId, TLongBitArraySet cumulativeIngroup, ArrayList<Integer> path, int level) {
+	private CompactLongSet findPaths(int parentId, CompactLongSet cumulativeIngroup, ArrayList<Integer> path, int level) {
 
 		TLongBipartition parent = bipart[parentId];
 		
@@ -531,11 +533,11 @@ public class BipartOracle {
 		}
 
 		// collect the outgroup from all upstream (parent) biparts' outgroups
-	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
+		CompactLongSet cumulativeOutgroup = new CompactLongSet(parent.outgroup());
 	    boolean newline = false;
 	    for (int nextParentId : nestedParents[parentId]) {
 			if (path.contains(nextParentId)) { continue; }
-			TLongBitArraySet outgroupsToAdd = findPaths(nextParentId, new TLongBitArraySet(cumulativeIngroup), path, level+1);
+			CompactLongSet outgroupsToAdd = findPaths(nextParentId, new CompactLongSet(cumulativeIngroup), path, level+1);
 			if (outgroupsToAdd != null) { // did not encounter a dead end path
 		    	newline = true;
 				cumulativeOutgroup.addAll(outgroupsToAdd);
@@ -560,7 +562,7 @@ public class BipartOracle {
 	 * @param path
 	 * @return
 	 */
-	private Object[] generateNodesFromPaths(int position, TLongBitArraySet cumulativeIngroup, int[] path) {
+	private Object[] generateNodesFromPaths(int position, CompactLongSet cumulativeIngroup, int[] path) {
 
 		int parentId = path[position];
 		TLongBipartition parent = bipart[parentId];
@@ -588,7 +590,7 @@ public class BipartOracle {
 		}
 
 	    // collect the outgroup this node
-	    TLongBitArraySet cumulativeOutgroup = new TLongBitArraySet(parent.outgroup());
+		CompactLongSet cumulativeOutgroup = new CompactLongSet(parent.outgroup());
 
 	    // perform the recursion down all the childen, returning each child node (once it has been created) along
 	    // with its outgroups. using an Object[] as a return value to provide two object in the return is weird.
@@ -596,10 +598,10 @@ public class BipartOracle {
 //	    Node parentNode = null;
 	    boolean newline = false;
 		if (position < path.length - 1) {
-			Object[] result = generateNodesFromPaths(position+1, new TLongBitArraySet(cumulativeIngroup), path);
+			Object[] result = generateNodesFromPaths(position+1, new CompactLongSet(cumulativeIngroup), path);
 			if (result != null) {
 //				parentNode = (Node) result[0];
-				TLongBitArraySet outgroupsToAdd = (TLongBitArraySet) result[1];
+				CompactLongSet outgroupsToAdd = (CompactLongSet) result[1];
 				cumulativeOutgroup.addAll(outgroupsToAdd);
 				newline = true;
 			}
@@ -678,8 +680,8 @@ public class BipartOracle {
 	}
 
 	private TLongBipartition getGraphBipartForTreeNode(TreeNode p, Tree t) {
-		TLongBitArraySet ingroup = new TLongBitArraySet();
-		TLongBitArraySet outgroup = new TLongBitArraySet();
+		CompactLongSet ingroup = new CompactLongSet();
+		CompactLongSet outgroup = new CompactLongSet();
 		TreeBipartition b = t.getBipartition(p);
 		/*
 		 * this is using the explodedTipsHash now
@@ -745,21 +747,16 @@ public class BipartOracle {
 		
 		String dbname = "test.db";
 
-		/*
-		 * these are tests for order
-		 *
-		runSimpleTest(cycleConflictTrees(), dbname);
+		// these are tests for order
+/*		runSimpleTest(cycleConflictTrees(), dbname);
 		runSimpleTest(nonOverlapTrees(), dbname);
 		runSimpleTest(test4Trees(), dbname);
 		runSimpleTest(test3Trees(), dbname);
-		runSimpleTest(testInterleavedTrees(), dbname);
-		*/
-		/*
-		 * these are tests for taxonomy
-		 *
-		dbname = "tax.db";
-		runSimpleOTTTest(plantTestOttTrees(),dbname);
-		*/
+		runSimpleTest(testInterleavedTrees(), dbname); */
+
+		// these are tests for taxonomy
+/*		dbname = "tax.db";
+		runSimpleOTTTest(plantTestOttTrees(),dbname); */
 		loadTaxonomyAndTreesTest();
 	}
 	
@@ -768,17 +765,17 @@ public class BipartOracle {
 	 */
 	private static void loadATOLTrees(List<Tree> t) throws TreeParseException {
 		try {
+			// TODO is this file in the treemachine github repo? i didn't see it... 
 			BufferedReader br = new BufferedReader(new FileReader("data/examples/atol/RAxML_bootstrap.ONLY_CP_BS100.rr"));
 			String str;
 			while((str = br.readLine())!=null){
 				t.add(TreeReader.readTree(str));
 			}
 			br.close();
+			System.out.println("trees read");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("trees read");
 	}
 	
 	private static void loadTaxonomyAndTreesTest() throws Exception {
@@ -787,6 +784,7 @@ public class BipartOracle {
 		
 		FileUtils.deleteDirectory(new File(dbname));
 		
+		// TODO need to add these files to the github repo
 		String taxonomy = "test-taxonomy-bipart/Dipsacales.tax";
 		String synonyms = "";
 		

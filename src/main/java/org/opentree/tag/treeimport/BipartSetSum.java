@@ -1,9 +1,5 @@
 package org.opentree.tag.treeimport;
 
-import jade.tree.Tree;
-
-import java.time.Clock;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -12,7 +8,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.opentree.bitarray.TLongBitArraySet;
+//import org.opentree.bitarray.TLongBitArraySet;
+
+
+import org.opentree.bitarray.CompactLongSet;
 
 import static java.util.stream.Collectors.*;
 
@@ -92,15 +91,15 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		Set<TLongBipartition> input = new HashSet<TLongBipartition>();
 		
 		for (int i = 0; i < count; i++) {
-			TLongBitArraySet ingroup = new TLongBitArraySet ();
-			TLongBitArraySet outgroup = new TLongBitArraySet ();
+			CompactLongSet ingroup = new CompactLongSet ();
+			CompactLongSet outgroup = new CompactLongSet ();
 			while(ingroup.size() + outgroup.size() < size) {
 				int id = (int) Math.round(Math.random() * maxId);
 				if (! (ingroup.contains(id) || outgroup.contains(id))) {
 					if (Math.random() > 0.5) { outgroup.add(id); } else { ingroup.add(id); };
 				}
 			}
-			input.add(new TLongBipartition(new TLongBitArraySet(ingroup), new TLongBitArraySet(outgroup)));
+			input.add(new TLongBipartition(new CompactLongSet(ingroup), new CompactLongSet(outgroup)));
 		}
 		System.out.println("attempting " + count + " random bipartitions of size " + size + " (ingroup + outgroup)");
 		long z = new Date().getTime();
@@ -110,29 +109,37 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 
 	private static void testManyRandomGroups() {
 
-		int maxId = 1000000;
-		int n = 100;
-		int count = 10;
-		int size = 1000;
-		
+		int maxId = 1000000;	// maximum id. this affects the size of the underlying bitset(s)
+		int n = 100;			// number of groups (e.g. trees, though for this test they are random so not trees)
+		int count = 10;			// number of bipartitions per group
+		int size = 1000;		// size of bipartitions (if these were trees then the count and size would be the same)
+
 		//  on macbook pro 2.5Ghz i7 x 8 cores, running in Eclipse debugger
-		//    3.0 secs : n =  60, count =  10, size =   10
-		//    3.9 secs : n =  70, count =  10, size =   10
-		//    5.9 secs : n =  80, count =  10, size =   10
-		//    8.2 secs : n =  90, count =  10, size =   10
-		//   11.9 secs : n = 100, count =  10, size =   10
-
-		//   22   secs : n = 100, count =  20, size =   10
-		//   52   secs : n = 100, count =  30, size =   10
-		//   92   secs : n = 100, count =  40, size =   10
-		//  146   secs : n = 100, count =  50, size =   10
-
-		//    7.6 secs : n = 100, count =  10, size =   20
-		//    8.1 secs : n = 100, count =  10, size =   30
-		//    8.2 secs : n = 100, count =  10, size =   40
-		//    8.6 secs : n = 100, count =  10, size =   50
-		//        secs : n = 100, count =  10, size =  500
-		//        secs : n = 100, count =  10, size = 1000  // out of memory, -Xmx16G
+		//
+		//                         FastLongSet
+		//                             |||
+		//           TLongBitArraySet  |||
+		//                       |||   |||
+		//    n  count   size	 |||   |||
+		//   60	    10     10    3.0   5.4
+		//   70     10     10    3.9   7.1
+		//   80     10     10    5.9   9.4
+		//   90     10     10    8.2  11.8
+		//  100     10     10   11.9  14.2
+		//  100     20     10   22.0  50.4
+		//  100     30     10   52.0
+		//  100     40     10   92.0
+		//  100     50     10  146.0
+		//  100     10     20    7.6
+		//  100     10     30    8.1 
+		//  100     10     40    8.2
+		//  100     10     50    8.6
+		//  100     10    200         28.2
+		//  100     10    400         51.4
+		//  100     10    500    ***  94.7
+		//  100     10   1000  	 ***   ***
+		//
+		//  *** = out of memory, -Xmx16G
 		
 		
 		List<Collection<TLongBipartition>> input = new ArrayList<Collection<TLongBipartition>>();
@@ -140,15 +147,15 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		for (int h = 0; h < n; h++) {
 			HashSet<TLongBipartition> group = new HashSet<TLongBipartition>();
 			for (int i = 0; i < count; i++) {
-				TLongBitArraySet ingroup = new TLongBitArraySet ();
-				TLongBitArraySet outgroup = new TLongBitArraySet ();
+				CompactLongSet ingroup = new CompactLongSet ();
+				CompactLongSet outgroup = new CompactLongSet ();
 				while(ingroup.size() + outgroup.size() < size) {
 					int id = (int) Math.round(Math.random() * maxId);
 					if (! (ingroup.contains(id) || outgroup.contains(id))) {
 						if (Math.random() > 0.5) { outgroup.add(id); } else { ingroup.add(id); };
 					}
 				}
-				group.add(new TLongBipartition(new TLongBitArraySet(ingroup), new TLongBitArraySet(outgroup)));
+				group.add(new TLongBipartition(new CompactLongSet(ingroup), new CompactLongSet(outgroup)));
 			}
 			input.add(group);
 		}
