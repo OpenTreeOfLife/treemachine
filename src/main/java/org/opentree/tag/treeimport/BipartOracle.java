@@ -130,7 +130,7 @@ public class BipartOracle {
 				Node curnode = tip;
 				while (curnode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)){
 					curnode = curnode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
-					TLongBitArraySet tlb = new TLongBitArraySet((long[])curnode.getProperty("mrca"));
+					CompactLongSet tlb = new CompactLongSet((long[])curnode.getProperty("mrca"));
 					if(tlb.containsAll(tnbp.ingroup())==true){
 						if(tlb.containsAny(tnbp.outgroup())==false){
 							//go through the relationships connecting each of the nodes at this node to the parents 
@@ -144,14 +144,14 @@ public class BipartOracle {
 								HashSet<Node> pgn = graphNodesForTreeNode.get(tcn);
 								if(pgn == null){//it is a tip
 									Node pn = gdb.getNodeById(nodeIdForName.get(tcn.getLabel()));
-									TLongBitArraySet ctlb = new TLongBitArraySet((long[])pn.getProperty("mrca"));
+									CompactLongSet ctlb = new CompactLongSet((long[])pn.getProperty("mrca"));
 									if(tlb.containsAll(ctlb)){
 										childnds.add(pn);
 										System.out.println("\t"+pn+" -> "+curnode);
 									}
 								}else{
 									for(Node pn : pgn){
-										TLongBitArraySet ctlb = new TLongBitArraySet((long[])pn.getProperty("mrca"));
+										CompactLongSet ctlb = new CompactLongSet((long[])pn.getProperty("mrca"));
 										if(tlb.containsAll(ctlb)==false){
 											continue;
 										}
