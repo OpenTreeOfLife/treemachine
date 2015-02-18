@@ -33,15 +33,13 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.Traversal;
 import org.opentree.bitarray.CompactLongSet;
-import org.opentree.bitarray.TLongBitArraySet;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class BipartOracle {
 
 	private final GraphDatabaseAgent gdb;
-	boolean VERBOSE = true;
+	boolean VERBOSE = false;
 
 	// associate input names with neo4j node ids
 	Map<Object, Long> nodeIdForName = new HashMap<Object, Long>();
@@ -778,15 +776,15 @@ public class BipartOracle {
 		String dbname = "test.db";
 
 		// these are tests for order
-		runSimpleTest(cycleConflictTrees(), dbname);
+/*		runSimpleTest(cycleConflictTrees(), dbname);
 		runSimpleTest(nonOverlapTrees(), dbname);
 		runSimpleTest(test4Trees(), dbname);
 		runSimpleTest(test3Trees(), dbname);
-		runSimpleTest(testInterleavedTrees(), dbname);
+		runSimpleTest(testInterleavedTrees(), dbname); */
 
 		// these are tests for taxonomy
-/*		dbname = "tax.db";
-		runSimpleOTTTest(plantTestOttTrees(),dbname); */
+		dbname = "tax.db";
+		runSimpleOTTTest(plantTestOttTrees(),dbname);
 //		loadTaxonomyAndTreesTest();
 	}
 	
