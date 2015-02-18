@@ -3028,7 +3028,8 @@ public class MainRunner {
 		System.out.println("");
 		System.out.println("Here are some common commands with descriptions.");
 		System.out.println("INPUT SET OF TREES (bootstrap, posterior probability)");
-		System.out.println("	\033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
+		//System.out.println("	\033[1mjusttrees\033[0m <filename> <taxacompletelyoverlap[T|F]> <rootnodename> <graphdbfolder>");
+		System.out.println("	\033[1mloadtrees\033[0m <filename> <graphdbfolder> <taxonomyloadedalread[T|F]>");
 		System.out.println("");
 		System.out.println("INPUT TAXONOMY AND TREES");
 		System.out.println("  Initializes the graph with a tax list in the format");
