@@ -2,38 +2,33 @@ package org.opentree.tag.treeimport;
 
 import java.util.Map;
 
-import org.opentree.bitarray.FastLongSet;
-import org.opentree.bitarray.TLongBitArraySet;
+import org.opentree.bitarray.CompactLongSet;
 
 public class TLongBipartition {
 
-	// TODO: just use bitset instead of TLongBitArraySet to reduce memory footprint
-	
-//	private TLongBitArraySet ingroup;
-//	private TLongBitArraySet outgroup;
-	private FastLongSet ingroup;
-	private FastLongSet outgroup;
+	private CompactLongSet ingroup;
+	private CompactLongSet outgroup;
 
 	public TLongBipartition(long[] ingroup, long[] outgroup) {
-		this.ingroup = new FastLongSet(ingroup);
-		this.outgroup = new FastLongSet(outgroup);
+		this.ingroup = new CompactLongSet(ingroup);
+		this.outgroup = new CompactLongSet(outgroup);
 	}
 
-	public TLongBipartition(FastLongSet ingroup, FastLongSet outgroup) {
-		this.ingroup = new FastLongSet(ingroup);
-		this.outgroup = new FastLongSet(outgroup);
+	public TLongBipartition(CompactLongSet ingroup, CompactLongSet outgroup) {
+		this.ingroup = new CompactLongSet(ingroup);
+		this.outgroup = new CompactLongSet(outgroup);
 	}
 
 	public TLongBipartition(TLongBipartition nested) {
-		ingroup = new FastLongSet(nested.ingroup);
-		outgroup = new FastLongSet(nested.outgroup);
+		ingroup = new CompactLongSet(nested.ingroup);
+		outgroup = new CompactLongSet(nested.outgroup);
 	}
 
-	public TLongBitArraySet ingroup() {
+	public CompactLongSet ingroup() {
 		return ingroup;
 	}
 
-	public TLongBitArraySet outgroup() {
+	public CompactLongSet outgroup() {
 		return outgroup;
 	}
 
@@ -47,11 +42,11 @@ public class TLongBipartition {
 			return new TLongBipartition(ingroup, outgroup);
 		}
 
-		TLongBitArraySet sumIn = new TLongBitArraySet();
+		CompactLongSet sumIn = new CompactLongSet();
 		sumIn.addAll(this.ingroup);
 		sumIn.addAll(that.ingroup);
 
-		TLongBitArraySet sumOut = new TLongBitArraySet();
+		CompactLongSet sumOut = new CompactLongSet();
 		sumOut.addAll(this.outgroup);
 		sumOut.addAll(that.outgroup);
 
