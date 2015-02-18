@@ -166,7 +166,7 @@ public class BipartOracle {
 								for(Node cn: childnds){
 									cn.createRelationshipTo(curnode, RelType.STREECHILDOF);
 								}
-							}/*
+							}
 							if(tn != t.getRoot()){
 								HashSet<Node> pgn = graphNodesForTreeNode.get(tn.getParent());
 								for(Node pn : pgn){
@@ -177,7 +177,12 @@ public class BipartOracle {
 									parnds.add(pn);
 									System.out.println("\t"+curnode+" -> "+pn);
 								}
-							}*/
+								if(parnds.size() > 0){
+									for(Node cn: parnds){
+										curnode.createRelationshipTo(cn, RelType.STREECHILDOF);
+									}
+								}
+							}
 							//set the node to the object in the tree
 							break;
 						}
