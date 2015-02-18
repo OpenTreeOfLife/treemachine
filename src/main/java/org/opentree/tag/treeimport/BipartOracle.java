@@ -68,16 +68,17 @@ public class BipartOracle {
 	
 	// keep track of rels we've made to cut down on database queries
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
-
-	int nodeId = 0;
+	
+ 	int nodeId = 0;
 
 	/**
 	 * instantiation runs the entire analysis
 	 * @param trees
 	 * @param gdb
+	 * @param mapInternalNodesToTax
 	 * @throws Exception
 	 */
-	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb) throws Exception {
+	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean mapInternalNodesToTax) throws Exception {
 		
 		this.gdb = gdb;
 
@@ -102,6 +103,89 @@ public class BipartOracle {
 		mapTreeRootNodes(trees); // creates new nodes if necessary
 		generateMRCAChildOfs();  // connect all nodes, must be done *after* all nodes are created!
 		mapNonRootNodes(trees);	 // use the mrca rels to map the trees into the graph
+		if(mapInternalNodesToTax)
+			mapInternalNodesToTaxonomy(trees); // setting this for use eventually in the mapInternalNodes 
+	}
+	
+	/*
+	 * the procedure here is to examine each node mapped to each tree and find
+	 * the taxonomy nodes that match those
+	 * then create relationships (streechild of ) from the children and parents
+	 */
+	public void mapInternalNodesToTaxonomy(List<Tree> trees){
+		Transaction tx = gdb.beginTx();
+		for(Tree t: trees){
+			for(TreeNode tn: t.internalNodes(NodeOrder.POSTORDER)){
+				//get the original tlongbipatition
+				TLongBipartition tnbp;
+				if(tn != t.getRoot()){
+					tnbp = original[treeNodeIds.get(tn)];
+				}else{
+					tnbp = getGraphBipartForTreeNode(tn, t);
+				}
+				//only need to start from one leaf
+				TreeNode sample_leaf = tn.getDescendantLeaves().iterator().next();
+				Node tip = gdb.getNodeById(nodeIdForName.get(sample_leaf.getLabel()));
+				Node curnode = tip;
+				while (curnode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)){
+					curnode = curnode.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+					TLongBitArraySet tlb = new TLongBitArraySet((long[])curnode.getProperty("mrca"));
+					if(tlb.containsAll(tnbp.ingroup())==true){
+						if(tlb.containsAny(tnbp.outgroup())==false){
+							//go through the relationships connecting each of the nodes at this node to the parents 
+							// and children. when the taxonomy is fine with this, make a relationship
+							System.out.println(tn+" matches "+curnode);
+							System.out.println("\twill connect " );
+							HashSet<Node> childnds = new HashSet<Node>();
+							HashSet<Node> parnds = new HashSet<Node>();
+							for(TreeNode tcn : tn.getChildren()){
+								//System.out.println("tcn: "+tcn);
+								HashSet<Node> pgn = graphNodesForTreeNode.get(tcn);
+								if(pgn == null){//it is a tip
+									Node pn = gdb.getNodeById(nodeIdForName.get(tcn.getLabel()));
+									TLongBitArraySet ctlb = new TLongBitArraySet((long[])pn.getProperty("mrca"));
+									if(tlb.containsAll(ctlb)){
+										childnds.add(pn);
+										System.out.println("\t"+pn+" -> "+curnode);
+									}
+								}else{
+									for(Node pn : pgn){
+										TLongBitArraySet ctlb = new TLongBitArraySet((long[])pn.getProperty("mrca"));
+										if(tlb.containsAll(ctlb)==false){
+											continue;
+										}
+										childnds.add(pn);
+										System.out.println("\t"+pn+" -> "+curnode);
+									}
+								}
+							}
+							System.out.println(childnds);
+							if(childnds.size() > 0){
+								graphNodesForTreeNode.get(tn).add(curnode);
+								for(Node cn: childnds){
+									cn.createRelationshipTo(curnode, RelType.STREECHILDOF);
+								}
+							}/*
+							if(tn != t.getRoot()){
+								HashSet<Node> pgn = graphNodesForTreeNode.get(tn.getParent());
+								for(Node pn : pgn){
+									if(tlb.containsAll(bipartForNode.get(pn).ingroup())==true || 
+											tlb.containsAny(bipartForNode.get(pn).outgroup())==true){
+										continue;
+									}
+									parnds.add(pn);
+									System.out.println("\t"+curnode+" -> "+pn);
+								}
+							}*/
+							//set the node to the object in the tree
+							break;
+						}
+					}
+				}	
+			}
+		}
+		tx.success();
+		tx.finish();
 	}
 
 	private void gatherTreeData(List<Tree> trees) {
@@ -728,7 +812,7 @@ public class BipartOracle {
 
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb);
+		BipartOracle bi = new BipartOracle(t, gdb, true);
 
 	}
 	
@@ -763,7 +847,7 @@ public class BipartOracle {
 	private static void runSimpleTest(List<Tree> t, String dbname) throws Exception {
 
 		FileUtils.deleteDirectory(new File(dbname));
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)));
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)),false);
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.length; i++) {
@@ -785,7 +869,7 @@ public class BipartOracle {
 	
 	private static void runSimpleOTTTest(List<Tree> t, String dbname) throws Exception {
 
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)));
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)),true);
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.length; i++) {
