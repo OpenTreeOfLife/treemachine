@@ -39,6 +39,8 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 public class BipartOracle {
 
 	private final GraphDatabaseAgent gdb;
+	private final boolean USING_TAXONOMY;
+	
 	boolean VERBOSE = false;
 
 	// associate input names with neo4j node ids
@@ -46,16 +48,17 @@ public class BipartOracle {
 	Map<Long, Object> nameForNodeId = new HashMap<Long, Object>();
 	
 	// indices in these correspond to nodes in input trees
-	Map<TreeNode, Integer> treeNodeIds;
+	Map<TreeNode, Integer> treeNodeIds = new HashMap<TreeNode, Integer>();
 	TreeNode[] treeNode;
 	TLongBipartition[] original;
+	List<Collection<TLongBipartition>> bipartsByTree = new ArrayList<Collection<TLongBipartition>>();
 	
 	// indices/ints in these correspond to summed bipartitions
 	TLongBipartition[] bipart;
 	HashSet<Path> paths;
 	
 	// hashmap for the exploded tips. key is id for tip, value is hashset of ids that are exploded with this id
-	HashMap<Object, HashSet<String> > explodedTipsHash;
+	HashMap<Object, HashSet<String>> explodedTipsHash;
 	
 	// nestedChildren[i] contains the ids of all the biparts that are nested within bipart i
 	// nestedParents[i] contains the ids of all the biparts that bipart i *is* a nested child of
@@ -63,9 +66,9 @@ public class BipartOracle {
 	ArrayList<Integer>[] nestedParents;
 
 	// maps of graph nodes to various things
-	private Map<TLongBipartition, Node> nodeForBipart; // neo4j node for each bipartition
-	private Map<Node,TLongBipartition> bipartForNode;  // bipartition for neo4j node
-	private Map<TreeNode, HashSet<Node>> graphNodesForTreeNode;
+	private Map<TLongBipartition, Node> nodeForBipart = new HashMap<TLongBipartition, Node>(); // neo4j node for bipartition
+	private Map<Node, TLongBipartition> bipartForNode = new HashMap<Node, TLongBipartition>(); // bipartition for neo4j node
+	private Map<TreeNode, HashSet<Node>> graphNodesForTreeNode; // all the graph nodes that have been mapped to the tree node
 	
 	// keep track of rels we've made to cut down on database queries
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
@@ -79,9 +82,10 @@ public class BipartOracle {
 	 * @param mapInternalNodesToTax
 	 * @throws Exception
 	 */
-	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean mapInternalNodesToTax) throws Exception {
+	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy) throws Exception {
 		
 		this.gdb = gdb;
+		this.USING_TAXONOMY = useTaxonomy;
 
 		// if the trees have tips whose labels are ott ids than can be mapped to taxon nodes in the database,
 		// this will add the id to the hash so that it can be referenced for making the bipartitions but 
@@ -90,25 +94,26 @@ public class BipartOracle {
 		explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb);
 		//System.out.println(explodedTipsHash);
 		
-		gatherTreeData(trees); // populate 'treeNode' and 'original' arrays with nodes and corresponding biparts
+		gatherTreeData(trees); // populate class members: treeNode, original, treeNodeIds, bipartsByTree
 		
-		bipart = new BipartSetSum(original).toArray(); // get pairwise sums of all tree biparts -- QUADRATIC
+		bipart = new BipartSetSum(bipartsByTree).toArray(); // get pairwise sums of all tree biparts
 		
-		// create nodes for all the nested bipartitions
-		nodeForBipart = new HashMap<TLongBipartition, Node>();
-		bipartForNode = new HashMap<Node,TLongBipartition>();
-		createLicaNodesFromBiparts(); 	// make the lica nodes
+		// make the lica nodes in the graph for all the nested bipartitions
+		// populate class members: nodeForBipart, bipartForNode
+		createLicaNodesFromBiparts();
 
 		// now process the trees
 		graphNodesForTreeNode = new HashMap<TreeNode, HashSet<Node>>();
 		mapTreeRootNodes(trees); // creates new nodes if necessary
 		generateMRCAChildOfs();  // connect all nodes, must be done *after* all nodes are created!
 		mapNonRootNodes(trees);	 // use the mrca rels to map the trees into the graph
-		if(mapInternalNodesToTax)
-			mapInternalNodesToTaxonomy(trees); // setting this for use eventually in the mapInternalNodes 
+		
+		// setting this for use eventually in the mapInternalNodes 
+//		if (mapInternalNodesToTax) { mapInternalNodesToTaxonomy(trees); }
+		if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
 	}
 	
-	/*
+	/**
 	 * the procedure here is to examine each node mapped to each tree and find
 	 * the taxonomy nodes that match those
 	 * then create relationships (streechild of ) from the children and parents
@@ -280,16 +285,19 @@ public class BipartOracle {
 		// for nexson, we would want ott ids instead of tip labels.
 		treeNode = new TreeNode[treeNodeCount];
 		original = new TLongBipartition[treeNodeCount];
-		treeNodeIds = new HashMap<TreeNode, Integer>();
 		nodeId = 0;
 		for (Tree tree : trees) {
-			for (TreeNode node: tree.internalNodes(NodeOrder.PREORDER)){
+			Collection<TLongBipartition> treeBiparts = new ArrayList<TLongBipartition>();
+			for (TreeNode node: tree.internalNodes(NodeOrder.PREORDER)) {
 				if (! node.isTheRoot()) { // we deal with the root later
 					treeNode[nodeId] = node;
 					treeNodeIds.put(node, nodeId);
-					original[nodeId++] = getGraphBipartForTreeNode(node, tree);
+					TLongBipartition b = getGraphBipartForTreeNode(node, tree);
+					original[nodeId++] = b;
+					treeBiparts.add(b);
 				}
 			}
+			bipartsByTree.add(treeBiparts);
 		}
 	}
 	
@@ -328,7 +336,7 @@ public class BipartOracle {
 				CompactLongSet pathResult = findPaths(i, new CompactLongSet(), new ArrayList<Integer>(), 0);
 				if (pathResult == null) {
 					// make nodes now for any biparts that are not nested in any others.
-					// we won't see them again until we start mapping trees
+					// will need them them for mapping trees
 					createNode(bipart[i]);
 				}
 			}
@@ -435,9 +443,6 @@ public class BipartOracle {
 			// one transaction for the entire tree
 			Transaction tx = gdb.beginTx();
 			
-			// here is where we would map the root node if we didn't do them separately beforehand
-//			graphNodesForTreeNode.put(tree.getRoot(), (HashSet<Node>) mapGraphNodesToRoot(tree));
-
 			// now map the internal nodes other than the root
 			for (TreeNode treeNode : tree.internalNodes(NodeOrder.PREORDER)) {
 				if (! treeNode.isTheRoot()) {
@@ -461,7 +466,8 @@ public class BipartOracle {
 				}
 			}
 
-			//of course the information on which tree should be added here
+			// TODO add tree metadata node
+			
 			tx.success();
 			tx.finish();
 		}	
@@ -732,7 +738,7 @@ public class BipartOracle {
 	private class Path {
 		
 		private final int[] path;
-		public Path (int[] path) { this.path = path; }
+//		public Path (int[] path) { this.path = path; }
 
 		public Path (List<Integer> path) {
 			this.path = new int[path.size()];
@@ -791,6 +797,7 @@ public class BipartOracle {
 	/**
 	 * be careful, this one takes a while
 	 */
+	@SuppressWarnings("unused")
 	private static void loadATOLTrees(List<Tree> t) throws TreeParseException {
 		try {
 			// TODO is this file in the treemachine github repo? i didn't see it... 
@@ -806,6 +813,7 @@ public class BipartOracle {
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	private static void loadTaxonomyAndTreesTest() throws Exception {
 		String dbname = "test.db";
 		String version = "1";
@@ -842,6 +850,7 @@ public class BipartOracle {
 
 	}
 	
+	@SuppressWarnings("unused")
 	private static List<Tree> plantTestOttTrees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
 		try {
@@ -870,6 +879,7 @@ public class BipartOracle {
 		return t;
 	}
 	
+	@SuppressWarnings("unused")
 	private static void runSimpleTest(List<Tree> t, String dbname) throws Exception {
 
 		FileUtils.deleteDirectory(new File(dbname));
@@ -893,6 +903,7 @@ public class BipartOracle {
 		bi.gdb.shutdownDb();
 	}
 	
+	@SuppressWarnings("unused")
 	private static void runSimpleOTTTest(List<Tree> t, String dbname) throws Exception {
 
 		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)),true);
@@ -915,6 +926,7 @@ public class BipartOracle {
 		bi.gdb.shutdownDb();
 	}
 	
+	@SuppressWarnings("unused")
 	private static List<Tree> cycleConflictTrees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
 		t.add(TreeReader.readTree("((A,C),D);"));
@@ -923,6 +935,7 @@ public class BipartOracle {
 		return t;
 	}
 
+	@SuppressWarnings("unused")
 	private static List<Tree> nonOverlapTrees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
 		t.add(TreeReader.readTree("((A,C),D);"));
@@ -930,6 +943,7 @@ public class BipartOracle {
 		return t;
 	}
 	
+	@SuppressWarnings("unused")
 	private static List<Tree> test4Trees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
 		t.add(TreeReader.readTree("((((A,B),C),D),E);"));
@@ -939,6 +953,7 @@ public class BipartOracle {
 		return t;
 	}
 	
+	@SuppressWarnings("unused")
 	private static List<Tree> test3Trees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
 		t.add(TreeReader.readTree("(((((A,B),C),D),E),F);"));
@@ -947,6 +962,7 @@ public class BipartOracle {
 		return t;
 	}
 	
+	@SuppressWarnings("unused")
 	private static List<Tree> testInterleavedTrees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
 		t.add(TreeReader.readTree("(((((A,C),E),G),I),K);"));

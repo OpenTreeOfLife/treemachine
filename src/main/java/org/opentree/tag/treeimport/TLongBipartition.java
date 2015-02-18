@@ -121,8 +121,8 @@ public class TLongBipartition {
 	public int hashCode() {
 		// have not tested this hash function for performance. be wary.
 		long h = 1;
-		for (long p : ingroup) { h = (h * (59 + p)) + p; }
-		for (long p : outgroup) { h = (h * (73 + p)) + p; }
+		for (long p : ingroup) { h += 17 * p; }
+		for (long p : outgroup) { h += 11 * p; }
 		return (int) h;
 	}
 
