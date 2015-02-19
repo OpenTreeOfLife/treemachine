@@ -141,8 +141,8 @@ public class BipartOracle {
 					CompactLongSet taxonIngroup = new CompactLongSet((long[]) taxNode.getProperty(NodeProperty.MRCA.propertyName));
 					TLongBipartition taxonBipart = new TLongBipartition(taxonIngroup, new CompactLongSet());
 
-					if (treeBipart.isCompatibleWith(taxonBipart)) {
-					
+					if (taxonIngroup.containsAll(treeBipart.ingroup()) && taxonIngroup.containsAny(treeBipart.outgroup())==false) {
+						
 						// go through the relationships connecting each of the nodes at this node to the parents 
 						// and children. when the taxonomy is fine with this, make a relationship
 						System.out.println(treeNode + " matches " + taxNode);

@@ -129,7 +129,13 @@ public class GraphExplorer extends GraphBase {
 	
 	// appends '_ottNNNNN' to name, and ensures it is newick-compliant
 	public String getOttName (Node curNode) {
-		String name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+		String name;
+	
+		try{
+		 name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+		}catch(Exception e){
+			name = String.valueOf(curNode.getProperty("name"));
+		}
 		// make name newick-valid
 		name = GeneralUtils.newickName(name);
 		return (name);
@@ -1478,7 +1484,10 @@ public class GraphExplorer extends GraphBase {
 			metadatanode.setProperty("sourcenames", sourceIdPriorityListString); // need to make sure that this list is processed correctly
 			
 			// Adding 1) taxonomy version and 2) start node to the metadata node too, as it seems convenient to have everything together
-			metadatanode.setProperty("taxonomy", getTaxonomyVersion());
+			if(getTaxonomyVersion() != null)
+				metadatanode.setProperty("taxonomy", getTaxonomyVersion());
+			else
+				metadatanode.setProperty("taxonomy", "0.0");
 			metadatanode.setProperty("startnode", startNode.getId()); // even though it is directly attached
 			
 			synthMetaIndex.add(metadatanode, "name", synthTreeName);
