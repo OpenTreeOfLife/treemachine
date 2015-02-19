@@ -87,18 +87,18 @@ public final class TipExploder {
 			
 				Object taxId = tip.getLabel();
 				HashSet<Object> hs = new HashSet<Object> ();
-				System.out.print("searching for taxonomy id: " + taxId);
+//				System.out.print("searching for taxonomy id: " + taxId);
 
 				Node hit = null;
 				try {
 					hit = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, taxId).getSingle();
 					if (hit == null) {
-						System.out.println(". WARNING: could not find match this ott id.");
+						System.out.println("WARNING: could not find match for ott id: " + taxId);
 						hs.add(taxId);
 						idMap.put(tip, hs);
 						continue;
 					}
-					System.out.print(". Found a node: " + hit + ". checking for tips below\n");
+//					System.out.print(". Found a node: " + hit + ". checking for tips below\n");
 					for (Node n : Traversal.description().breadthFirst().relationships(RelType.TAXCHILDOF, Direction.INCOMING).traverse(hit).nodes()) {
 						if (! n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
 							taxId = n.getProperty(NodeProperty.TAX_UID.propertyName);

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -93,6 +94,8 @@ public class BipartOracle {
 		this.gdb = gdb;
 		this.USING_TAXONOMY = useTaxonomy;
 		
+		long w = new Date().getTime(); // for timing 
+		
 		//just associate the rank with the treenodes
 		createTreeIdRankMap(trees);
 
@@ -122,6 +125,8 @@ public class BipartOracle {
 		// setting this for use eventually in the mapInternalNodes 
 		// because taxonomy is added above, this isn't necessary
 		//if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
+		
+		System.out.println("loading is complete. total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
 	}
 	
 	private void createTreeIdRankMap(List<Tree> trees){
@@ -170,8 +175,9 @@ public class BipartOracle {
 						
 						// go through the relationships connecting each of the nodes at this node to the parents 
 						// and children. when the taxonomy is fine with this, make a relationship
+						if (VERBOSE) {
 						System.out.println(treeNode + " matches " + taxNode);
-						System.out.println("\twill connect " );
+						System.out.println("\twill connect " ); }
 						HashSet<Node> childnds = new HashSet<Node>();
 						HashSet<Node> parnds = new HashSet<Node>();
 						for (TreeNode tcn : treeNode.getChildren()) {
@@ -182,7 +188,7 @@ public class BipartOracle {
 								CompactLongSet ctlb = new CompactLongSet((long[])pn.getProperty("mrca"));
 								if(taxonIngroup.containsAll(ctlb)){
 									childnds.add(pn);
-									System.out.println("\t"+pn+" -> "+taxNode);
+									if (VERBOSE) { System.out.println("\t"+pn+" -> "+taxNode); }
 								}
 							}else{
 								for(Node pn : pgn){
@@ -191,11 +197,11 @@ public class BipartOracle {
 										continue;
 									}
 									childnds.add(pn);
-									System.out.println("\t"+pn+" -> "+taxNode);
+									if (VERBOSE) { System.out.println("\t"+pn+" -> "+taxNode); }
 								}
 							}
 						}
-						System.out.println(childnds);
+						if (VERBOSE) { System.out.println(childnds); }
 						if(childnds.size() > 0){
 							graphNodesForTreeNode.get(treeNode).add(taxNode);
 							for(Node cn: childnds){
@@ -210,7 +216,7 @@ public class BipartOracle {
 									continue;
 								}
 								parnds.add(pn);
-								System.out.println("\t"+taxNode+" -> "+pn);
+								if (VERBOSE) { System.out.println("\t"+taxNode+" -> "+pn); }
 							}
 							if(parnds.size() > 0){
 								for(Node cn: parnds){
@@ -245,6 +251,9 @@ public class BipartOracle {
 	 */
 	private void gatherTreeData(List<Tree> trees) {
 
+		System.out.print("collecting information from " + trees.size() + " trees...");
+		long z = new Date().getTime();
+		
 		// process the tips. what to do depends on whether we are using taxonomy or not
 		if (USING_TAXONOMY) { mapTipsToTaxa(trees); }
 		else { importTipsFromTrees(trees); }
@@ -269,6 +278,8 @@ public class BipartOracle {
 			}
 			bipartsByTree.add(treeBiparts);
 		}
+		
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 	}
 
 	/**
@@ -445,24 +456,27 @@ public class BipartOracle {
 		// do a pairwise all-by-all comparison to find all nested bipartitions
 		nestedChildren = new ArrayList[bipart.length];
 		nestedParents = new ArrayList[bipart.length];
+		System.out.print("beginning all-by-all bipart comparison to identify nested biparts for paths...");
+		long z = new Date().getTime();
 		for (int i = 0; i < bipart.length; i++) {
 
 			if (nestedChildren[i] == null) { nestedChildren[i] = new ArrayList<Integer>(); }
 
 			final int child = i;
-			List<Integer> parentsStr = bipartIds.stream() // use a parallel stream to explore all other biparts
+			nestedParents[i] = bipartIds.parallelStream() // use a parallel stream to explore all other biparts
 					.map(parent -> { return bipart[child].isNestedPartitionOf(bipart[parent]) ? parent : null; })
 					.collect(toList()).stream()
 					.filter(a -> a != null)
 					.collect(toList());
 			
-			nestedParents[i] = parentsStr;
+//			nestedParents[i] = parentsStr;
 			
-			for (Integer p : parentsStr) {
+			for (Integer p : nestedParents[i]) {
 				if (nestedChildren[p] == null) { nestedChildren[p] = new ArrayList<Integer>(); }
 				nestedChildren[p].add(i);
 			}
 		}
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
 		/* 
 		 * leaving old sequential code in here for now in case parallel stream borks.
@@ -497,6 +511,8 @@ public class BipartOracle {
 		// here we considered just walking from each bipart mapped to a given tree node x, to only those biparts mapped to
 		// parents/children of x, but there should be cases where this would not find all the relevant paths, so we do all of them.
 		paths = new HashSet<Path>();
+		System.out.print("traversing potential paths through the graph to determine node ingroup/outgroup composition...");
+		z = new Date().getTime();
 		Transaction tx = gdb.beginTx();
 		for (int i = 0; i < bipart.length; i++) {
 			if (bipart[i].outgroup().size() > 0) {
@@ -510,19 +526,26 @@ public class BipartOracle {
 		}
 		tx.success();
 		tx.finish();
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
 		// report results
-		for (Path p : paths) {
-			System.out.println(p);
-		}
+		if (VERBOSE) {
+			for (Path p : paths) {
+				System.out.println(p);
+			}
+		}		
 		
 		// create nodes based on paths
+		System.out.print("now creating all lica nodes in the graph...");
+		z = new Date().getTime();
 		tx = gdb.beginTx();
 		for (Path p : paths) {
 			generateNodesFromPaths(0, new CompactLongSet(), p.toArray());
 		}
 		tx.success();
 		tx.finish();
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
+
 	}
 
 	/**
@@ -536,6 +559,8 @@ public class BipartOracle {
 
 		// gather information about which rels to create. this is the full n^2 comparisons among all nodes (i.e. biparts)
 		Map<TLongBipartition, Set<TLongBipartition>> nestedChildren = new HashMap<TLongBipartition, Set<TLongBipartition>>();
+		System.out.print("beginning all-by-all node comparison to identify possible MRCACHILDOF rels...");
+		long z = new Date().getTime();
 		for (TLongBipartition parent: nodeForBipart.keySet()) {
 
 			Set<TLongBipartition> children = nodeForBipart.keySet().parallelStream()
@@ -547,8 +572,23 @@ public class BipartOracle {
 
 			nestedChildren.put(parent, children);
 		}
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
+		
+		/* old code left here for convenience in case the parallel stream borks
+		 * 
+		Transaction tx = gdb.beginTx();
+		for (TLongBipartition parent: nodeForBipart.keySet()) {
+			for (TLongBipartition nestedChild: nodeForBipart.keySet()) { // potential nested
+				if (nestedChild.isNestedPartitionOf(parent) && (! nestedChild.equals(parent))) {
+					updateMRCAChildOf(nodeForBipart.get(nestedChild),nodeForBipart.get(parent));
+				}
+			}
+		tx.success();
+		tx.finish();
+		} */
 		
 		// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
+		System.out.print("recording MRCACHILDOF rels in the db...");
 		Transaction tx = gdb.beginTx();
 		for (TLongBipartition parent : nestedChildren.keySet()) {
 			for (TLongBipartition child : nestedChildren.get(parent)) {
@@ -559,6 +599,7 @@ public class BipartOracle {
 		tx.finish();
 		
 		if(USING_TAXONOMY){
+			System.out.print(" (also recording MRCACHILDOF rels for taxonomy)...");
 			//sequential for debugging right now
 			// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
 			tx = gdb.beginTx();
@@ -573,19 +614,7 @@ public class BipartOracle {
 			tx.success();
 			tx.finish();
 		}
-		
-		/* old code left here for convenience in case the parallel stream borks
-		 * 
-		Transaction tx = gdb.beginTx();
-		for (TLongBipartition parent: nodeForBipart.keySet()) {
-			for (TLongBipartition nestedChild: nodeForBipart.keySet()) { // potential nested
-				if (nestedChild.isNestedPartitionOf(parent) && (! nestedChild.equals(parent))) {
-					updateMRCAChildOf(nodeForBipart.get(nestedChild),nodeForBipart.get(parent));
-				}
-			}
-		tx.success();
-		tx.finish();
-		} */
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
 	}
 	
@@ -633,12 +662,11 @@ public class BipartOracle {
 						graphNodes.add(b);
 					}
 				}
-				System.out.println(root.getNewick(false)+" "+graphNodes);
+				if (VERBOSE) { System.out.println(root.getNewick(false)+" "+graphNodes); }
 			}
 		
 			if (graphNodes.size() < 1) {
-				System.out.println("could not find a suitable node to map to the root, will make a new one");
-				System.out.println("\t"+rootBipart);
+				if (VERBOSE) { System.out.println("could not find a suitable node to map to the root, will make a new one\n\t"+rootBipart); }
 				graphNodes.add(createNode(rootBipart));
 			}
 
@@ -650,8 +678,13 @@ public class BipartOracle {
 	}
 
 	private void mapNonRootNodes(List<Tree> trees) {
-		for (Tree tree : trees) {
-			
+		
+		for (int k = 0; k < trees.size(); k++) {
+			Tree tree = trees.get(k);
+
+			System.out.print("mapping tree " + k + " (recording rels in the db)...");
+			long z = new Date().getTime();
+
 			Transaction tx = gdb.beginTx(); // one transaction to rule the tree
 			
 			// now map the internal nodes other than the root
@@ -681,7 +714,9 @@ public class BipartOracle {
 			
 			tx.success();
 			tx.finish();
+			System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 		}	
+		System.out.println("all trees have been mapped.");
 	}
 	
 	private Set<Node> mapGraphNodesToInternalNode(TreeNode treeNode) {
@@ -921,7 +956,7 @@ public class BipartOracle {
 	
 	private Node createNode(TLongBipartition b) {
 		Node node = gdb.createNode();
-		System.out.println(node);
+		if (VERBOSE) { System.out.println(node); }
 		node.setProperty(NodeProperty.MRCA.propertyName, b.ingroup().toArray());
 		node.setProperty(NodeProperty.OUTMRCA.propertyName, b.outgroup().toArray());
 		nodeForBipart.put(b, node);
@@ -1032,10 +1067,10 @@ public class BipartOracle {
 
 		// this is a stress test for the loading procedure -- 100 trees with 600 tips each.
 		// lots of duplicate biparts though so it should only take a few mins
-		loadATOLTreesTest(dbname);
+//		loadATOLTreesTest(dbname);
 		
 		// these are tests for taxonomy
-//		runDipsacalesTest(dbname);
+		runDipsacalesTest(dbname);
 	}
 	
 	/**

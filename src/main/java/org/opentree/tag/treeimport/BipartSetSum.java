@@ -46,7 +46,8 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	public BipartSetSum(List<Collection<TLongBipartition>> bipartsByTree) {
 
 		// first filter the incoming set so no two groups contain any identical biparts -- a linear time operation
-		System.out.println("removing duplicates across/within groups");
+		System.out.print("removing duplicate bipartitions across/within groups...");
+		long z = new Date().getTime();
 		Set<TLongBipartition> observedOriginals = new HashSet<TLongBipartition>();
 		List<Collection<TLongBipartition>> filteredGroups = new ArrayList<Collection<TLongBipartition>>();
 		int n = 0;
@@ -65,9 +66,10 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 			filteredGroups.add(filteredCurTree);
 		}
 		observedOriginals = null; // free resource for garbage collector
-		System.out.println("found " + d + " duplicate biparts");
+		System.out.println(" done. found " + d + " duplicate biparts. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
-		System.out.println("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups");
+		System.out.print("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups...");
+		z = new Date().getTime();
 		Set<TLongBipartition> biparts = new HashSet<TLongBipartition>();
 		for (int i = 0; i < filteredGroups.size(); i++) {
 			biparts.addAll(filteredGroups.get(i)); // record the originals from group i
@@ -75,6 +77,8 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 				biparts.addAll(sum(filteredGroups.get(i), filteredGroups.get(j))); // record the sums against group j
 			}
 		}
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
+
 		bipart = biparts; //.toArray(new TLongBipartition[0]);
 	}
 
@@ -138,9 +142,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 			input.add(new TLongBipartition(new CompactLongSet(ingroup), new CompactLongSet(outgroup)));
 		}
 		System.out.println("attempting " + count + " random bipartitions of size " + size + " (ingroup + outgroup)");
-		long z = new Date().getTime();
 		new BipartSetSum(input);
-		System.out.println("elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 	}
 
 	private static void testManyRandomGroups() {
@@ -200,7 +202,6 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		System.out.println("processing biparts for sum");
 		long z = new Date().getTime();
 		new BipartSetSum(input);
-		System.out.println("elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 	}
 
 	private static void testSimpleGroup() {
