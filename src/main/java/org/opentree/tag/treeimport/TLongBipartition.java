@@ -32,6 +32,15 @@ public class TLongBipartition {
 		return outgroup;
 	}
 
+	/**
+	 * If there is no conflict between this bipartition and the passed bipartition, and if this bipartition has at least one element
+	 * in common with the passed bipartition (in either the ingroup or outgroup), then return a bipartition whose ingroup is the union
+	 * of the ingroups of this bipartition and the passed bipartition, and whose outgroup is the union of the outgroups of this
+	 * bipartition and the passed bipartition. If there is conflict or if the bipartitions do not overlap at all, then return null.
+	 * 
+	 * @param that
+	 * @return
+	 */
 	public TLongBipartition sum(TLongBipartition that) {
 
 		if (!this.isCompatibleWith(that) || !this.overlapsWith(that)) {
@@ -57,13 +66,15 @@ public class TLongBipartition {
 	 * Returns true if there is no conflict between these bipartitions. More formally, let A be the bipartition on which
 	 * the method is called and B the bipartition passed to the method. Then, we return true if and only if (1) the
 	 * intersection of A's ingroup and B's outgroup is null, and (2) the intersection of B's ingroup and A's outgroup is
-	 * null.
+	 * null.<br/><br/>
+	 * 
+	 * This is a symmetrical comparison. That is, A is compatible with B if and only if B is compatible with A.
 	 * 
 	 * @param that
 	 * @return
 	 */
 	public boolean isCompatibleWith(TLongBipartition that) {
-		return !(this.ingroup.containsAny(that.outgroup) || this.outgroup.containsAny(that.ingroup));
+		return ! (this.ingroup.containsAny(that.outgroup) || this.outgroup.containsAny(that.ingroup));
 	}
 
 	/**

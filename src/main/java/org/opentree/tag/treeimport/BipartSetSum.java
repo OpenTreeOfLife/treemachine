@@ -17,10 +17,10 @@ import static java.util.stream.Collectors.*;
 
 public class BipartSetSum implements Iterable<TLongBipartition> {
 	
-	private TLongBipartition[] bipart;
+	private Set<TLongBipartition> bipart;
 
-	public BipartSetSum(Collection<TLongBipartition> A) {
-		bipart = sum(A, A).toArray(new TLongBipartition[0]);
+	public BipartSetSum(Collection<TLongBipartition> all) {
+		bipart = sum(all, all); // sum all against all
 	}
 	
 	public BipartSetSum(TLongBipartition[] original) {
@@ -28,7 +28,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		for (int i = 0; i < original.length; i++) { all.add(original[i]); }
 
 		// sum all against all
-		bipart = sum(all, all).toArray(new TLongBipartition[0]);
+		bipart = sum(all, all);
 	}
 	
 	/**
@@ -36,6 +36,9 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	 * the same tree, because no two biparts within a single tree may be completely overlapping. In
 	 * this constructor, biparts from within a single tree can be supplied in groups corresponding
 	 * to collections within a list. No biparts from within the same collection will be compared.
+	 * 
+	 * TODO for some reason this seems to be very slow, though it isn't clear why.
+	 * 
 	 * @param trees
 	 */
 	public BipartSetSum(List<Collection<TLongBipartition>> bipartsByTree) {
@@ -46,7 +49,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 				biparts.addAll(sum(bipartsByTree.get(i), bipartsByTree.get(j))); // record the sums against group j
 			}
 		}
-		bipart = biparts.toArray(new TLongBipartition[0]);
+		bipart = biparts; //.toArray(new TLongBipartition[0]);
 	}
 
 	private static Set<TLongBipartition> combineWithAll(TLongBipartition b, Collection<TLongBipartition> others) {
@@ -56,7 +59,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		return x;
 	}
 	
-	private Collection<TLongBipartition> sum(Collection<TLongBipartition> A, Collection<TLongBipartition> B) {
+	private Set<TLongBipartition> sum(Collection<TLongBipartition> A, Collection<TLongBipartition> B) {
 		return A.parallelStream()
 				.map(a -> combineWithAll(a, B)) // sum all biparts against all others, (returns a stream of sets)
 				// and collect the contents of all the resulting sets into a single set
@@ -65,13 +68,17 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 
 	@Override
 	public Iterator<TLongBipartition> iterator() {
-		return new ArrayIterator();
+		return bipart.iterator();
 	}
 	
 	public TLongBipartition[] toArray() {
+		return bipart.toArray(new TLongBipartition[0]);
+	}
+
+	public Set<TLongBipartition> biparts() {
 		return bipart;
 	}
-	
+
 	public static void main(String[] args) {
 		testSimpleConflict();
 		testSimplePartialOverlap();
@@ -365,12 +372,13 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		return biparts;
 	}
 
+	/*
 	private class ArrayIterator implements Iterator<TLongBipartition> {
 		int i = 0;
 		public ArrayIterator() { }
 		@Override
 		public boolean hasNext() {
-			return i < bipart.length;
+			return i < bipart.size();
 		}
 		@Override
 		public TLongBipartition next() {
@@ -380,5 +388,5 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		public void remove() {
 			throw new UnsupportedOperationException();
 		}
-	}
+	} */
 }

@@ -1,7 +1,5 @@
 package org.opentree.tag.treeimport;
 
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
 import jade.tree.Tree;
 import jade.tree.TreeNode;
 import jade.tree.TreeReader;
@@ -10,9 +8,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import opentree.GraphInitializer;
@@ -28,6 +28,7 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 
 public final class TipExploder {
 
+	/*
 	public static List<Tree> explodeTips(List<Tree> trees, GraphDatabaseAgent gdb) {
 		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
 
@@ -67,50 +68,50 @@ public final class TipExploder {
 			((JadeTree) tree).update();
 		}
 		return trees;
-	}
+	} */
 	
 	/**
-	 * Instead of taking the tree, this just takes the tip and returns the hash with the 
-	 * id and the list of ids that are in the hash
+	 * Returns a map whose keys X are the taxon ids {x1,x2,...xN} of each unique taxon name applied to a tip in the set of incoming trees
+	 * and whose values are the list of taxon ids for all the terminal taxa contained by each xi in X.
 	 * @param identifier
 	 * @param gdb
 	 * @return
 	 */
-	public static HashMap<Object,HashSet<String>> explodeTipsReturnHash(List<Tree> trees, GraphDatabaseAgent gdb) {
+	public static Map<Object, Collection<Object>> explodeTipsReturnHash(List<Tree> trees, GraphDatabaseAgent gdb) {
 		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
 
-		HashMap<Object,HashSet<String> > explodedTipsHash = new HashMap<Object,HashSet<String> >();
+		Map<Object, Collection<Object>> idMap = new HashMap<Object, Collection<Object>>();
 		
 		for (Tree tree : trees) {
 			for (TreeNode tip : tree.externalNodes()) {
 			
-				Object ottId = tip.getLabel();
-				HashSet<String> hs = new HashSet<String> ();
-				System.out.print("searching for ott id: " + ottId);
+				Object taxId = tip.getLabel();
+				HashSet<Object> hs = new HashSet<Object> ();
+				System.out.print("searching for taxonomy id: " + taxId);
 
 				Node hit = null;
 				try {
-					hit = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottId).getSingle();
+					hit = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, taxId).getSingle();
 					if (hit == null) {
 						System.out.println(". WARNING: could not find match this ott id.");
-						hs.add((String) ottId);
-						explodedTipsHash.put(tip, hs);
+						hs.add(taxId);
+						idMap.put(tip, hs);
 						continue;
 					}
 					System.out.print(". Found a node: " + hit + ". checking for tips below\n");
 					for (Node n : Traversal.description().breadthFirst().relationships(RelType.TAXCHILDOF, Direction.INCOMING).traverse(hit).nodes()) {
 						if (! n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
-							Object label = n.getProperty(NodeProperty.TAX_UID.propertyName);
-							hs.add((String) label);
+							taxId = n.getProperty(NodeProperty.TAX_UID.propertyName);
+							hs.add(taxId);
 						}
 					}
-					explodedTipsHash.put(tip, hs);
+					idMap.put(tip, hs);
 				} catch (NoSuchElementException ex) {
-					System.out.println("WARNING: more than one match was found for ott id " + ottId + ". this tip will not be exploded.");
+					System.out.println("WARNING: more than one match was found for id " + taxId + ". this tip will not be exploded.");
 				}
 			}
 		}
-		return explodedTipsHash;
+		return idMap;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -161,9 +162,9 @@ public final class TipExploder {
 		
 		System.out.println("incoming trees: ");
 		for (Tree tree : t) { System.out.println(tree); }
-		t = (ArrayList<Tree>) explodeTips(t, gdb);
+		Map<Object, Collection<Object>> p = explodeTipsReturnHash(t, gdb);
 
-		System.out.println("exploded trees: ");
-		for (Tree tree : t) { System.out.println(tree); }
+		System.out.println("exploded tips map: " + p);
+//		for (Tree tree : t) { System.out.println(tree); }
 	}
 }
