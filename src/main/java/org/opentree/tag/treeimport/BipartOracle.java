@@ -96,7 +96,7 @@ public class BipartOracle {
 		
 		gatherTreeData(trees); // populate class members: treeNode, original, treeNodeIds, bipartsByTree
 		
-		bipart = new BipartSetSum(bipartsByTree).toArray(); // get pairwise sums of all tree biparts
+		bipart = new BipartSetSum(original).toArray(); // get pairwise sums of all tree biparts
 		
 		// make the lica nodes in the graph for all the nested bipartitions
 		// populate class members: nodeForBipart, bipartForNode
