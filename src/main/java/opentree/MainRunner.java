@@ -3,6 +3,7 @@ package opentree;
 import gnu.trove.set.hash.TLongHashSet;
 import jade.deprecated.JSONMessageLogger;
 import jade.deprecated.MessageLogger;
+import jade.tree.Tree;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
@@ -10,6 +11,7 @@ import jade.tree.deprecated.TreeReader;
 import jade.tree.deprecated.JadeNode.NodeOrder;
 
 import org.opentree.exceptions.DataFormatException;
+import org.opentree.tag.treeimport.BipartOracle;
 import org.opentree.utils.GeneralUtils;
 
 import java.io.BufferedReader;
@@ -59,6 +61,7 @@ import org.opentree.exceptions.TreeNotFoundException;
 
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.testing.TreeUtils;
+
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class MainRunner {
@@ -912,37 +915,36 @@ public class MainRunner {
 	
 	
 	/// @returns 0 for success, 1 for poorly formed command
-	public int justTreeAnalysis(String [] args) throws Exception {
-		if (args.length != 5) {
-			System.out.println("arguments should be: filename (taxacompletelyoverlap)T|F rootnodename graphdbfolder");
+	public int loadTreeAnalysis(String [] args) throws Exception {
+		System.out.println(Runtime.getRuntime().availableProcessors());
+		if (args.length != 4) {
+			System.out.println("arguments should be: filename graphdbfolder (taxonomyalreadyloaded)T|F");
 			return 1;
 		}
 		String filename = args[1];
-		String soverlap = args[2];
-		boolean overlap = true;
-		if (soverlap.toLowerCase().equals("f")) {
-			overlap = false;
+		String taxaloaded = args[3];
+		boolean tloaded = true;
+		if (taxaloaded.toLowerCase().equals("f")) {
+			tloaded = false;
 		}
-		String rootnodename = args[3];
-		String graphname = args[4];
+		String graphname = args[2];
 		int treeCounter = 0;
 		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
 		// read the tree from a file
 		String ts = "";
-		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
-		MessageLogger messageLogger = new MessageLogger("justTreeAnalysis:");
+		List<Tree> jt = new ArrayList<Tree>();
+		MessageLogger messageLogger = new MessageLogger("loadTreeAnalysis:");
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
 			if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
 				System.out.println("Reading newick file...");
-				TreeReader tr = new TreeReader();
 				while ((ts = br.readLine()) != null) {
 					if (ts.length() > 1) {
-						jt.add(tr.readTree(ts));
+						jt.add(jade.tree.TreeReader.readTree(ts));
 						treeCounter++;
 					}
 				}
-			} else { // nexson
+			} /*else { // nexson
 				System.out.println("Reading nexson file...");
 				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 					if (tree == null) {
@@ -952,7 +954,7 @@ public class MainRunner {
 						treeCounter++;
 					}
 				}
-			}
+			}*/
 			br.close();
 		} catch (FileNotFoundException e) {
 			//e.printStackTrace();
@@ -967,101 +969,12 @@ public class MainRunner {
 			return -1;
 		}
 		System.out.println(treeCounter + " trees read.");
-		// Should abort here if no valid trees read
 		
-
-		HashSet<String> names = new HashSet<String>();
-		for (int i = 0; i < jt.size(); i++) {
-			for (int j = 0; j < jt.get(i).getExternalNodeCount(); j++) {
-				names.add(jt.get(i).getExternalNode(j).getName());
-			}
-		}
-		/*
-			 The number of expected properties in "tax.temp" has changed:
-			  String tid = st.nextToken().trim();
-			  String parent_uid = st.nextToken().trim();
-			  String name = st.nextToken().trim();
-			  String rank = st.nextToken().trim();
-			  String sourceinfo = st.nextToken().trim();
-			  String uniqname = st.nextToken().trim();
-			  String flags = st.nextToken().trim();
-			  uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|	
-			  No header is printed to the temporary taxonomy
-		 */	
-		PrintWriter outFile;
-		try {
-			outFile = new PrintWriter(new FileWriter("tax.temp"));
-			ArrayList<String> namesal = new ArrayList<String>();
-			namesal.addAll(names);
-			for (int i = 0; i < namesal.size(); i++) {
-				outFile.write((i+2) + "\t|\t1\t|\t" + namesal.get(i) + "\t|\t\t|\t\t|\t\t|\t\t|\t\n");
-			}
-			outFile.write("1" + "\t|\t\t|\t" + rootnodename + "\t|\t\t|\t\t|\t\t|\t\t|\t\n");
-			outFile.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
+		System.out.println("started graph import");
+		BipartOracle bo = new BipartOracle(jt,gdb,tloaded);
 		
-		GraphInitializer gin = new GraphInitializer(graphname);
-		// make a temp file to be loaded into the tax loader, a hack for now
-		// "justtrees" is the name of the taxonomy
-		gin.addInitialTaxonomyTableIntoGraph("tax.temp", "", "justtrees");
-		// Use the taxonomy as the first tree in the composite tree
-		gin.shutdownDB();
-		
-		GraphImporter gi = new GraphImporter(graphname);
-		System.out.println("started graph importer");
-		/*
-		 * if the taxa are not completely overlapping, we add, add again, then delete the first ones
-		 * this is the first add
-		 */
-		if (overlap == false) {
-			// Go through the trees again and add and update as necessary
-			for (int i = 0; i < jt.size(); i++) {
-				String sourcename = "treeinfile";
-				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-					sourcename = (String)jt.get(i).getObject("ot:studyId");
-				}
-				sourcename += "t_" + String.valueOf(i);
-	
-				System.out.println("adding tree '" + sourcename + "' to the graph");
-				jt.get(i).assocObject("id", String.valueOf(i));
-				gi.setTree(jt.get(i));
-				gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
-				//gi.deleteTreeBySource(sourcename);
-			}
-		}
-		
-		/*
-		 * If the taxa overlap completely, we only add once, this time
-		 * If the taxa don't overlap, this is the second time
-		 */
-		for (int i = 0; i < jt.size(); i++) {
-			String sourcename = "treeinfile";
-			if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-				sourcename = (String)jt.get(i).getObject("ot:studyId");
-			}
-			sourcename += "_" + String.valueOf(i);
-
-			System.out.println("adding tree '" + sourcename + "' to the graph");
-			jt.get(i).assocObject("id", String.valueOf(i));
-			gi.setTree(jt.get(i));
-			gi.addSetTreeToGraph(rootnodename, sourcename, overlap, messageLogger);
-		}
-		/*
-		 * If the taxa don't overlap, we delete the second set of trees
-		 */
-		if (overlap == false) {
-			for (int i = 0; i < jt.size(); i++) {
-				String sourcename = "treeinfile";
-				if (jt.get(i).getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
-					sourcename = (String)jt.get(i).getObject("ot:studyId");
-				}
-				sourcename += "t_" + String.valueOf(i);
-				gi.deleteTreeBySource(sourcename);
-			}
-		}
-		gi.shutdownDB();
+		gdb.shutdownDb();
 		return 0;
 	}
 	
@@ -3168,8 +3081,11 @@ public class MainRunner {
 				cmdReturnCode = mr.mrpDumpParser(args);
 			} else if (command.compareTo("fulltreelist") == 0) {
 				cmdReturnCode = mr.graphListPruner(args);
-			} else if (command.compareTo("justtrees") == 0) {
+			} /*else if (command.compareTo("justtrees") == 0) {
 				cmdReturnCode = mr.justTreeAnalysis(args);
+			} */
+			else if (command.compareTo("loadtrees") == 0) {
+				cmdReturnCode = mr.loadTreeAnalysis(args);
 			} else if (command.compareTo("sourceexplorer") == 0
 					|| command.equalsIgnoreCase("sourcepruner")
 					|| command.equalsIgnoreCase("sourceexplorer_inf_mono")) {
