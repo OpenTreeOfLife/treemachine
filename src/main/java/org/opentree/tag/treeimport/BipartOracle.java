@@ -77,6 +77,7 @@ public class BipartOracle {
 	
 	//map for the list of relevant taxonomy nodes
 	Map<Node,TLongBipartition> taxonomyGraphNodesMap;
+	Map<TreeNode,Integer> treeIdRankMap;//this is just a map of node and the order of the tree it came from in the list
 	
  	int nodeId = 0;
 
@@ -91,6 +92,9 @@ public class BipartOracle {
 		
 		this.gdb = gdb;
 		this.USING_TAXONOMY = useTaxonomy;
+		
+		//just associate the rank with the treenodes
+		createTreeIdRankMap(trees);
 
 		// if we are using taxonomy then tree tip labels must correspond to taxon ids. for tips that are
 		// matched to *higher* (i.e. non-terminal) taxa, this will gather the taxon ids of all the terminal
@@ -116,7 +120,21 @@ public class BipartOracle {
 		mapNonRootNodes(trees);	 // use the mrca rels to map the trees into the graph
 		
 		// setting this for use eventually in the mapInternalNodes 
+		// because taxonomy is added above, this isn't necessary
 		//if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
+	}
+	
+	private void createTreeIdRankMap(List<Tree> trees){
+		treeIdRankMap = new HashMap<TreeNode,Integer>();
+		int curt = 0;
+		for(Tree t: trees){
+			for(TreeNode tn: t.internalNodes(NodeOrder.PREORDER)){
+				treeIdRankMap.put(tn, curt);
+			}for(TreeNode tn: t.externalNodes()){
+				treeIdRankMap.put(tn, curt);
+			}
+			curt += 1;
+		}
 	}
 	
 	/**
@@ -124,6 +142,7 @@ public class BipartOracle {
 	 * the taxonomy nodes that match those
 	 * then create relationships (streechild of ) from the children and parents
 	 */
+	@Deprecated
 	public void mapInternalNodesToTaxonomy(List<Tree> trees){
 
 		for (Tree t : trees) {
@@ -653,7 +672,8 @@ public class BipartOracle {
 				Node tip = gdb.getNodeById(nodeIdForLabel.get(treeTip.getLabel()));
 				for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
 					updateMRCAChildOf(tip, parent);
-					tip.createRelationshipTo(parent, RelType.STREECHILDOF);
+					Relationship rel = tip.createRelationshipTo(parent, RelType.STREECHILDOF);
+					rel.setProperty("sourcerank", treeIdRankMap.get(treeTip).intValue());
 				}
 			}
 
@@ -690,14 +710,16 @@ public class BipartOracle {
 								childBipart.ingroup().containsAny(nodeBipart.outgroup())==false &&
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAll(childBipart.ingroup())){
 							graphNodes.add(potentialChild);
-							potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+							rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
 						}
 					}else{
 						if(childBipart != null &&  childBipart.containsAll(nodeBipart) &&
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAll(childBipart.ingroup()) &&
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAny(childBipart.outgroup())){
 							graphNodes.add(potentialChild);
-							potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+							rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
 						}
 					}
 				}else if (USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(potentialChild)){
@@ -706,14 +728,16 @@ public class BipartOracle {
 									nodeBipart.ingroup().containsAll(childBipart.ingroup()) &&
 									nodeBipart.ingroup().containsAny(childBipart.outgroup())){
 						graphNodes.add(potentialChild);
-						potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+						rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
 					}
 				}else{
 					// BE CAREFUL containsAll is directional
 					if (childBipart != null && childBipart.containsAll(nodeBipart) 
 							&& childBipart.isNestedPartitionOf(bipartForNode.get(parent))){
 						graphNodes.add(potentialChild);
-						potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+						rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
 					}	
 				}
 			}
