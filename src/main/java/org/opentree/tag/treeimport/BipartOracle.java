@@ -43,7 +43,7 @@ public class BipartOracle {
 	private final GraphDatabaseAgent gdb;
 	private final boolean USING_TAXONOMY;
 	
-	boolean VERBOSE = false;
+	boolean VERBOSE = true;
 
 	// associate input labels with neo4j node ids
 	Map<Object, Long> nodeIdForLabel = new HashMap<Object, Long>();
@@ -832,7 +832,7 @@ public class BipartOracle {
 		TLongBipartition parent = bipart[parentId];
 		
 		// three cases where we exit without defining a node:
-		if (hasNoNestedBiparts(parentId) || 					// found a dead end path
+		if (hasNoParentBiparts(parentId) || 					// found a dead end path
 			cumulativeIngroup.containsAny(parent.outgroup()) || // conflict between potential node and its parent
 			cumulativeIngroup.containsAll(parent.ingroup())) { 	// child that already contains entire parent
         	return null;
@@ -890,7 +890,7 @@ public class BipartOracle {
 		TLongBipartition parent = bipart[parentId];
 
 		// three cases where we exit without making a node:
-		if (hasNoNestedBiparts(parentId) || 					// found a dead end path
+		if (hasNoParentBiparts(parentId) || 					// found a dead end path
 			cumulativeIngroup.containsAny(parent.outgroup()) || // conflict between potential node and its parent
 			cumulativeIngroup.containsAll(parent.ingroup())) { 	// child that already contains entire parent
         	return null;
@@ -997,8 +997,8 @@ public class BipartOracle {
 		hasMRCAChildOf.get(child.getId()).add(parent.getId());
 	}
 	
-	private boolean hasNoNestedBiparts(int parent) {
-		return nestedChildren[parent].size() == 0;
+	private boolean hasNoParentBiparts(int child) {
+		return nestedParents[child].size() == 0;
 	}
 
 	private TLongBipartition getGraphBipartForTreeNode(TreeNode p, Tree t) {
