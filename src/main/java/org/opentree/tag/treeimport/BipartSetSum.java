@@ -117,7 +117,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 //		testManyRandomAllByAll();
 		testManyRandomGroups();
 	}
-	
+		
 	private static void testManyRandomAllByAll() {
 
 		int maxId = 1000000;

@@ -1030,33 +1030,40 @@ public class BipartOracle {
 //		runSimpleTest(test3Trees(), dbname);
 //		runSimpleTest(testInterleavedTrees(), dbname);
 
+		// this is a stress test for the loading procedure -- 100 trees with 600 tips each.
+		// lots of duplicate biparts though so it should only take a few mins
+		loadATOLTreesTest(dbname);
+		
 		// these are tests for taxonomy
-		dbname = "tax.db";
-		runDipsacalesTest();
+//		runDipsacalesTest(dbname);
 	}
 	
 	/**
-	 * be careful, this one takes a while
+	 * Stress test the loading procedure. If everything is working properly then this should be fast.
+	 * If this test is not fast (i.e. a few minutes or less), then there is probably a bug somewhere.
 	 */
 	@SuppressWarnings("unused")
-	private static void loadATOLTrees(List<Tree> t) throws TreeParseException {
-		try {
-			// TODO is this file in the treemachine github repo? i didn't see it... 
-			BufferedReader br = new BufferedReader(new FileReader("data/examples/atol/RAxML_bootstrap.ONLY_CP_BS100.rr"));
-			String str;
-			while((str = br.readLine())!=null){
-				t.add(TreeReader.readTree(str));
-			}
-			br.close();
-			System.out.println("trees read");
-		} catch (IOException e) {
-			e.printStackTrace();
+	private static void loadATOLTreesTest(String dbname) throws Exception {
+
+		FileUtils.deleteDirectory(new File(dbname));
+		
+		List<Tree> t = new ArrayList<Tree>();
+		BufferedReader br = new BufferedReader(new FileReader("test-atol/atol_bootstrap.tre"));
+		String str;
+		while((str = br.readLine())!=null){
+			t.add(TreeReader.readTree(str));
 		}
+		br.close();
+		System.out.println("trees read");
+	
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
+
+		BipartOracle bi = new BipartOracle(t, gdb, false);
+
 	}
 	
 	@SuppressWarnings("unused")
-	private static void runDipsacalesTest() throws Exception {
-		String dbname = "test.db";
+	private static void runDipsacalesTest(String dbname) throws Exception {
 		String version = "1";
 		
 		FileUtils.deleteDirectory(new File(dbname));
