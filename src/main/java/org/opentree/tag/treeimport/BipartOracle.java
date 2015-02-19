@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
@@ -92,7 +91,7 @@ public class BipartOracle {
 
 		// if we are using taxonomy then tree tip labels must correspond to taxon ids. for tips that are
 		// matched to *higher* (i.e. non-terminal) taxa, this will gather the taxon ids of all the terminal
-		// taxa contained by that higher taxon. these are used later during various steps.
+		// taxa contained by that higher taxon. these 'exploded' sets are used later during various steps.
 		if (USING_TAXONOMY) { explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb); }
 		
 		// populate class members: treeNode, original, treeNodeIds, nodeIdForName, nameForNodeId, bipartsByTree
