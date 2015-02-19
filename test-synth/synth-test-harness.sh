@@ -1,3 +1,13 @@
+##################
+
+#synthesis, 1 is the root node id for the root from the tax, and the taxonomy is just something has to be in that list, it would be the ranking but you have that in the rels, so just ignore
+java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar synthesizedrafttreelist_nodeid 1 taxonomy some.db
+
+#extract synth tree, the 1 is the root node id again from above
+java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar extractdrafttree_nodeid 1 synth.tre some.db
+
+##################
+
 #!/bin/bash
 function testsynthesis {
     tag="$1"
@@ -37,57 +47,71 @@ function testsynthesis {
         else
             orderstr="${orderstr},tree${treetag}"
         fi
-        set -x
-        if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/addnewick-tree"${treetag}".log 2>&1
-        then 
-            cat "${outputdir}"/addnewick-tree"${treetag}".log
-            exit 1
-        fi
-        if ! $treemachine mapcompat "${dbdir}" tree"${treetag}" >"${outputdir}"/mapcompat-tree"${treetag}".log 2>&1
-        then
-            cat "${outputdir}"/mapcompat-tree"${treetag}".log
-            exit 1
-        fi
-        if ! $treemachine exporttodot life "${outputdir}"/pre-synthgraph-after-tree"${treetag}".dot T "${dbdir}" >"${outputdir}"/pre-synthgraph-after-tree"${treetag}".log 2>&1
-        then
-            cat "${outputdir}"/pre-synthgraph-after-tree"${treetag}".log
-            exit 1
-        fi
-        dot "${outputdir}"/pre-synthgraph-after-tree"${treetag}".dot -Tsvg -o "${outputdir}"/pre-synthgraph-after-tree"${treetag}".svg
+#        set -x
+        
+        cat "${inputdir}"/tree"${treetag}".tre >> "${outputdir}"/trees-in-order.tre
+        echo "" >> "${outputdir}"/trees-in-order.tre
 
-        set +x
+#        if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/addnewick-tree"${treetag}".log 2>&1
+#        then 
+#            cat "${outputdir}"/addnewick-tree"${treetag}".log
+#            exit 1
+#        fi
+#        if ! $treemachine mapcompat "${dbdir}" tree"${treetag}" >"${outputdir}"/mapcompat-tree"${treetag}".log 2>&1
+#        then
+#            cat "${outputdir}"/mapcompat-tree"${treetag}".log
+#            exit 1
+#        fi
+#        if ! $treemachine exporttodot life "${outputdir}"/pre-synthgraph-after-tree"${treetag}".dot T "${dbdir}" >"${outputdir}"/pre-synthgraph-after-tree"${treetag}".log 2>&1
+#        then
+#            cat "${outputdir}"/pre-synthgraph-after-tree"${treetag}".log
+#            exit 1
+#        fi
+#        dot "${outputdir}"/pre-synthgraph-after-tree"${treetag}".dot -Tsvg -o "${outputdir}"/pre-synthgraph-after-tree"${treetag}".svg
+
+#        set +x
         shift
     done
-    for rep in 1 #2 3 4
-    do
-        for treetag in $(cat "${outputdir}"/tree-order.txt)
-        do
-            set -x
-            if ! $treemachine pgdelind "${dbdir}" tree"${treetag}" >"${outputdir}"/pgdelind-tree"${treetag}".log 2>&1
-            then
-                cat "${outputdir}"/pgdelind-tree"${treetag}".log
-                exit 1
-            fi
-            if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/rep${rep}-addnewick-tree"${treetag}".log 2>&1
-            then
-                cat "${outputdir}"/rep${rep}-addnewick-tree"${treetag}".log
-                exit 1
-            fi
-            if ! $treemachine mapcompat "${dbdir}" tree"${treetag}" >"${outputdir}"/rep${rep}-mapcompat-tree"${treetag}".log 2>&1
-            then 
-                cat "${outputdir}"/rep${rep}-mapcompat-tree"${treetag}".log
-                exit 1
-            fi
-            if ! $treemachine exporttodot life "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".dot T "${dbdir}" >"${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".log 2>&1
-            then
-                cat "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".log
-                exit 1
-            fi
-            dot "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".dot -Tsvg -o "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".svg
-            set +x
-        done
-    done
+    
     set -x
+    # load the trees, the last 't' just indicates to use taxonomy (assumed to be already loaded)
+    # all the trees need to be in the treefile, and the rank order for synthesis is the order in the file
+    if ! $treemachine loadtrees "${outputdir}"/trees-in-order.tre "${dbdir}" t > "${outputdir}"/loadtrees.log 2>&1
+    then 
+        cat "${outputdir}"/loadtrees.log
+        exit 1
+    fi
+    
+#    for rep in 1 #2 3 4
+#    do
+#        for treetag in $(cat "${outputdir}"/tree-order.txt)
+#        do
+#            set -x
+#            if ! $treemachine pgdelind "${dbdir}" tree"${treetag}" >"${outputdir}"/pgdelind-tree"${treetag}".log 2>&1
+#            then
+#                cat "${outputdir}"/pgdelind-tree"${treetag}".log
+#                exit 1
+#            fi
+#            if ! $treemachine addnewick "${inputdir}"/tree"${treetag}".tre F life tree"${treetag}" "${dbdir}" >"${outputdir}"/rep${rep}-addnewick-tree"${treetag}".log 2>&1
+#            then
+#                cat "${outputdir}"/rep${rep}-addnewick-tree"${treetag}".log
+#                exit 1
+#            fi
+#            if ! $treemachine mapcompat "${dbdir}" tree"${treetag}" >"${outputdir}"/rep${rep}-mapcompat-tree"${treetag}".log 2>&1
+#            then 
+#                cat "${outputdir}"/rep${rep}-mapcompat-tree"${treetag}".log
+#                exit 1
+#            fi
+#            if ! $treemachine exporttodot life "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".dot T "${dbdir}" >"${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".log 2>&1
+#            then
+#                cat "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".log
+#                exit 1
+#            fi
+#            dot "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".dot -Tsvg -o "${outputdir}"/pre-synthgraph-rep${rep}-after-tree"${treetag}".svg
+#            set +x
+#        done
+#    done
+#    set -x
     if ! $treemachine exporttodot life "${outputdir}"/pre-synthgraph.dot T "${dbdir}" >"${outputdir}"/pre-synthgraph.log 2>&1
     then 
         cat "${outputdir}"/pre-synthgraph.log

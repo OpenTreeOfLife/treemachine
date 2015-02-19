@@ -2,7 +2,7 @@
 import sys
 import re
 BRAINDEAD_NEWICK_SPLITTER = re.compile(r'([(),])')
-OTT_SUFFIX = re.compile(r'_ott\d+$')
+OTT_SUFFIX = re.compile(r'_ott[0-9A-Za-z]+$')
 
 def grab_next_clade(token_list, ind):
     assert token_list[ind] == '('

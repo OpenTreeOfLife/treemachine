@@ -73,6 +73,7 @@ public class GraphExporter extends GraphBase {
 		se = new SpeciesEvaluator();
 		tle = new TaxaListEvaluator();
 	}
+
 	public void writeGraphDot(String taxname, String outfile, boolean useTaxonomy) 
 				throws TaxonNotFoundException {
 		Node firstNode = findTaxNodeByName(taxname);
@@ -226,7 +227,7 @@ public class GraphExporter extends GraphBase {
 		TreeSet<String> relNames = new TreeSet<String>();
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
-				String relSource = (String)rel.getProperty("source");
+				String relSource = rel.getProperty("source").toString();
 				if (!relSource.equals("taxonomy")) {
 					relNames.add(relSource);
 				}
@@ -250,7 +251,7 @@ public class GraphExporter extends GraphBase {
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
-					String relSource = (String)rel.getProperty("source");
+					String relSource = rel.getProperty("source").toString();
 					String relcolor;
 					if (relSource.equals("taxonomy")) {
 						relcolor = "crimson";

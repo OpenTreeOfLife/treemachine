@@ -131,14 +131,13 @@ public class BipartOracle {
 	
 	private void createTreeIdRankMap(List<Tree> trees){
 		treeIdRankMap = new HashMap<TreeNode,Integer>();
-		int curt = 0;
+		int curt = 1;
 		for(Tree t: trees){
 			for(TreeNode tn: t.internalNodes(NodeOrder.PREORDER)){
 				treeIdRankMap.put(tn, curt);
 			}for(TreeNode tn: t.externalNodes()){
-				treeIdRankMap.put(tn, curt);
+				treeIdRankMap.put(tn, curt++);
 			}
-			curt += 1;
 		}
 	}
 	
@@ -706,6 +705,9 @@ public class BipartOracle {
 				for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
 					updateMRCAChildOf(tip, parent);
 					Relationship rel = tip.createRelationshipTo(parent, RelType.STREECHILDOF);
+					rel.setProperty("source", treeIdRankMap.get(treeTip).intValue());
+
+					// this is a temporary property to enable rapid re-synthesis
 					rel.setProperty("sourcerank", treeIdRankMap.get(treeTip).intValue());
 				}
 			}
@@ -746,6 +748,7 @@ public class BipartOracle {
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAll(childBipart.ingroup())){
 							graphNodes.add(potentialChild);
 							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+							rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
 							rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
 						}
 					}else{
@@ -754,6 +757,7 @@ public class BipartOracle {
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAny(childBipart.outgroup())){
 							graphNodes.add(potentialChild);
 							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+							rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
 							rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
 						}
 					}
@@ -764,6 +768,7 @@ public class BipartOracle {
 									nodeBipart.ingroup().containsAny(childBipart.outgroup())){
 						graphNodes.add(potentialChild);
 						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+						rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
 						rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
 					}
 				}else{
@@ -772,6 +777,7 @@ public class BipartOracle {
 							&& childBipart.isNestedPartitionOf(bipartForNode.get(parent))){
 						graphNodes.add(potentialChild);
 						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+						rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
 						rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
 					}	
 				}
@@ -1059,6 +1065,7 @@ public class BipartOracle {
 		
 		// these are tests for order
 		String dbname = "test.db";
+		runSimpleTest(conflictingAugmenting(), dbname);
 //		runSimpleTest(cycleConflictTrees(), dbname);
 //		runSimpleTest(nonOverlapTrees(), dbname);
 //		runSimpleTest(test4Trees(), dbname);
@@ -1070,7 +1077,7 @@ public class BipartOracle {
 //		loadATOLTreesTest(dbname);
 		
 		// these are tests for taxonomy
-		runDipsacalesTest(dbname);
+//		runDipsacalesTest(dbname);
 	}
 	
 	/**
@@ -1214,7 +1221,15 @@ public class BipartOracle {
 		t.add(TreeReader.readTree("(((B,D),Q,I);"));
 		return t;
 	}
-	
+
+	@SuppressWarnings("unused")
+	private static List<Tree> conflictingAugmenting() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		t.add(TreeReader.readTree("(((A,B),C),D);"));
+		t.add(TreeReader.readTree("(((((A,E),C),B),F),D);"));
+		return t;
+	}
+
 	@SuppressWarnings("unused")
 	private static List<Tree> testInterleavedTrees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
