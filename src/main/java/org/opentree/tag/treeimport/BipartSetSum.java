@@ -20,15 +20,19 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	private Set<TLongBipartition> bipart;
 
 	public BipartSetSum(Collection<TLongBipartition> all) {
-		bipart = sum(all, all); // sum all against all
+		// first remove duplicates
+		Collection<TLongBipartition> filtered = new HashSet<TLongBipartition>();
+		for (TLongBipartition b : all) { filtered.add(b); }
+
+		bipart = sum(filtered, filtered); // sum all against all
 	}
 	
 	public BipartSetSum(TLongBipartition[] original) {
-		Collection<TLongBipartition> all = new HashSet<TLongBipartition>();
-		for (int i = 0; i < original.length; i++) { all.add(original[i]); }
+		// first remove duplicates
+		Collection<TLongBipartition> filtered = new HashSet<TLongBipartition>();
+		for (int i = 0; i < original.length; i++) { filtered.add(original[i]); }
 
-		// sum all against all
-		bipart = sum(all, all);
+		bipart = sum(filtered, filtered); // sum all against all
 	}
 	
 	/**
@@ -37,16 +41,34 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	 * this constructor, biparts from within a single tree can be supplied in groups corresponding
 	 * to collections within a list. No biparts from within the same collection will be compared.
 	 * 
-	 * TODO for some reason this seems to be very slow, though it isn't clear why.
-	 * 
 	 * @param trees
 	 */
 	public BipartSetSum(List<Collection<TLongBipartition>> bipartsByTree) {
-		Set<TLongBipartition> biparts = new HashSet<TLongBipartition>();
+
+		// first filter the incoming set so no two groups contain any identical biparts -- a linear time operation
+		System.out.println("removing duplicates across/within groups");
+		Set<TLongBipartition> observedOriginals = new HashSet<TLongBipartition>();
+		List<Collection<TLongBipartition>> filteredGroups = new ArrayList<Collection<TLongBipartition>>();
+		int n = 0;
 		for (int i = 0; i < bipartsByTree.size(); i++) {
-			biparts.addAll(bipartsByTree.get(i)); // record the originals from group i
-			for (int j = i+1; j < bipartsByTree.size(); j++) {
-				biparts.addAll(sum(bipartsByTree.get(i), bipartsByTree.get(j))); // record the sums against group j
+			Collection<TLongBipartition> filteredCurTree = new ArrayList<TLongBipartition>();
+			for (TLongBipartition b : bipartsByTree.get(i)) {
+				if (! observedOriginals.contains(b)) {
+					filteredCurTree.add(b);
+					observedOriginals.add(b);
+					n++;
+				}
+			}
+			filteredGroups.add(filteredCurTree);
+		}
+		observedOriginals = null; // free resource for garbage collector
+
+		System.out.println("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups");
+		Set<TLongBipartition> biparts = new HashSet<TLongBipartition>();
+		for (int i = 0; i < filteredGroups.size(); i++) {
+			biparts.addAll(filteredGroups.get(i)); // record the originals from group i
+			for (int j = i+1; j < filteredGroups.size(); j++) {
+				biparts.addAll(sum(filteredGroups.get(i), filteredGroups.get(j))); // record the sums against group j
 			}
 		}
 		bipart = biparts; //.toArray(new TLongBipartition[0]);
@@ -89,7 +111,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		testNoOverlap();
 		testSimpleGroup();
 //		testManyRandomAllByAll();
-//		testManyRandomGroups();
+		testManyRandomGroups();
 	}
 	
 	private static void testManyRandomAllByAll() {
@@ -119,10 +141,10 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 
 	private static void testManyRandomGroups() {
 
-		int maxId = 1000000;	// maximum id. this affects the size of the underlying bitset(s)
-		int n = 100;			// number of groups (e.g. trees, though for this test they are random so not trees)
+		int maxId = 10;	// maximum id. this affects the size of the underlying bitset(s)
+		int n = 1000;			// number of groups (e.g. trees, though for this test they are random so not trees)
 		int count = 10;			// number of bipartitions per group
-		int size = 500;			// size of bipartitions (if these were trees then the count and size would be the same)
+		int size = 10;			// size of bipartitions (if these were trees then the count and size would be the same)
 
 		//  on macbook pro 2.5Ghz i7 x 8 cores, running in Eclipse debugger
 		//
@@ -154,6 +176,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		
 		List<Collection<TLongBipartition>> input = new ArrayList<Collection<TLongBipartition>>();
 		
+		System.out.println("attempting to generate " + n + " groups of "  + count + " random bipartitions (" + n*count + " total) of size " + size + " (ingroup + outgroup)");
 		for (int h = 0; h < n; h++) {
 			HashSet<TLongBipartition> group = new HashSet<TLongBipartition>();
 			for (int i = 0; i < count; i++) {
@@ -170,7 +193,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 			input.add(group);
 		}
 		
-		System.out.println("attempting " + n + " groups of "  + count + " random bipartitions (" + n*count + " total) of size " + size + " (ingroup + outgroup)");
+		System.out.println("processing biparts for sum");
 		long z = new Date().getTime();
 		new BipartSetSum(input);
 		System.out.println("elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
@@ -275,7 +298,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 
 		for (TLongBipartition b: groupResult) {
 			if (! result.contains(b)) {
-				System.out.println("bipart: " + b + " in grouo result but missing from normal result");
+				System.out.println("bipart: " + b + " in group result but missing from normal result");
 				throw new AssertionError();
 			}
 		}
