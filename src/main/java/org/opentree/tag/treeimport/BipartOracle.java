@@ -104,14 +104,14 @@ public class BipartOracle {
 		// populate class members: treeNode, original, treeNodeIds, nodeIdForName, nameForNodeId, bipartsByTree
 		gatherTreeData(trees);
 		
-		bipart = new BipartSetSum(original).toArray(); // get pairwise sums of all tree biparts
+		bipart = new BipartSetSum(bipartsByTree).toArray(); // get pairwise sums of all tree biparts
 		
 		// make the lica nodes in the graph for all the nested bipartitions
 		// populate class members: nestedChildren, nestedParents, paths, nodeForBipart, bipartForNode
 		createLicaNodesFromBiparts();
 
-		//need to get the relevant nodes from taxonomy in a set to be used for later analyses
-		if(USING_TAXONOMY){populateTaxonomyGraphNodesMap(trees);}
+		// need to get the relevant nodes from taxonomy in a set to be used for later analyses
+		if (USING_TAXONOMY) { populateTaxonomyGraphNodesMap(trees); }
 		
 		// now process the trees
 		// populate class members: graphNodesForTreeNode, hasMRCAChildOf

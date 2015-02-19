@@ -50,6 +50,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		Set<TLongBipartition> observedOriginals = new HashSet<TLongBipartition>();
 		List<Collection<TLongBipartition>> filteredGroups = new ArrayList<Collection<TLongBipartition>>();
 		int n = 0;
+		int d = 0;
 		for (int i = 0; i < bipartsByTree.size(); i++) {
 			Collection<TLongBipartition> filteredCurTree = new ArrayList<TLongBipartition>();
 			for (TLongBipartition b : bipartsByTree.get(i)) {
@@ -57,11 +58,14 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 					filteredCurTree.add(b);
 					observedOriginals.add(b);
 					n++;
+				} else {
+					d++;
 				}
 			}
 			filteredGroups.add(filteredCurTree);
 		}
 		observedOriginals = null; // free resource for garbage collector
+		System.out.println("found " + d + " duplicate biparts");
 
 		System.out.println("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups");
 		Set<TLongBipartition> biparts = new HashSet<TLongBipartition>();
