@@ -940,7 +940,8 @@ public class MainRunner {
 				System.out.println("Reading newick file...");
 				while ((ts = br.readLine()) != null) {
 					if (ts.length() > 1) {
-						jt.add(jade.tree.TreeReader.readTree(ts));
+						Tree tt = jade.tree.TreeReader.readTree(ts);
+						jt.add(tt);
 						treeCounter++;
 					}
 				}

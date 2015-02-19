@@ -75,6 +75,10 @@ public class BipartOracle {
 	// keep track of rels we've made to cut down on database queries
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
 	
+	//map for the list of relevant taxonomy nodes
+	Map<Node,TLongBipartition> taxonomyGraphNodesMap;
+	Map<TreeNode,Integer> treeIdRankMap;//this is just a map of node and the order of the tree it came from in the list
+	
  	int nodeId = 0;
 
 	/**
@@ -88,6 +92,9 @@ public class BipartOracle {
 		
 		this.gdb = gdb;
 		this.USING_TAXONOMY = useTaxonomy;
+		
+		//just associate the rank with the treenodes
+		createTreeIdRankMap(trees);
 
 		// if we are using taxonomy then tree tip labels must correspond to taxon ids. for tips that are
 		// matched to *higher* (i.e. non-terminal) taxa, this will gather the taxon ids of all the terminal
@@ -103,6 +110,9 @@ public class BipartOracle {
 		// populate class members: nestedChildren, nestedParents, paths, nodeForBipart, bipartForNode
 		createLicaNodesFromBiparts();
 
+		//need to get the relevant nodes from taxonomy in a set to be used for later analyses
+		if(USING_TAXONOMY){populateTaxonomyGraphNodesMap(trees);}
+		
 		// now process the trees
 		// populate class members: graphNodesForTreeNode, hasMRCAChildOf
 		mapTreeRootNodes(trees); // creates new nodes if necessary
@@ -110,7 +120,21 @@ public class BipartOracle {
 		mapNonRootNodes(trees);	 // use the mrca rels to map the trees into the graph
 		
 		// setting this for use eventually in the mapInternalNodes 
-		if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
+		// because taxonomy is added above, this isn't necessary
+		//if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
+	}
+	
+	private void createTreeIdRankMap(List<Tree> trees){
+		treeIdRankMap = new HashMap<TreeNode,Integer>();
+		int curt = 0;
+		for(Tree t: trees){
+			for(TreeNode tn: t.internalNodes(NodeOrder.PREORDER)){
+				treeIdRankMap.put(tn, curt);
+			}for(TreeNode tn: t.externalNodes()){
+				treeIdRankMap.put(tn, curt);
+			}
+			curt += 1;
+		}
 	}
 	
 	/**
@@ -118,6 +142,7 @@ public class BipartOracle {
 	 * the taxonomy nodes that match those
 	 * then create relationships (streechild of ) from the children and parents
 	 */
+	@Deprecated
 	public void mapInternalNodesToTaxonomy(List<Tree> trees){
 
 		for (Tree t : trees) {
@@ -141,8 +166,8 @@ public class BipartOracle {
 					CompactLongSet taxonIngroup = new CompactLongSet((long[]) taxNode.getProperty(NodeProperty.MRCA.propertyName));
 					TLongBipartition taxonBipart = new TLongBipartition(taxonIngroup, new CompactLongSet());
 
-					if (treeBipart.isCompatibleWith(taxonBipart)) {
-					
+					if (taxonIngroup.containsAll(treeBipart.ingroup()) && taxonIngroup.containsAny(treeBipart.outgroup())==false) {
+						
 						// go through the relationships connecting each of the nodes at this node to the parents 
 						// and children. when the taxonomy is fine with this, make a relationship
 						System.out.println(treeNode + " matches " + taxNode);
@@ -533,6 +558,21 @@ public class BipartOracle {
 		tx.success();
 		tx.finish();
 		
+		if(USING_TAXONOMY){
+			//sequential for debugging right now
+			// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
+			tx = gdb.beginTx();
+			for (Node ndparent : taxonomyGraphNodesMap.keySet()) {
+				TLongBipartition parent = taxonomyGraphNodesMap.get(ndparent);
+				for (TLongBipartition child: nodeForBipart.keySet()) {
+					if (parent.ingroup().containsAll(child.ingroup()) && parent.ingroup().containsAny(child.outgroup())) {
+						updateMRCAChildOf(nodeForBipart.get(child), ndparent);
+					}
+				}
+			}
+			tx.success();
+			tx.finish();
+		}
 		
 		/* old code left here for convenience in case the parallel stream borks
 		 * 
@@ -547,6 +587,25 @@ public class BipartOracle {
 		tx.finish();
 		} */
 
+	}
+	
+	/**
+	 * 
+	 */
+	private void populateTaxonomyGraphNodesMap(List<Tree> trees){
+		taxonomyGraphNodesMap = new HashMap<Node,TLongBipartition>();
+		for(Tree tree: trees){
+			for(TreeNode treeLf : tree.getRoot().getDescendantLeaves()){
+				Node taxNode = gdb.getNodeById(nodeIdForLabel.get(treeLf.getLabel()));
+				while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+					taxNode = getParentTaxNode(taxNode);
+					if (taxonomyGraphNodesMap.containsKey(taxNode.getId())){break;}
+					CompactLongSet taxonIngroup = new CompactLongSet((long[]) taxNode.getProperty(NodeProperty.MRCA.propertyName));
+					TLongBipartition taxonBipart = new TLongBipartition(taxonIngroup, new CompactLongSet());
+					taxonomyGraphNodesMap.put(taxNode, taxonBipart);
+				}
+			}
+		}
 	}
 	
 	/**
@@ -567,6 +626,14 @@ public class BipartOracle {
 				if(b.containsAll(rootBipart)){
 					graphNodes.add(nodeForBipart.get(b));
 				}
+			}
+			if(USING_TAXONOMY){
+				for(Node b : taxonomyGraphNodesMap.keySet()){
+					if(taxonomyGraphNodesMap.get(b).containsAll(rootBipart)){
+						graphNodes.add(b);
+					}
+				}
+				System.out.println(root.getNewick(false)+" "+graphNodes);
 			}
 		
 			if (graphNodes.size() < 1) {
@@ -605,7 +672,8 @@ public class BipartOracle {
 				Node tip = gdb.getNodeById(nodeIdForLabel.get(treeTip.getLabel()));
 				for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
 					updateMRCAChildOf(tip, parent);
-					tip.createRelationshipTo(parent, RelType.STREECHILDOF);
+					Relationship rel = tip.createRelationshipTo(parent, RelType.STREECHILDOF);
+					rel.setProperty("sourcerank", treeIdRankMap.get(treeTip).intValue());
 				}
 			}
 
@@ -629,13 +697,49 @@ public class BipartOracle {
 		for (Node parent : graphNodesForParent){
 			for (Relationship r: parent.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
 				Node potentialChild = r.getStartNode();
-				TLongBipartition childBipart = bipartForNode.get(potentialChild);
-				// BE CAREFUL containsAll is directional
-				if (childBipart != null && childBipart.containsAll(nodeBipart) 
-						&& childBipart.isNestedPartitionOf(bipartForNode.get(parent))){
-					graphNodes.add(potentialChild);
-					potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+				TLongBipartition childBipart;
+				if(USING_TAXONOMY == false || taxonomyGraphNodesMap.containsKey(potentialChild)==false){
+					childBipart = bipartForNode.get(potentialChild);
+				}else{
+					childBipart = taxonomyGraphNodesMap.get(potentialChild);
 				}	
+				if(USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(parent)){
+					if(taxonomyGraphNodesMap.containsKey(potentialChild)){
+						if(childBipart != null && parent.equals(potentialChild) == false && 
+								childBipart.ingroup().containsAll(nodeBipart.ingroup()) && 
+								childBipart.ingroup().containsAny(nodeBipart.outgroup())==false &&
+								taxonomyGraphNodesMap.get(parent).ingroup().containsAll(childBipart.ingroup())){
+							graphNodes.add(potentialChild);
+							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+							rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
+						}
+					}else{
+						if(childBipart != null &&  childBipart.containsAll(nodeBipart) &&
+								taxonomyGraphNodesMap.get(parent).ingroup().containsAll(childBipart.ingroup()) &&
+								taxonomyGraphNodesMap.get(parent).ingroup().containsAny(childBipart.outgroup())){
+							graphNodes.add(potentialChild);
+							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+							rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
+						}
+					}
+				}else if (USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(potentialChild)){
+					if(childBipart != null &&  childBipart.ingroup().containsAll(nodeBipart.ingroup()) && 
+							childBipart.ingroup().containsAny(nodeBipart.outgroup())==false &&
+									nodeBipart.ingroup().containsAll(childBipart.ingroup()) &&
+									nodeBipart.ingroup().containsAny(childBipart.outgroup())){
+						graphNodes.add(potentialChild);
+						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+						rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
+					}
+				}else{
+					// BE CAREFUL containsAll is directional
+					if (childBipart != null && childBipart.containsAll(nodeBipart) 
+							&& childBipart.isNestedPartitionOf(bipartForNode.get(parent))){
+						graphNodes.add(potentialChild);
+						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
+						rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
+					}	
+				}
 			}
 		}
 
