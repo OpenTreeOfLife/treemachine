@@ -136,8 +136,9 @@ public class BipartOracle {
 			for(TreeNode tn: t.internalNodes(NodeOrder.PREORDER)){
 				treeIdRankMap.put(tn, curt);
 			}for(TreeNode tn: t.externalNodes()){
-				treeIdRankMap.put(tn, curt++);
+				treeIdRankMap.put(tn, curt);
 			}
+			curt++;
 		}
 	}
 	
