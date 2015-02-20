@@ -103,7 +103,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 
 			// get the score
 			Node childNode = gdb.getRelationshipById(relIds[i]).getStartNode();
-			weights[i] = getRelScore(relIds[i]);
+//			weights[i] = getScoreRankedNodeCount(relIds[i]);
+			weights[i] = getScoreNodeCount(relIds[i]);
 		}
 		
 		Iterable<Long> S = null;
@@ -127,11 +128,22 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @param node
 	 * @return
 	 */
-	private double getRelScore(long relId) {
+	private double getScoreRankedNodeCount(long relId) {
 		Relationship rel = gdb.getRelationshipById(relId);
 		return nodeMrca.get(rel.getStartNode().getId()).cardinality() * (1.0 / ((int) rel.getProperty("sourcerank")));
 	}
-		
+
+	/**
+	 * This score is the weight for the MWIS. This one is just the number of descendants.
+	 * Joseph is working on a better one.
+	 * @param node
+	 * @return
+	 */
+	private double getScoreNodeCount(long relId) {
+		Relationship rel = gdb.getRelationshipById(relId);
+		return nodeMrca.get(rel.getStartNode().getId()).cardinality();
+	}
+
 	private static Long[] getCandidateRelationships(Node n) {
 		
 		// TODO should do this in a smarter way so we can store the taxonomy rels and loop over them later
