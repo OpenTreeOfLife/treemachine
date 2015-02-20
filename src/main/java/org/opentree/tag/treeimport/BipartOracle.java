@@ -603,11 +603,16 @@ public class BipartOracle {
 			//sequential for debugging right now
 			// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
 			tx = gdb.beginTx();
-			for (Node ndparent : taxonomyGraphNodesMap.keySet()) {
-				TLongBipartition parent = taxonomyGraphNodesMap.get(ndparent);
-				for (TLongBipartition child: nodeForBipart.keySet()) {
-					if (parent.ingroup().containsAll(child.ingroup()) && parent.ingroup().containsAny(child.outgroup())) {
-						updateMRCAChildOf(nodeForBipart.get(child), ndparent);
+			for (Node taxnd : taxonomyGraphNodesMap.keySet()) {
+				TLongBipartition taxbp = taxonomyGraphNodesMap.get(taxnd);
+				for (TLongBipartition ndbp: nodeForBipart.keySet()) {
+					//System.out.println(taxbp+" "+ndbp+" "+taxbp.ingroup().containsAll(ndbp.ingroup())+" "+taxbp.ingroup().containsAny(ndbp.outgroup()));
+					//check as parent
+					if (taxbp.ingroup().containsAll(ndbp.ingroup()) && taxbp.ingroup().containsAny(ndbp.outgroup())) {
+						updateMRCAChildOf(nodeForBipart.get(ndbp), taxnd);
+					}else if(ndbp.ingroup().containsAll(taxbp.ingroup()) && ndbp.ingroup().size() > taxbp.ingroup().size()
+							&& taxbp.ingroup().containsAny(ndbp.outgroup())==false ){//check as child;
+						updateMRCAChildOf(taxnd, nodeForBipart.get(ndbp));
 					}
 				}
 			}
@@ -635,6 +640,7 @@ public class BipartOracle {
 				}
 			}
 		}
+		//System.out.println(taxonomyGraphNodesMap);
 	}
 	
 	/**
@@ -725,7 +731,6 @@ public class BipartOracle {
 	}
 	
 	private Set<Node> mapGraphNodes(TreeNode treeNode, Tree tree, boolean external) {
-
 		// get the graph nodes that match this node's parent
 		HashSet<Node> graphNodesForParent = graphNodesForTreeNode.get(treeNode.getParent());
 		
@@ -735,6 +740,8 @@ public class BipartOracle {
 			nodeBipart = original[treeNodeIds.get(treeNode)];
 		else
 			nodeBipart = getGraphBipartForTreeNode(treeNode,tree);
+		//System.out.println(treeNode.getNewick(false));
+		//System.out.println("\t"+nodeBipart);
 
 		HashSet<Node> graphNodes = new HashSet<Node>();
 		
@@ -748,6 +755,7 @@ public class BipartOracle {
 				}else{
 					childBipart = taxonomyGraphNodesMap.get(potentialChild);
 				}	
+				//System.out.println("\t\t"+potentialChild+"\t"+childBipart);
 				if(USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(parent)){
 					if(taxonomyGraphNodesMap.containsKey(potentialChild)){
 						if(childBipart != null && parent.equals(potentialChild) == false && 
@@ -772,8 +780,8 @@ public class BipartOracle {
 				}else if (USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(potentialChild)){
 					if(childBipart != null &&  childBipart.ingroup().containsAll(nodeBipart.ingroup()) && 
 							childBipart.ingroup().containsAny(nodeBipart.outgroup())==false &&
-									nodeBipart.ingroup().containsAll(childBipart.ingroup()) &&
-									nodeBipart.ingroup().containsAny(childBipart.outgroup())){
+									nodeBipart.ingroup().containsAll(childBipart.ingroup())){// &&
+									//nodeBipart.ingroup().containsAny(childBipart.outgroup())){
 						graphNodes.add(potentialChild);
 						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
 						rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
