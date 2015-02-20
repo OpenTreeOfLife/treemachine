@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 
-import org.opentree.bitarray.CompactLongSet;
+import org.opentree.bitarray.TLongBitArraySet;
 
 
 public class BruteWeightedIS extends BaseWeightedIS {
 	
 	private int count;
-	public static final int MAX_TRACTABLE_N = 18;
+	public static final int MAX_TRACTABLE_N = 25;
 	
 	private boolean VERBOSE = true;
 	
-	public BruteWeightedIS(Long[] ids, double[] weights, CompactLongSet[] contituents) {
-		super(ids, contituents, weights);
+	public BruteWeightedIS(Long[] ids, double[] weights, TLongBitArraySet[] contituents) {
+		super(ids, weights, contituents);
 		findBestSet();
 	}
 

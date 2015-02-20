@@ -1,16 +1,17 @@
 package opentree.synthesis.mwis;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.opentree.bitarray.CompactLongSet;
+import org.opentree.bitarray.TLongBitArraySet;
 
 public abstract class BaseWeightedIS implements Iterable<Long> {
 
 	protected Long[] ids;
 	protected double[] weights;
-	protected CompactLongSet[] contituents;
+	protected TLongBitArraySet[] contituents;
 	protected int count;
 
 	protected List<Long> bestSet;
@@ -21,7 +22,7 @@ public abstract class BaseWeightedIS implements Iterable<Long> {
 	
 	private boolean VERBOSE = true;
 
-	public BaseWeightedIS(Long[] ids, CompactLongSet[] contituents, double[] weights) {
+	public BaseWeightedIS(Long[] ids, double[] weights, TLongBitArraySet[] contituents) {
 		MAX_LONG_BITMASK_SIZE = new LongBitMask(0).maxSize();
 		MAX_BITSET_MASK_SIZE = new BitSetMask(0).maxSize();
 		
@@ -44,6 +45,10 @@ public abstract class BaseWeightedIS implements Iterable<Long> {
 		return s.toString();
 	}
 	
+	public List<Long> best() {
+		return new ArrayList<Long>(bestSet);
+	}
+	
 	@Override
 	public Iterator<Long> iterator() {
 		return bestSet.iterator();
@@ -53,10 +58,11 @@ public abstract class BaseWeightedIS implements Iterable<Long> {
 		return bestSet.size();
 	}
 	
-	public Long[] best() {
-		Long[] l = new Long[bestSet.size()];
+	/*
+	public Long[] toArray() {
+//		Long[] l = new Long[bestSet.size()];
 		return this.bestSet.toArray(l);
-	}
+	} */
 	
 	protected BitMask getEmptyBitMask(int size) {
 		if (size > MAX_LONG_BITMASK_SIZE) {
@@ -75,7 +81,7 @@ public abstract class BaseWeightedIS implements Iterable<Long> {
 	}
 
 	protected boolean validate(BitMask candidate) {
-		CompactLongSet S = new CompactLongSet();
+		TLongBitArraySet S = new TLongBitArraySet();
 
 		for (int j : candidate) {
 			if (S.containsAny(contituents[j])) {
@@ -98,9 +104,9 @@ public abstract class BaseWeightedIS implements Iterable<Long> {
 			ids[i] = (long) i;
 		}
 		
-		CompactLongSet[] descendants = new CompactLongSet[ids.length];
+		TLongBitArraySet[] descendants = new TLongBitArraySet[ids.length];
 		for (int i = 0; i < ids.length; i++) {
-			CompactLongSet a = new CompactLongSet();
+			TLongBitArraySet a = new TLongBitArraySet();
 			for (int j = 0; j < setSize; j++) {
 				a.add(randomInt(maxItemValue));
 			}
@@ -115,7 +121,7 @@ public abstract class BaseWeightedIS implements Iterable<Long> {
 		
 		GreedyApproximateWeightedIS B = new GreedyApproximateWeightedIS(ids, weights, descendants);
 
-		System.out.println("\nproduced: " + Arrays.toString(B.best()));
+		System.out.println("\nproduced: " + Arrays.toString(B.best().toArray()));
 	}
 	
 	protected static long randomInt(int max) {
@@ -140,15 +146,15 @@ public abstract class BaseWeightedIS implements Iterable<Long> {
 	
 	protected static void doSimpleTest(Long[] ids, double[] weights, long[][] sets, long[] expected) {
 		
-		CompactLongSet[] descendants = new CompactLongSet[sets.length];
+		TLongBitArraySet[] descendants = new TLongBitArraySet[sets.length];
 		for (int i = 0; i < sets.length; i++) {
-			descendants[i] = new CompactLongSet();
+			descendants[i] = new TLongBitArraySet();
 			descendants[i].addAll(sets[i]);
 		}
 
 		GreedyApproximateWeightedIS B = new GreedyApproximateWeightedIS(ids, weights, descendants);
 
-		Long[] b = B.best();
+		Long[] b = B.best().toArray(new Long[0]);
 		System.out.println("\nexpected: " + Arrays.toString(expected));
 		System.out.println("produced: " + Arrays.toString(b) + "\n");
 		for (int i = 0; i < b.length; i++) {

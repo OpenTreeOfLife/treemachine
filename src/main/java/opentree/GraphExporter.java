@@ -214,7 +214,7 @@ public class GraphExporter extends GraphBase {
 			String name;
 			Long nid = tnode.getId();
 			if(tnode.hasProperty("name")){
-				name = "n" + nid + "_" + (String)tnode.getProperty("name");
+				name = "n" + nid + "_" + org.opentree.utils.GeneralUtils.scrubName(((String)tnode.getProperty("name")));
 			} else {
 				name = "n" + nid;
 			}

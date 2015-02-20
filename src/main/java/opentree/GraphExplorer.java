@@ -1602,6 +1602,8 @@ public class GraphExplorer extends GraphBase {
 		} finally {
 			tx.finish();
 		}
+
+		/* ============================== not currently adding missing children
 		if (!test) {
 			tx = graphDb.beginTx();
 			try {
@@ -1616,6 +1618,8 @@ public class GraphExplorer extends GraphBase {
 				tx.finish();
 			}
 		}
+		 ============================== not currently adding missing children */
+
 		System.out.println("exiting the sythesis");
 		return true;
 	}

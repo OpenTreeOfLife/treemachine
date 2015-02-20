@@ -1,14 +1,18 @@
 package opentree.synthesis;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.opentree.bitarray.CompactLongSet;
 import org.opentree.bitarray.TLongBitArraySet;
 
+import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.synthesis.mwis.BaseWeightedIS;
 import opentree.synthesis.mwis.BruteWeightedIS;
@@ -48,23 +52,69 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		for (Node n : topologicalOrder) {
 			
 			if (VERBOSE) { System.out.println("\nvisiting node " + n);
-			System.out.println("looking for best non-overlapping rels"); }
+				System.out.println("looking for best non-overlapping rels"); }
 
 			// find the maximum-weight independent set of the incoming rels
 			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
-			Iterable<Long> X = findBestNonOverlapping(getCandidateRelationships(n));
+			
+			// collect the relationships
+			Map<Node, Relationship> treeRels = new HashMap<Node, Relationship>();
+			List<Relationship> taxonomyOnlyRels = new ArrayList<Relationship>();
+			List<Relationship> singletons = new ArrayList<Relationship>();
+			for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
+				if (mrcaTips(r).length < 2) {
+					singletons.add(r);
+				} else if (! isTaxonomyRel(r)) { 
+					Node child = r.getStartNode();
+					// for each potential child, only save the rel with the highest rank (the others are redundant)
+					if ( (! treeRels.containsKey(child)) || rank(treeRels.get(child)) < rank(r)) { treeRels.put(child, r); }
+				} else {
+					taxonomyOnlyRels.add(r); // record taxonomy rels separately, we will just add in non conflicting ones at the end
+					// TODO: if we don't make the streechildofs for taxonomy rels, we can just look for them separately instead of
+					// testing for them like this.
+				}
+			}
 
-			if (VERBOSE) { System.out.println("selected relationships for " + n); }
+			// It seems like we should be able to treat taxonomy nodes just like all other nodes iff all appropriate parents/children
+			// are mapped to/from them. But that doesn't seem to be happening (could just be a bug). But connecting them with STREECHILDOFs
+			// to/from all parents/children also increases the number of relationships at any given node, which could create problems
+			// for synth (not just a bug).
 
+			// get all the best sourcetree rels and collect the ids of all descendant tips
+			List<Long> bestRelIds = findBestNonOverlapping(treeRels.values());
+			TLongBitArraySet included = new TLongBitArraySet (mrcaTipsAndInternal(bestRelIds));
+			
+			if (VERBOSE) { for (Long b : bestRelIds) { Relationship r = gdb.getRelationshipById(b); System.out.println("selected source tree rel " + r + ": " + r.getStartNode() + " -> " + r.getEndNode()); }}
+
+			// add all the taxonomy rels that don't conflict with anything in the set
+			for (Relationship t : taxonomyOnlyRels) {
+				long[] taxRelTipIds = mrcaTips(t);
+				if (! included.containsAny(taxRelTipIds)) {
+					included.addAll(taxRelTipIds);
+					bestRelIds.add(t.getId());
+					if (VERBOSE) { System.out.println("adding taxonomy only rel " + t + ": " + t.getStartNode() + " -> " + t.getEndNode()); }
+				}
+			}
+			
+			// add the singletons that aren't included in any other rels
+			for (Relationship s : singletons) {
+				long[] l = mrcaTips(s);
+				assert l.length == 1;
+				long singleTipId = l[0];
+				if (! included.contains(singleTipId)) {
+					included.add(singleTipId);
+					bestRelIds.add(s.getId());
+					if (VERBOSE) { System.out.println("adding singleton rel " + s + ": " + s.getStartNode() + " -> " + s.getEndNode()); }
+				}
+			}
+			
 			// record the rels that were identified as the best set
 			TLongBitArraySet descendants = new TLongBitArraySet();
-			for (Long relId : X) {
+			for (Long relId : bestRelIds) {
 
 				Relationship r = n.getGraphDatabase().getRelationshipById(relId);
 				long childId = r.getStartNode().getId();
-				
-				if (VERBOSE) { System.out.println("Relationship[" + relId + "] between " + r.getStartNode() + " and " + r.getEndNode()); }
-				
+			
 				incomingRels.add(n.getGraphDatabase().getRelationshipById(relId));
 				descendants.add(childId);
 				descendants.addAll(nodeMrca.get(childId));
@@ -78,60 +128,99 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		}
 	}
 	
+	/**
+	 * Return a list containing all the *graph tip nodes* (which will be terminal taxa if taxonomy is being used) that
+	 * are descended from the child node of this relationship. This should be used for assessing taxonomic overlap among
+	 * nodes, but *SHOULD NOT* be used directly for scoring--use mrcaTipsAndInternal for that.
+	 * @param rel
+	 * @return
+	 */
+	private long[] mrcaTips(Relationship rel) {
+		return (long[]) rel.getStartNode().getProperty(NodeProperty.MRCA.propertyName);
+	}
+
+	/**
+	 * Get all the tip nodes and internal nodes descended from this node in synthesis. We use this for scoring.
+	 * This method *SHOULD NOT* be used to assess overlap. Use the mrcaTips method for that.
+	 * @param rel
+	 * @return
+	 */
+
+	private Set<Long> mrcaTipsAndInternal(Iterable<Long> relIds) {
+		HashSet<Long> included = new HashSet<Long>();
+		for (Long relId : relIds) { included.addAll((Collection<Long>) nodeMrca.get(gdb.getRelationshipById(relId).getStartNode().getId())); }
+		return included;
+	}
+	
+	/**
+	 * Get the rank for this relationship relative to relationships from other trees.
+	 */
+	private int rank(Relationship r) {
+		// 'sourcerank' this is a temporary property. we should be accepting a set of source rankings on construction
+		// and using that information here to return the rank for a given rel based on it's 'source' property
+		return (int) r.getProperty("sourcerank"); 
+	}
+		
+	/**
+	 * A simple helper method for code clarity
+	 * @param r
+	 * @return
+	 */
+	private static boolean isTaxonomyRel(Relationship r) {
+		return ! r.hasProperty("sourcerank"); // taxonomy streechildofs don't have this property
+	}
+	
 	public String getDescription() {
 		return "rootward synthesis method";
 	}
 
-	public Iterable<Long> findBestNonOverlapping(Long[] relIds) {
+	public List<Long> findBestNonOverlapping(Collection<Relationship> rels) {
 
-		if (relIds.length < 1) {
+		if (rels.size() < 1) {
 			if (VERBOSE) { System.out.println("(no incoming rels)"); }
 			return new ArrayList<Long>();
+		} else if (rels.size() == 1) {
+			Relationship rel = rels.iterator().next();
+			if (VERBOSE) { System.out.println("found a knuckle. " + rel + ": " + rel.getStartNode() + " -> " + rel.getEndNode()); }
+			List<Long> l = new ArrayList<Long>();
+			l.add(rel.getId());
+			return l;
 		}
 		
-		CompactLongSet[] mrcaSetsForRels = new CompactLongSet[relIds.length];
-		double[] weights = new double[relIds.length];
+		TLongBitArraySet[] mrcaSetsForRels = new TLongBitArraySet[rels.size()];
+		double[] weights = new double[rels.size()];
+		Long[] relIds = new Long[rels.size()];
 		
 		// TODO only remember the highest ranked relationship from each child node (all others are redundant)
 		// TODO exclude taxonomy relationships -- these should be added at the end if they don't conflict with MWIS rels
 		
-		for (int i = 0; i < relIds.length; i++) {
-			Long childNodeId = getStartNodeId(relIds[i]);
-			mrcaSetsForRels[i] = new CompactLongSet();
-			System.out.println("Relationship[" + relIds[i] + "]: " + nodeMrca.get(childNodeId));
-			mrcaSetsForRels[i].addAll(nodeMrca.get(childNodeId));
-
-			// get the score
-			Node childNode = gdb.getRelationshipById(relIds[i]).getStartNode();
+		Iterator<Relationship> relsIter = rels.iterator();
+		for (int i = 0; relsIter.hasNext(); i++) {
+			Relationship rel = relsIter.next();
+			relIds[i] = rel.getId();
+			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTips(rel));
 //			weights[i] = getScoreRankedNodeCount(relIds[i]);
 //			weights[i] = getScoreNodeCount(relIds[i]);
-			weights[i] = getScoreRanked(relIds[i]);
+			weights[i] = getScoreRanked(rel);
+
+			if (VERBOSE) { System.out.println(rel + ": " + mrcaSetsForRels[i]); }
 		}
 		
-		Iterable<Long> S = null;
 		if (relIds.length <= BruteWeightedIS.MAX_TRACTABLE_N) {
-			S = new BruteWeightedIS(relIds, weights, mrcaSetsForRels);
+			return new BruteWeightedIS(relIds, weights, mrcaSetsForRels).best();
 		} else {
-			S = new GreedyApproximateWeightedIS(relIds, weights, mrcaSetsForRels);
+			return new GreedyApproximateWeightedIS(relIds, weights, mrcaSetsForRels).best();
 		}
-
-		List<Long> bestSet = new ArrayList<Long>();
-		for (Long id : S) { bestSet.add(id); }
-
-		// TODO add the taxonomy rels here that don't conflict
-		
-		return bestSet;
 	}
 
 	/**
-	 * This score is the weight for the MWIS. Right now we are using a very simple one based on 
+	 * This score is the weight for the MWIS. This is a very simple one based on 
 	 * the number of descendants and the rank, but Joseph is working on a better one.
 	 * @param node
 	 * @return
 	 */
-	private double getScoreRankedNodeCount(long relId) {
-		Relationship rel = gdb.getRelationshipById(relId);
-		return nodeMrca.get(rel.getStartNode().getId()).cardinality() * (1.0 / ((int) rel.getProperty("sourcerank")));
+	private double getScoreRankedNodeCount(Relationship rel) {
+		return getScoreNodeCount(rel) * getScoreRanked(rel);
 	}
 
 	/**
@@ -140,8 +229,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @param node
 	 * @return
 	 */
-	private double getScoreNodeCount(long relId) {
-		Relationship rel = gdb.getRelationshipById(relId);
+	private double getScoreNodeCount(Relationship rel) {
 		return nodeMrca.get(rel.getStartNode().getId()).cardinality();
 	}
 	
@@ -151,22 +239,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @param node
 	 * @return
 	 */
-	private double getScoreRanked(long relId) {
-		Relationship rel = gdb.getRelationshipById(relId);
-		return 1.0 / Math.pow(2, ((int) rel.getProperty("sourcerank")));
-	}
-
-	private static Long[] getCandidateRelationships(Node n) {
-		
-		// TODO should do this in a smarter way so we can store the taxonomy rels and loop over them later
-		// instead of having to loop over everything again later to find them
-		
-		List<Long> c = new ArrayList<Long>();
-		Iterable<Relationship> R = n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING);
-		for (Relationship r : R) {
-			if (r.hasProperty("sourcerank")) { c.add(r.getId()); } // only taxonomy streechildofs don't have this property
-		}
-		return c.toArray(new Long[c.size()]);
+	private double getScoreRanked(Relationship rel) {
+		return 1.0 / Math.pow(2, rank(rel));
 	}
 	
 	/**

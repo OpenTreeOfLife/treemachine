@@ -4,15 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
-import org.opentree.bitarray.CompactLongSet;
+import org.opentree.bitarray.TLongBitArraySet;
 
 public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 
-//	HashMap<Long, Double> scores;
-
-	public GreedyApproximateWeightedIS(Long[] ids, double[] weights, CompactLongSet[] descendants) {
-		super(ids, descendants, weights);
-//		scores = new HashMap<Long, Double>();
+	public GreedyApproximateWeightedIS(Long[] ids, double[] weights, TLongBitArraySet[] constituents) {
+		super(ids, weights, constituents);
 		findBestSet();
 	}
 	
