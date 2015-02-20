@@ -104,7 +104,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			// get the score
 			Node childNode = gdb.getRelationshipById(relIds[i]).getStartNode();
 //			weights[i] = getScoreRankedNodeCount(relIds[i]);
-			weights[i] = getScoreNodeCount(relIds[i]);
+//			weights[i] = getScoreNodeCount(relIds[i]);
+			weights[i] = getScoreRanked(relIds[i]);
 		}
 		
 		Iterable<Long> S = null;
@@ -142,6 +143,17 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	private double getScoreNodeCount(long relId) {
 		Relationship rel = gdb.getRelationshipById(relId);
 		return nodeMrca.get(rel.getStartNode().getId()).cardinality();
+	}
+	
+	/**
+	 * This score is the weight for the MWIS. This one is just the tree rank. higher ranked rels always trump every lower ranked one.
+	 * Joseph is working on a better one.
+	 * @param node
+	 * @return
+	 */
+	private double getScoreRanked(long relId) {
+		Relationship rel = gdb.getRelationshipById(relId);
+		return 1.0 / Math.pow(2, ((int) rel.getProperty("sourcerank")));
 	}
 
 	private static Long[] getCandidateRelationships(Node n) {
