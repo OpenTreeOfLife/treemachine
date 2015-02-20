@@ -450,9 +450,9 @@ public class GraphInitializer extends GraphBase{
 					}
 					if (startnode != friendnode) {//not the root
 						friendnode.createRelationshipTo(taxparent, RelType.MRCACHILDOF);
-						Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelType.STREECHILDOF);
-						trel2.setProperty(RelProperty.SOURCE.propertyName, "taxonomy");
-						sourceRelIndex.add(trel2, RelProperty.SOURCE.propertyName, "taxonomy");
+						//Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelType.STREECHILDOF);
+						//trel2.setProperty(RelProperty.SOURCE.propertyName, "taxonomy");
+						//sourceRelIndex.add(trel2, RelProperty.SOURCE.propertyName, "taxonomy");
 					}
 					cur_tran_iter += 1;
 					if (cur_tran_iter % transactionFrequency == 0) {
