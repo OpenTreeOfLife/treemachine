@@ -66,8 +66,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 					singletons.add(r);
 				} else if (! isTaxonomyRel(r)) { 
 					Node child = r.getStartNode();
-					// for each potential child, only save the rel with the highest rank (the others are redundant)
-					if ( (! treeRels.containsKey(child)) || rank(treeRels.get(child)) < rank(r)) { treeRels.put(child, r); }
+					// for each potential child, only save the rel with the *best* (i.e. lowest) rank--the others redundant
+					if ( (! treeRels.containsKey(child)) || rank(treeRels.get(child)) > rank(r)) { treeRels.put(child, r); }
 				} else {
 					taxonomyOnlyRels.add(r); // record taxonomy rels separately, we will just add in non conflicting ones at the end
 					// TODO: if we don't make the streechildofs for taxonomy rels, we can just look for them separately instead of
@@ -118,13 +118,17 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 				incomingRels.add(n.getGraphDatabase().getRelationshipById(relId));
 				descendants.add(childId);
 				descendants.addAll(nodeMrca.get(childId));
+				System.out.println("adding descendants of child " + childId + ": "+nodeMrca.get(childId)+" to nodeMrca["+n.getId()+"]");
 			}
 
 			long nodeId = n.getId();
 			descendants.add(nodeId);
-			nodeMrca.put(nodeId, descendants); 
-
+			nodeMrca.put(nodeId, descendants);
+			
+			System.out.println("nodeMrca["+n.getId()+"] = " + nodeMrca.get(n.getId()));
+			
 			childRels.put(nodeId, incomingRels); 
+			System.out.println("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
 		}
 	}
 	
@@ -167,7 +171,9 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @return
 	 */
 	private static boolean isTaxonomyRel(Relationship r) {
-		return ! r.hasProperty("sourcerank"); // taxonomy streechildofs don't have this property
+		// taxonomy streechildofs don't have this property. this is a temporary property though. in general we should
+		// probably not be making streechildofs for taxonomy and then we won't have to worry about differentiating them
+		return ! r.hasProperty("sourcerank");
 	}
 	
 	public String getDescription() {
@@ -179,31 +185,28 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		if (rels.size() < 1) {
 			if (VERBOSE) { System.out.println("(no incoming rels)"); }
 			return new ArrayList<Long>();
-		} else if (rels.size() == 1) {
+		} /* else if (rels.size() == 1) {
 			Relationship rel = rels.iterator().next();
 			if (VERBOSE) { System.out.println("found a knuckle. " + rel + ": " + rel.getStartNode() + " -> " + rel.getEndNode()); }
 			List<Long> l = new ArrayList<Long>();
 			l.add(rel.getId());
 			return l;
-		}
+		} */
 		
 		TLongBitArraySet[] mrcaSetsForRels = new TLongBitArraySet[rels.size()];
 		double[] weights = new double[rels.size()];
 		Long[] relIds = new Long[rels.size()];
-		
-		// TODO only remember the highest ranked relationship from each child node (all others are redundant)
-		// TODO exclude taxonomy relationships -- these should be added at the end if they don't conflict with MWIS rels
 		
 		Iterator<Relationship> relsIter = rels.iterator();
 		for (int i = 0; relsIter.hasNext(); i++) {
 			Relationship rel = relsIter.next();
 			relIds[i] = rel.getId();
 			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTips(rel));
-//			weights[i] = getScoreRankedNodeCount(relIds[i]);
-//			weights[i] = getScoreNodeCount(relIds[i]);
-			weights[i] = getScoreRanked(rel);
+//			weights[i] = getScoreRankedNodeCount(rel);
+			weights[i] = getScoreNodeCount(rel);
+//			weights[i] = getScoreRanked(rel);
 
-			if (VERBOSE) { System.out.println(rel + ": " + mrcaSetsForRels[i]); }
+			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId())); }
 		}
 		
 		if (relIds.length <= BruteWeightedIS.MAX_TRACTABLE_N) {
@@ -230,6 +233,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @return
 	 */
 	private double getScoreNodeCount(Relationship rel) {
+//		System.out.println("nodeMrca(" + rel.getStartNode() + ") = " + nodeMrca.get(rel.getStartNode().getId()));
 		return nodeMrca.get(rel.getStartNode().getId()).cardinality();
 	}
 	
