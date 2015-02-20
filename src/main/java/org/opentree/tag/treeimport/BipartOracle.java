@@ -610,8 +610,9 @@ public class BipartOracle {
 					//check as parent
 					if (taxbp.ingroup().containsAll(ndbp.ingroup()) && taxbp.ingroup().containsAny(ndbp.outgroup())) {
 						updateMRCAChildOf(nodeForBipart.get(ndbp), taxnd);
-					}else if(ndbp.ingroup().containsAll(taxbp.ingroup()) && ndbp.ingroup().size() > taxbp.ingroup().size()
-							&& taxbp.ingroup().containsAny(ndbp.outgroup())==false ){//check as child;
+					}else if(ndbp.ingroup().containsAny(taxbp.ingroup())
+							&& taxbp.ingroup().containsAny(ndbp.outgroup())==false && 
+							taxbp.ingroup().containsAll(ndbp.ingroup()) == false ){//check as child;
 						updateMRCAChildOf(taxnd, nodeForBipart.get(ndbp));
 					}
 				}
@@ -779,8 +780,8 @@ public class BipartOracle {
 					}
 				}else if (USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(potentialChild)){
 					if(childBipart != null &&  childBipart.ingroup().containsAll(nodeBipart.ingroup()) && 
-							childBipart.ingroup().containsAny(nodeBipart.outgroup())==false &&
-									nodeBipart.ingroup().containsAll(childBipart.ingroup())){// &&
+							childBipart.ingroup().containsAny(nodeBipart.outgroup())==false){// &&
+									//nodeBipart.ingroup().containsAll(childBipart.ingroup())){// &&
 									//nodeBipart.ingroup().containsAny(childBipart.outgroup())){
 						graphNodes.add(potentialChild);
 						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
