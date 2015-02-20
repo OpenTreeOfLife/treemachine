@@ -4,15 +4,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
-import org.opentree.bitarray.TLongBitArraySet;
+import org.opentree.bitarray.CompactLongSet;
 
 public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 
-	HashMap<Long, Double> scores;
+//	HashMap<Long, Double> scores;
 
-	public GreedyApproximateWeightedIS(Long[] ids, TLongBitArraySet[] descendants) {
-		super(ids, descendants);
-		scores = new HashMap<Long, Double>();
+	public GreedyApproximateWeightedIS(Long[] ids, double[] weights, CompactLongSet[] descendants) {
+		super(ids, descendants, weights);
+//		scores = new HashMap<Long, Double>();
 		findBestSet();
 	}
 	
@@ -38,7 +38,8 @@ public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 
 			// find the rel with the highest score
 			for (int i : available) {
-				double s = getScoreForRel(i);
+//				double s = getScoreForRel(i);
+				double s = weights[i];
 				if (s > bestScore) {
 					bestRel = i;
 					bestScore = s;
@@ -49,7 +50,7 @@ public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 			bestSet.add(ids[bestRel]);
 			available.close(bestRel);
 			for (int i : available) {
-				if (descendants[bestRel].containsAny(descendants[i])) {
+				if (contituents[bestRel].containsAny(contituents[i])) {
 					available.close(i);
 				}
 			}
@@ -58,12 +59,13 @@ public class GreedyApproximateWeightedIS extends BaseWeightedIS {
 		Collections.sort(bestSet);
 	}
 	
-	private double getScoreForRel(int i) {
-		if (! scores.containsKey(ids[i])) {
-			scores.put(ids[i], (double) descendants[i].size());
-		}
-		return scores.get(ids[i]);
-	}
+//	private double getScoreForRel(int i) {
+//		if (! scores.containsKey(ids[i])) {
+//			scores.put(ids[i], (double) contituents[i].size());
+//			scores.put(ids[i], weights[i]);
+//		}
+//		return scores.get(ids[i]);
+//	}
 		
 	public static void main(String[] args) {
 		simpleTest1(); // fails greedy approximation!

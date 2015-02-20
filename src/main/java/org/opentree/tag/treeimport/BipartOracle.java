@@ -43,7 +43,7 @@ public class BipartOracle {
 	private final GraphDatabaseAgent gdb;
 	private final boolean USING_TAXONOMY;
 	
-	boolean VERBOSE = true;
+	boolean VERBOSE = false;
 
 	// associate input labels with neo4j node ids
 	Map<Object, Long> nodeIdForLabel = new HashMap<Object, Long>();
@@ -1072,7 +1072,7 @@ public class BipartOracle {
 		
 		// these are tests for order
 		String dbname = "test.db";
-		runSimpleTest(conflictingAugmenting(), dbname);
+//		runSimpleTest(conflictingAugmenting(), dbname);
 //		runSimpleTest(cycleConflictTrees(), dbname);
 //		runSimpleTest(nonOverlapTrees(), dbname);
 //		runSimpleTest(test4Trees(), dbname);
@@ -1081,7 +1081,7 @@ public class BipartOracle {
 
 		// this is a stress test for the loading procedure -- 100 trees with 600 tips each.
 		// lots of duplicate biparts though so it should only take a few mins
-//		loadATOLTreesTest(dbname);
+		loadATOLTreesTest(dbname);
 		
 		// these are tests for taxonomy
 //		runDipsacalesTest(dbname);

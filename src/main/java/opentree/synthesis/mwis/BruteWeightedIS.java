@@ -4,41 +4,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 
-import org.opentree.bitarray.TLongBitArraySet;
+import org.opentree.bitarray.CompactLongSet;
+
 
 public class BruteWeightedIS extends BaseWeightedIS {
 	
 	private int count;
 	public static final int MAX_TRACTABLE_N = 25;
 	
-	public BruteWeightedIS(Long[]ids, TLongBitArraySet[] descendants) {
-		super(ids, descendants);
-		findBestSet();
-	}
+	private boolean VERBOSE = true;
 	
-	/** 
-	 * Trivial scoring based only on total set size. Adjust this to address conflict with trees.
-	 */
-	protected void scoreSizeOnly(BitMask candidate) {
-		
-		// test output
-		ArrayList<Long> curr = new ArrayList<Long>();
-		for (int j : candidate) { curr.add(ids[j]); }
-		System.out.print("checking set " + count + ": " + curr);
-		
-		double s = 0;
-		ArrayList<Long> R = new ArrayList<Long>();
-		for (int j : candidate) {
-			s += descendants[j].size();
-			R.add(ids[j]);
-		}
-		
-		System.out.println(", score = " + s);
-		
-		if (s > bestScore) {
-			bestScore = s;
-			bestSet = R;
-		}
+	public BruteWeightedIS(Long[] ids, double[] weights, CompactLongSet[] contituents) {
+		super(ids, contituents, weights);
+		findBestSet();
 	}
 
 	/**
@@ -48,7 +26,7 @@ public class BruteWeightedIS extends BaseWeightedIS {
 		count = 0;
 		sample(getEmptyBitMask(ids.length), -1);
 		Collections.sort(bestSet);
-		System.out.println("combinations tried: " + count);
+		if (VERBOSE) { System.out.println("combinations tried: " + count); }
 	}
 	
 	/**
@@ -65,7 +43,7 @@ public class BruteWeightedIS extends BaseWeightedIS {
 			candidate.open(nextPos);
 			
 			if (validate(candidate)) {
-				scoreSizeOnly(candidate); // switch this to a smarter scoring mechanism
+				getSetScore(candidate); // switch this to a smarter scoring mechanism
 				sample(candidate, nextPos);
 			}
 		}
@@ -74,6 +52,32 @@ public class BruteWeightedIS extends BaseWeightedIS {
 		} */
 	}
 	
+	/** 
+	 * Trivial scoring based only on total set size. Adjust this to address conflict with trees.
+	 */
+	protected void getSetScore(BitMask candidate) {
+		
+		// test output
+		ArrayList<Long> curr = new ArrayList<Long>();
+		for (int j : candidate) { curr.add(ids[j]); }
+		System.out.print("checking set " + count + ": " + curr);
+		
+		double s = 0;
+		ArrayList<Long> R = new ArrayList<Long>();
+		for (int j : candidate) {
+//			s += contituents[j].size();
+			s += weights[j];
+			R.add(ids[j]);
+		}
+		
+		System.out.println(", score = " + s);
+		
+		if (s > bestScore) {
+			bestScore = s;
+			bestSet = R;
+		}
+	}
+
 	public static void main(String[] args) {
 		simpleTest1();
 		simpleTest2();
