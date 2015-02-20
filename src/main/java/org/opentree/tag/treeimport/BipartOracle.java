@@ -690,7 +690,7 @@ public class BipartOracle {
 			for (TreeNode treeNode : tree.internalNodes(NodeOrder.PREORDER)) {
 				if (! treeNode.isTheRoot()) {
 					
-					Set<Node> graphNodes = mapGraphNodesToInternalNode(treeNode);
+					Set<Node> graphNodes = mapGraphNodes(treeNode, tree, false);
 					if (graphNodes.size() == 0) { // every internal node must map to at least one node in the graph.
 						System.out.println("could not map node: " + treeNode.getNewick(false)+ ".\ngraphNodes: " + graphNodes);
 						throw new AssertionError();
@@ -701,12 +701,14 @@ public class BipartOracle {
 
 			// now connect all the tips to their parent nodes
 			for (TreeNode treeTip : tree.externalNodes()) {
+				//this will map to compatible "internal" graph nodes
+				mapGraphNodes(treeTip,tree,true);
+				//this will map to terminal graph nodes directly from the tips
 				Node tip = gdb.getNodeById(nodeIdForLabel.get(treeTip.getLabel()));
 				for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
 					updateMRCAChildOf(tip, parent);
 					Relationship rel = tip.createRelationshipTo(parent, RelType.STREECHILDOF);
 					rel.setProperty("source", treeIdRankMap.get(treeTip).intValue());
-
 					// this is a temporary property to enable rapid re-synthesis
 					rel.setProperty("sourcerank", treeIdRankMap.get(treeTip).intValue());
 				}
@@ -721,13 +723,18 @@ public class BipartOracle {
 		System.out.println("all trees have been mapped.");
 	}
 	
-	private Set<Node> mapGraphNodesToInternalNode(TreeNode treeNode) {
+	private Set<Node> mapGraphNodes(TreeNode treeNode, Tree tree, boolean external) {
 
 		// get the graph nodes that match this node's parent
 		HashSet<Node> graphNodesForParent = graphNodesForTreeNode.get(treeNode.getParent());
 		
 		// get the graph nodes that match this node
-		TLongBipartition nodeBipart = original[treeNodeIds.get(treeNode)];
+		TLongBipartition nodeBipart;
+		if(external == false)
+			nodeBipart = original[treeNodeIds.get(treeNode)];
+		else
+			nodeBipart = getGraphBipartForTreeNode(treeNode,tree);
+
 		HashSet<Node> graphNodes = new HashSet<Node>();
 		
 		// if you create the mrcachildofs before, then you can do this
