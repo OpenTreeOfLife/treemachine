@@ -49,6 +49,7 @@ function testsynthesis {
         fi
 #        set -x
         
+        # copy each of the trees into a single file in order of rank priority
         cat "${inputdir}"/tree"${treetag}".tre >> "${outputdir}"/trees-in-order.tre
         echo "" >> "${outputdir}"/trees-in-order.tre
 

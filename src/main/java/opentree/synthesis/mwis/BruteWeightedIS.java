@@ -10,7 +10,7 @@ import org.opentree.bitarray.CompactLongSet;
 public class BruteWeightedIS extends BaseWeightedIS {
 	
 	private int count;
-	public static final int MAX_TRACTABLE_N = 25;
+	public static final int MAX_TRACTABLE_N = 18;
 	
 	private boolean VERBOSE = true;
 	
