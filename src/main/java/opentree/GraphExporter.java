@@ -246,7 +246,7 @@ public class GraphExporter extends GraphBase {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 				Long relid = rel.getId();
 				if (!visitedRels.contains(relid)) {
-					String rname = "r" + relid + "/";
+					String rname = "r" + relid + " s";
 					Long snid = rel.getStartNode().getId();
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);

@@ -203,7 +203,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			relIds[i] = rel.getId();
 			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTips(rel));
 //			weights[i] = getScoreRankedNodeCount(rel);
-			weights[i] = getScoreNodeCount(rel);
+//			weights[i] = getScoreNodeCount(rel);
 //			weights[i] = getScoreRanked(rel);
 
 			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId())); }
