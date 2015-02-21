@@ -603,6 +603,7 @@ public class BipartOracle {
 			//sequential for debugging right now
 			// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
 			tx = gdb.beginTx();
+			//slower but works
 			for (Node taxnd : taxonomyGraphNodesMap.keySet()) {
 				TLongBipartition taxbp = taxonomyGraphNodesMap.get(taxnd);
 				for (TLongBipartition ndbp: nodeForBipart.keySet()) {
@@ -617,6 +618,34 @@ public class BipartOracle {
 					}
 				}
 			}
+			
+			//could be faster, needs more testing
+			/*
+			for(TLongBipartition ndbp: nodeForBipart.keySet()){
+				Long ndid = ((long[])nodeForBipart.get(ndbp).getProperty("mrca"))[0];
+				Node taxNode = gdb.getNodeById(ndid);
+				while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+					taxNode = getParentTaxNode(taxNode);
+					if (taxonomyGraphNodesMap.keySet().contains(taxNode)){
+						TLongBipartition taxbp = taxonomyGraphNodesMap.get(taxNode);
+						if (taxbp.ingroup().containsAll(ndbp.ingroup()) && taxbp.ingroup().containsAny(ndbp.outgroup())) {
+							updateMRCAChildOf(nodeForBipart.get(ndbp), taxNode);
+							while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+								taxNode = getParentTaxNode(taxNode);
+								updateMRCAChildOf(nodeForBipart.get(ndbp), taxNode);
+							}
+							break;
+						}else if(ndbp.ingroup().containsAny(taxbp.ingroup())
+								&& taxbp.ingroup().containsAny(ndbp.outgroup())==false && 
+								taxbp.ingroup().containsAll(ndbp.ingroup()) == false ){//check as child;
+							updateMRCAChildOf(taxNode, nodeForBipart.get(ndbp));
+							
+						}
+					}
+				}
+			}*/
+			
+			
 			tx.success();
 			tx.finish();
 		}
