@@ -516,7 +516,7 @@ public class BipartOracle {
 		Transaction tx = gdb.beginTx();
 		for (int i = 0; i < bipart.length; i++) {
 			if (bipart[i].outgroup().size() > 0) {
-				CompactLongSet pathResult = findPaths(i, new CompactLongSet(), new ArrayList<Integer>(), 0);
+				CompactLongSet pathResult = findPaths(i, new CompactLongSet(), new ArrayList<Integer>(), 0,i);
 				if (pathResult == null) {
 					// biparts that are not nested in any others won't be saved in any of the paths, so we need to make graph nodes
 					// for them now. we will need these nodes for mapping trees
@@ -603,6 +603,7 @@ public class BipartOracle {
 			//sequential for debugging right now
 			// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
 			tx = gdb.beginTx();
+			//slower but works
 			for (Node taxnd : taxonomyGraphNodesMap.keySet()) {
 				TLongBipartition taxbp = taxonomyGraphNodesMap.get(taxnd);
 				for (TLongBipartition ndbp: nodeForBipart.keySet()) {
@@ -617,6 +618,34 @@ public class BipartOracle {
 					}
 				}
 			}
+			
+			//could be faster, needs more testing
+			/*
+			for(TLongBipartition ndbp: nodeForBipart.keySet()){
+				Long ndid = ((long[])nodeForBipart.get(ndbp).getProperty("mrca"))[0];
+				Node taxNode = gdb.getNodeById(ndid);
+				while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+					taxNode = getParentTaxNode(taxNode);
+					if (taxonomyGraphNodesMap.keySet().contains(taxNode)){
+						TLongBipartition taxbp = taxonomyGraphNodesMap.get(taxNode);
+						if (taxbp.ingroup().containsAll(ndbp.ingroup()) && taxbp.ingroup().containsAny(ndbp.outgroup())) {
+							updateMRCAChildOf(nodeForBipart.get(ndbp), taxNode);
+							while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+								taxNode = getParentTaxNode(taxNode);
+								updateMRCAChildOf(nodeForBipart.get(ndbp), taxNode);
+							}
+							break;
+						}else if(ndbp.ingroup().containsAny(taxbp.ingroup())
+								&& taxbp.ingroup().containsAny(ndbp.outgroup())==false && 
+								taxbp.ingroup().containsAll(ndbp.ingroup()) == false ){//check as child;
+							updateMRCAChildOf(taxNode, nodeForBipart.get(ndbp));
+							
+						}
+					}
+				}
+			}*/
+			
+			
 			tx.success();
 			tx.finish();
 		}
@@ -842,9 +871,10 @@ public class BipartOracle {
 	 * @param nested
 	 * @param path
 	 * @param level
+	 * @param originalParentId
 	 * @return
 	 */
-	private CompactLongSet findPaths(int parentId, CompactLongSet cumulativeIngroup, ArrayList<Integer> path, int level) {
+	private CompactLongSet findPaths(int parentId, CompactLongSet cumulativeIngroup, ArrayList<Integer> path, int level, int originalParentId) {
 
 		TLongBipartition parent = bipart[parentId];
 		
@@ -876,7 +906,17 @@ public class BipartOracle {
 	    boolean newline = false;
 	    for (int nextParentId : nestedParents[parentId]) {
 			if (path.contains(nextParentId)) { continue; }
-			CompactLongSet outgroupsToAdd = findPaths(nextParentId, new CompactLongSet(cumulativeIngroup), path, level+1);
+			//TODO: CHECK THESE TWO BITS. THEY WORK IN PYTHON BUT STILL NEED MORE TESTING
+			//		DELETE IF THERE ARE PROBLEMS
+			//can continue if we already have all the outgroup and ingroup in here
+			CompactLongSet testset = new CompactLongSet(bipart[nextParentId].ingroup());
+			testset.addAll(bipart[nextParentId].outgroup());
+			testset.removeAll(cumulativeIngroup);
+			testset.removeAll(cumulativeOutgroup);
+			if (testset.size() == 0){continue;}
+			//can continue if the nextid isn't in the original one
+			if(nestedParents[originalParentId].contains(nextParentId)==false){continue;}
+			CompactLongSet outgroupsToAdd = findPaths(nextParentId, new CompactLongSet(cumulativeIngroup), path, level+1, originalParentId);
 			if (outgroupsToAdd != null) { // did not encounter a dead end path
 		    	newline = true;
 				cumulativeOutgroup.addAll(outgroupsToAdd);
