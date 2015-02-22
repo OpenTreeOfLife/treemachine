@@ -43,7 +43,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	
 	private boolean VERBOSE = true;
 
-	private boolean USING_RANKS = true;
+	private boolean USING_RANKS = false;
 	
 	public RootwardSynthesisExpander(Node root) {
 
@@ -66,21 +66,18 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 			
 			// collect the relationships.
-			// also need to include taxonomy rels here if we want to allow more inclusive taxonomy rels 
 			Map<Node, Relationship> bestRelForNode = new HashMap<Node, Relationship>();
 
-			// if we're using ranks, we might need to include singletons. otherwise we might include a
-			// lower ranked rel that includes a node that is a singleton on a higher ranked rel--then
-			// the singleton higher ranked rel will be excluded (bad). we should still never need to include
-			// taxonomic singletons though.
 			List<Relationship> singletons = new ArrayList<Relationship>();
-			
-//			for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
 			
 			if (USING_RANKS) {
 				for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
 					
-					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons!?!?! THIS MIGHT BE WRONG
+					// if we're using ranks, we might need to include singletons. otherwise we might include a
+					// lower ranked rel that includes a node that is a singleton on a higher ranked rel--then
+					// the singleton higher ranked rel will be excluded (bad). we should still never need to include
+					// taxonomic singletons though.
+					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons!?!?! THIS MIGHT BE WRONG.
 					
 					updateBestRankedRel(bestRelForNode, r); // check other source tree rels to see which one to record
 				}
