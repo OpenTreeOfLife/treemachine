@@ -76,59 +76,62 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			List<Relationship> singletons = new ArrayList<Relationship>();
 			
 //			for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
-			for (Relationship r : Traversal.description()
-					.relationships(RelType.STREECHILDOF, Direction.INCOMING)
-					.relationships(RelType.TAXCHILDOF, Direction.INCOMING)
-					.evaluator(Evaluators.toDepth(1))
-					.breadthFirst().traverse(n).relationships()) {
-
-				if (mrcaTips(r).length == 1) { // skip *all* singletons. probably should not do this if using ranks
-					singletons.add(r);
-					continue;
+			
+			if (USING_RANKS) {
+				for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
+					
+					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons!?!?! THIS MIGHT BE WRONG
+					
+					updateBestRankedRel(bestRelForNode, r); // check other source tree rels to see which one to record
 				}
 
-				// for non-singletons, make sure we only keep one rel pointing at each child node, the others are redundant
-				Node child = r.getStartNode();
-				if (USING_RANKS) {
-					// keep the rel with the *best* (i.e. HIGHEST) rank
-					if ( (! bestRelForNode.containsKey(child)) || rank(bestRelForNode.get(child)) < rank(r)) { bestRelForNode.put(child, r); }
-				} else {
-					bestRelForNode.put(child, r); // just keep an arbitary rel
+				for (Relationship r : n.getRelationships(RelType.TAXCHILDOF, Direction.INCOMING)) {
+					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip taxonomic singletons
+					updateBestRankedRel(bestRelForNode, r); // check non-singleton taxonomy rels to the set to be selected from
+				}
+				
+			} else { // not using ranks
+				for (Relationship r : getALLStreeAndTaxRels(n)) {
+					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip *all* singletons
+					// for non-singletons, just keep one (arbitrary) rel pointing at each child node -- the others are redundant
+					bestRelForNode.put(r.getStartNode(), r);
 				}
 			}
 			
-			// augment the ranks of rels that fully include all the descendants of other rels by
-			// the degree of the rank of the fully included rel. the goal here is to try and make
-			// sure we use more inclusive rels even when they have lower rank as long as they are
-			// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
-			// is EXPERIMENTAL and may be incorrect!!!!
-			List<Relationship> treeRels = new ArrayList<Relationship>(bestRelForNode.values());
-			for (int i = 0; i < treeRels.size(); i++) {
-				for (int j = 0; j < treeRels.size(); j++) {
-					if (i != j) {
-//						TLongBitArraySet I = new TLongBitArraySet(mrcaTips(treeRels.get(i)));
-//						TLongBitArraySet J = new TLongBitArraySet(mrcaTips(treeRels.get(j)));
-						Relationship I = treeRels.get(i);
-						Relationship J = treeRels.get(j);
-						if (treeRelContainsOther(I,J)) {
-							System.out.println(I + " contains all of " + J);
-							uprank(treeRels.get(i), treeRels.get(j));
-						}
-						else if (treeRelContainsOther(J,I)) {
-							System.out.println(J + " contains all of " + I);
-							uprank(treeRels.get(j), treeRels.get(i));
+			// collect the set of non-redundant rels
+			List<Relationship> relsForMWIS = new ArrayList<Relationship>(bestRelForNode.values());
+
+			if (USING_RANKS) {
+				// augment the ranks of rels that fully include all the descendants of other rels by
+				// the degree of the rank of the fully included rel. the goal here is to try and make
+				// sure we use more inclusive rels even when they have lower rank as long as they are
+				// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
+				// is EXPERIMENTAL and may be incorrect!!!!
+				for (int i = 0; i < relsForMWIS.size(); i++) {
+					for (int j = 0; j < relsForMWIS.size(); j++) {
+						if (i != j) {
+							Relationship I = relsForMWIS.get(i);
+							Relationship J = relsForMWIS.get(j);
+							if (treeRelContainsOther(I,J)) {
+//								System.out.println(I + " contains " + J);
+								uprank(relsForMWIS.get(i), relsForMWIS.get(j));
+							}
+							else if (treeRelContainsOther(J,I)) {
+//								System.out.println(J + " contains " + I);
+								uprank(relsForMWIS.get(j), relsForMWIS.get(i));
+							}
 						}
 					}
 				}
 			}
 			
-			// get all the best sourcetree rels and collect the ids of all descendant tips
-			List<Long> bestRelIds = findBestNonOverlapping(treeRels);
+			// get all the best nontrivial rels and collect the ids of all descendant tips
+			List<Long> bestRelIds = findBestNonOverlapping(relsForMWIS);
 			TLongBitArraySet included = new TLongBitArraySet (mrcaTipsAndInternal(bestRelIds));
 			
 			if (VERBOSE) { for (Long b : bestRelIds) { Relationship r = gdb.getRelationshipById(b); System.out.println("selected source tree rel " + r + ": " + r.getStartNode() + " -> " + r.getEndNode()); }}
 
-			// add the singleton source tree rels that aren't included in any other rels
+			// add the trivial singleton rels that aren't included in any other rels
 			for (Relationship s : singletons) {
 				long[] l = mrcaTips(s);
 				assert l.length == 1;
@@ -173,6 +176,21 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			childRels.put(nodeId, incomingRels); 
 			System.out.println("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
 		}
+	}
+	
+	private void updateBestRankedRel(Map<Node, Relationship> bestRelForNode, Relationship rel) {
+		Node child = rel.getStartNode();
+		if ( (! bestRelForNode.containsKey(child)) || rank(bestRelForNode.get(child)) < rank(rel)) {
+			bestRelForNode.put(child, rel); // just keep the rel with the best (i.e. HIGHEST) rank -- the others are redundant
+		}
+	}
+	
+	private Iterable<Relationship> getALLStreeAndTaxRels(Node n) {
+		return Traversal.description()
+		.relationships(RelType.STREECHILDOF, Direction.INCOMING)
+		.relationships(RelType.TAXCHILDOF, Direction.INCOMING)
+		.evaluator(Evaluators.toDepth(1))
+		.breadthFirst().traverse(n).relationships();
 	}
 	
 	private boolean treeRelContainsOther(Relationship i, Relationship j) {
@@ -250,10 +268,10 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @param j
 	 */
 	private void uprank(Relationship i, Relationship j) {
-		if (VERBOSE) { System.out.print(i.getStartNode() + " of rank " + rank(i) + " contains all of " +
-				j.getStartNode() + " with rank " + rank(j)); }
+		if (VERBOSE) { System.out.print(i + " of rank " + rank(i) + " contains all descendants of " +
+				j + " with rank " + rank(j) + ".\n"); }
 		augmentedRanks.get(i).add(rank(j));
-		if (VERBOSE) { System.out.println(". rank of first rel will be set to " + (rank(j))); }
+		if (VERBOSE) { System.out.println("included ranks for " + i + " = " + augmentedRanks.get(i)); }
 	}
 	
 	/**
@@ -305,7 +323,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 				weights[i] = getScoreNodeCount(rel); // this is the only one that seems to produce sensible results right now
 			}
 
-			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId())); }
+			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId()) + ". score = " + weights[i]); }
 		}
 		
 		if (USING_RANKS) {
@@ -315,8 +333,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 					if (weights[i] == weights[j]) {
 						double ni = getScoreNodeCount(gdb.getRelationshipById(relIds[i]));
 						double nj = getScoreNodeCount(gdb.getRelationshipById(relIds[j]));
-						if (ni > nj) { weights[i]++; }
-						else 		 { weights[j]++; } // will arbitrarily prefer rel j if both node count and rank are tied 
+						if 		(ni > nj) { weights[i]++; }
+						else if (ni < nj) { weights[j]++; }
 					}
 				}
 			}
@@ -357,7 +375,12 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @return
 	 */
 	private double getScoreRanked(Relationship rel) {
-		return Math.pow(2, rank(rel));
+		rank(rel); // update the augmentedRanks for this rel if we haven't seen it yet
+		double score = 0;
+		for (int i : augmentedRanks.get(rel)) {
+			score += Math.pow(2, i);
+		}
+		return score;
 	}
 	
 	/**
