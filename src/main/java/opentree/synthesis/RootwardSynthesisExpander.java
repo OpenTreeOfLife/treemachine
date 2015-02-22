@@ -26,6 +26,8 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PathExpander;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.BranchState;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.kernel.Traversal;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 import scala.actors.threadpool.Arrays;
@@ -40,6 +42,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	private boolean trivialTestCase = false;
 	
 	private boolean VERBOSE = true;
+
+	private boolean USING_RANKS = true;
 	
 	public RootwardSynthesisExpander(Node root) {
 
@@ -64,15 +68,32 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			// collect the relationships.
 			// also need to include taxonomy rels here if we want to allow more inclusive taxonomy rels 
 			Map<Node, Relationship> bestRelForNode = new HashMap<Node, Relationship>();
+
+			// if we're using ranks, we might need to include singletons. otherwise we might include a
+			// lower ranked rel that includes a node that is a singleton on a higher ranked rel--then
+			// the singleton higher ranked rel will be excluded (bad). we should still never need to include
+			// taxonomic singletons though.
 			List<Relationship> singletons = new ArrayList<Relationship>();
-			for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
-				if (mrcaTips(r).length > 1) {
-					// for each potential child, only save the rel with the *best* (i.e. HIGHEST) rank--the others redundant
-					Node child = r.getStartNode();
-//					if ( (! bestRelForNode.containsKey(child)) || rank(bestRelForNode.get(child)) < rank(r)) { bestRelForNode.put(child, r); }
+			
+//			for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
+			for (Relationship r : Traversal.description()
+					.relationships(RelType.STREECHILDOF, Direction.INCOMING)
+					.relationships(RelType.TAXCHILDOF, Direction.INCOMING)
+					.evaluator(Evaluators.toDepth(1))
+					.breadthFirst().traverse(n).relationships()) {
+
+				if (mrcaTips(r).length == 1) { // skip *all* singletons. probably should not do this if using ranks
+					singletons.add(r);
+					continue;
+				}
+
+				// for non-singletons, make sure we only keep one rel pointing at each child node, the others are redundant
+				Node child = r.getStartNode();
+				if (USING_RANKS) {
+					// keep the rel with the *best* (i.e. HIGHEST) rank
 					if ( (! bestRelForNode.containsKey(child)) || rank(bestRelForNode.get(child)) < rank(r)) { bestRelForNode.put(child, r); }
 				} else {
-					singletons.add(r);
+					bestRelForNode.put(child, r); // just keep an arbitary rel
 				}
 			}
 			
@@ -82,7 +103,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
 			// is EXPERIMENTAL and may be incorrect!!!!
 			List<Relationship> treeRels = new ArrayList<Relationship>(bestRelForNode.values());
-/*			for (int i = 0; i < treeRels.size(); i++) {
+			for (int i = 0; i < treeRels.size(); i++) {
 				for (int j = 0; j < treeRels.size(); j++) {
 					if (i != j) {
 //						TLongBitArraySet I = new TLongBitArraySet(mrcaTips(treeRels.get(i)));
@@ -99,7 +120,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 						}
 					}
 				}
-			} */
+			}
 			
 			// get all the best sourcetree rels and collect the ids of all descendant tips
 			List<Long> bestRelIds = findBestNonOverlapping(treeRels);
@@ -119,6 +140,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 				}
 			}
 			
+			/*
 			// add all the taxonomy rels that don't conflict with anything from the source trees
 			for (Relationship t : n.getRelationships(RelType.TAXCHILDOF, Direction.INCOMING)) {
 				long[] taxRelTipIds = mrcaTips(t);
@@ -127,7 +149,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 					bestRelIds.add(t.getId());
 					if (VERBOSE) { System.out.println("adding taxonomy only rel " + t + ": " + t.getStartNode() + " -> " + t.getEndNode()); }
 				}
-			}
+			}*/
 			
 			// record the rels that were identified as the best set
 			TLongBitArraySet descendants = new TLongBitArraySet();
@@ -154,7 +176,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	}
 	
 	private boolean treeRelContainsOther(Relationship i, Relationship j) {
-		return mrcaTipsAndInternal(i.getId()).contains(j.getId());
+		System.out.println("checking to see if rel " + i + "(" + mrcaTipsAndInternal(i.getId()) + ") contains " + j.getStartNode().getId());
+		return mrcaTipsAndInternal(i.getId()).contains(j.getStartNode().getId());
 	}
 	
 	/**
@@ -205,7 +228,10 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			// 'sourcerank' this is a temporary property. we should be accepting a set of source rankings on construction
 			// and using that information here to return the rank for a given rel based on it's 'source' property
 			augmentedRanks.put(r, new HashSet<Integer>());
-			augmentedRanks.get(r).add((int) r.getProperty("sourcerank"));
+			
+			// taxonomy rels have no sourcerank property, and their rank is zero. otherwise get the property
+			int initialRank = isTaxonomyRel(r) ? 0 : (int) r.getProperty("sourcerank");
+			augmentedRanks.get(r).add(initialRank);
 		}
 		
 		int rank = 0;
@@ -267,13 +293,33 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			Relationship rel = relsIter.next();
 			relIds[i] = rel.getId();
 			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTips(rel));
-			weights[i] = getScoreNodeCount(rel); // this is the only one that seems to make sense
+
+//			weights[i] = getScoreNodeCount(rel); // this is the only one that seems to make sense
 
 			// ranked scoring is messy and screws things up in unpredictable ways
 //			weights[i] = getScoreRankedNodeCount(rel);
-//			weights[i] = getScoreRanked(rel);
+			
+			if (USING_RANKS) {
+				weights[i] = getScoreRanked(rel);
+			} else {
+				weights[i] = getScoreNodeCount(rel); // this is the only one that seems to produce sensible results right now
+			}
 
 			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId())); }
+		}
+		
+		if (USING_RANKS) {
+			// break rank ties based on node count
+			for (int i = 0; i < weights.length; i++) {
+				for (int j = i+1; j < weights.length; j++ ) {
+					if (weights[i] == weights[j]) {
+						double ni = getScoreNodeCount(gdb.getRelationshipById(relIds[i]));
+						double nj = getScoreNodeCount(gdb.getRelationshipById(relIds[j]));
+						if (ni > nj) { weights[i]++; }
+						else 		 { weights[j]++; } // will arbitrarily prefer rel j if both node count and rank are tied 
+					}
+				}
+			}
 		}
 		
 		if (relIds.length <= BruteWeightedIS.MAX_TRACTABLE_N) {
@@ -290,7 +336,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @return
 	 */
 	private double getScoreRankedNodeCount(Relationship rel) {
-		return getScoreNodeCount(rel) * getScoreRanked(rel);
+		return getScoreRanked(rel) + getScoreNodeCount(rel);
 	}
 
 	/**
@@ -311,8 +357,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	 * @return
 	 */
 	private double getScoreRanked(Relationship rel) {
-//		return 1.0 / Math.pow(2, rank(rel));
-		return rank(rel);
+		return Math.pow(2, rank(rel));
 	}
 	
 	/**
