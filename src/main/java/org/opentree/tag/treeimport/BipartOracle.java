@@ -909,7 +909,7 @@ public class BipartOracle {
 			//TODO: CHECK THESE TWO BITS. THEY WORK IN PYTHON BUT STILL NEED MORE TESTING
 			//		DELETE IF THERE ARE PROBLEMS
 			//can continue if we already have all the outgroup and ingroup in here
-			CompactLongSet testset = bipart[nextParentId].ingroup();
+			CompactLongSet testset = new CompactLongSet(bipart[nextParentId].ingroup());
 			testset.addAll(bipart[nextParentId].outgroup());
 			testset.removeAll(cumulativeIngroup);
 			testset.removeAll(cumulativeOutgroup);
