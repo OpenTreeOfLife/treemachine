@@ -43,7 +43,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	
 	private boolean VERBOSE = true;
 
-	private boolean USING_RANKS = false;
+	private boolean USING_RANKS = true;
 	
 	public RootwardSynthesisExpander(Node root) {
 

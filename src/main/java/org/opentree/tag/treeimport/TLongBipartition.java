@@ -131,12 +131,15 @@ public class TLongBipartition {
 	@Override
 	public int hashCode() {
 		// have not tested this hash function for performance. be wary.
-		long h = 1;
+/*		long h = 1;
 		for (long p : ingroup) { h += 17 * p; }
 		for (long p : outgroup) { h += 11 * p; }
-		return (int) h;
-	}
+		return (int) h; */
 
+		// attempt to be faster. could attempt to make the ingroup/outgroup sum ops parallel if we need to
+		return (ingroup.hashCode() ^ outgroup.hashCode()) + 0x16293847;
+	}
+	
 	@Override
 	public String toString() {
 		StringBuffer s = new StringBuffer();
