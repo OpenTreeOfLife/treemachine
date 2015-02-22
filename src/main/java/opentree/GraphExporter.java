@@ -204,7 +204,9 @@ public class GraphExporter extends GraphBase {
 	
 	private String getDot(Node startnode) {
 		HashSet<Node> nodes = new HashSet<Node>();
-		for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
+		for (Node tnode : Traversal.description()
+				.relationships(RelType.STREECHILDOF, Direction.INCOMING)
+				.relationships(RelType.TAXCHILDOF, Direction.INCOMING)
 				.traverse(startnode).nodes()) {
 			nodes.add(tnode);
 		}
@@ -233,6 +235,7 @@ public class GraphExporter extends GraphBase {
 				}
 			}
 		}
+//		relSource2ColInd.put("taxonomy", relNames.size()+1);
 		for (String relSource : relNames) {
 			Integer colorOffset = new Integer(relSource2ColInd.size());
 			if (colorOffset > relColorArr.length - 1) {
@@ -253,17 +256,26 @@ public class GraphExporter extends GraphBase {
 					String ens = nd2Name.get(enid);
 					String relSource = rel.getProperty("source").toString();
 					String relcolor;
-					if (relSource.equals("taxonomy")) {
-						relcolor = "crimson";
-						rname += "\" style=\"dashed";
-					} else {
-						assert relSource2ColInd.containsKey(relSource);
-						Integer colorOffset = relSource2ColInd.get(relSource);
-						relcolor = relColorArr[colorOffset];
-						rname += relSource;
-					}
+
+					assert relSource2ColInd.containsKey(relSource);
+					Integer colorOffset = relSource2ColInd.get(relSource);
+					relcolor = relColorArr[colorOffset];
+					rname += relSource;
 					
 					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"" + relcolor + "\" color=\"" + relcolor + "\"];\n");
+					visitedRels.add(relid);
+				}
+			}
+			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.TAXCHILDOF)) {
+				Long relid = rel.getId();
+				if (!visitedRels.contains(relid)) {
+					String rname = "r" + relid + " T";
+					Long snid = rel.getStartNode().getId();
+					Long enid = rel.getEndNode().getId();
+					String sns = nd2Name.get(snid);
+					String ens = nd2Name.get(enid);
+
+					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"brown4\" color=\"brown4\" style=\"dashed\"];\n");
 					visitedRels.add(relid);
 				}
 			}

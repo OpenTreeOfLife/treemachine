@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 TEST_DIR=$(dirname $0)
 HARNESS_DIR=$(dirname "$TEST_DIR")
 TEST_NAME=$(basename "$TEST_DIR")

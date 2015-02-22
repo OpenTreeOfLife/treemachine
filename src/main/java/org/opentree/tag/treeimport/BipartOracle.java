@@ -78,7 +78,7 @@ public class BipartOracle {
 	
 	//map for the list of relevant taxonomy nodes
 	Map<Node,TLongBipartition> taxonomyGraphNodesMap;
-	Map<TreeNode,Integer> treeIdRankMap;//this is just a map of node and the order of the tree it came from in the list
+	Map<TreeNode,Integer> rankForTreeNode;//this is just a map of node and the order of the tree it came from in the list
 	
  	int nodeId = 0;
 
@@ -130,15 +130,12 @@ public class BipartOracle {
 	}
 	
 	private void createTreeIdRankMap(List<Tree> trees){
-		treeIdRankMap = new HashMap<TreeNode,Integer>();
-		int curt = 1;
-		for(Tree t: trees){
-			for(TreeNode tn: t.internalNodes(NodeOrder.PREORDER)){
-				treeIdRankMap.put(tn, curt);
-			}for(TreeNode tn: t.externalNodes()){
-				treeIdRankMap.put(tn, curt);
-			}
-			curt++;
+		rankForTreeNode = new HashMap<TreeNode,Integer>();
+		int curt = trees.size();
+		for (Tree t: trees) {
+			for (TreeNode tn: t.internalNodes(NodeOrder.PREORDER)) { rankForTreeNode.put(tn, curt); }
+			for (TreeNode tn: t.externalNodes()) { rankForTreeNode.put(tn, curt); }
+			curt--;
 		}
 	}
 	
@@ -745,9 +742,9 @@ public class BipartOracle {
 				for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
 					updateMRCAChildOf(tip, parent);
 					Relationship rel = tip.createRelationshipTo(parent, RelType.STREECHILDOF);
-					rel.setProperty("source", treeIdRankMap.get(treeTip).intValue());
+					rel.setProperty("source", trees.size() - rankForTreeNode.get(treeTip).intValue()+1);
 					// this is a temporary property to enable rapid re-synthesis
-					rel.setProperty("sourcerank", treeIdRankMap.get(treeTip).intValue());
+					rel.setProperty("sourcerank", rankForTreeNode.get(treeTip).intValue());
 				}
 			}
 
@@ -794,8 +791,8 @@ public class BipartOracle {
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAll(childBipart.ingroup())){
 							graphNodes.add(potentialChild);
 							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
-							rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
-							rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
+							rel.setProperty("source", rankForTreeNode.get(treeNode).intValue());
+							rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
 						}
 					}else{
 						if(childBipart != null &&  childBipart.containsAll(nodeBipart) &&
@@ -803,8 +800,8 @@ public class BipartOracle {
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAny(childBipart.outgroup())){
 							graphNodes.add(potentialChild);
 							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
-							rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
-							rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
+							rel.setProperty("source", rankForTreeNode.get(treeNode).intValue());
+							rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
 						}
 					}
 				}else if (USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(potentialChild)){
@@ -814,8 +811,8 @@ public class BipartOracle {
 									//nodeBipart.ingroup().containsAny(childBipart.outgroup())){
 						graphNodes.add(potentialChild);
 						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
-						rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
-						rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
+						rel.setProperty("source", rankForTreeNode.get(treeNode).intValue());
+						rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
 					}
 				}else{
 					// BE CAREFUL containsAll is directional
@@ -823,8 +820,8 @@ public class BipartOracle {
 							&& childBipart.isNestedPartitionOf(bipartForNode.get(parent))){
 						graphNodes.add(potentialChild);
 						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
-						rel.setProperty("source", treeIdRankMap.get(treeNode).intValue());
-						rel.setProperty("sourcerank", treeIdRankMap.get(treeNode).intValue());
+						rel.setProperty("source", rankForTreeNode.get(treeNode).intValue());
+						rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
 					}	
 				}
 			}

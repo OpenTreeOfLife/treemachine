@@ -58,45 +58,50 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 			
 			// collect the relationships
-			Map<Node, Relationship> treeRels = new HashMap<Node, Relationship>();
-			List<Relationship> taxonomyOnlyRels = new ArrayList<Relationship>();
+			Map<Node, Relationship> bestRelForNode = new HashMap<Node, Relationship>();
 			List<Relationship> singletons = new ArrayList<Relationship>();
 			for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
-				if (mrcaTips(r).length < 2) {
-					singletons.add(r);
-				} else if (! isTaxonomyRel(r)) { 
+				if (mrcaTips(r).length > 1) {
+					// for each potential child, only save the rel with the *best* (i.e. HIGHEST) rank--the others redundant
 					Node child = r.getStartNode();
-					// for each potential child, only save the rel with the *best* (i.e. lowest) rank--the others redundant
-					if ( (! treeRels.containsKey(child)) || rank(treeRels.get(child)) > rank(r)) { treeRels.put(child, r); }
+					if ( (! bestRelForNode.containsKey(child)) || rank(bestRelForNode.get(child)) < rank(r)) { bestRelForNode.put(child, r); }
 				} else {
-					taxonomyOnlyRels.add(r); // record taxonomy rels separately, we will just add in non conflicting ones at the end
-					// TODO: if we don't make the streechildofs for taxonomy rels, we can just look for them separately instead of
-					// testing for them like this.
+					singletons.add(r);
 				}
 			}
-
-			// It seems like we should be able to treat taxonomy nodes just like all other nodes iff all appropriate parents/children
-			// are mapped to/from them. But that doesn't seem to be happening (could just be a bug). But connecting them with STREECHILDOFs
-			// to/from all parents/children also increases the number of relationships at any given node, which could create problems
-			// for synth (not just a bug).
-
+			
+			// augment the ranks of rels that fully include all the descendants of other rels by
+			// the degree of the rank of the fully included rel. the goal here is to try and make
+			// sure we use more inclusive rels even when they have lower rank as long as they are
+			// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
+			// is EXPERIMENTAL and may be incorrect!!!!
+			List<Relationship> treeRels = new ArrayList<Relationship>(bestRelForNode.values());
+			for (int i = 0; i < treeRels.size(); i++) {
+				for (int j = 0; j < treeRels.size(); j++) {
+					if (i != j) {
+//						TLongBitArraySet I = new TLongBitArraySet(mrcaTips(treeRels.get(i)));
+//						TLongBitArraySet J = new TLongBitArraySet(mrcaTips(treeRels.get(j)));
+						Relationship I = treeRels.get(i);
+						Relationship J = treeRels.get(j);
+						if (treeRelContainsOther(I,J)) {
+							System.out.println(I + " contains all of " + J);
+							uprank(treeRels.get(i), treeRels.get(j));
+						}
+						else if (treeRelContainsOther(J,I)) {
+							System.out.println(J + " contains all of " + I);
+							uprank(treeRels.get(j), treeRels.get(i));
+						}
+					}
+				}
+			}
+			
 			// get all the best sourcetree rels and collect the ids of all descendant tips
-			List<Long> bestRelIds = findBestNonOverlapping(treeRels.values());
+			List<Long> bestRelIds = findBestNonOverlapping(treeRels);
 			TLongBitArraySet included = new TLongBitArraySet (mrcaTipsAndInternal(bestRelIds));
 			
 			if (VERBOSE) { for (Long b : bestRelIds) { Relationship r = gdb.getRelationshipById(b); System.out.println("selected source tree rel " + r + ": " + r.getStartNode() + " -> " + r.getEndNode()); }}
 
-			// add all the taxonomy rels that don't conflict with anything in the set
-			for (Relationship t : taxonomyOnlyRels) {
-				long[] taxRelTipIds = mrcaTips(t);
-				if (! included.containsAny(taxRelTipIds)) {
-					included.addAll(taxRelTipIds);
-					bestRelIds.add(t.getId());
-					if (VERBOSE) { System.out.println("adding taxonomy only rel " + t + ": " + t.getStartNode() + " -> " + t.getEndNode()); }
-				}
-			}
-			
-			// add the singletons that aren't included in any other rels
+			// add the singleton source tree rels that aren't included in any other rels
 			for (Relationship s : singletons) {
 				long[] l = mrcaTips(s);
 				assert l.length == 1;
@@ -105,6 +110,16 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 					included.add(singleTipId);
 					bestRelIds.add(s.getId());
 					if (VERBOSE) { System.out.println("adding singleton rel " + s + ": " + s.getStartNode() + " -> " + s.getEndNode()); }
+				}
+			}
+			
+			// add all the taxonomy rels that don't conflict with anything from the source trees
+			for (Relationship t : n.getRelationships(RelType.TAXCHILDOF, Direction.INCOMING)) {
+				long[] taxRelTipIds = mrcaTips(t);
+				if (! included.containsAny(taxRelTipIds)) {
+					included.addAll(taxRelTipIds);
+					bestRelIds.add(t.getId());
+					if (VERBOSE) { System.out.println("adding taxonomy only rel " + t + ": " + t.getStartNode() + " -> " + t.getEndNode()); }
 				}
 			}
 			
@@ -132,6 +147,10 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		}
 	}
 	
+	private boolean treeRelContainsOther(Relationship i, Relationship j) {
+		return mrcaTipsAndInternal(i.getId()).contains(j.getId());
+	}
+	
 	/**
 	 * Return a list containing all the *graph tip nodes* (which will be terminal taxa if taxonomy is being used) that
 	 * are descended from the child node of this relationship. This should be used for assessing taxonomic overlap among
@@ -152,19 +171,59 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 
 	private Set<Long> mrcaTipsAndInternal(Iterable<Long> relIds) {
 		HashSet<Long> included = new HashSet<Long>();
-		for (Long relId : relIds) { included.addAll((Collection<Long>) nodeMrca.get(gdb.getRelationshipById(relId).getStartNode().getId())); }
+		for (Long relId : relIds) { included.addAll(mrcaTipsAndInternal(relId)); }
 		return included;
 	}
+		
 	
+	/**
+	 * Get all the tip nodes and internal nodes descended from this node in synthesis. We use this for scoring
+	 * and for assessing whether a node *contains* other nodes. This method *SHOULD NOT* be used to assess simple
+	 * taxonomic overlap. Use the mrcaTips method for that.
+	 * @param rel
+	 * @return
+	 */
+	private TLongBitArraySet mrcaTipsAndInternal(Long relId) {
+		return nodeMrca.get(gdb.getRelationshipById(relId).getStartNode().getId());
+	}
+		
+	// this has weird effect and should probably not be used.
+	private Map<Relationship, Set<Integer>> augmentedRanks = new HashMap<Relationship, Set<Integer>>();
+
 	/**
 	 * Get the rank for this relationship relative to relationships from other trees.
 	 */
 	private int rank(Relationship r) {
+		
+		if (! augmentedRanks.containsKey(r)) {
+			// 'sourcerank' this is a temporary property. we should be accepting a set of source rankings on construction
+			// and using that information here to return the rank for a given rel based on it's 'source' property
+			augmentedRanks.put(r, new HashSet<Integer>());
+			augmentedRanks.get(r).add((int) r.getProperty("sourcerank"));
+		}
+		
+		int rank = 0;
+		for (int s : augmentedRanks.get(r)) { rank += s; }
+		return rank; /**/
+
 		// 'sourcerank' this is a temporary property. we should be accepting a set of source rankings on construction
 		// and using that information here to return the rank for a given rel based on it's 'source' property
-		return (int) r.getProperty("sourcerank"); 
+//		return (int) r.getProperty("sourcerank");
 	}
-		
+	
+	/**
+	 * Increase the rank of relationship with id i by the rank of relationship with id j.
+	 * WARNING: this has weird effects and should probably not be used.
+	 * @param i
+	 * @param j
+	 */
+	private void uprank(Relationship i, Relationship j) {
+		if (VERBOSE) { System.out.print(i.getStartNode() + " of rank " + rank(i) + " contains all of " +
+				j.getStartNode() + " with rank " + rank(j)); }
+		augmentedRanks.get(i).add(rank(j));
+		if (VERBOSE) { System.out.println(". rank of first rel will be set to " + (rank(j))); }
+	}
+	
 	/**
 	 * A simple helper method for code clarity
 	 * @param r
@@ -203,7 +262,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			relIds[i] = rel.getId();
 			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTips(rel));
 //			weights[i] = getScoreRankedNodeCount(rel);
-//			weights[i] = getScoreNodeCount(rel);
+			weights[i] = getScoreNodeCount(rel);
 //			weights[i] = getScoreRanked(rel);
 
 			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId())); }
@@ -238,13 +297,14 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	}
 	
 	/**
-	 * This score is the weight for the MWIS. This one is just the tree rank. higher ranked rels always trump every lower ranked one.
+	 * This score is the weight for the MWIS. This one is just the tree rank. Higher numbers are better.
 	 * Joseph is working on a better one.
 	 * @param node
 	 * @return
 	 */
 	private double getScoreRanked(Relationship rel) {
-		return 1.0 / Math.pow(2, rank(rel));
+//		return 1.0 / Math.pow(2, rank(rel));
+		return rank(rel);
 	}
 	
 	/**
