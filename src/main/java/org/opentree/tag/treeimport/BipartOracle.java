@@ -771,8 +771,8 @@ public class BipartOracle {
 			nodeBipart = original[treeNodeIds.get(treeNode)];
 		else
 			nodeBipart = getGraphBipartForTreeNode(treeNode,tree);
-		System.out.println(treeNode.getNewick(false)+" "+rankForTreeNode.get(treeNode));
-		System.out.println("\t"+nodeBipart);
+		//System.out.println(treeNode.getNewick(false)+" "+rankForTreeNode.get(treeNode));
+		//System.out.println("\t"+nodeBipart);
 
 		HashSet<Node> graphNodes = new HashSet<Node>();
 		
@@ -786,7 +786,7 @@ public class BipartOracle {
 				}else{
 					childBipart = taxonomyGraphNodesMap.get(potentialChild);
 				}	
-				System.out.println("\t\t"+potentialChild+"\t"+childBipart);
+				//System.out.println("\t\t"+potentialChild+"\t"+childBipart);
 				if(USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(parent)){
 					if(taxonomyGraphNodesMap.containsKey(potentialChild)){
 						if(childBipart != null && parent.equals(potentialChild) == false && 
@@ -797,6 +797,32 @@ public class BipartOracle {
 							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
 							rel.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
 							rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
+							//Go through for the taxonomy
+							//if we match taxonomy then we might check all the children of the taxonomy and map through
+							// we don't have to do this for the other nodes because they will be connected by MRCACHILDOFs
+							boolean going = true;
+							Node curchild = potentialChild;
+							while(going){
+								going = false;
+								for(Relationship rc: curchild.getRelationships(RelType.TAXCHILDOF, Direction.INCOMING)){
+									Node tch = rc.getStartNode();
+									if(taxonomyGraphNodesMap.containsKey(tch)==false)
+										continue;
+									TLongBipartition tchb = taxonomyGraphNodesMap.get(tch);
+									if(parent.equals(tch) == false && 
+											tchb.ingroup().containsAll(nodeBipart.ingroup()) && 
+											tchb.ingroup().containsAny(nodeBipart.outgroup())==false &&
+											taxonomyGraphNodesMap.get(parent).ingroup().containsAll(tchb.ingroup())){
+										graphNodes.add(tch);
+										Relationship rel2 = tch.createRelationshipTo(curchild, RelType.STREECHILDOF);
+										rel2.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
+										rel2.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
+										going = true;
+										curchild = tch;
+										break;
+									}
+								}
+							}
 						}
 					}else{
 						if(childBipart != null &&  childBipart.containsAll(nodeBipart) &&
@@ -817,6 +843,30 @@ public class BipartOracle {
 						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
 						rel.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
 						rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
+						//Go through for the taxonomy
+						//if we match taxonomy then we might check all the children of the taxonomy and map through
+						// we don't have to do this for the other nodes because they will be connected by MRCACHILDOFs
+						boolean going = true;
+						Node curchild = potentialChild;
+						while(going){
+							going = false;
+							for(Relationship rc: curchild.getRelationships(RelType.TAXCHILDOF, Direction.INCOMING)){
+								Node tch = rc.getStartNode();
+								if(taxonomyGraphNodesMap.containsKey(tch)==false)
+									continue;
+								TLongBipartition tchb = taxonomyGraphNodesMap.get(tch);
+								if(childBipart.ingroup().containsAll(nodeBipart.ingroup()) && 
+										childBipart.ingroup().containsAny(nodeBipart.outgroup())==false){
+									graphNodes.add(tch);
+									Relationship rel2 = tch.createRelationshipTo(curchild, RelType.STREECHILDOF);
+									rel2.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
+									rel2.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
+									going = true;
+									curchild = tch;
+									break;
+								}
+							}
+						}
 					}
 				}else{
 					// BE CAREFUL containsAll is directional
@@ -828,7 +878,7 @@ public class BipartOracle {
 						rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
 					}	
 				}
-				System.out.println("\t\t"+graphNodes);
+				//System.out.println("\t\t"+graphNodes);
 			}
 		}
 
