@@ -42,7 +42,11 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	private boolean VERBOSE = true;
 	
 	public RootwardSynthesisExpander(Node root) {
+
+		// could fail if we have MRCACHILDOF cycles. should probably use TAXCHILDOF and STREECHILDOF
+		// need to change constructor to accept a set of reltypes.
 		topologicalOrder = new TopologicalOrder(root, RelType.MRCACHILDOF);
+
 		childRels = new HashMap<Long, HashSet<Relationship>>();
 
 		// holds the ids of *all* the descendant nodes (not just terminals)
@@ -57,13 +61,15 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			// find the maximum-weight independent set of the incoming rels
 			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 			
-			// collect the relationships
+			// collect the relationships.
+			// also need to include taxonomy rels here if we want to allow more inclusive taxonomy rels 
 			Map<Node, Relationship> bestRelForNode = new HashMap<Node, Relationship>();
 			List<Relationship> singletons = new ArrayList<Relationship>();
 			for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.INCOMING)) {
 				if (mrcaTips(r).length > 1) {
 					// for each potential child, only save the rel with the *best* (i.e. HIGHEST) rank--the others redundant
 					Node child = r.getStartNode();
+//					if ( (! bestRelForNode.containsKey(child)) || rank(bestRelForNode.get(child)) < rank(r)) { bestRelForNode.put(child, r); }
 					if ( (! bestRelForNode.containsKey(child)) || rank(bestRelForNode.get(child)) < rank(r)) { bestRelForNode.put(child, r); }
 				} else {
 					singletons.add(r);
@@ -76,7 +82,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
 			// is EXPERIMENTAL and may be incorrect!!!!
 			List<Relationship> treeRels = new ArrayList<Relationship>(bestRelForNode.values());
-			for (int i = 0; i < treeRels.size(); i++) {
+/*			for (int i = 0; i < treeRels.size(); i++) {
 				for (int j = 0; j < treeRels.size(); j++) {
 					if (i != j) {
 //						TLongBitArraySet I = new TLongBitArraySet(mrcaTips(treeRels.get(i)));
@@ -93,7 +99,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 						}
 					}
 				}
-			}
+			} */
 			
 			// get all the best sourcetree rels and collect the ids of all descendant tips
 			List<Long> bestRelIds = findBestNonOverlapping(treeRels);
@@ -261,8 +267,10 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			Relationship rel = relsIter.next();
 			relIds[i] = rel.getId();
 			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTips(rel));
+			weights[i] = getScoreNodeCount(rel); // this is the only one that seems to make sense
+
+			// ranked scoring is messy and screws things up in unpredictable ways
 //			weights[i] = getScoreRankedNodeCount(rel);
-			weights[i] = getScoreNodeCount(rel);
 //			weights[i] = getScoreRanked(rel);
 
 			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId())); }
