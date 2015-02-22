@@ -5,6 +5,7 @@
 .classpath
 *.pyc
 test.db
+tax.db
 data/examples*
 data/taxonomies*
 target*
