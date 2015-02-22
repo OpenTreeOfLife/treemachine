@@ -609,10 +609,13 @@ public class BipartOracle {
 			for (Node taxnd : taxonomyGraphNodesMap.keySet()) {
 				TLongBipartition taxbp = taxonomyGraphNodesMap.get(taxnd);
 				for (TLongBipartition ndbp: nodeForBipart.keySet()) {
-					//System.out.println(taxbp+" "+ndbp+" "+taxbp.ingroup().containsAll(ndbp.ingroup())+" "+taxbp.ingroup().containsAny(ndbp.outgroup()));
+					//System.out.println(nodeForBipart.get(ndbp)+" "+taxbp+" "+ndbp+" "+taxbp.ingroup().containsAll(ndbp.ingroup())+" "+taxbp.ingroup().containsAny(ndbp.outgroup())+" "+ndbp.ingroup().containsAny(taxbp.ingroup()));
 					//check as parent
-					if (taxbp.ingroup().containsAll(ndbp.ingroup()) && taxbp.ingroup().containsAny(ndbp.outgroup())) {
-						updateMRCAChildOf(nodeForBipart.get(ndbp), taxnd);
+					if (taxbp.ingroup().containsAll(ndbp.ingroup())){
+						if(taxbp.ingroup().containsAny(ndbp.outgroup()))
+							updateMRCAChildOf(nodeForBipart.get(ndbp), taxnd);
+						else if(taxbp.ingroup().size() > ndbp.ingroup().size())
+							updateMRCAChildOf(nodeForBipart.get(ndbp), taxnd);
 					}else if(ndbp.ingroup().containsAny(taxbp.ingroup())
 							&& taxbp.ingroup().containsAny(ndbp.outgroup())==false && 
 							taxbp.ingroup().containsAll(ndbp.ingroup()) == false ){//check as child;
@@ -776,6 +779,7 @@ public class BipartOracle {
 		//System.out.println("\t"+nodeBipart);
 
 		HashSet<Node> graphNodes = new HashSet<Node>();
+		HashSet<Node> taxNodesMatched = new HashSet<Node>();
 		
 		// if you create the mrcachildofs before, then you can do this
 		for (Node parent : graphNodesForParent){
@@ -795,6 +799,7 @@ public class BipartOracle {
 								childBipart.ingroup().containsAny(nodeBipart.outgroup())==false &&
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAll(childBipart.ingroup())){
 							graphNodes.add(potentialChild);
+							taxNodesMatched.add(potentialChild);
 							Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
 							rel.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
 							rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
@@ -815,6 +820,7 @@ public class BipartOracle {
 											tchb.ingroup().containsAny(nodeBipart.outgroup())==false &&
 											taxonomyGraphNodesMap.get(parent).ingroup().containsAll(tchb.ingroup())){
 										graphNodes.add(tch);
+										taxNodesMatched.add(tch);
 										Relationship rel2 = tch.createRelationshipTo(curchild, RelType.STREECHILDOF);
 										rel2.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
 										rel2.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
@@ -841,6 +847,7 @@ public class BipartOracle {
 									//nodeBipart.ingroup().containsAll(childBipart.ingroup())){// &&
 									//nodeBipart.ingroup().containsAny(childBipart.outgroup())){
 						graphNodes.add(potentialChild);
+						taxNodesMatched.add(potentialChild);
 						Relationship rel = potentialChild.createRelationshipTo(parent, RelType.STREECHILDOF);
 						rel.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
 						rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
@@ -859,6 +866,7 @@ public class BipartOracle {
 								if(childBipart.ingroup().containsAll(nodeBipart.ingroup()) && 
 										childBipart.ingroup().containsAny(nodeBipart.outgroup())==false){
 									graphNodes.add(tch);
+									taxNodesMatched.add(tch);
 									Relationship rel2 = tch.createRelationshipTo(curchild, RelType.STREECHILDOF);
 									rel2.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
 									rel2.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
@@ -882,7 +890,17 @@ public class BipartOracle {
 				//System.out.println("\t\t"+graphNodes);
 			}
 		}
-
+		//connect equivalent tax nodes to the nodes
+		for(Node gn: taxNodesMatched){
+			for (Relationship trel: gn.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
+				if (graphNodes.contains(trel.getStartNode())){
+					Relationship rel = trel.getStartNode().createRelationshipTo(gn, RelType.STREECHILDOF);
+					rel.setProperty("source", sourceForTreeNode.get(treeNode).intValue());
+					rel.setProperty("sourcerank", rankForTreeNode.get(treeNode).intValue());
+				}
+			}
+		}
+		
 		/*
 		// if you don't create the mrca child ofs earlier then you need to do this.
 		// it's slower than making all the pairwise mrcachildofs earlier
