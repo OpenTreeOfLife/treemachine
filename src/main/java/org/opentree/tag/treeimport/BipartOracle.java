@@ -134,7 +134,7 @@ public class BipartOracle {
 		rankForTreeNode = new HashMap<TreeNode,Integer>();
 		sourceForTreeNode = new HashMap<TreeNode,Integer>();
 		int curt = trees.size();
-		int cust = 0;
+		int cust = 1; // starting at 1 not zero to avoid confusion with taxonomy
 		for (Tree t: trees) {
 			for (TreeNode tn: t.internalNodes(NodeOrder.PREORDER)) { rankForTreeNode.put(tn, curt); sourceForTreeNode.put(tn, cust);}
 			for (TreeNode tn: t.externalNodes()) { rankForTreeNode.put(tn, curt); sourceForTreeNode.put(tn, cust);}
