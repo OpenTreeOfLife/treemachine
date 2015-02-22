@@ -457,7 +457,7 @@ public class BipartOracle {
 		// do a pairwise all-by-all comparison to find all nested bipartitions
 		nestedChildren = new ArrayList[bipart.length];
 		nestedParents = new ArrayList[bipart.length];
-		System.out.print("beginning all-by-all bipart comparison to identify nested biparts for paths...");
+		System.out.print("beginning all-by-all bipart comparison to identify nested biparts ("+bipart.length+") for paths...");
 		long z = new Date().getTime();
 		for (int i = 0; i < bipart.length; i++) {
 
@@ -481,7 +481,7 @@ public class BipartOracle {
 
 		/* 
 		 * leaving old sequential code in here for now in case parallel stream borks.
-		 * 
+		 *
 		nestedChildren = new ArrayList[bipart.length];
 		nestedParents = new ArrayList[bipart.length];
 		for (int i = 0; i < bipart.length; i++) {
@@ -504,7 +504,8 @@ public class BipartOracle {
 		}
 		
 		System.out.println(Arrays.toString(nestedParents));
-		System.out.println(Arrays.toString(nestedChildren)); */
+		System.out.println(Arrays.toString(nestedChildren)); 
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");*/
 
 				
 		// now walk through the implied graph of bipart nestings and build the potential paths that could be followed through this
@@ -527,7 +528,7 @@ public class BipartOracle {
 		}
 		tx.success();
 		tx.finish();
-		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds paths:"+paths.size());
 
 		// report results
 		if (VERBOSE) {
@@ -560,7 +561,7 @@ public class BipartOracle {
 
 		// gather information about which rels to create. this is the full n^2 comparisons among all nodes (i.e. biparts)
 		Map<TLongBipartition, Set<TLongBipartition>> nestedChildren = new HashMap<TLongBipartition, Set<TLongBipartition>>();
-		System.out.print("beginning all-by-all node comparison to identify possible MRCACHILDOF rels...");
+		System.out.print("beginning all-by-all node comparison ("+nodeForBipart.size()+") to identify possible MRCACHILDOF rels...");
 		long z = new Date().getTime();
 		for (TLongBipartition parent: nodeForBipart.keySet()) {
 
@@ -589,7 +590,7 @@ public class BipartOracle {
 		} */
 		
 		// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
-		System.out.print("recording MRCACHILDOF rels in the db...");
+		System.out.print("recording MRCACHILDOF rels ("+nestedChildren.size()+") in the db...");
 		Transaction tx = gdb.beginTx();
 		for (TLongBipartition parent : nestedChildren.keySet()) {
 			for (TLongBipartition child : nestedChildren.get(parent)) {
