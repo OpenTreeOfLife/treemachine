@@ -61,6 +61,8 @@ public class BipartOracle {
 	
 	// key is id for tip, value is hashset of ids that are exploded with this id
 	Map<Object, Collection<Object>> explodedTipsHash;
+	Map<Object, Collection<Object>> explodedTipsHashReduced;
+	Map<Object, Collection<Object>> shrunkSet;//this will have the key as the id used in the shrunk set and the collection as the full set
 	
 	// nestedChildren[i] contains the ids of all the biparts that are nested within bipart i
 	// nestedParents[i] contains the ids of all the biparts that bipart i *is* a nested child of
@@ -103,7 +105,10 @@ public class BipartOracle {
 		// if we are using taxonomy then tree tip labels must correspond to taxon ids. for tips that are
 		// matched to *higher* (i.e. non-terminal) taxa, this will gather the taxon ids of all the terminal
 		// taxa contained by that higher taxon. these 'exploded' sets are used later during various steps.
-		if (USING_TAXONOMY) { explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb); }
+		if (USING_TAXONOMY) { 
+			explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb); 
+			 reduceExplodedTipsHash();
+		}
 		
 		// populate class members: treeNode, original, treeNodeIds, nodeIdForName, nameForNodeId, bipartsByTree
 		gatherTreeData(trees);
@@ -140,6 +145,40 @@ public class BipartOracle {
 			for (TreeNode tn: t.externalNodes()) { rankForTreeNode.put(tn, curt); sourceForTreeNode.put(tn, cust);}
 			curt--;
 			cust++;
+		}
+	}
+	
+	private void reduceExplodedTipsHash(){
+		explodedTipsHashReduced = new HashMap<Object, Collection<Object>>();
+		shrunkSet = new HashMap<Object,Collection<Object>>();
+		HashSet<Object> totallist = new HashSet<Object>();
+		for(Object tip: explodedTipsHash.keySet()){
+			HashSet<Object> tlist= (HashSet<Object>) explodedTipsHash.get(tip);
+			if(tlist.size() == 1){
+				totallist.addAll(tlist);
+			}
+		}
+		for(Object tip: explodedTipsHash.keySet()){
+			HashSet<Object> tlist = (HashSet<Object>) explodedTipsHash.get(tip);
+			HashSet<Object> newlist= new HashSet<Object>();
+			if(tlist.size() == 1){
+				explodedTipsHashReduced.put(tip, tlist);
+			}else{
+				Object templab = tlist.iterator().next();//save one to put in if empty
+				newlist = new HashSet<Object>();
+				for(Object t: tlist){
+					if (totallist.contains(t)){
+						newlist.add(t);
+						shrunkSet.put(t, tlist);
+					}
+				}
+				if (newlist.size() == 0){
+					newlist.add(templab);
+					shrunkSet.put(templab, tlist);
+				}
+				explodedTipsHashReduced.put(tip, newlist);
+			}
+			//System.out.println(tip+" "+explodedTipsHash.get(tip)+" "+explodedTipsHashReduced.get(tip));
 		}
 	}
 	
@@ -318,6 +357,9 @@ public class BipartOracle {
 					for (Object label: explodedTipsHash.get(l)) {
 						collectTaxonNodeForTipLabel(label, ottIdIndex);
 					}
+					//for (Object label: explodedTipsHashReduced.get(l)) {
+					//	collectTaxonNodeForTipLabel(label, ottIdIndex);
+					//}
 	
 					// doing this for the actual tip name as well if it isn't already in the database
 					// might be the case if there are exploded tips... is this to cover tips that weren't exploded?
@@ -1091,8 +1133,35 @@ public class BipartOracle {
 	private Node createNode(TLongBipartition b) {
 		Node node = gdb.createNode();
 		if (VERBOSE) { System.out.println(node); }
-		node.setProperty(NodeProperty.MRCA.propertyName, b.ingroup().toArray());
-		node.setProperty(NodeProperty.OUTMRCA.propertyName, b.outgroup().toArray());
+		//this is all here because of the exploded reduced
+		if(USING_TAXONOMY){
+			//expand from the shrunken set of exploded tips
+			CompactLongSet fullset = new CompactLongSet();
+			for(Long s: b.ingroup()){
+				if(shrunkSet.containsKey(labelForNodeId.get(s))){
+					for(Object x: shrunkSet.get(labelForNodeId.get(s))){
+						fullset.add(nodeIdForLabel.get(x));
+					}
+				}else{
+					fullset.add((Long) s);
+				}
+			}
+			node.setProperty(NodeProperty.MRCA.propertyName, fullset.toArray());
+			fullset = new CompactLongSet();
+			for(Long s: b.outgroup()){
+				if(shrunkSet.containsKey(labelForNodeId.get(s))){
+					for(Object x: shrunkSet.get(labelForNodeId.get(s))){
+						fullset.add(nodeIdForLabel.get(x));
+					}
+				}else{
+					fullset.add((Long) s);
+				}
+			}
+			node.setProperty(NodeProperty.OUTMRCA.propertyName, fullset.toArray());
+		}else{
+			node.setProperty(NodeProperty.MRCA.propertyName, b.ingroup().toArray());
+			node.setProperty(NodeProperty.OUTMRCA.propertyName, b.outgroup().toArray());
+		}
 		nodeForBipart.put(b, node);
 		bipartForNode.put(node, b);
 		return node;
@@ -1136,10 +1205,12 @@ public class BipartOracle {
 
 		if (USING_TAXONOMY) {
 			for (TreeNode n : b.ingroup())  {
-				for	(Object s: explodedTipsHash.get(n)) { ingroup.add(nodeIdForLabel.get(s)); }
+				//for	(Object s: explodedTipsHash.get(n)) { ingroup.add(nodeIdForLabel.get(s)); }
+				for	(Object s: explodedTipsHashReduced.get(n)) { ingroup.add(nodeIdForLabel.get(s)); }
 			}
 			for (TreeNode n : b.outgroup()) {
-				for	(Object s: explodedTipsHash.get(n)) { outgroup.add(nodeIdForLabel.get(s)); }
+				//for	(Object s: explodedTipsHash.get(n)) { outgroup.add(nodeIdForLabel.get(s)); }
+				for	(Object s: explodedTipsHashReduced.get(n)) { outgroup.add(nodeIdForLabel.get(s)); }
 			}
 		} else {
 			for (TreeNode n : b.ingroup())  { ingroup.add(nodeIdForLabel.get(n.getLabel()));  }
