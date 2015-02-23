@@ -122,8 +122,10 @@ public class TLongBipartition {
 		boolean result = false;
 		if (that != null && that instanceof TLongBipartition) {
 			TLongBipartition b = (TLongBipartition) that;
-			result = ingroup.size() == b.ingroup.size() && outgroup.size() == b.outgroup.size()
-					&& ingroup.containsAll(b.ingroup) && outgroup.containsAll(b.outgroup);
+			result = ingroup.size() == b.ingroup.size()
+					&& outgroup.size() == b.outgroup.size()
+					&& ingroup.equals(b.ingroup)
+					&& outgroup.equals(b.outgroup);
 		}
 		return result;
 	}
@@ -131,78 +133,52 @@ public class TLongBipartition {
 	@Override
 	public int hashCode() {
 		// have not tested this hash function for performance. be wary.
-/*		long h = 1;
-		for (long p : ingroup) { h += 17 * p; }
-		for (long p : outgroup) { h += 11 * p; }
-		return (int) h; */
-
-		// attempt to be faster. could attempt to make the ingroup/outgroup sum ops parallel if we need to
-		return (ingroup.hashCode() ^ outgroup.hashCode()) + 0x16293847; 
+		// attempt to produce more even distribution of ints:
+		return ((ingroup.hashCode() * 71) ^ (outgroup.hashCode()) * 29); 
 	}
 		
 	@Override
 	public String toString() {
 		StringBuffer s = new StringBuffer();
-		s.append("{");
-		boolean first = true;
-		for (long l : ingroup) {
-			if (first) {
-				first = false;
-			} else {
-				s.append(", ");
-			}
-			s.append(l);
-		}
-		s.append("} | {");
-		first = true;
-		for (long l : outgroup) {
-			if (first) {
-				first = false;
-			} else {
-				s.append(", ");
-			}
-			s.append(l);
-		}
-		s.append("}");
+		s.append(ingroup.toString());
+		s.append(" | ");
+		s.append(outgroup.toString());
 		return s.toString();
 	}
 	
-//	public String toString(Map<Long, String> names) {
 	public String toString(Map<Long, Object> names) {
 		StringBuffer s = new StringBuffer();
-		s.append("{");
-		boolean first = true;
-		for (long l : ingroup) {
-			if (first) {
-				first = false;
-			} else {
-				s.append(", ");
-			}
-			s.append(names.get(l));
-		}
-		s.append("} | {");
-		first = true;
-		for (long l : outgroup) {
-			if (first) {
-				first = false;
-			} else {
-				s.append(", ");
-			}
-			s.append(names.get(l));
-		}
-		s.append("}");
+		s.append(ingroup.toString(names));
+		s.append(" | ");
+		s.append(outgroup.toString(names));
 		return s.toString();
 	}
 
 	public static void main(String[] args) {
 		nestedTest(new long[][] {{1,2},{3}}, new long[][] {{1,4},{2}}, true);
 		nestedTest(new long[][] {{0,2},{3}}, new long[][] {{0,1,2,3},{}}, false);
+		equalsTest(new long[][] {{0,2},{3}}, new long[][] {{2,0},{3}}, true);
+		equalsTest(new long[][] {{3},{0,2}}, new long[][] {{2,0},{3}}, false);
+		equalsTest(new long[][] {{},{}}, new long[][] {{},{}}, true);
+		equalsTest(new long[][] {{},{0}}, new long[][] {{},{0,0,0,0,0,0}}, true);
+		equalsTest(new long[][] {{0},{}}, new long[][] {{},{0,0,0,0,0,0}}, false);
+		equalsTest(new long[][] {{1,2},{0}}, new long[][] {{2,1},{0,0,0,0,0,0}}, true);
 	}
 	
 	private static void nestedTest(long[][] parent, long[][] child, boolean valid) {
 		TLongBipartition A = new TLongBipartition(parent[0], parent[1]);
 		TLongBipartition B = new TLongBipartition(child[0], child[1]);
 		assert B.isNestedPartitionOf(A) == valid;
+	}
+	
+	private static void equalsTest(long[][] parent, long[][] child, boolean valid) {
+		TLongBipartition A = new TLongBipartition(parent[0], parent[1]);
+		TLongBipartition B = new TLongBipartition(child[0], child[1]);
+		System.out.println(A + " == " + B + " ? " + (B.equals(A) && A.equals(B)));
+		assert (B.equals(A) && A.equals(B)) == valid;
+		System.out.println(A.hashCode() + " == " + B.hashCode() + " ? " + (B.hashCode() == A.hashCode()));
+		assert B.hashCode() == A.hashCode() == valid;
+		System.out.println();
 	}
 	
 }
