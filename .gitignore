@@ -4,6 +4,7 @@
 .project
 .classpath
 *.pyc
+*.tgz
 test.db
 tax.db
 data/examples*

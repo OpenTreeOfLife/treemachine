@@ -307,7 +307,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		for (int i = 0; relsIter.hasNext(); i++) {
 			Relationship rel = relsIter.next();
 			relIds[i] = rel.getId();
-			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTips(rel));
+			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTipsAndInternal(rel.getId()));
 
 //			weights[i] = getScoreNodeCount(rel); // this is the only one that seems to make sense
 
