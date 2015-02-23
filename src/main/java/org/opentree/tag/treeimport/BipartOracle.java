@@ -614,8 +614,8 @@ public class BipartOracle {
 					if (taxbp.ingroup().containsAll(ndbp.ingroup())){
 						if(taxbp.ingroup().containsAny(ndbp.outgroup()))
 							updateMRCAChildOf(nodeForBipart.get(ndbp), taxnd);
-						else if(taxbp.ingroup().size() > ndbp.ingroup().size())
-							updateMRCAChildOf(nodeForBipart.get(ndbp), taxnd);
+						//else if(taxbp.ingroup().size() > ndbp.ingroup().size())
+						//	updateMRCAChildOf(nodeForBipart.get(ndbp), taxnd);
 					}else if(ndbp.ingroup().containsAny(taxbp.ingroup())
 							&& taxbp.ingroup().containsAny(ndbp.outgroup())==false && 
 							taxbp.ingroup().containsAll(ndbp.ingroup()) == false ){//check as child;
