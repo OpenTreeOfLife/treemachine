@@ -34,7 +34,7 @@ import scala.actors.threadpool.Arrays;
 
 public class RootwardSynthesisExpander extends SynthesisExpander implements PathExpander {
 
-		private TopologicalOrder topologicalOrder;
+	private TopologicalOrder topologicalOrder;
 	private Map<Long, HashSet<Relationship>> childRels;
 	private Map<Long, TLongBitArraySet> nodeMrca;
 	private GraphDatabaseAgent gdb;
