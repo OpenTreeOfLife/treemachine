@@ -43,7 +43,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	
 	private boolean VERBOSE = true;
 
-	private boolean USING_RANKS = true;
+	private boolean USING_RANKS = false;
 	
 	public RootwardSynthesisExpander(Node root) {
 
@@ -313,6 +313,20 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 
 			// ranked scoring is messy and screws things up in unpredictable ways
 //			weights[i] = getScoreRankedNodeCount(rel);
+			
+			/* WARNING. there is a problem with this approach to using rank information, which is that if we include multiple rels from
+			 * the same tree, then each one is given the rank of that tree as its score. this means that the total score of all the rels
+			 * from a single tree is equal to at least twice the actual rank of the tree when there is more than one rel. that's no good,
+			 * because ranks from lower ranked trees are never supposed to be able to overtake ranks from higher ranked trees, but that
+			 * is *exactly* what they will do if there are few rels from a higher ranked tree that conflict with many from a lower ranked
+			 * one (e.g. a large low ranked polytomy!). We need a way to pass identifying information to the mwis that can check for all
+			 * the tree ranks included in a given set and calculate a set score that accounts for each rank only once regardless of how
+			 * many incoming rels there are from the tree with that rank! this shouldn't be impossible to do. i think it just means an
+			 * additional array consisting of scores for ids (i.e. scores for ranks), an array with the sets of ids (i.e. ranks) for each
+			 * relationship, and a smarter score calculating mechanism that looks at all the ids (ranks) and sums the scores for all the
+			 * present ids. Of course, we will still want to prefer larger sets of rels as well. so that might get tricky since it will be
+			 * possible to add many rels to a set without increasing its score. but possibly doable...
+			 */
 			
 			if (USING_RANKS) {
 				weights[i] = getScoreRanked(rel);
