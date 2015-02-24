@@ -30,7 +30,7 @@ function testsynthesis {
     fi
     set -x
     orderstr=""
-    if ! $treemachine inittax "${inputdir}"/taxonomy.tsv "${inputdir}"/synonyms.tsv "${dbdir}" >"${outputdir}"/inittax.log 2>&1
+    if ! $treemachine inittax "${inputdir}"/taxonomy.tsv dummyTaxonomy "${dbdir}" >"${outputdir}"/inittax.log 2>&1
     then 
         cat "${outputdir}"/inittax.log
         exit 1
