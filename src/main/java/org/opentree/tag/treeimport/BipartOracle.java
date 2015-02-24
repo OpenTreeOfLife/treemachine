@@ -550,10 +550,10 @@ public class BipartOracle {
 
 						if (bq.isNestedPartitionOf(bp)) {
 							// record this nestedchildof relationship
-							nestedParents[pid].add(qid);
-							nestedChildren[qid].add(pid);
+							nestedParents[qid].add(pid);
+							nestedChildren[pid].add(qid);
 							if (! treesHaveIdenticalTaxa) {
-								nestedAugmentingParents[pid].add(qid);
+								nestedAugmentingParents[qid].add(pid);
 //								nestedAugmentingChildren[qid].add(pid);
 							}
 						}
@@ -1070,7 +1070,7 @@ public class BipartOracle {
 			testset.removeAll(cumulativeIngroup);
 			testset.removeAll(cumulativeOutgroup);
 			if (testset.size() == 0){continue;}
-			//can continue if the nextid isn't in the original one
+			//can continue if the nextid isn't in the original one because that means original bipart on this path can't be a nested child of the next parent
 			if(nestedAugmentingParents[originalParentId].contains(nextParentId)==false){continue;}
 			CompactLongSet outgroupsToAdd = findPaths(nextParentId, new CompactLongSet(cumulativeIngroup), path, level+1, originalParentId);
 			if (outgroupsToAdd != null) { // did not encounter a dead end path
@@ -1337,9 +1337,9 @@ public class BipartOracle {
 		
 		// these are tests for order
 		String dbname = "test.db";
-		runSimpleTest(nestedOverlap(), dbname);
+//		runSimpleTest(nestedOverlap2(), dbname);
 //		runSimpleTest(conflictingAugmenting(), dbname);
-//		runSimpleTest(cycleConflictTrees(), dbname);
+		runSimpleTest(cycleConflictTrees(), dbname);
 //		runSimpleTest(nonOverlapTrees(), dbname);
 //		runSimpleTest(test4Trees(), dbname);
 //		runSimpleTest(test3Trees(), dbname);
@@ -1506,7 +1506,17 @@ public class BipartOracle {
 		t.add(TreeReader.readTree("(((((((((A,E),D),C),F),G),H),I),B),J);"));
 		return t;
 	}
-	
+
+	@SuppressWarnings("unused")
+	private static List<Tree> nestedOverlap2() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		t.add(TreeReader.readTree("((A,B),C);"));
+		t.add(TreeReader.readTree("((B,D),C);"));
+		t.add(TreeReader.readTree("((E,B),(G,H));"));
+		t.add(TreeReader.readTree("((A,E),B);"));
+		return t;
+	}
+
 	@SuppressWarnings("unused")
 	private static List<Tree> test3Trees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
