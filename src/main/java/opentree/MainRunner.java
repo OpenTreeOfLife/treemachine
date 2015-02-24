@@ -973,7 +973,7 @@ public class MainRunner {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
 		System.out.println("started graph import");
-		BipartOracle bo = new BipartOracle(jt,gdb,tloaded);
+		BipartOracle bo = new BipartOracle(jt, gdb, tloaded);
 		
 		gdb.shutdownDb();
 		return 0;
@@ -1822,7 +1822,7 @@ public class MainRunner {
 			LinkedList<String> preferredSources = new LinkedList<String>();
 			String [] tsl = slist.split(",");
 			for (int i = 0; i < tsl.length; i++) {preferredSources.add(tsl[i]);}
-			System.out.println(preferredSources);
+			System.out.println("Ranked sources = " + preferredSources);
 			//preferredSources.add("taxonomy");, need to add taxonomy 
 
 			// find the start node
@@ -2057,6 +2057,50 @@ public class MainRunner {
 		
 		JadeTree synthTree = null;
 		synthTree = ge.extractDraftTree(firstNode, GraphBase.DRAFTTREENAME);
+
+		if (synthTree == null) {
+			return -1;
+		}
+		
+		PrintWriter outFile = null;
+		try {
+			outFile = new PrintWriter(new FileWriter(outFileName));
+			outFile.write(synthTree.getRoot().getNewick(false) + ";\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			outFile.close();
+			ge.shutdownDB();
+		}
+		
+		return 0;
+	}
+	
+	public int extractDraftTreeByName(String [] args) throws MultipleHitsException, TaxonNotFoundException {
+		if (args.length < 4) {
+			System.out.println("arguments should be syntheTreeName outFileName (startNodeID) graphdbfolder");
+			return 1;
+		}
+		String synthName = args[1];
+		String outFileName = args[2];
+		String graphname = "";
+		Long startNodeId = (long) -1;
+		if (args.length == 5) {
+			startNodeId = Long.valueOf(args[3]);
+			graphname = args[4];
+		} else {
+			graphname = args[3];
+		}
+		
+		GraphExplorer ge = new GraphExplorer(graphname);
+		
+		Node firstNode = null;
+		if (startNodeId != -1) {
+			firstNode = ge.graphDb.getNodeById(startNodeId);
+		}
+		
+		JadeTree synthTree = null;
+		synthTree = ge.extractDraftTreeByName(firstNode, synthName);
 
 		if (synthTree == null) {
 			return -1;
@@ -3131,6 +3175,11 @@ public class MainRunner {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForTaxUID(args);
 			} else if (command.compareTo("synthesizedrafttreelist_nodeid") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForNodeId(args);
+				
+			} else if (command.compareTo("extractdrafttree_name") == 0) {
+				cmdReturnCode = mr.extractDraftTreeByName(args);
+				
+				
 			} else if (command.compareTo("synthesisinfo") == 0) {
 				cmdReturnCode = mr.getSynthesisInfo(args);
 			} else if (command.compareTo("extractdrafttree_ottid") == 0) {

@@ -1379,6 +1379,17 @@ public class GraphExplorer extends GraphBase {
 	}
 	
 	
+	public Node getSynthesisMetaNodeByName(String synthTreeName) {
+		IndexHits<Node> hits = synthMetaIndex.query("name", synthTreeName);
+		Node nd = null;
+		if (hits.hasNext()) {
+			nd = hits.next();
+		}
+		hits.close();
+		return nd;
+	}
+	
+	
 	/**
 	 * The synthesis method for creating the draft tree. Uses the refactored synthesis classes. This will store the synthesized
 	 * topology as SYNTHCHILDOF relationships in the graph.
@@ -1396,6 +1407,9 @@ public class GraphExplorer extends GraphBase {
 			sourceIdPriorityList.add(sourceId);
 		}
 		
+		// alternative way. not using now.
+		String synthName = "";
+		
 		// build the list of ids, have to use generic objects
 		String [] sourceIdPriorityListString = new String [sourceIdPriorityList.size()];
 		int iii = 0;
@@ -1408,8 +1422,35 @@ public class GraphExplorer extends GraphBase {
 			} else {
 				justSourcePriorityList.add(sourceId.split("_")[0]);
 			}
+			// build up synthesis name
+			if (synthName == "") {
+				synthName = sourceId;
+			} else {
+				synthName += "_" + sourceId;
+			}
 			sourceIdPriorityListString[iii] = sourceId;
 			iii++;
+		}
+		
+		System.out.println("\nsynthName built up to: " + synthName + "\n");
+		
+		boolean done = false;
+		String tempSynthTreeName = DRAFTTREENAME;
+		int jj = 0;
+		while (!done) {
+			String terp = tempSynthTreeName;
+			if (jj > 0) {
+				terp += "_" + jj;
+			}
+			IndexHits<Node> hits  = synthMetaIndex.query("name", terp);
+			if (hits.size() > 0) {
+				System.out.println("Synthname '" + terp + "' already used.");
+			} else {
+				tempSynthTreeName = terp;
+				System.out.println("Setting synthname to: '" + terp + "'.");
+				done = true;
+			}
+			jj++;
 		}
 		
 		// define the synthesis protocol
@@ -1472,7 +1513,10 @@ public class GraphExplorer extends GraphBase {
 		
 		//make the metadatanode
 		Transaction tx = graphDb.beginTx();
-		String synthTreeName = DRAFTTREENAME; // needs to be changed to the name that gets passed
+		//String synthTreeName = DRAFTTREENAME; // needs to be changed to the name that gets passed
+		
+		String synthTreeName = tempSynthTreeName;
+		
 		try {
 			Node metadatanode = graphDb.createNode();
 			metadatanode.createRelationshipTo(startNode, RelType.SYNTHMETADATAFOR);
@@ -1484,15 +1528,16 @@ public class GraphExplorer extends GraphBase {
 			metadatanode.setProperty("sourcenames", sourceIdPriorityListString); // need to make sure that this list is processed correctly
 			
 			// Adding 1) taxonomy version and 2) start node to the metadata node too, as it seems convenient to have everything together
-			if(getTaxonomyVersion() != null)
+			if (getTaxonomyVersion() != null) {
 				metadatanode.setProperty("taxonomy", getTaxonomyVersion());
-			else
+			} else {
 				metadatanode.setProperty("taxonomy", "0.0");
+			}
 			metadatanode.setProperty("startnode", startNode.getId()); // even though it is directly attached
 			
 			synthMetaIndex.add(metadatanode, "name", synthTreeName);
 			
-			this.graphDb.setGraphProperty("draftTreeRootNodeId", startNode.getId());
+			this.graphDb.setGraphProperty("draftTreeRootNodeId", startNode.getId()); // hmm. do we want this i.e. if storing multiple trees?
 			
 			tx.success();
 		} catch (Exception ex) {
@@ -1523,8 +1568,8 @@ public class GraphExplorer extends GraphBase {
 					
 					
 					// add to synthesis index
-					synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
-					
+					//synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
+					synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
 					
 					// get all the sources supporting this relationship
 					HashSet<String> sources = new HashSet<String>();
@@ -1579,7 +1624,8 @@ public class GraphExplorer extends GraphBase {
 							Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
 							curnode = tr.getEndNode();
 							System.out.println("deleting: " + tr);
-							synthRelIndex.remove(tr, "draftTreeID", DRAFTTREENAME);
+							//synthRelIndex.remove(tr, "draftTreeID", DRAFTTREENAME);
+							synthRelIndex.remove(tr, "draftTreeID", synthTreeName);
 							tr.delete();
 						} else {
 							break;
@@ -1909,11 +1955,32 @@ public class GraphExplorer extends GraphBase {
 	public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
 		
 		// empty parameters for initial recursion
+		System.out.println("Attempting to extract draft tree name: '" + DRAFTTREENAME + "'");
 		JadeNode parentJadeNode = null;
 		Relationship incomingRel = null;
 		
 		return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
 	}
+	
+	// extract a specific synthetic tree by name
+	public JadeTree extractDraftTreeByName(Node startNode, String synthTreeName) {
+		
+		// empty parameters for initial recursion
+		System.out.println("Attempting to extract draft tree name: '" + synthTreeName + "'");
+		JadeNode parentJadeNode = null;
+		Relationship incomingRel = null;
+		
+		// will need a check if a node id is passed but is not in the desired synth tree
+		if (startNode == null) {
+			Node synthMeta = getSynthesisMetaNodeByName(synthTreeName);
+			System.out.println("Found metadatanode: " + synthMeta);
+			startNode = graphDb.getNodeById((Long) synthMeta.getProperty("startnode"));
+			System.out.println("Found start node for tree '" + synthTreeName + "': " + startNode);
+		}
+		
+		return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, synthTreeName));
+	}
+
 	
 	/**
 	 * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
@@ -1946,10 +2013,10 @@ public class GraphExplorer extends GraphBase {
 		JadeNode curNode = new JadeNode();
 		
 		// testing
-		//	System.out.println("child graph node: " + curGraphNode.getId());
-		//	if (parentJadeNode != null) {
-		//		System.out.println("parent jade node: " + parentJadeNode.toString());
-		//	}
+		//System.out.println("child graph node: " + curGraphNode.getId());
+		//if (parentJadeNode != null) {
+		//	System.out.println("parent jade node: " + parentJadeNode.toString());
+		//}
 		
 		// set the names for the newick string
 		if (curGraphNode.hasProperty("name")) {
@@ -1959,8 +2026,20 @@ public class GraphExplorer extends GraphBase {
 		
 		// add the current node to the tree we're building
 		if (parentJadeNode != null) {
-			if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")) {
-				curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
+			boolean done = false;
+			while (!done) {
+				for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
+					
+					if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
+						curNode.assocObject("supporting_sources", (String [] ) synthChildRel.getProperty("supporting_sources"));
+						System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
+						done = true;
+					}
+					
+				}
+				//if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")) {
+				//	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
+				//}
 			}
 			parentJadeNode.addChild(curNode);
 			if (incomingRel.hasProperty("branch_length")) {
@@ -1972,10 +2051,13 @@ public class GraphExplorer extends GraphBase {
 		LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
 		for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
 			
+			//System.out.println("Current rel name = " + String.valueOf(synthChildRel.getProperty("name")));
+			
 			// TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
 			if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
 				// currently just filtering on name
 				synthChildRels.add(synthChildRel);
+				//System.out.println("Current rel matches synth tree '" + synthTreeName + "'");
 			}
 		}
 		
