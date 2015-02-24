@@ -1,10 +1,10 @@
 ##################
 
 #synthesis, 1 is the root node id for the root from the tax, and the taxonomy is just something has to be in that list, it would be the ranking but you have that in the rels, so just ignore
-java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar synthesizedrafttreelist_nodeid 1 taxonomy some.db
+#java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar synthesizedrafttreelist_nodeid 1 taxonomy some.db
 
 #extract synth tree, the 1 is the root node id again from above
-java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar extractdrafttree_nodeid 1 synth.tre some.db
+#java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar extractdrafttree_nodeid 1 synth.tre some.db
 
 ##################
 
