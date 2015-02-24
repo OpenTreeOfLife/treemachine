@@ -89,15 +89,14 @@ public class TLongBipartition {
 		return false;
 	}
 	
-	
 	/**
 	 * Returns true if the called bipartition contains information that could be used to further resolve relationships
 	 * among the ingroup of the bipartition passed to the method. This is an asymmetrical relationship--no bipartition
-	 * may be a resolving child of a second bipartition which is in turn a resolving child of the first.<br/>
+	 * may be a nested partition of a second bipartition which is in turn a nested partition of the first.<br/>
 	 * <br/>
 	 * Let B be the potentially nested bipartition and A be the bipartition it is proposed to be nested within. Then, B
-	 * is nested within A if and only if B's ingroup does not contain anything in the outgroup of A (if it did then B
-	 * could not be a child of A), *and* A's outgroup contains at least something in the ingroup of B. This second
+	 * is a nested partition of A if and only if B's ingroup does not contain any elements in the outgroup of A (if it did
+	 * then B could not be a child of A), *and* B's outgroup contains at least one element in the ingroup of A. This second
 	 * condition implies that the relationships among A's ingroup can be further resolved by the inclusion of B as a
 	 * child of A.
 	 * 
@@ -105,11 +104,9 @@ public class TLongBipartition {
 	 *            the potentially more inclusive bipartition
 	 * @return	true if this bipartition is nested within A
 	 */
-	public boolean isNestedPartitionOf(TLongBipartition B) {
-		if (B.outgroup.containsAny(this.ingroup)) {
-			return false; // a cannot be nested within b
-		} 
-		return B.ingroup.containsAny(this.outgroup); // a can be nested within b
+	public boolean isNestedPartitionOf(TLongBipartition A) {
+		if (A.outgroup.containsAny(this.ingroup)) { return false; } // this cannot be nested within A
+		return this.outgroup.containsAny(A.ingroup); // whether this can be used to partition A's ingroup
 	}
 	
 	public boolean overlapsWith(TLongBipartition that) {
@@ -117,6 +114,21 @@ public class TLongBipartition {
 			   this.outgroup.containsAny(that.ingroup) || this.outgroup.containsAny(that.outgroup);
 	}
 
+	public boolean hasIdenticalTaxonSetAs(TLongBipartition that) {
+		boolean result = false;
+		if (this.ingroup.size() + this.outgroup.size() == that.ingroup.size() + that.outgroup.size()) {
+			
+			CompactLongSet a = new CompactLongSet(this.ingroup);
+			a.addAll(this.outgroup);
+			
+			CompactLongSet b = new CompactLongSet(that.ingroup);
+			b.addAll(that.outgroup);
+
+			result = b == a;
+		}
+		return result;
+	}
+	
 	@Override
 	public boolean equals(Object that) {
 		boolean result = false;
@@ -160,6 +172,7 @@ public class TLongBipartition {
 		equalsTest(new long[][] {{0,2},{3}}, new long[][] {{2,0},{3}}, true);
 		equalsTest(new long[][] {{3},{0,2}}, new long[][] {{2,0},{3}}, false);
 		equalsTest(new long[][] {{},{}}, new long[][] {{},{}}, true);
+		equalsTest(new long[][] {{1,3},{2}}, new long[][] {{1,3},{3}}, true);
 		equalsTest(new long[][] {{},{0}}, new long[][] {{},{0,0,0,0,0,0}}, true);
 		equalsTest(new long[][] {{0},{}}, new long[][] {{},{0,0,0,0,0,0}}, false);
 		equalsTest(new long[][] {{1,2},{0}}, new long[][] {{2,1},{0,0,0,0,0,0}}, true);
