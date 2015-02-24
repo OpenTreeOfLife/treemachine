@@ -19,9 +19,9 @@ public class TLongBipartition {
 		this.outgroup = new CompactLongSet(outgroup);
 	}
 
-	public TLongBipartition(TLongBipartition nested) {
-		ingroup = new CompactLongSet(nested.ingroup);
-		outgroup = new CompactLongSet(nested.outgroup);
+	public TLongBipartition(TLongBipartition original) {
+		ingroup = new CompactLongSet(original.ingroup);
+		outgroup = new CompactLongSet(original.outgroup);
 	}
 
 	public CompactLongSet ingroup() {
@@ -124,7 +124,7 @@ public class TLongBipartition {
 			CompactLongSet b = new CompactLongSet(that.ingroup);
 			b.addAll(that.outgroup);
 
-			result = b == a;
+			result = b.equals(a);
 		}
 		return result;
 	}
@@ -172,7 +172,7 @@ public class TLongBipartition {
 		equalsTest(new long[][] {{0,2},{3}}, new long[][] {{2,0},{3}}, true);
 		equalsTest(new long[][] {{3},{0,2}}, new long[][] {{2,0},{3}}, false);
 		equalsTest(new long[][] {{},{}}, new long[][] {{},{}}, true);
-		equalsTest(new long[][] {{1,3},{2}}, new long[][] {{1,3},{3}}, true);
+		equalsTest(new long[][] {{1,3},{2}}, new long[][] {{1,3},{3}}, false);
 		equalsTest(new long[][] {{},{0}}, new long[][] {{},{0,0,0,0,0,0}}, true);
 		equalsTest(new long[][] {{0},{}}, new long[][] {{},{0,0,0,0,0,0}}, false);
 		equalsTest(new long[][] {{1,2},{0}}, new long[][] {{2,1},{0,0,0,0,0,0}}, true);

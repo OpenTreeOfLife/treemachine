@@ -229,14 +229,13 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		}
 		
 		System.out.println("processing biparts for sum");
-		long z = new Date().getTime();
 		new BipartSetSum(input);
 	}
 
 	private static void testSimpleGroup() {
 		long[][][] in = new long[][][]   {{{1,2  }, {1,2,3}, {1,2,3,4}}, {{1,9     }, {1,9,10}, {1,9,10,11}}};
 		long[][][] out = new long[][][]  {{{3,4,5}, {4,5  }, {5      }}, {{10,11,12}, {11,12 }, {12       }}};
-		testGroup("simple no overlap: sum should only contain original biparts", in, out);
+		testGroup("simple no overlap with groups: sum should be empty", in, out);
 	}
 
 	
@@ -245,7 +244,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		long[][] out = new long[][]  {{3},    {6},    {9}};
 		long[][] inE = new long[][]  {};
 		long[][] outE = new long[][] {};
-		test("simple no overlap: sum should only contain original biparts", in, out, inE, outE);
+		test("simple no overlap: sum should be empty", in, out, inE, outE);
 	}
 
 	private static void testSimplePartialOverlap() {
@@ -277,7 +276,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		long[][] out = new long[][]  {{5,6},  {7,8},  {9,10}, {1,2}, {3,4}};
 		long[][] inE = new long[][]  {};
 		long[][] outE = new long[][] {};
-		test("five symmetrical non overlap: sum should only contain original biparts", in, out, inE, outE);
+		test("five symmetrical non overlap: sum should be empty", in, out, inE, outE);
 	}
 	
 	private static void testDuplicateSum() {
