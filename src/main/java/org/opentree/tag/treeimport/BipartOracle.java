@@ -173,7 +173,8 @@ public class BipartOracle {
 	}
 	
 	private void reduceExplodedTipsHash(){
-		explodedTipsHashReduced = new HashMap<Object, Collection<Object>>();
+		explodedTipsHashReduced = explodedTipsHash;
+		/*explodedTipsHashReduced = new HashMap<Object, Collection<Object>>();
 		shrunkSet = new HashMap<Object,Collection<Object>>();
 		HashSet<Object> totallist = new HashSet<Object>();
 		for(Object tip: explodedTipsHash.keySet()){
@@ -182,28 +183,65 @@ public class BipartOracle {
 				totallist.addAll(tlist);
 			}
 		}
+		System.out.println(totallist);
+		//put in the list the representative so that the nested ones, get it right
+		for(Object tip: explodedTipsHash.keySet()){
+			HashSet<Object> tlist = (HashSet<Object>) explodedTipsHash.get(tip);
+			if(tlist.size() != 1){
+				Object templab = tlist.iterator().next();//save one to put in if empty
+				boolean found = false;
+				for(Object t: tlist){
+					if (totallist.contains(t)){
+						found = true;
+					}
+				}
+				if (found == false){
+					totallist.add(templab);
+				}
+			}
+		}
+		System.out.println(totallist);
 		for(Object tip: explodedTipsHash.keySet()){
 			HashSet<Object> tlist = (HashSet<Object>) explodedTipsHash.get(tip);
 			HashSet<Object> newlist= new HashSet<Object>();
 			if(tlist.size() == 1){
 				explodedTipsHashReduced.put(tip, tlist);
 			}else{
-				Object templab = tlist.iterator().next();//save one to put in if empty
 				newlist = new HashSet<Object>();
 				for(Object t: tlist){
 					if (totallist.contains(t)){
 						newlist.add(t);
-						shrunkSet.put(t, tlist);
 					}
 				}
-				if (newlist.size() == 0){
-					newlist.add(templab);
-					shrunkSet.put(templab, tlist);
-				}
+				System.out.println(tip+" "+newlist+" "+newlist.size());
+				if(newlist.size() != tlist.size()){
+					shrunkSet.put(((TreeNode)tip).getLabel(), tlist);
+				}//else if newlist.size() == tlist.size() we can just put it all in there, it isn't shrunk
 				explodedTipsHashReduced.put(tip, newlist);
 			}
 			//System.out.println(tip+" "+explodedTipsHash.get(tip)+" "+explodedTipsHashReduced.get(tip));
 		}
+		//checking for overlap to add things
+		for(Object tip: explodedTipsHashReduced.keySet()){
+			if(shrunkSet.containsKey(((TreeNode)tip).getLabel())== false)
+				continue;
+			explodedTipsHashReduced.get(tip).add(((TreeNode)tip).getLabel());
+			for(Object tip2: explodedTipsHashReduced.keySet()){
+				if(shrunkSet.containsKey(((TreeNode)tip2).getLabel())== false)
+					continue;
+				if(tip == tip2 || ((TreeNode)tip).getLabel().equals(((TreeNode)tip2).getLabel())){
+					continue;
+				}else{
+					//tip2 contained within tip
+					if(shrunkSet.get(((TreeNode)tip).getLabel()).containsAll(shrunkSet.get(((TreeNode)tip2).getLabel()))){
+						explodedTipsHashReduced.get(tip).add(((TreeNode)tip2).getLabel());
+					}
+				}
+			}	
+		}
+		System.out.println(shrunkSet);
+		System.out.println(explodedTipsHashReduced);*/
+		//System.exit(0);
 	}
 	
 	/**
@@ -1139,34 +1177,64 @@ public class BipartOracle {
 		Node node = gdb.createNode();
 		if (VERBOSE) { System.out.println(node); }
 		//this is all here because of the exploded reduced
-		if(USING_TAXONOMY){
+		/*if(USING_TAXONOMY){
 			//expand from the shrunken set of exploded tips
-			CompactLongSet fullset = new CompactLongSet();
+			CompactLongSet fullsetin = new CompactLongSet();
+			CompactLongSet fullsetout = new CompactLongSet();
+
+			HashMap<Object,CompactLongSet> toexpandingroup = new HashMap<Object,CompactLongSet>();
+			HashMap<Object,CompactLongSet> toexpandoutgroup = new HashMap<Object,CompactLongSet>();
 			for(Long s: b.ingroup()){
 				if(shrunkSet.containsKey(labelForNodeId.get(s))){
+					CompactLongSet tempset = new CompactLongSet();
 					for(Object x: shrunkSet.get(labelForNodeId.get(s))){
-						fullset.add(nodeIdForLabel.get(x));
+						tempset.add(nodeIdForLabel.get(x));
 					}
+					toexpandingroup.put(labelForNodeId.get(s),tempset);
 				}else{
-					fullset.add((Long) s);
+					fullsetin.add((Long) s);
 				}
 			}
-			node.setProperty(NodeProperty.MRCA.propertyName, fullset.toArray());
-			fullset = new CompactLongSet();
 			for(Long s: b.outgroup()){
 				if(shrunkSet.containsKey(labelForNodeId.get(s))){
+					CompactLongSet tempset = new CompactLongSet();
 					for(Object x: shrunkSet.get(labelForNodeId.get(s))){
-						fullset.add(nodeIdForLabel.get(x));
+						tempset.add(nodeIdForLabel.get(x));
 					}
+					toexpandoutgroup.put(labelForNodeId.get(s),tempset);
 				}else{
-					fullset.add((Long) s);
+					fullsetout.add((Long) s);
 				}
 			}
-			node.setProperty(NodeProperty.OUTMRCA.propertyName, fullset.toArray());
-		}else{
+			//check for overlap
+			for(Object tip: toexpandingroup.keySet()){
+				toexpandingroup.get(tip).removeAll(fullsetout);
+				for(Object tip2: toexpandoutgroup.keySet()){
+					//tip2 contained within tip
+					if(shrunkSet.get(tip).containsAll(shrunkSet.get(tip2))){
+						toexpandingroup.get(tip).removeAll(toexpandoutgroup.get(tip2));
+					}
+				}
+				fullsetin.addAll(toexpandingroup.get(tip));
+			}for(Object tip: toexpandoutgroup.keySet()){
+				toexpandoutgroup.get(tip).removeAll(fullsetin);
+				for(Object tip2: toexpandingroup.keySet()){
+					//tip2 contained within tip
+					if(shrunkSet.get(tip).containsAll(shrunkSet.get(tip2))){
+						toexpandoutgroup.get(tip).removeAll(toexpandingroup.get(tip2));
+					}
+				}fullsetout.addAll(toexpandoutgroup.get(tip));	
+			}
+			
+			System.out.println("-"+b.ingroup()+" "+b.outgroup());
+			System.out.println(fullsetin);
+			System.out.println(fullsetout);
+			node.setProperty(NodeProperty.MRCA.propertyName, fullsetin.toArray());
+			node.setProperty(NodeProperty.OUTMRCA.propertyName, fullsetout.toArray());
+		}else{*/
 			node.setProperty(NodeProperty.MRCA.propertyName, b.ingroup().toArray());
 			node.setProperty(NodeProperty.OUTMRCA.propertyName, b.outgroup().toArray());
-		}
+		//}
 		nodeForBipart.put(b, node);
 		bipartForNode.put(node, b);
 		return node;
