@@ -18,6 +18,8 @@ import static java.util.stream.Collectors.*;
 public class BipartSetSum implements Iterable<TLongBipartition> {
 	
 	private Set<TLongBipartition> bipart;
+	
+	private static boolean USE_PARALLEL = true;
 
 	public BipartSetSum(Collection<TLongBipartition> all) {
 		// first remove duplicates
@@ -25,6 +27,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		for (TLongBipartition b : all) { filtered.add(b); }
 
 		bipart = sum(filtered, filtered); // sum all against all
+		bipart.removeAll(filtered); // remove duplicates of the original biparts
 	}
 	
 	public BipartSetSum(TLongBipartition[] original) {
@@ -33,6 +36,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		for (int i = 0; i < original.length; i++) { filtered.add(original[i]); }
 
 		bipart = sum(filtered, filtered); // sum all against all
+		bipart.removeAll(filtered); // remove duplicates of the original biparts
 	}
 	
 	/**
@@ -72,7 +76,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		z = new Date().getTime();
 		Set<TLongBipartition> biparts = new HashSet<TLongBipartition>();
 		for (int i = 0; i < filteredGroups.size(); i++) {
-			biparts.addAll(filteredGroups.get(i)); // record the originals from group i
+//			biparts.addAll(filteredGroups.get(i)); // record the originals from group i
 			for (int j = i+1; j < filteredGroups.size(); j++) {
 				biparts.addAll(sum(filteredGroups.get(i), filteredGroups.get(j))); // record the sums against group j
 			}
@@ -80,20 +84,45 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
 		bipart = biparts; //.toArray(new TLongBipartition[0]);
+		for (Collection<TLongBipartition> b : bipartsByTree) {
+			bipart.removeAll(b); // remove duplicates of the original biparts
+		}
 	}
 
 	private static Set<TLongBipartition> combineWithAll(TLongBipartition b, Collection<TLongBipartition> others) {
-		Set<TLongBipartition> x = (others.parallelStream()
-				.map(a -> a.sum(b)).collect(toSet())).stream() // sum this bipart against all others
-				.filter(r -> r != null).collect(toSet());      // and filter null entries from the results
+
+		Set<TLongBipartition> x;
+
+		if (USE_PARALLEL) {
+			x = (others.parallelStream()
+					.map(a -> a.sum(b)).collect(toSet())).stream() // sum this bipart against all others
+					.filter(r -> r != null).collect(toSet());      // and filter null entries from the results
+		} else { // sequential
+			x = new HashSet<TLongBipartition>();
+			for (TLongBipartition a : others) {
+				TLongBipartition s = a.sum(b);
+				if (s != null) { x.add(s); }
+			}
+		}
 		return x;
 	}
 	
 	private Set<TLongBipartition> sum(Collection<TLongBipartition> A, Collection<TLongBipartition> B) {
-		return A.parallelStream()
-				.map(a -> combineWithAll(a, B)) // sum all biparts against all others, (returns a stream of sets)
-				// and collect the contents of all the resulting sets into a single set
-				.collect(() -> new HashSet<TLongBipartition>(), (x, y) -> x.addAll(y), (x, y) -> x.addAll(y));
+		
+		Set<TLongBipartition> z;
+
+		if (USE_PARALLEL) {
+			z = A.parallelStream()
+					.map(a -> combineWithAll(a, B)) // sum all biparts against all others, (returns a stream of sets)
+					// and collect the contents of all the resulting sets into a single set
+					.collect(() -> new HashSet<TLongBipartition>(), (x, y) -> x.addAll(y), (x, y) -> x.addAll(y));
+		} else {
+			z = new HashSet<TLongBipartition>();
+			for (TLongBipartition a : A) {
+				z.addAll(combineWithAll(a, B));
+			}
+		}
+		return z;
 	}
 
 	@Override
@@ -318,22 +347,27 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	
 	private static void test(String name, long[][] in, long[][] out, long[][] inE, long[][] outE) {
 
-		Collection<TLongBipartition> inSet = new HashSet<TLongBipartition>(makeBipartList(inE, outE));
+		Collection<TLongBipartition> inSet = new HashSet<TLongBipartition>(makeBipartList(in, out));
 		Collection<TLongBipartition> expected = new HashSet<TLongBipartition>(makeBipartList(inE, outE));
 
 		System.out.println("testing: " + name);
 		System.out.println("input:");
 		for (TLongBipartition b : inSet) {
 			System.out.println(b);
-			expected.add(b);
+//			expected.add(b);
 		}
-		
-		test(inSet, expected);
+ 		
+/*		test(inSet, expected);
 	}
 	
-	public static void test(Collection inSet, Collection<TLongBipartition> expected)  {
+	public static void test(Collection inSet, Collection<TLongBipartition> expected)  { */
 
 		BipartSetSum b = new BipartSetSum(inSet);
+		
+		System.out.println("output:");
+		for (TLongBipartition bi : b) {
+			System.out.println(bi);
+		}
 		
 		Set<TLongBipartition> observed = new HashSet<TLongBipartition>();
 		for (TLongBipartition bi : b) {
@@ -366,17 +400,15 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 			System.out.println("observed contains " + observed.size() + " but expected contains " + expected.size());
 			throw new AssertionError();
 		}
-
-		System.out.println("output:");
-		printBipartSum(b);
 	}
-		
+
+	/*
 	private static void printBipartSum(BipartSetSum b) {
 		for (TLongBipartition bi : b) {
 			System.out.println(bi);
 		}
 		System.out.println();
-	}
+	} */
 	
 	private static List<TLongBipartition> makeBipartList(long[][] ins, long[][] outs) {
 		ArrayList<TLongBipartition> biparts = new ArrayList<TLongBipartition>();
