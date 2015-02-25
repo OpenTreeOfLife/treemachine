@@ -244,7 +244,7 @@ public class graph extends ServerPlugin {
 		}
 		responseMap.put("in_graph", inGraph);
 		responseMap.put("in_synth_tree", inSynthTree);
-		responseMap.put("num_synth_children", numSynthChildren);
+		responseMap.put("num_synth_tips", numSynthChildren);
 		responseMap.put("num_tips", numMRCA);
 		responseMap.put("synth_sources", synthSources);
 		responseMap.put("tree_sources", treeSources);
