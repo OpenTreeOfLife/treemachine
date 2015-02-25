@@ -3632,6 +3632,17 @@ public class GraphExplorer extends GraphBase {
 	}
 	
 	
+	public ArrayList<String> getSynthTreeIDs () {
+		HashSet<String> trees = new HashSet<String>();
+		IndexHits<Node> hits  = synthMetaIndex.query("name", "*");
+		for (Node hit : hits) {
+			trees.add((String) hit.getProperty("name"));
+		}
+		hits.close();
+		ArrayList<String> synthTreeList = new ArrayList<String>(trees);
+		return (synthTreeList);
+	}
+	
 	// is the node in the current synthetic tree?
 	public boolean nodeIsInSyntheticTree (Node startNode) {
 		boolean inTree = false;

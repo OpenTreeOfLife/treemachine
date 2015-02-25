@@ -1118,6 +1118,27 @@ public class MainRunner {
 	}
 	
 	
+	/// @returns 0 for success, 1 for poorly formed command
+		public int listSynthTrees(String [] args) {
+			boolean listIDs = false;
+			String graphname;
+			if (args.length != 2) {
+				System.out.println("arguments should be: graphdbfolder");
+				return 1;
+			}
+			graphname = args[1];
+			GraphExplorer ge = new GraphExplorer(graphname);
+			try {
+				ArrayList<String> result;
+				result = ge.getSynthTreeIDs();
+				System.out.println(StringUtils.join(result, "\n"));
+			} finally {
+				ge.shutdownDB();
+			}
+			return 0;
+		}
+	
+	
 	// Report which taxonomy (e.g. version of OTT) was used to initialize the graph
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
 	public int getTaxonomyVersion(String [] args) {
@@ -3046,7 +3067,8 @@ public class MainRunner {
 		System.out.println("  mapsupport <file> <outfile> <graphdbfolder> (map bipartition information from graph to tree)");
 		System.out.println("  getlicanames <nodeid> <graphdbfolder> (print the list of names that are associated with a lica if there are any names)");
 		System.out.println("  nodestatus <ottId> <graphdbfolder> (give summary info about node, including num. descendants, supporting trees, etc.)");
-		System.out.println("  gettaxonomy <graphdbfolder> (report which taxonomy (e.g. version of OTT) was used to initialize the graph)\n");
+		System.out.println("  gettaxonomy <graphdbfolder> (report which taxonomy (e.g. version of OTT) was used to initialize the graph)");
+		System.out.println("  listsynthtrees <graphdbfolder> (list the names of the synthetic trees present in the graph)\n");
 
 		System.out.println("---tree functions---");
 		System.out.println("(This is temporary and for doing some functions on trees (output or potential input))");
@@ -3138,6 +3160,8 @@ public class MainRunner {
 			} else if (command.compareTo("listsources") == 0
 					|| command.compareTo("getsourcetreeids") == 0) {
 				cmdReturnCode = mr.listSources(args);
+			} else if (command.compareTo("listsynthtrees") == 0) { 
+				cmdReturnCode = mr.listSynthTrees(args);
 			} else if (command.compareTo("exporttodot") == 0) {
 				cmdReturnCode = mr.dotGraphExporter(args);
 			} else if (command.compareTo("graphml") == 0) {
