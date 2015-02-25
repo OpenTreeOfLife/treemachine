@@ -341,7 +341,7 @@ public class tree_of_life extends ServerPlugin {
 			logError(responseMap);
 			return OTRepresentationConverter.convert(responseMap);
 		} else {
-			responseMap.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
+			responseMap.put("newick", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
 			logSuccess();
 			return OTRepresentationConverter.convert(responseMap);
 		}
