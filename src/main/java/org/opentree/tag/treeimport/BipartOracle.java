@@ -744,8 +744,7 @@ public class BipartOracle {
 		// going to bother trying to figure this out right now.
 /*		Map<TLongBipartition, Set<TLongBipartition>> nestedChildren = new HashMap<TLongBipartition, Set<TLongBipartition>>(); */
 				
-		System.out.print("beginning path-based node traversal to identify possible MRCACHILDOF rels...");
-		long z = new Date().getTime();
+//		System.out.print("beginning path-based node traversal to identify possible MRCACHILDOF rels...");
 
 /*		for (TLongBipartition parent: nodeForBipart.keySet()) {
 
@@ -774,7 +773,8 @@ public class BipartOracle {
 		} */
 		
 		// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
-		System.out.print("recording MRCACHILDOF rels ("+nestedChildren.size()+") in the db...");
+		System.out.print("recording MRCACHILDOF rels (" + nestedChildren.size() + ") in the db...");
+		long z = new Date().getTime();
 		Transaction tx = gdb.beginTx();
 //		for (TLongBipartition parent : nestedChildren.keySet()) {
 //			for (TLongBipartition child : nestedChildren.get(parent)) {
@@ -1270,19 +1270,12 @@ public class BipartOracle {
 			if (VERBOSE) { System.out.println(); }
 		}
 		
-		/*
-		// apparently we also need to ensure that the parent bipart is created or when we attempt to create the actual
-		// mrcachildof rels later, these nodes won't exist and there will be problems. had to add this when doing the
-		// update to find all mrcachildofs during node this step (code below).
-		// not sure why we have to do this here now... confusing because i don't think i removed any code that
-		// would have created these nodes previously, which makes me think some of them weren't needed for the mrca
-		// childofs before but now are, and that is odd because the all-by-all should have found them if they were valid
-		// children/parents, so there is a possibility that there is a bug and we are making some relationships that we
-		// shouldn't be, and this step really isn't needed. in the example i ran though, everything seemed fine. leaving
-		// this comment here as a red flag just in case
+
+		// apparently we also need to ensure that a node exists for bipart from the path node
+		// WARNING: I am not sure why we need to do this here. I would have expected this to occur in a previous step.
 		if (! nodeForBipart.containsKey(parent)) {
 			createNode(parent);
-		} */
+		}
 
 		// update the data structures that keep track of all the biparts
 		int newBipartId;
@@ -1529,28 +1522,6 @@ public class BipartOracle {
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
-		
-		// these are tests for order
-		String dbname = "test.db";
-//		runSimpleTest(nestedOverlap2(), dbname);
-		runSimpleTest(conflictingAugmenting(), dbname);
-//		runSimpleTest(cycleConflictTrees(), dbname);
-//		runSimpleTest(trivialConflict(), dbname);
-//		runSimpleTest(nonOverlapTrees(), dbname);
-//		runSimpleTest(test4Trees(), dbname);
-//		runSimpleTest(test3Trees(), dbname);
-//		runSimpleTest(testInterleavedTrees(), dbname);
-//		runSimpleTest(completeOverlap(), dbname);
-
-		// this is a stress test for the loading procedure -- 100 trees with 600 tips each.
-		// lots of duplicate biparts though so it should only take a few mins
-//		loadATOLTreesTest(dbname);
-		
-		// these are tests for taxonomy
-//		runDipsacalesTest(dbname);
-	}
-	
 	/**
 	 * Stress test the loading procedure. If everything is working properly then this should be fast.
 	 * If this test is not fast (i.e. a few minutes or less), then there is probably a bug somewhere.
@@ -1740,6 +1711,14 @@ public class BipartOracle {
 	}
 
 	@SuppressWarnings("unused")
+	private static List<Tree> complexCompatible() throws TreeParseException {
+		List<Tree> t = new ArrayList<Tree>();
+		t.add(TreeReader.readTree("(((((A1,A2),A3),A4),(A5,A6)),(((B1,B2),((B3,B4),B5)),(((C1,C2),(C3,C4)),(D1,D2))));"));
+		t.add(TreeReader.readTree("((A1,P),(A6,(Q1,Q2)),(((B1,B3),(S1,S2)),((C1,D1),(T,U,V))));"));
+		return t;
+	}
+	
+	@SuppressWarnings("unused")
 	private static List<Tree> testInterleavedTrees() throws TreeParseException {
 		List<Tree> t = new ArrayList<Tree>();
 		t.add(TreeReader.readTree("(((((A,C),E),G),I),K);"));
@@ -1747,5 +1726,28 @@ public class BipartOracle {
 		t.add(TreeReader.readTree("((((D,G),H),I),J);"));
 		t.add(TreeReader.readTree("((I,J),K);"));
 		return t;
+	}
+	
+public static void main(String[] args) throws Exception {
+		
+		// these are tests for order
+		String dbname = "test.db";
+//		runSimpleTest(nestedOverlap2(), dbname);
+//		runSimpleTest(conflictingAugmenting(), dbname);
+		runSimpleTest(complexCompatible(), dbname);
+//		runSimpleTest(cycleConflictTrees(), dbname);
+//		runSimpleTest(trivialConflict(), dbname);
+//		runSimpleTest(nonOverlapTrees(), dbname);
+//		runSimpleTest(test4Trees(), dbname);
+//		runSimpleTest(test3Trees(), dbname);
+//		runSimpleTest(testInterleavedTrees(), dbname);
+//		runSimpleTest(completeOverlap(), dbname);
+
+		// this is a stress test for the loading procedure -- 100 trees with 600 tips each.
+		// lots of duplicate biparts though so it should only take a few mins
+//		loadATOLTreesTest(dbname);
+		
+		// these are tests for taxonomy
+//		runDipsacalesTest(dbname);
 	}
 }
