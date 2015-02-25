@@ -215,7 +215,7 @@ public class GraphExporter extends GraphBase {
 		for (Node tnode: nodes) {
 			String name;
 			Long nid = tnode.getId();
-			if(tnode.hasProperty("name")){
+			if (tnode.hasProperty("name")) {
 				name = "n" + nid + "_" + org.opentree.utils.GeneralUtils.scrubName(((String)tnode.getProperty("name")));
 			} else {
 				name = "n" + nid;
@@ -274,22 +274,42 @@ public class GraphExporter extends GraphBase {
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
-
 					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"brown4\" color=\"brown4\" style=\"dashed\"];\n");
 					visitedRels.add(relid);
+				}
+			}
+		}
+		
+		// synth relationships. could include different synth trees.
+		String [] synthColorArr = {"black", "red", "blue", "yellow", "green", "gray", "pink"};
+		HashMap<String, Integer> synth2ColInd = new HashMap<String, Integer>();
+		int i = 0;
+		for (Node tnode: nodes) {
+			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+				String relSource = rel.getProperty("name").toString();
+				if (!synth2ColInd.containsKey(relSource)) {
+					synth2ColInd.put(relSource, i);
+					i++;
 				}
 			}
 		}
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
 				Long relid = rel.getId();
-				if (!visitedRels.contains(relid)) {
-					String rname = "r" + relid;
+				if (!visitedRels.contains(relid)) {					
 					Long snid = rel.getStartNode().getId();
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
-					retstring.append("    " + sns + " -> " + ens + " [label=\"S\" style=\"bold\" color=\"black\"];\n");
+					
+					if (synth2ColInd.size() == 1) {
+						retstring.append("    " + sns + " -> " + ens + " [label=\"S\" style=\"bold\" color=\"black\"];\n");
+					} else {
+						String relSource = rel.getProperty("name").toString();
+						String synthrelcolor = synthColorArr[synth2ColInd.get(relSource)];
+						String rname = "S" + synth2ColInd.get(relSource);
+						retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" style=\"bold\" fontcolor=\"" + synthrelcolor + "\" color=\"" + synthrelcolor + "\"];\n");
+					}
 					visitedRels.add(relid);
 				}
 			}
@@ -337,12 +357,12 @@ public class GraphExporter extends GraphBase {
 		retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
 		// get the list of nodes
 		HashSet<Node> nodes = new HashSet<Node>();
-		if(depth > 0){
-		for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
+		if (depth > 0) {
+			for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
 				.traverse(startnode).nodes()) {
-			nodes.add(tnode);
-		}
-		}else{
+				nodes.add(tnode);
+			}
+		} else {
 			for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
 					.traverse(startnode).nodes()) {
 				nodes.add(tnode);

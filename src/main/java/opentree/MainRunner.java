@@ -1268,6 +1268,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int dotGraphExporter(String [] args) throws TaxonNotFoundException {
 		String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
