@@ -11,6 +11,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
@@ -281,18 +282,24 @@ public class GraphExporter extends GraphBase {
 		}
 		
 		// synth relationships. could include different synth trees.
-		String [] synthColorArr = {"black", "red", "blue", "yellow", "green", "gray", "pink"};
-		HashMap<String, Integer> synth2ColInd = new HashMap<String, Integer>();
-		int i = 0;
+		String [] synthColorArr = {"black", "red", "blue", "orange", "green", "gray", "pink"};
+		ArrayList<String> synthNames = new ArrayList<String>();
+		
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
 				String relSource = rel.getProperty("name").toString();
-				if (!synth2ColInd.containsKey(relSource)) {
-					synth2ColInd.put(relSource, i);
-					i++;
+				if (!synthNames.contains(relSource)) {
+					synthNames.add(relSource);
 				}
 			}
 		}
+		// sort alphabetically
+		Collections.sort(synthNames);
+		HashMap<String, Integer> synth2ColInd = new HashMap<String, Integer>();
+		for (int i = 0; i < synthNames.size(); i++) {
+			synth2ColInd.put(synthNames.get(i), i);
+		}
+		
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
 				Long relid = rel.getId();
