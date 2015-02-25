@@ -225,27 +225,35 @@ public class GraphExporter extends GraphBase {
 			retstring.append("  " + name + ";\n");
 		}
 		HashSet<Long> visitedRels = new HashSet<Long>();
+		
 		String [] relColorArr = {"blue", "springgreen", "magenta", "darkorange", "lightblue", "goldenrod", "brown", "gray"};
-		HashMap<String, Integer> relSource2ColInd = new HashMap<String, Integer>();
-		TreeSet<String> relNames = new TreeSet<String>();
+		
+		// use 'subgraphs' to store source properties for easy referencing
+		HashMap<String, StringBuffer> subgraphs = new HashMap<String, StringBuffer>();
+		ArrayList<String> sourceNames = new ArrayList<String>();
+		
+		
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 				String relSource = rel.getProperty("source").toString();
-				if (!relSource.equals("taxonomy")) {
-					relNames.add(relSource);
+				if (!sourceNames.contains(relSource)) {
+					sourceNames.add(relSource);
 				}
 			}
 		}
-//		relSource2ColInd.put("taxonomy", relNames.size()+1);
-		for (String relSource : relNames) {
-			Integer colorOffset = new Integer(relSource2ColInd.size());
-			if (colorOffset > relColorArr.length - 1) {
-				colorOffset = new Integer(relColorArr.length - 1);
-			}
-			assert ! relSource2ColInd.containsKey(relSource);
-			relSource2ColInd.put(relSource, colorOffset);
+		
+		// sort alphabetically for now. will keep sources the same colour across experiments
+		Collections.sort(sourceNames);
+		for (int i = 0; i < sourceNames.size(); i++) {
+			String source = sourceNames.get(i);
+			String newSubGraph = "  subgraph source_" + source + " {\n    edge [color=\"" + relColorArr[i] + 
+					"\" fontcolor=\"" + relColorArr[i] + "\"];\n";
+			subgraphs.put(source, new StringBuffer(newSubGraph));
 		}
-
+				
+		// add taxonomy manually. colour/style is hardcoded.
+		subgraphs.put("taxonomy", new StringBuffer("  subgraph taxonomy {\n    edge [color=\"brown4\" fontcolor=\"brown4\" style=\"dashed\"];\n"));
+		
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 				Long relid = rel.getId();
@@ -256,14 +264,8 @@ public class GraphExporter extends GraphBase {
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
 					String relSource = rel.getProperty("source").toString();
-					String relcolor;
-
-					assert relSource2ColInd.containsKey(relSource);
-					Integer colorOffset = relSource2ColInd.get(relSource);
-					relcolor = relColorArr[colorOffset];
 					rname += relSource;
-					
-					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"" + relcolor + "\" color=\"" + relcolor + "\"];\n");
+					subgraphs.put(relSource, subgraphs.get(relSource).append("    " + sns + " -> " + ens + " [label=\"" + rname + "\"];\n"));
 					visitedRels.add(relid);
 				}
 			}
@@ -275,16 +277,15 @@ public class GraphExporter extends GraphBase {
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
-					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"brown4\" color=\"brown4\" style=\"dashed\"];\n");
+					subgraphs.put("taxonomy", subgraphs.get("taxonomy").append("    " + sns + " -> " + ens + " [label=\"" + rname + "\"];\n"));
 					visitedRels.add(relid);
 				}
 			}
 		}
 		
 		// synth relationships. could include different synth trees.
-		String [] synthColorArr = {"black", "red", "blue", "orange", "green", "gray", "pink"};
+		String [] synthColorArr = {"black", "red", "orange", "green", "gray", "pink", "blue"};
 		ArrayList<String> synthNames = new ArrayList<String>();
-		
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
 				String relSource = rel.getProperty("name").toString();
@@ -293,11 +294,18 @@ public class GraphExporter extends GraphBase {
 				}
 			}
 		}
-		// sort alphabetically
+		
+		// sort alphabetically for now
 		Collections.sort(synthNames);
-		HashMap<String, Integer> synth2ColInd = new HashMap<String, Integer>();
 		for (int i = 0; i < synthNames.size(); i++) {
-			synth2ColInd.put(synthNames.get(i), i);
+			String synthID = "S";
+			if (synthNames.size() > 1) {
+				synthID += i;
+			}
+			String newSubGraph = "  subgraph \"" + synthID + "=" + synthNames.get(i) + "\" {\n    edge [label=\"" + synthID + 
+					"\" style=\"bold\" color=\"" + synthColorArr[i] + "\" fontcolor=\"" + synthColorArr[i] + 
+					"\" arrowhead=\"onormal\"];\n";
+			subgraphs.put(synthNames.get(i), new StringBuffer(newSubGraph));
 		}
 		
 		for (Node tnode: nodes) {
@@ -308,20 +316,23 @@ public class GraphExporter extends GraphBase {
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
-					
-					if (synth2ColInd.size() == 1) {
-						retstring.append("    " + sns + " -> " + ens + " [label=\"S\" style=\"bold\" color=\"black\"];\n");
-					} else {
-						String relSource = rel.getProperty("name").toString();
-						String synthrelcolor = synthColorArr[synth2ColInd.get(relSource)];
-						String rname = "S" + synth2ColInd.get(relSource);
-						retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" style=\"bold\" fontcolor=\"" + synthrelcolor + "\" color=\"" + synthrelcolor + "\"];\n");
+					String relSource = rel.getProperty("name").toString();
+					String rname = "S";
+					if (synthNames.size() > 1) {
+						rname +=  + synthNames.indexOf(relSource);
 					}
+					subgraphs.put(relSource, subgraphs.get(relSource).append("    " + sns + " -> " + ens + ";\n"));
 					visitedRels.add(relid);
 				}
 			}
 		}
-		retstring.append("}\n");
+		
+		for (HashMap.Entry<String, StringBuffer> entry : subgraphs.entrySet()) {
+			retstring.append(entry.getValue().append("  }\n"));
+		}
+		retstring.append("}\n\n");
+		//System.out.println(retstring);
+		
 		return retstring.toString();
 	}
 	
