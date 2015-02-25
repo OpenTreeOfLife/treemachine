@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Arrays;
+
 import jade.tree.JadeTree;
 
 import org.opentree.utils.GeneralUtils;
@@ -85,6 +86,8 @@ public class tree_of_life extends ServerPlugin {
 					LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
 					for (String study : sourceList) {
 						HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(study);
+						String treeID = "tree" + (String) indStudy.get("tree_id"); // for compatibility with phylesystem
+						indStudy.put("tree_id", treeID);
 						sources.add(indStudy);
 					}
 					responseMap.put("study_list", sources);
@@ -106,7 +109,7 @@ public class tree_of_life extends ServerPlugin {
 	
 	@Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott "
 			+ "ids as input. Returns information about the most recent common ancestor (MRCA) node as well as the most recent "
-			+ "taxonomic ancestor (MRTA) node (the closest taxonomic node to the MRCA node in the synthetic tree; the MRCA "
+			+ "taxonomic ancestor (MRTA) node (the closest taxonomic node to the MRCA node in the synthetic tree as one moves towards the root; the MRCA "
 			+ "and MRTA may be the same node). Node ids that are not in the synthetic tree are dropped from the MRCA "
 			+ "calculation. For a valid ott id that is not in the synthetic tree (i.e. it is not recovered as monophyletic "
 			+ "from the source tree information), the taxonomic descendants of the node are used in the MRCA calculation. "
@@ -338,7 +341,7 @@ public class tree_of_life extends ServerPlugin {
 			logError(responseMap);
 			return OTRepresentationConverter.convert(responseMap);
 		} else {
-			responseMap.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
+			responseMap.put("newick", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
 			logSuccess();
 			return OTRepresentationConverter.convert(responseMap);
 		}

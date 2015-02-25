@@ -151,7 +151,6 @@ public class graph extends ServerPlugin {
 		String rank = "";
 		String taxSource = "";
 		Long graphNodeId = null;
-		boolean inGraph = false;
 		boolean inSynthTree = false;
 		Integer numSynthChildren = 0;
 		Integer numMRCA = 0;
@@ -210,7 +209,6 @@ public class graph extends ServerPlugin {
 				taxSource = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
 				graphOttId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
 			}
-			inGraph = true;
 			numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
 			if (ge.nodeIsInSyntheticTree(n)) {
 				inSynthTree = true;
@@ -242,9 +240,8 @@ public class graph extends ServerPlugin {
 		} else {
 			responseMap.put("ott_id", "null");
 		}
-		responseMap.put("in_graph", inGraph);
 		responseMap.put("in_synth_tree", inSynthTree);
-		responseMap.put("num_synth_children", numSynthChildren);
+		responseMap.put("num_synth_tips", numSynthChildren);
 		responseMap.put("num_tips", numMRCA);
 		responseMap.put("synth_sources", synthSources);
 		responseMap.put("tree_sources", treeSources);
