@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Arrays;
+
 import jade.tree.JadeTree;
 
 import org.opentree.utils.GeneralUtils;
@@ -85,6 +86,8 @@ public class tree_of_life extends ServerPlugin {
 					LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
 					for (String study : sourceList) {
 						HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(study);
+						String treeID = "tree" + (String) indStudy.get("tree_id"); // for compatibility with phylesystem
+						indStudy.replace("tree_id", treeID);
 						sources.add(indStudy);
 					}
 					responseMap.put("study_list", sources);
