@@ -57,44 +57,49 @@ public class BipartOracle {
 	/** this will have the key as the id used in the shrunk set and the collection as the full set*/
 	Map<Object, Collection<Object>> shrunkSet;
 	
-	// tree nodes
+	// tree nodes and bipartitions
 	
-	// TODO UPDATE DESCRIPTIONS -- INDICES HAVE CHANGED MEANING. We use a map now.
-	
+	/**
+	 * A mapping of tree nodes directly onto their original bipartitions stored in the bipart array (so no futzing with
+	 * ids should be required. The bipart array should not contain any duplicates, so the many tree nodes may map to the
+	 * same bipart.
+	 */
 	Map<TreeNode, TLongBipartition> bipartForTreeNode = new HashMap<TreeNode, TLongBipartition>();
 
 	/**
-	 * A mapping of tree nodes onto their original bipartitions in the bipart array. The bipart array should
-	 * not contain any duplicates, 
+	 * A mapping of the biparts in the bipart array that correspond exactly to original tree nodes, onto those tree nodes.
+	 * The bipart array should not contain any duplicates, so the many tree nodes may map to the same bipart.
 	 */
 	Map<TLongBipartition, Set<TreeNode>> treeNodesForBipart = new HashMap<TLongBipartition, Set<TreeNode>>();
 	
-	// bipartitions
-	
-	
-	/** Sets of bipartitions extracted from each input tree and grouped according to the tree from which they were drawn.
-	 * This is used for the bipart set sum operation. Keeping them grouped by tree allows us to avoid attempting to sum
-	 * bipartitions within a single tree (since that is futile--the ingroup/outgroup always overlap) and saves a lot of time. */
-//	List<Collection<TLongBipartition>> bipartsByTree = new ArrayList<Collection<TLongBipartition>>();
-	/** TESTING a nonduplicated bypartsbytree */
+	/**
+	 * Sets of bipartitions extracted from each input tree and grouped according to the tree from which they were drawn.
+	 * This is used for the bipart set sum operation. These groups should contain no duplicates -- only the group for the
+	 * first tree in which a bipart is observed will contain that bipart.
+	 */
 	List<Collection<TLongBipartition>> bipartsByTreeNoDuplicates = new ArrayList<Collection<TLongBipartition>>();
 
-	/** Just a list of the indices for the sum-result biparts so we can easily access them independently of originals. This
+	/**
+	 * Just a list of the indices for the sum-result biparts so we can easily access them independently of originals. This
 	 * list is used (and reused) for stream operations confined to the sum-results.
 	 * <br/><br/>
-	 * <tt>summedBipartIds[i] == bipart[i]</tt> */
+	 * <tt>summedBipartIds[i] == bipart[i]</tt>
+	 */
 	List<Integer> summedBipartIds = new ArrayList<Integer>();
 
-	/** Just a list of the indices for the biparts generated during the path traversal procedure (i.e. not original tree biparts
+	/**
+	 * Just a list of the indices for the biparts generated during the path traversal procedure (i.e. not original tree biparts
 	 * nor sum-result biparts). Currently we don't use this for anything.
 	 * <br/><br/>
-	 * <tt>generatedBipartIds[i] == bipart[i]</tt> */
+	 * <tt>generatedBipartIds[i] == bipart[i]</tt>
+	 */
 	List<Integer> generatedBipartIds = new ArrayList<Integer>();
 
-	/** The list of *all* biparts: originals, sums, and those generated from paths. We append to this list as we find new
+	/**
+	 * The list of *all* biparts: originals, sums, and those generated from paths. We append to this list as we find new
 	 * bipartitions. Indices in this list essentially function as bipart ids and we use them in other data structures such
-	 * as <tt>nestedChildren</tt>, <tt>nestedParents</tt>, <tt>paths</tt>, <tt>original</tt>, <tt>summedBipartIds</tt>, and
-	 * <tt>generatedBipartIds</tt>. */
+	 * as <tt>nestedChildren</tt>, <tt>nestedParents</tt>, <tt>paths</tt>, <tt>summedBipartIds</tt>, and <tt>generatedBipartIds</tt>.
+	 */
 	List<TLongBipartition> bipart = new ArrayList<TLongBipartition>(); 
 
 	/** Just a set containing all the known biparts for fast lookups. */
@@ -132,7 +137,7 @@ public class BipartOracle {
 	/** The unique tip label from the set of input trees for each neo4j node that represents a tip node from the trees. */
 	Map<Long, Object> labelForNodeId = new HashMap<Long, Object>();
 
-	// maps of graph nodes to various things: these associate nodes with bipartitions
+	// maps of graph nodes to various things
 
 	/** neo4j node for bipartition */
 	private Map<TLongBipartition, Node> graphNodeForBipart = new HashMap<TLongBipartition, Node>();
@@ -146,13 +151,13 @@ public class BipartOracle {
 	/** Just a simple container to keep track of rels we know we've made so we can cut down on database queries to find out of they exist. */
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
 	
-	// map for the list of relevant taxonomy nodes
+	/** map for the list of relevant taxonomy nodes */
 	Map<Node,TLongBipartition> taxonomyGraphNodesMap;
 	
-	/** this is just a map of node and the RANK (higher is better--earlier in the list) of the tree it came from in the list */
+	/** this is just a map of node and the RANK of the tree it came from in the list. higher is better--earlier in the list */
 	Map<TreeNode,Integer> rankForTreeNode;
 
-	/** this is just a map of node and the ORDER (higher is later in the list) of the tree it came from in the list */
+	/** this is just a map of node and the ORDER of the tree it came from in the list. higher is later in the list */
 	Map<TreeNode,Integer> sourceForTreeNode;
 	
  	int nodeId = 0;
