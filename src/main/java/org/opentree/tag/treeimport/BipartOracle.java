@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import opentree.GraphInitializer;
@@ -658,6 +659,8 @@ public class BipartOracle {
 
 		Tree P = trees.get(i);
 		List<TreeNode> pRootChildren = P.getRoot().getChildren(); // skip the root
+		//make sure that we dont' have a tip as the child of the root
+		pRootChildren.removeIf(isTip());
 
 		// do the treewise comparisons between this tree and all other trees. here we just consider
 		// whether this tree's nodes could be *parents* (not children) of other tree nodes. we'll 
@@ -666,10 +669,12 @@ public class BipartOracle {
 			if (i == j) { continue; } // don't attempt to compare a tree to itself
 							
 			List<TreeNode> qRootChildren = trees.get(j).getRoot().getChildren(); // skip the root
+			//make sure that we dont' have a tip as the child of the root
+			qRootChildren.removeIf(isTip());
 
 //			boolean treesHaveIdenticalTaxa = bipart.get(treeNodeIds.get(pRootChildren.get(0)))
 //			         .hasIdenticalTaxonSetAs(bipart.get(treeNodeIds.get(qRootChildren.get(0))));
-
+			
 			boolean treesHaveIdenticalTaxa = bipartForTreeNode.get(pRootChildren.get(0))
 					 .hasIdenticalTaxonSetAs(bipartForTreeNode.get(qRootChildren.get(0)));
 			
@@ -771,7 +776,14 @@ public class BipartOracle {
 		System.out.println("finished tree " + i);
 //		return new Object[] { nestedParents, nestedAugmentingParents };
 	}
-
+	
+	/*
+	 * predicate used for removeIf with List<TreeNode>
+	 */
+	private static Predicate<TreeNode > isTip(){
+		return p -> p.getChildCount() == 0;
+	}
+	
 	/**
 	 * This creates all the MRCACHILDOF rels among all graph nodes. It uses an all by all pairwise
 	 * comparison, which has quadratic order of growth. We do this because it makes tree loading trivial:
