@@ -722,11 +722,9 @@ public class BipartOracle {
 					if (qn.isExternal()) {
 						if (bp.ingroup().contains(this.nodeIdForLabel.get(qn.getLabel()))) {
 							pOverlapsWithTreeQ = true;
-							break;
 						}
 					} else if (bp.ingroup().containsAny(bipartForTreeNode.get(qn).ingroup())) {
 						pOverlapsWithTreeQ = true;
-						break;
 					}
 					if (pOverlapsWithTreeQ) {
 						for (TreeNode pc : p.getChildren()) { pStack.push(pc); }
