@@ -119,6 +119,7 @@ public class BipartOracle {
 	/** <tt>nestedParents[i]</tt> contains the ids of all the biparts that <tt>bipart[i]</tt> *is* a nested child of */
 	List<Set<Integer>> nestedParents;
 
+
 	/** <tt>nestedAugmentingParents[i]</tt> contains the ids of all the biparts that are nested within <tt>bipart[i]</tt> AND which
 	 * have a different taxonomic composition from <tt>bipart[i]</tt>, i.e. for all b in <tt>nestedChildren[i]</tt>, (ingroup(b)
 	 * ∪ outgroup(b)) ≠ (ingroup(<tt>bipart[i]</tt>) ∪ outgroup(<tt>bipart[i]</tt>)). This difference in taxonomic composition is
@@ -259,7 +260,9 @@ public class BipartOracle {
 //		original = new ArrayList<TLongBipartition>();
 //		observedBiparts = new HashSet<TLongBipartition>();
 		nodeId = 0;
+		int count = 0;
 		for (Tree tree : trees) {
+			System.out.println("gatherTreeData:"+count);
 			Collection<TLongBipartition> treeBiparts = new ArrayList<TLongBipartition>();
 			for (TreeNode node: tree.internalNodes(NodeOrder.PREORDER)) {
 				if (! node.isTheRoot()) { // we deal with the root later
@@ -282,6 +285,7 @@ public class BipartOracle {
 				}
 			}
 			bipartsByTreeNoDuplicates.add(treeBiparts);
+			count += 1;
 		}
 		
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
@@ -372,6 +376,7 @@ public class BipartOracle {
 		}
 		System.out.println("retained " + originalCount + " biparts and created " + summedBipartIds.size() + " new combinations. total: " + bipart.size());
 		System.out.println("the sums seem to be 0?????");
+		System.out.println("  things also seem to work so maybe we don't need these (or we make them with the paths");
 	}
 	
 	private void createTreeIdRankMap(List<Tree> trees){
@@ -1524,8 +1529,6 @@ public class BipartOracle {
 					nestedParents.get(newBipartId).add(pid);
 					nestedChildren.get(pid).add(newBipartId);
 				}
-			}else{
-				nestedChildren.get(pid).add(newBipartId);
 			}
 		}
 
@@ -1536,8 +1539,6 @@ public class BipartOracle {
 					nestedParents.get(cid).add(newBipartId);
 					nestedChildren.get(newBipartId).add(cid);
 				}
-			}else{
-				nestedParents.get(cid).add(newBipartId);
 			}
 		}
 		
@@ -1579,7 +1580,9 @@ public class BipartOracle {
  		
 		return new Object[] { ancestorsOnPath, cumulativeOutgroup };
 	}
-		
+	
+	
+	
 	private Node createNode(TLongBipartition b) {
 		Node node = gdb.createNode();
 		if (VERBOSE) { System.out.println(node); }
