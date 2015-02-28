@@ -63,12 +63,15 @@ public class BipartOracle {
 	// TODO UPDATE DESCRIPTIONS -- INDICES HAVE CHANGED MEANING. We use a map now.
 	
 	Map<TreeNode, TLongBipartition> bipartForTreeNode = new HashMap<TreeNode, TLongBipartition>();
+	Map<TreeNode, TLongBipartition> bipartForTreeNodeExploded = new HashMap<TreeNode, TLongBipartition>();
 
 	/**
 	 * A mapping of tree nodes onto their original bipartitions in the bipart array. The bipart array should
 	 * not contain any duplicates, 
 	 */
 	Map<TLongBipartition, Set<TreeNode>> treeNodesForBipart = new HashMap<TLongBipartition, Set<TreeNode>>();
+	Map<TLongBipartition, Set<TreeNode>> treeNodesForBipartExploded = new HashMap<TLongBipartition, Set<TreeNode>>();
+
 	
 	// bipartitions
 	
@@ -137,9 +140,12 @@ public class BipartOracle {
 
 	/** neo4j node for bipartition */
 	private Map<TLongBipartition, Node> graphNodeForBipart = new HashMap<TLongBipartition, Node>();
+	private Map<TLongBipartition, Node> graphNodeForBipartExploded = new HashMap<TLongBipartition, Node>();
 	
 	/** bipartition for neo4j node */
 	private Map<Node, TLongBipartition> bipartForGraphNode = new HashMap<Node, TLongBipartition>();
+	private Map<Node, TLongBipartition> bipartForGraphNodeExploded = new HashMap<Node, TLongBipartition>();
+	
 	
 	/** all the graph nodes that have been mapped to the tree node */
 	private Map<TreeNode, HashSet<Node>> graphNodesForTreeNode = new HashMap<TreeNode, HashSet<Node>>(); 
@@ -272,6 +278,12 @@ public class BipartOracle {
 					if (treeNodesForBipart.get(b) == null) { treeNodesForBipart.put(b, new HashSet<TreeNode>()); }
 					treeNodesForBipart.get(b).add(node);
 					bipartForTreeNode.put(node, b);
+					if(USING_TAXONOMY){
+						TLongBipartition be = getExpandedTaxonomyBipart(b);
+						bipartForTreeNodeExploded.put(node, be);
+						if (treeNodesForBipartExploded.get(b) == null) { treeNodesForBipartExploded.put(be, new HashSet<TreeNode>()); }
+						treeNodesForBipartExploded.get(be).add(node);
+					}
 				}
 			}
 			bipartsByTreeNoDuplicates.add(treeBiparts);
@@ -665,19 +677,25 @@ public class BipartOracle {
 					 .hasIdenticalTaxonSetAs(bipartForTreeNode.get(qRootChildren.get(0)));
 			
 			LinkedList<TreeNode> pStack = new LinkedList<TreeNode>();
+			HashSet<TreeNode> pvisited = new HashSet<TreeNode>();
 			for (pStack.addAll(pRootChildren); ! pStack.isEmpty(); ) {
 				
 				TreeNode p = pStack.pop();
 				if (p.isExternal()) { continue; } // don't process tips
+				if(pvisited.contains(p)) { continue;}else{pvisited.add(p);}
 //				int pid = treeNodeIds.get(p);
 				int pid = bipartId.get(bipartForTreeNode.get(p));
 				TLongBipartition bp = bipart.get(pid);
 
 				LinkedList<TreeNode> qStack = new LinkedList<TreeNode>();
+				HashSet<TreeNode> qvisited = new HashSet<TreeNode>();
+
 				for (qStack.addAll(qRootChildren); ! qStack.isEmpty(); ) {
 					
 					TreeNode q = qStack.pop();
 					if (q.isExternal()) { continue; } // don't process tips
+					if(qvisited.contains(q)) { continue;}else{qvisited.add(q);}
+
 //					int qid = treeNodeIds.get(q);
 					int qid = bipartId.get(bipartForTreeNode.get(q));
 					TLongBipartition bq = bipart.get(qid);
@@ -1133,17 +1151,21 @@ public class BipartOracle {
 		// get the graph nodes that match this node
 		TLongBipartition nodeBipart;
 		TLongBipartition nodeBipartExp=null;
-//		if (external == false) { nodeBipart = original[treeNodeIds.get(treeNode)]; }
-		if (external == false) { nodeBipart = bipartForTreeNode.get(treeNode); }
-		else { nodeBipart = getGraphBipartForTreeNode(treeNode,tree); }
-		System.out.println(treeNode.getNewick(false)+" "+rankForTreeNode.get(treeNode));
-		System.out.println("\t"+nodeBipart);
-		System.out.println("\t"+graphNodesForParent);
 		
-		if(USING_TAXONOMY){
-			nodeBipartExp = getExpandedTaxonomyBipart(nodeBipart);
-			//nodeBipart = new TLongBipartition(nodeBipartExp);
+//		if (external == false) { nodeBipart = original[treeNodeIds.get(treeNode)]; }
+		if (external == false) { 
+			nodeBipart = bipartForTreeNode.get(treeNode);
+			int bpid = bipartId.get(nodeBipart);
+			if(USING_TAXONOMY)
+				nodeBipartExp = bipartForTreeNodeExploded.get(treeNode);
+		}else { 
+			nodeBipart = getGraphBipartForTreeNode(treeNode,tree); 
+			if(USING_TAXONOMY)
+				nodeBipartExp = getExpandedTaxonomyBipart(nodeBipart);
 		}
+		//System.out.println(treeNode.getNewick(false)+" "+rankForTreeNode.get(treeNode));
+		//System.out.println("\t"+nodeBipart);
+		//System.out.println("\t"+graphNodesForParent);
 
 		HashSet<Node> graphNodes = new HashSet<Node>();
 		HashSet<Node> taxNodesMatched = new HashSet<Node>();
@@ -1165,7 +1187,7 @@ public class BipartOracle {
 				if(childBipart == null)
 					continue;
 				if( taxonomyGraphNodesMap.containsKey(potentialChild)==false && taxonomyGraphNodesMap.containsKey(parent)){
-					childBipartExp = getExpandedTaxonomyBipart(childBipart);	
+					childBipartExp = bipartForGraphNodeExploded.get(potentialChild);	
 				}
 				//System.out.println("\t\t"+potentialChild+"\t"+childBipart+"\t"+nodeBipart);
 				//System.out.println("\t\t\t"+taxonomyGraphNodesMap.containsKey(parent)+" "+taxonomyGraphNodesMap.containsKey(potentialChild));
@@ -1243,12 +1265,14 @@ public class BipartOracle {
 						}
 					}
 				}else{
+					//if neither is taxonomy then it should be in nestedParents bit
 					// BE CAREFUL containsAll is directional
 					TLongBipartition testParent = bipartForGraphNode.get(parent);
-					if(USING_TAXONOMY){
-						//TLongBipartition testParentExp = getExpandedTaxonomyBipart(testParent);
-						//testParent = new TLongBipartition(testParentExp);
-					}
+					/*int cpid = bipartId.get(childBipart);
+					int ppid = bipartId.get(testParent);
+					if(nestedParents.get(cpid).contains(ppid)==false)
+						continue;
+					*/
 					if (childBipart.containsAll(nodeBipart) 
 							&& childBipart.isNestedPartitionOf(testParent)){
 						graphNodes.add(potentialChild);
@@ -1524,6 +1548,8 @@ public class BipartOracle {
 		//this is all here because of the exploded reduced
 		if(USING_TAXONOMY){
 			TLongBipartition tlb = getExpandedTaxonomyBipart(b);
+			bipartForGraphNodeExploded.put(node,tlb);
+			graphNodeForBipartExploded.put(tlb,node);
 			node.setProperty(NodeProperty.MRCA.propertyName, tlb.ingroup().toArray());
 			node.setProperty(NodeProperty.OUTMRCA.propertyName, tlb.outgroup().toArray());
 		}else{
@@ -1532,6 +1558,7 @@ public class BipartOracle {
 		}
 		graphNodeForBipart.put(b, node);
 		bipartForGraphNode.put(node, b);
+		
 		return node;
 	}
 
