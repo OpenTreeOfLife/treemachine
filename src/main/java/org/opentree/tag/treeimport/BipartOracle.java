@@ -70,8 +70,6 @@ public class BipartOracle {
 	 * not contain any duplicates, 
 	 */
 	Map<TLongBipartition, Set<TreeNode>> treeNodesForBipart = new HashMap<TLongBipartition, Set<TreeNode>>();
-	Map<TLongBipartition, Set<TreeNode>> treeNodesForBipartExploded = new HashMap<TLongBipartition, Set<TreeNode>>();
-
 	
 	// bipartitions
 	
@@ -140,7 +138,6 @@ public class BipartOracle {
 
 	/** neo4j node for bipartition */
 	private Map<TLongBipartition, Node> graphNodeForBipart = new HashMap<TLongBipartition, Node>();
-	private Map<TLongBipartition, Node> graphNodeForBipartExploded = new HashMap<TLongBipartition, Node>();
 	
 	/** bipartition for neo4j node */
 	private Map<Node, TLongBipartition> bipartForGraphNode = new HashMap<Node, TLongBipartition>();
@@ -200,7 +197,7 @@ public class BipartOracle {
 		// identify all the pairwise bipart nestings and find the valid hierarchical nestings (paths)
 		identifyNestedChildBiparts(trees); // populate class members: nestedChildren, nestedParents, nodeForBipart, bipartForNode
 		findAllPaths(); // populate class member: paths
-		
+				
 		// revisit all the valid paths to:
 		// 1) identify new ingroup/outgroup composition for nested biparts and make corresponding nodes
 		// 2) record all bipart nesting information for generating MRCACHILDOF rels among nodes
@@ -281,8 +278,6 @@ public class BipartOracle {
 					if(USING_TAXONOMY){
 						TLongBipartition be = getExpandedTaxonomyBipart(b);
 						bipartForTreeNodeExploded.put(node, be);
-						if (treeNodesForBipartExploded.get(b) == null) { treeNodesForBipartExploded.put(be, new HashSet<TreeNode>()); }
-						treeNodesForBipartExploded.get(be).add(node);
 					}
 				}
 			}
@@ -1452,8 +1447,11 @@ public class BipartOracle {
 		// apparently we also need to ensure that a node exists for bipart from the path node
 		// WARNING: I am not sure why we need to do this here. I thought all original/summed
 		// biparts would have nodes created for them before this...
+		// TODO: this does create some things that aren't necessary but if you lose this it will 
+		//       break on ingestcrash line 837 	if (child.equals(parent))
 		if (! graphNodeForBipart.containsKey(parent)) {
-			System.out.println("Found a preexisting bipartition without a db node. Creating a node for:\n" + parent);
+			if(VERBOSE)
+				System.out.println("Found a preexisting bipartition without a db node. Creating a node for:\n" + parent);
 			createNode(parent);
 		}
 
@@ -1474,22 +1472,30 @@ public class BipartOracle {
 			assert newBipartId == nestedParents.size() - 1;
 		}
 		
+		
 		// now check related nodes to make sure we connect the new bipartition to all the appropriate parents/children
 		
 		// add any appropriate parents/children of analogous biparts
 		for (int eq : analogousBiparts.get(parentId)) {
 			for (int pid : nestedParents.get(eq)) {
-				if (newBipart.isNestedPartitionOf(bipart.get(pid))) {
-					nestedParents.get(newBipartId).add(pid);
-					nestedChildren.get(pid).add(newBipartId);
+				if(nestedParents.get(newBipartId).contains(pid) == false){
+					if (newBipart.isNestedPartitionOf(bipart.get(pid))) {
+						nestedParents.get(newBipartId).add(pid);
+						nestedChildren.get(pid).add(newBipartId);
 					}
+				}else{
+					nestedChildren.get(pid).add(newBipartId);
 				}
+			}
 			for (int cid : nestedChildren.get(eq)) {
-				if (bipart.get(cid).isNestedPartitionOf(newBipart)) {
-					nestedChildren.get(newBipartId).add(cid);
+				if(nestedChildren.get(newBipartId).contains(cid) == false){
+					if (bipart.get(cid).isNestedPartitionOf(newBipart)) {
+						nestedChildren.get(newBipartId).add(cid);
+						nestedParents.get(cid).add(newBipartId);
+					}
+				}else{
 					nestedParents.get(cid).add(newBipartId);
 				}
-				
 			}
 		}
 		
@@ -1500,17 +1506,25 @@ public class BipartOracle {
 
 		// associate the new node with appropriate parents of the current path node
 		for (int pid : nestedParents.get(parentId)) {
-			if (newBipart.isNestedPartitionOf(bipart.get(pid))) {
-				nestedParents.get(newBipartId).add(pid);
+			if(nestedParents.get(newBipartId).contains(pid) == false){
+				if (newBipart.isNestedPartitionOf(bipart.get(pid))) {
+					nestedParents.get(newBipartId).add(pid);
+					nestedChildren.get(pid).add(newBipartId);
+				}
+			}else{
 				nestedChildren.get(pid).add(newBipartId);
 			}
 		}
 
 		// associate the new node with appropriate children of the current path node
 		for (int cid : nestedChildren.get(parentId)) {
-			if (bipart.get(cid).isNestedPartitionOf(newBipart)) {
+			if(nestedChildren.get(newBipartId).contains(cid) == false){
+				if (bipart.get(cid).isNestedPartitionOf(newBipart)) {
+					nestedParents.get(cid).add(newBipartId);
+					nestedChildren.get(newBipartId).add(cid);
+				}
+			}else{
 				nestedParents.get(cid).add(newBipartId);
-				nestedChildren.get(newBipartId).add(cid);
 			}
 		}
 
@@ -1527,17 +1541,6 @@ public class BipartOracle {
 
 		// remember the new node so we can add it as a parent of all descendant nodes on this path
 		ancestorsOnPath.add(newBipartId);
-		
-		/*
-		//This won't make all the possible mrca child ofs. We need more than what is created here. 
-		//I would suggest pulling this part out and creating them above in an all by all comparison
-		//The you can use the tree structure to lower the number of things you compare to when 
-		//mapping the trees. 
-		//Going to leave this here but doing the all by all now
- 		if (parentNode != null) {
- 			System.out.println("Creating relationship from " + node + " to " + parentNode);
- 			updateMRCAChildOf(node, parentNode);
- 		} */
  		
 		return new Object[] { ancestorsOnPath, cumulativeOutgroup };
 	}
@@ -1549,7 +1552,6 @@ public class BipartOracle {
 		if(USING_TAXONOMY){
 			TLongBipartition tlb = getExpandedTaxonomyBipart(b);
 			bipartForGraphNodeExploded.put(node,tlb);
-			graphNodeForBipartExploded.put(tlb,node);
 			node.setProperty(NodeProperty.MRCA.propertyName, tlb.ingroup().toArray());
 			node.setProperty(NodeProperty.OUTMRCA.propertyName, tlb.outgroup().toArray());
 		}else{
