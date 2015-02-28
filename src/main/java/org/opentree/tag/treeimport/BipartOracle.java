@@ -371,6 +371,7 @@ public class BipartOracle {
 			}
 		}
 		System.out.println("retained " + originalCount + " biparts and created " + summedBipartIds.size() + " new combinations. total: " + bipart.size());
+		System.out.println("the sums seem to be 0?????");
 	}
 	
 	private void createTreeIdRankMap(List<Tree> trees){
@@ -608,10 +609,37 @@ public class BipartOracle {
 		long z = new Date().getTime();
 		Transaction tx = gdb.beginTx();
 		for (Path p : paths) {
+			System.out.println(p);
 			generateNodesFromPaths(0, new CompactLongSet(), p.toArray());
+			System.out.println(nestedChildren.size());
 		}
 		tx.success();
 		tx.finish();
+		for(int newBipartId = 0; newBipartId<bipart.size(); newBipartId++){
+			HashSet<Integer> compareset1 = new HashSet<Integer>();
+			HashSet<Integer> compareset2 = new HashSet<Integer>();
+			for (int eq : analogousBiparts.get(newBipartId)) {
+				compareset1.addAll(nestedParents.get(eq));
+				compareset2.addAll(nestedChildren.get(eq));
+			}
+			TLongBipartition newBipart = bipart.get(newBipartId);
+			for (int pid : compareset1) {
+				if(nestedParents.get(newBipartId).contains(pid) == false){
+					if (newBipart.isNestedPartitionOf(bipart.get(pid))) {
+						nestedParents.get(newBipartId).add(pid);
+						nestedChildren.get(pid).add(newBipartId);
+					}
+				}
+			}
+			for (int cid : compareset2) {
+				if(nestedChildren.get(newBipartId).contains(cid) == false){
+					if (bipart.get(cid).isNestedPartitionOf(newBipart)) {
+						nestedChildren.get(newBipartId).add(cid);
+						nestedParents.get(cid).add(newBipartId);
+					}
+				}
+			}
+		}
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
 	}
@@ -825,12 +853,15 @@ public class BipartOracle {
 		} */
 		
 		// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
-		System.out.print("recording MRCACHILDOF rels (" + nestedChildren.size() + ") in the db...");
+		System.out.print("recording MRCACHILDOF rels (" +bipart.size()+","+ nestedChildren.size() + ") in the db...");
 		long z = new Date().getTime();
 		Transaction tx = gdb.beginTx();
 //		for (TLongBipartition parent : nestedChildren.keySet()) {
 //			for (TLongBipartition child : nestedChildren.get(parent)) {
+		//TODO: wow! why is this so slow. I guess we are making tons of relationships but I wonder if we can just get them in a big 
+		//		list
 		for (int parentId = 0; parentId < bipart.size(); parentId++) {
+			System.out.println(parentId+" "+nestedChildren.get(parentId).size());
 			for (Integer childId : nestedChildren.get(parentId)) {
 				Node parent = graphNodeForBipart.get(bipart.get(parentId));
 				Node child = graphNodeForBipart.get(bipart.get(childId));
@@ -1473,37 +1504,19 @@ public class BipartOracle {
 		}
 		
 		
-		// now check related nodes to make sure we connect the new bipartition to all the appropriate parents/children
-		
-		// add any appropriate parents/children of analogous biparts
-		for (int eq : analogousBiparts.get(parentId)) {
-			for (int pid : nestedParents.get(eq)) {
-				if(nestedParents.get(newBipartId).contains(pid) == false){
-					if (newBipart.isNestedPartitionOf(bipart.get(pid))) {
-						nestedParents.get(newBipartId).add(pid);
-						nestedChildren.get(pid).add(newBipartId);
-					}
-				}else{
-					nestedChildren.get(pid).add(newBipartId);
-				}
-			}
-			for (int cid : nestedChildren.get(eq)) {
-				if(nestedChildren.get(newBipartId).contains(cid) == false){
-					if (bipart.get(cid).isNestedPartitionOf(newBipart)) {
-						nestedChildren.get(newBipartId).add(cid);
-						nestedParents.get(cid).add(newBipartId);
-					}
-				}else{
-					nestedParents.get(cid).add(newBipartId);
-				}
-			}
+		for (int pid : ancestorsOnPath) {
+			// don't need to check for nested status here, we know the new bipart is
+			// nested in all ancestors we've generated along this path
+			nestedParents.get(newBipartId).add(pid);
+			nestedChildren.get(pid).add(newBipartId);
+
+			// also add each newly generated ancestor as a parent of the path node itself
+			nestedParents.get(parentId).add(pid);
+			nestedChildren.get(pid).add(parentId);
 		}
 		
-		// remember that this new bipart is analogous to this path node bipart so that if
-		// we make another analogous node we will check these ones for parent/children
-		analogousBiparts.get(newBipartId).add(parentId);
-		analogousBiparts.get(parentId).add(newBipartId);
-
+		//wondering if we can do all this after because it is really slow here. 
+		
 		// associate the new node with appropriate parents of the current path node
 		for (int pid : nestedParents.get(parentId)) {
 			if(nestedParents.get(newBipartId).contains(pid) == false){
@@ -1527,24 +1540,46 @@ public class BipartOracle {
 				nestedParents.get(cid).add(newBipartId);
 			}
 		}
-
-		for (int pid : ancestorsOnPath) {
-			// don't need to check for nested status here, we know the new bipart is
-			// nested in all ancestors we've generated along this path
-			nestedParents.get(newBipartId).add(pid);
-			nestedChildren.get(pid).add(newBipartId);
-
-			// also add each newly generated ancestor as a parent of the path node itself
-			nestedParents.get(parentId).add(pid);
-			nestedChildren.get(pid).add(parentId);
+		
+		// now check related nodes to make sure we connect the new bipartition to all the appropriate parents/children
+		// CHANGED THIS TO BE after the generate nodes step for less redundancy
+		// TODO: more testing to make sure this is good
+		// add any appropriate parents/children of analogous biparts
+		/*HashSet<Integer> compareset1 = new HashSet<Integer>();
+		HashSet<Integer> compareset2 = new HashSet<Integer>();
+		for (int eq : analogousBiparts.get(parentId)) {
+			compareset1.addAll(nestedParents.get(eq));
+			compareset2.addAll(nestedChildren.get(eq));
 		}
+		for (int pid : compareset1) {
+			if(nestedParents.get(newBipartId).contains(pid) == false){
+				if (newBipart.isNestedPartitionOf(bipart.get(pid))) {
+					nestedParents.get(newBipartId).add(pid);
+					nestedChildren.get(pid).add(newBipartId);
+				}
+			}
+		}
+		for (int cid : compareset2) {
+			if(nestedChildren.get(newBipartId).contains(cid) == false){
+				if (bipart.get(cid).isNestedPartitionOf(newBipart)) {
+					nestedChildren.get(newBipartId).add(cid);
+					nestedParents.get(cid).add(newBipartId);
+				}
+			}
+		}
+		*/
+		
+		// remember that this new bipart is analogous to this path node bipart so that if
+		// we make another analogous node we will check these ones for parent/children
+		analogousBiparts.get(newBipartId).add(parentId);
+		analogousBiparts.get(parentId).add(newBipartId);
 
 		// remember the new node so we can add it as a parent of all descendant nodes on this path
 		ancestorsOnPath.add(newBipartId);
  		
 		return new Object[] { ancestorsOnPath, cumulativeOutgroup };
 	}
-	
+		
 	private Node createNode(TLongBipartition b) {
 		Node node = gdb.createNode();
 		if (VERBOSE) { System.out.println(node); }
@@ -1578,16 +1613,7 @@ public class BipartOracle {
 				return;
 			}
 		}
-		boolean alreadyExists = false;
-		for (Relationship r : child.getRelationships(Direction.OUTGOING, RelType.MRCACHILDOF)){
-			if (r.getEndNode().equals(parent)){
-				alreadyExists = true;
-				break;
-			}
-		}
-		if (! alreadyExists) {
-			child.createRelationshipTo(parent, RelType.MRCACHILDOF);
-		}
+		child.createRelationshipTo(parent, RelType.MRCACHILDOF);
 		hasMRCAChildOf.get(child.getId()).add(parent.getId());
 	}
 	
