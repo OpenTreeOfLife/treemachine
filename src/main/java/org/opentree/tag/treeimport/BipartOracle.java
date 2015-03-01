@@ -265,10 +265,13 @@ public class BipartOracle {
 			System.out.println("gatherTreeData:"+count);
 			Collection<TLongBipartition> treeBiparts = new ArrayList<TLongBipartition>();
 			for (TreeNode node: tree.internalNodes(NodeOrder.PREORDER)) {
+				TLongBipartition b = getGraphBipartForTreeNode(node, tree);
+				treeBiparts.add(b); //add here so the root can be included in the sum
 				if (! node.isTheRoot()) { // we deal with the root later
 //					treeNode[nodeId] = node;
 //					treeNodeIds.put(node, nodeId);
-					TLongBipartition b = getGraphBipartForTreeNode(node, tree);
+					//TLongBipartition b = getGraphBipartForTreeNode(node, tree);
+					//treeBiparts.add(b);
 					if (! bipartId.containsKey(b)) { // ensure we only add unique biparts to the list
 						bipart.add(b);
 						bipartId.put(b, bipart.size() - 1);
@@ -375,8 +378,6 @@ public class BipartOracle {
 			}
 		}
 		System.out.println("retained " + originalCount + " biparts and created " + summedBipartIds.size() + " new combinations. total: " + bipart.size());
-		System.out.println("the sums seem to be 0?????");
-		System.out.println("  things also seem to work so maybe we don't need these (or we make them with the paths");
 	}
 	
 	private void createTreeIdRankMap(List<Tree> trees){
@@ -557,7 +558,6 @@ public class BipartOracle {
 			}
 		}
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
-		
 	}
 	
 	/**
@@ -583,11 +583,14 @@ public class BipartOracle {
 		long z = new Date().getTime();
 		Transaction tx = gdb.beginTx();
 		for (int i = 0; i < bipart.size(); i++) {
+			System.out.println(i+" / "+bipart.size()+" "+paths.size());
 			if (bipart.get(i).outgroup().size() > 0) {
 				CompactLongSet pathResult = findPaths(i, new CompactLongSet(), new ArrayList<Integer>(), 0,i);
+				System.out.println(pathResult);
 				if (pathResult == null) {
 					// biparts that are not nested in any others won't be saved in any of the paths, so we need to make graph nodes
 					// for them now. we will need these nodes for mapping trees
+					// actually, I thought none of these were null because itself would be in the path?
 					createNode(bipart.get(i));
 				}
 			}
@@ -764,6 +767,7 @@ public class BipartOracle {
 				}
 			}
 		}
+
 	
 		// now do the all-by-all of this tree's nodes against the biparts from the bipart set sum
 		for (TreeNode node : P.internalNodes(NodeOrder.PREORDER)) {
@@ -791,13 +795,15 @@ public class BipartOracle {
 				boolean identicalTaxa = summedBipart.hasIdenticalTaxonSetAs(nodeBipart);
 				if (summedBipart.isNestedPartitionOf(nodeBipart)) {
 //					if (nestedParents.get(originalId) == null) { nestedParents.put(originalId, new HashSet<Integer>()); }
-					nestedParents.get(originalId).add(sid);
-					if (identicalTaxa) { nestedAugmentingParents.get(originalId).add(sid); }
+					nestedParents.get(sid).add(originalId);
+					nestedChildren.get(originalId).add(sid);
+					if (identicalTaxa) { nestedAugmentingParents.get(sid).add(originalId); }
 				}
 				if (nodeBipart.isNestedPartitionOf(summedBipart)) {
 //					if (nestedParents.get(sid) == null) { nestedParents.put(sid, new HashSet<Integer>()); }
-					nestedParents.get(sid).add(originalId);
-					if (identicalTaxa) { nestedAugmentingParents.get(sid).add(originalId); }
+					nestedParents.get(originalId).add(sid);
+					nestedChildren.get(sid).add(originalId);
+					if (identicalTaxa) { nestedAugmentingParents.get(originalId).add(sid); }
 				}
 			}
 		}
@@ -870,6 +876,13 @@ public class BipartOracle {
 			for (Integer childId : nestedChildren.get(parentId)) {
 				Node parent = graphNodeForBipart.get(bipart.get(parentId));
 				Node child = graphNodeForBipart.get(bipart.get(childId));
+				/*
+				 * this null check is added because there are nodes that don't need to be created
+				 * once they are updated so they don't get graph nodes. 
+				 * if there are issues, there is commented code in the generateallnodesfrompaths
+				 */
+				if(child == null || parent == null)
+					continue;
 				if (child.equals(parent))
 					continue;
 				updateMRCAChildOf(child, parent);
@@ -1483,12 +1496,13 @@ public class BipartOracle {
 		// apparently we also need to ensure that a node exists for bipart from the path node
 		// WARNING: I am not sure why we need to do this here. I thought all original/summed
 		// biparts would have nodes created for them before this...
-		// TODO: this does create some things that aren't necessary but if you lose this it will 
-		//       break on ingestcrash line 837 	if (child.equals(parent))
+		// THIS HAS BEEN COMMENTED OUT as it is not needed. If a node is not getting created, 
+		// it shouldn't be here that it is created and instead should be somewhere else, after
+		// finding paths and before generating would be my guess
 		if (! graphNodeForBipart.containsKey(parent)) {
 			if(VERBOSE)
 				System.out.println("Found a preexisting bipartition without a db node. Creating a node for:\n" + parent);
-			createNode(parent);
+			//createNode(parent);
 		}
 
 		int newBipartId;
