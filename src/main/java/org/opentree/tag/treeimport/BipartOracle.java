@@ -738,6 +738,7 @@ public class BipartOracle {
 		// first, walk from every node back to the root of the tree and record all
 		// the ancestor-descendant nestedChildOf rels implied within the tree itself
 		for (TreeNode c : trees.get(i).internalNodes(NodeOrder.POSTORDER)) {
+			//if there are connectivity problems, this may need to be removed. though tests do not suggest that
 			if (c.isTheRoot()) { continue; }
 //			int cid = treeNodeIds.get(c);
 			int cid = bipartId.get(bipartForTreeNode.get(c));
