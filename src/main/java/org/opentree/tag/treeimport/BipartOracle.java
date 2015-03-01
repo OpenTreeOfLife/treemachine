@@ -592,10 +592,12 @@ public class BipartOracle {
 			//get the intersection of the parets and add
 			for(Integer pi: nestedParents.get(parsbi.get(0))){
 				nestedParents.get(p).add(pi);
-				nestedParents.get(pi).add(p);
+				nestedChildren.get(pi).add(p);
+				nestedAugmentingParents.get(p).add(pi);
 			}for(Integer pi: nestedParents.get(parsbi.get(1))){
 				nestedParents.get(p).add(pi);
-				nestedParents.get(pi).add(p);
+				nestedChildren.get(pi).add(p);
+				nestedAugmentingParents.get(p).add(pi);
 			}
 		}
 		
@@ -650,7 +652,7 @@ public class BipartOracle {
 			System.out.println(i+" / "+bipart.size()+" "+paths.size());
 			if (bipart.get(i).outgroup().size() > 0) {
 				CompactLongSet pathResult = findPaths(i, new CompactLongSet(), new ArrayList<Integer>(), 0,i);
-				System.out.println(pathResult);
+				//System.out.println(pathResult);
 				if (pathResult == null) {
 					// biparts that are not nested in any others won't be saved in any of the paths, so we need to make graph nodes
 					// for them now. we will need these nodes for mapping trees
