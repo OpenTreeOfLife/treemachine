@@ -916,7 +916,6 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int loadTreeAnalysis(String [] args) throws Exception {
-		System.out.println(Runtime.getRuntime().availableProcessors());
 		if (args.length != 4) {
 			System.out.println("arguments should be: filename graphdbfolder (taxonomyalreadyloaded)T|F");
 			return 1;
@@ -2672,6 +2671,71 @@ public class MainRunner {
 		return 0;
 	}
 	
+	/**
+	 * this takes a file with trees and loads them against the taxonomy
+	 * given an id, you will be informed, 
+	 * 1) if a tree does not find it monophyletic
+	 *     (in which case you may want to choose another id)
+	 * 2) you will be given the tree back if it is contained within
+	 * 3) you will be given the tree with the part contained within pruned
+	 * 4) you will be given the remaining tree with the pruned replaced by new taxonid
+	 * @param args
+	 * @return
+	 */
+	public int filterTreesForLoad(String[] args) throws Exception {
+		if (args.length != 4) {
+			System.out.println("arguments should be: filename graphdbfolder");
+			return 1;
+		}
+		String filename = args[1];
+		String graphname = args[2];
+		int treeCounter = 0;
+		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
+		// read the tree from a file
+		String ts = "";
+		List<Tree> jt = new ArrayList<Tree>();
+		MessageLogger messageLogger = new MessageLogger("loadTreeAnalysis:");
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
+				System.out.println("Reading newick file...");
+				while ((ts = br.readLine()) != null) {
+					if (ts.length() > 1) {
+						Tree tt = jade.tree.TreeReader.readTree(ts);
+						jt.add(tt);
+						treeCounter++;
+					}
+				}
+			} /*else { // nexson
+				System.out.println("Reading nexson file...");
+				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
+					if (tree == null) {
+						messageLogger.indentMessage(1, "Skipping null tree.");
+					} else {
+						jt.add(tree);
+						treeCounter++;
+					}
+				}
+			}*/
+			br.close();
+		} catch (FileNotFoundException e) {
+			//e.printStackTrace();
+			System.err.println("Could not open the file \"" + args[1] + "\" Exiting...");
+			return -1;
+		} catch (IOException ioe) {
+			
+		}
+		
+		if (treeCounter == 0) {
+			System.err.println("No valid trees found in file \"" + args[1] + "\" Exiting...");
+			return -1;
+		}
+		System.out.println(treeCounter + " trees read.");
+		
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
+		System.out.println("started graph import");
+		return 0;
+	}
 	
 	/**
 	 * arguments are:
@@ -3228,6 +3292,8 @@ public class MainRunner {
 				cmdReturnCode = mr.treeCompare(args);
 			} else if (command.compareTo("taxcomp") == 0){
 				cmdReturnCode = mr.taxCompare(args);
+			} else if (command.compareTo("filtertreesforload") == 0){
+				cmdReturnCode = mr.filterTreesForLoad(args);
 			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
@@ -3247,4 +3313,5 @@ public class MainRunner {
 		}
 		System.exit(cmdReturnCode);
 	}
+
 }

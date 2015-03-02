@@ -396,7 +396,9 @@ public class BipartOracle {
 
 		int originalCount = bipart.size();
 		for(int i=0; i<filteredRoots.size();i++){
-			for (int j = i+1; j < filteredGroups.size(); j++) {
+			for (int j = 0; j < filteredGroups.size(); j++) {
+				if(j == i)
+					continue;
 				for(TLongBipartition tlb: filteredGroups.get(j)){
 					TLongBipartition newsum = tlb.sum(filteredRoots.get(i));
 					if(newsum == null)
@@ -1297,8 +1299,10 @@ public class BipartOracle {
 				}
 				if(childBipart == null)
 					continue;
-				if( taxonomyGraphNodesMap.containsKey(potentialChild)==false && taxonomyGraphNodesMap.containsKey(parent)){
-					childBipartExp = bipartForGraphNodeExploded.get(potentialChild);	
+				if(USING_TAXONOMY){
+					if(taxonomyGraphNodesMap.containsKey(potentialChild)==false && taxonomyGraphNodesMap.containsKey(parent)){
+						childBipartExp = bipartForGraphNodeExploded.get(potentialChild);	
+					}
 				}
 				//System.out.println("\t\t"+potentialChild+"\t"+childBipart+"\t"+nodeBipart);
 				//System.out.println("\t\t\t"+taxonomyGraphNodesMap.containsKey(parent)+" "+taxonomyGraphNodesMap.containsKey(potentialChild));
