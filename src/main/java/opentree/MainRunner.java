@@ -4,14 +4,18 @@ import gnu.trove.set.hash.TLongHashSet;
 import jade.deprecated.JSONMessageLogger;
 import jade.deprecated.MessageLogger;
 import jade.tree.Tree;
+import jade.tree.TreeNode;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
 import jade.tree.deprecated.TreeReader;
 import jade.tree.deprecated.JadeNode.NodeOrder;
 
+import org.opentree.bitarray.CompactLongSet;
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.tag.treeimport.BipartOracle;
+import org.opentree.tag.treeimport.SubsetTreesUtility;
+import org.opentree.tag.treeimport.TipExploder;
 import org.opentree.utils.GeneralUtils;
 
 import java.io.BufferedReader;
@@ -25,10 +29,12 @@ import java.io.PrintWriter;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -2684,11 +2690,13 @@ public class MainRunner {
 	 */
 	public int filterTreesForLoad(String[] args) throws Exception {
 		if (args.length != 4) {
-			System.out.println("arguments should be: filename graphdbfolder");
+			System.out.println("arguments should be: filename subset graphdbfolder");
 			return 1;
 		}
 		String filename = args[1];
-		String graphname = args[2];
+		String taxId = args[2];
+		String graphname = args[3];
+		
 		int treeCounter = 0;
 		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
 		// read the tree from a file
@@ -2733,9 +2741,13 @@ public class MainRunner {
 		System.out.println(treeCounter + " trees read.");
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
-		System.out.println("started graph import");
+		SubsetTreesUtility stu = new SubsetTreesUtility();
+		stu.subsetSingle(jt,taxId,gdb);
+		
 		return 0;
 	}
+	
+	
 	
 	/**
 	 * arguments are:

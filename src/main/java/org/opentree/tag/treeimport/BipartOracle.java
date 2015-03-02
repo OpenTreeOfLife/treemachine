@@ -590,16 +590,21 @@ public class BipartOracle {
 		z = new Date().getTime();
 		for (Integer p : summedBipartIds) {
 			ArrayList<Integer> parsbi = summedBipartSourceBiparts.get(p);
+			TLongBipartition tlp = bipart.get(p);
 			//get the parent ids of these
 			//get the intersection of the parets and add
 			for(Integer pi: nestedParents.get(parsbi.get(0))){
-				nestedParents.get(p).add(pi);
-				nestedChildren.get(pi).add(p);
-				nestedAugmentingParents.get(p).add(pi);
+				if(tlp.isNestedPartitionOf(bipart.get(pi))){
+					nestedParents.get(p).add(pi);
+					nestedChildren.get(pi).add(p);
+					nestedAugmentingParents.get(p).add(pi);
+				}
 			}for(Integer pi: nestedParents.get(parsbi.get(1))){
-				nestedParents.get(p).add(pi);
-				nestedChildren.get(pi).add(p);
-				nestedAugmentingParents.get(p).add(pi);
+				if(tlp.isNestedPartitionOf(bipart.get(pi))){
+					nestedParents.get(p).add(pi);
+					nestedChildren.get(pi).add(p);
+					nestedAugmentingParents.get(p).add(pi);
+				}
 			}
 		}
 		
@@ -1110,10 +1115,27 @@ public class BipartOracle {
 					if (b.isNestedPartitionOf(rootBipart)) { graphNodeForBipart.get(b).createRelationshipTo(rootNode, RelType.MRCACHILDOF); }
 				}
 			}
+			/*
+			 * store the root nodes in the index
+			 * these can be used later for connectivity between subsets
+			 */
+			Index<Node> ottIdIndex = gdb.getNodeIndex("sourceTreeRoots", "type", "exact", "to_lower_case", "true");
+			Index<Node> ottIdIndexss = gdb.getNodeIndex("sourceTreeRootsSubsets", "type", "exact", "to_lower_case", "true");
 
+			for(Node gn: graphNodes){
+				ottIdIndex.putIfAbsent(gn, "source", sourceForTreeNode.get(root));
+				//add a property for the subset
+				if(gn.hasProperty("subset")){
+					String subset = (String) gn.getProperty("subset");
+					ottIdIndexss.putIfAbsent(gn, "subset", sourceForTreeNode.get(root)+subset);
+				}
+			}
+			
 			tx.success();
 			tx.finish();
 	
+			
+			
 			graphNodesForTreeNode.put(root, graphNodes);
 		}
 	}
