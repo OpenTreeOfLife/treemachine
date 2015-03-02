@@ -38,6 +38,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opentree.bitarray.CompactLongSet;
 import org.opentree.graphdb.GraphDatabaseAgent;
@@ -162,6 +163,12 @@ public class BipartOracle {
 	/** this is just a map of node and the ORDER (higher is later in the list) of the tree it came from in the list */
 	Map<TreeNode,Integer> sourceForTreeNode;
 	
+	//these are subset tips and roots to be connected to other tips
+	Map<TreeNode, String> subsetTipInfo;
+	
+	//these are the source labels
+	Map<Tree, String> sourceForTrees;
+	
  	int nodeId = 0;
 
 	/**
@@ -171,10 +178,13 @@ public class BipartOracle {
 	 * @param mapInternalNodesToTax
 	 * @throws Exception
 	 */
-	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy) throws Exception {
+	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy, 
+			Map<Tree, String> sources, Map<TreeNode,String> subsetInfo) throws Exception {
 		
 		this.gdb = gdb;
 		this.USING_TAXONOMY = useTaxonomy;
+		this.subsetTipInfo = subsetInfo;
+		this.sourceForTrees = sources;
 		
 		long w = new Date().getTime(); // for timing 
 		
@@ -1123,11 +1133,13 @@ public class BipartOracle {
 			Index<Node> ottIdIndexss = gdb.getNodeIndex("sourceTreeRootsSubsets", "type", "exact", "to_lower_case", "true");
 
 			for(Node gn: graphNodes){
-				ottIdIndex.putIfAbsent(gn, "source", sourceForTreeNode.get(root));
+				ottIdIndex.add(gn, "source", String.valueOf(sourceForTreeNode.get(root)));
 				//add a property for the subset
-				if(gn.hasProperty("subset")){
-					String subset = (String) gn.getProperty("subset");
-					ottIdIndexss.putIfAbsent(gn, "subset", sourceForTreeNode.get(root)+subset);
+				if(subsetTipInfo != null){
+					if(subsetTipInfo.containsKey(root)){
+						String subset = subsetTipInfo.get(root);
+						ottIdIndexss.add(gn, "subset", String.valueOf(sourceForTreeNode.get(root)+subset));
+					}
 				}
 			}
 			
@@ -1269,7 +1281,27 @@ public class BipartOracle {
 					updateSTREEChildOf(tip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip));
 				}
 			}
-
+			/*
+			 * for nodes that are subset, we also connect to the roots of the nested sets
+			 * 	to those subset tips
+			 * this information is stored in the tips as subset and in the ottIdIndexss
+			 */
+			if(subsetTipInfo != null){
+				for(TreeNode treeTip: tree.externalNodes()){
+					if(subsetTipInfo.containsKey(treeTip)){
+						Index<Node> ottIdIndexss = gdb.getNodeIndex("sourceTreeRootsSubsets", "type", "exact", "to_lower_case", "true");
+						IndexHits<Node> hitroots= ottIdIndexss.get("subset", sourceForTreeNode.get(treeTip)+subsetTipInfo.get(treeTip));
+						for(Node tip:hitroots){
+							for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
+								if(tip.equals(parent))
+									continue;
+								updateMRCAChildOf(tip, parent);
+								updateSTREEChildOf(tip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip));
+							}
+						}
+					}
+				}
+			}
 			// TODO add tree metadata node
 			
 			tx.success();
@@ -1849,7 +1881,7 @@ public class BipartOracle {
 	
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb, false);
+		BipartOracle bi = new BipartOracle(t, gdb, false,null,null);
 
 	}
 	
@@ -1884,7 +1916,7 @@ public class BipartOracle {
 
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb, true);
+		BipartOracle bi = new BipartOracle(t, gdb, true,null,null);
 
 	}
 	
@@ -1892,7 +1924,7 @@ public class BipartOracle {
 	private static void runSimpleTest(List<Tree> t, String dbname) throws Exception {
 
 		FileUtils.deleteDirectory(new File(dbname));
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), false);
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), false,null,null);
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.size(); i++) {
@@ -1915,7 +1947,7 @@ public class BipartOracle {
 	@SuppressWarnings("unused")
 	private static void runSimpleOTTTest(List<Tree> t, String dbname) throws Exception {
 
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), true);
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), true,null,null);
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.size(); i++) {

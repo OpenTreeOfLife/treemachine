@@ -946,6 +946,15 @@ public class MainRunner {
 				while ((ts = br.readLine()) != null) {
 					if (ts.length() > 1) {
 						Tree tt = jade.tree.TreeReader.readTree(ts);
+						//adding the information in the tree for subsetting
+						//check the root first
+						/*System.out.println(tt.getRoot().getLabel());
+						System.exit(0);
+						if(((String)tt.getRoot().getLabel()).contains("subset=")){
+							System.out.println(((String)tt.getRoot().getLabel()).split("subset="));
+							System.exit(0);
+						}*/
+						//check the tips
 						jt.add(tt);
 						treeCounter++;
 					}
@@ -978,7 +987,7 @@ public class MainRunner {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
 		System.out.println("started graph import");
-		BipartOracle bo = new BipartOracle(jt, gdb, tloaded);
+		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,null,null);
 		
 		gdb.shutdownDb();
 		return 0;
