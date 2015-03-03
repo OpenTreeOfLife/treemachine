@@ -1748,6 +1748,10 @@ public class BipartOracle {
 		if(USING_TAXONOMY){
 			TLongBipartition tlb = getExpandedTaxonomyBipart(b);
 			bipartForGraphNodeExploded.put(node,tlb);
+			if(tlb.ingroup().size()==0){
+				System.out.println("ingroup size=0:"+tlb);
+				System.exit(0);
+			}
 			node.setProperty(NodeProperty.MRCA.propertyName, tlb.ingroup().toArray());
 			node.setProperty(NodeProperty.OUTMRCA.propertyName, tlb.outgroup().toArray());
 		}else{

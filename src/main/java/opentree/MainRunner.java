@@ -2734,11 +2734,11 @@ public class MainRunner {
 	 */
 	public int filterTreesForLoad(String[] args) throws Exception {
 		if (args.length != 4) {
-			System.out.println("arguments should be: filename subset graphdbfolder");
+			System.out.println("arguments should be: filename subset[CSV] graphdbfolder");
 			return 1;
 		}
 		String filename = args[1];
-		String taxId = args[2];
+		String [] taxId = args[2].split(",");
 		String graphname = args[3];
 		
 		int treeCounter = 0;
@@ -2785,8 +2785,9 @@ public class MainRunner {
 		System.out.println(treeCounter + " trees read.");
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
-		SubsetTreesUtility stu = new SubsetTreesUtility();
-		stu.subsetSingle(jt,taxId,gdb);
+		SubsetTreesUtility stu = new SubsetTreesUtility(gdb);
+		stu.subsetMultiple(jt, taxId);
+		//stu.subsetSingle(jt,taxId);
 		
 		return 0;
 	}
