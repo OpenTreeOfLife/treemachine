@@ -4,14 +4,18 @@ import gnu.trove.set.hash.TLongHashSet;
 import jade.deprecated.JSONMessageLogger;
 import jade.deprecated.MessageLogger;
 import jade.tree.Tree;
+import jade.tree.TreeNode;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
 import jade.tree.deprecated.TreeReader;
 import jade.tree.deprecated.JadeNode.NodeOrder;
 
+import org.opentree.bitarray.CompactLongSet;
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.tag.treeimport.BipartOracle;
+import org.opentree.tag.treeimport.SubsetTreesUtility;
+import org.opentree.tag.treeimport.TipExploder;
 import org.opentree.utils.GeneralUtils;
 
 import java.io.BufferedReader;
@@ -25,10 +29,12 @@ import java.io.PrintWriter;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -916,7 +922,6 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int loadTreeAnalysis(String [] args) throws Exception {
-		System.out.println(Runtime.getRuntime().availableProcessors());
 		if (args.length != 4) {
 			System.out.println("arguments should be: filename graphdbfolder (taxonomyalreadyloaded)T|F");
 			return 1;
@@ -934,18 +939,62 @@ public class MainRunner {
 		String ts = "";
 		List<Tree> jt = new ArrayList<Tree>();
 		MessageLogger messageLogger = new MessageLogger("loadTreeAnalysis:");
+		Map<TreeNode, String> subsetTipInfo = null;
+		Map<Tree, String> sourceForTrees = null;
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
-				System.out.println("Reading newick file...");
-				while ((ts = br.readLine()) != null) {
-					if (ts.length() > 1) {
-						Tree tt = jade.tree.TreeReader.readTree(ts);
-						jt.add(tt);
-						treeCounter++;
+			//if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
+			//assuming that it is newick not nexson
+			//assuming we either have the source in front of the newick or just plan newick
+			boolean sourceAvail = false;
+			String first = br.readLine();
+			if(first.split(" ").length > 1 && first.split(" ")[0].length() > 0){
+				sourceAvail = true;
+				sourceForTrees = new HashMap<Tree,String>();
+			}
+			br.close();
+			br = new BufferedReader(new FileReader(filename));
+			System.out.println("Reading newick file with sourceAvail="+sourceAvail+"...");
+			while ((ts = br.readLine()) != null) {
+				if (ts.length() > 1) {
+					String source = null;
+					if(sourceAvail){
+						String [] spls = ts.split(" ");
+						source= spls[0];
+						ts = spls[1];
 					}
+					Tree tt = jade.tree.TreeReader.readTree(ts);
+					//adding the information in the tree for subsetting
+					//check the root first
+					if(((String)tt.getRoot().getLabel()).contains("subset=")){
+						if(subsetTipInfo == null)
+							subsetTipInfo = new HashMap<TreeNode,String>();
+						String [] spls = ((String)tt.getRoot().getLabel()).split("subset=");
+						String subset = spls[1];
+						((jade.tree.JadeNode)tt.getRoot()).setName("");
+						subsetTipInfo.put(tt.getRoot(), subset);
+					}
+					//now check all the tips
+					for(TreeNode jn : tt.externalNodes()){
+						if(((String)jn.getLabel()).contains("__subset=")){
+							if(subsetTipInfo == null)
+								subsetTipInfo = new HashMap<TreeNode,String>();
+							String [] spls = ((String)jn.getLabel()).split("__subset=");
+							String name = spls[0];
+							String subset = spls[1];
+							((jade.tree.JadeNode)jn).setName(name);
+							subsetTipInfo.put(jn, subset);
+						}
+					}
+					if(sourceAvail)
+						sourceForTrees.put(tt, source);
+					//check the tips
+					jt.add(tt);
+					treeCounter++;
 				}
-			} /*else { // nexson
+			}
+			
+			/*} else { // nexson
 				System.out.println("Reading nexson file...");
 				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 					if (tree == null) {
@@ -973,7 +1022,7 @@ public class MainRunner {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
 		System.out.println("started graph import");
-		BipartOracle bo = new BipartOracle(jt, gdb, tloaded);
+		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,sourceForTrees,subsetTipInfo);
 		
 		gdb.shutdownDb();
 		return 0;
@@ -2672,6 +2721,77 @@ public class MainRunner {
 		return 0;
 	}
 	
+	/**
+	 * this takes a file with trees and loads them against the taxonomy
+	 * given an id, you will be informed, 
+	 * 1) if a tree does not find it monophyletic
+	 *     (in which case you may want to choose another id)
+	 * 2) you will be given the tree back if it is contained within
+	 * 3) you will be given the tree with the part contained within pruned
+	 * 4) you will be given the remaining tree with the pruned replaced by new taxonid
+	 * @param args
+	 * @return
+	 */
+	public int filterTreesForLoad(String[] args) throws Exception {
+		if (args.length != 4) {
+			System.out.println("arguments should be: filename subset graphdbfolder");
+			return 1;
+		}
+		String filename = args[1];
+		String taxId = args[2];
+		String graphname = args[3];
+		
+		int treeCounter = 0;
+		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
+		// read the tree from a file
+		String ts = "";
+		List<Tree> jt = new ArrayList<Tree>();
+		MessageLogger messageLogger = new MessageLogger("loadTreeAnalysis:");
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
+				System.out.println("Reading newick file...");
+				while ((ts = br.readLine()) != null) {
+					if (ts.length() > 1) {
+						Tree tt = jade.tree.TreeReader.readTree(ts);
+						jt.add(tt);
+						treeCounter++;
+					}
+				}
+			} /*else { // nexson
+				System.out.println("Reading nexson file...");
+				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
+					if (tree == null) {
+						messageLogger.indentMessage(1, "Skipping null tree.");
+					} else {
+						jt.add(tree);
+						treeCounter++;
+					}
+				}
+			}*/
+			br.close();
+		} catch (FileNotFoundException e) {
+			//e.printStackTrace();
+			System.err.println("Could not open the file \"" + args[1] + "\" Exiting...");
+			return -1;
+		} catch (IOException ioe) {
+			
+		}
+		
+		if (treeCounter == 0) {
+			System.err.println("No valid trees found in file \"" + args[1] + "\" Exiting...");
+			return -1;
+		}
+		System.out.println(treeCounter + " trees read.");
+		
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
+		SubsetTreesUtility stu = new SubsetTreesUtility();
+		stu.subsetSingle(jt,taxId,gdb);
+		
+		return 0;
+	}
+	
+	
 	
 	/**
 	 * arguments are:
@@ -3228,6 +3348,8 @@ public class MainRunner {
 				cmdReturnCode = mr.treeCompare(args);
 			} else if (command.compareTo("taxcomp") == 0){
 				cmdReturnCode = mr.taxCompare(args);
+			} else if (command.compareTo("filtertreesforload") == 0){
+				cmdReturnCode = mr.filterTreesForLoad(args);
 			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
@@ -3247,4 +3369,5 @@ public class MainRunner {
 		}
 		System.exit(cmdReturnCode);
 	}
+
 }

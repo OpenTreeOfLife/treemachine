@@ -19,7 +19,16 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 	
 	private Set<TLongBipartition> bipart;
 	
-	private static boolean USE_PARALLEL = true;
+	//crashes with parallel with 
+	/*
+	 * Exception in thread "main" java.lang.NullPointerException
+        at java.util.HashMap$TreeNode.putTreeVal(HashMap.java:1970)
+        at java.util.HashMap.putVal(HashMap.java:637)
+        at java.util.HashMap.put(HashMap.java:611)
+        at java.util.HashSet.add(HashSet.java:219)
+
+	 */
+	private static boolean USE_PARALLEL = false;
 
 	public BipartSetSum(Collection<TLongBipartition> all) {
 		// first remove duplicates
@@ -54,11 +63,15 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		long z = new Date().getTime();
 		Set<TLongBipartition> observedOriginals = new HashSet<TLongBipartition>();
 		List<Collection<TLongBipartition>> filteredGroups = new ArrayList<Collection<TLongBipartition>>();
+		List<Collection<TLongBipartition>> filteredRoots = new ArrayList<Collection<TLongBipartition>>();
 		int n = 0;
 		int d = 0;
 		for (int i = 0; i < bipartsByTree.size(); i++) {
+			Collection<TLongBipartition> filteredRoot = new ArrayList<TLongBipartition>();
 			Collection<TLongBipartition> filteredCurTree = new ArrayList<TLongBipartition>();
 			for (TLongBipartition b : bipartsByTree.get(i)) {
+				if(b.outgroup().size()==0)
+					filteredRoot.add(b);
 				if (! observedOriginals.contains(b)) {
 					filteredCurTree.add(b);
 					observedOriginals.add(b);
@@ -68,6 +81,7 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 				}
 			}
 			filteredGroups.add(filteredCurTree);
+			filteredRoots.add(filteredRoot);
 		}
 		observedOriginals = null; // free resource for garbage collector
 		System.out.println(" done. found " + d + " duplicate biparts. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
@@ -75,7 +89,8 @@ public class BipartSetSum implements Iterable<TLongBipartition> {
 		System.out.print("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups...");
 		z = new Date().getTime();
 		Set<TLongBipartition> biparts = new HashSet<TLongBipartition>();
-		for (int i = 0; i < filteredGroups.size(); i++) {
+		//for (int i = 0; i < filteredGroups.size(); i++) {
+		for(int i=0; i<filteredRoots.size();i++){
 //			biparts.addAll(filteredGroups.get(i)); // record the originals from group i
 			for (int j = i+1; j < filteredGroups.size(); j++) {
 				biparts.addAll(sum(filteredGroups.get(i), filteredGroups.get(j))); // record the sums against group j
