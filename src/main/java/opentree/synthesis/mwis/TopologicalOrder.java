@@ -13,6 +13,7 @@ public class TopologicalOrder implements Iterable<Node> {
 
 	RelationshipType relType;
 	Set<Node> nodes = new LinkedHashSet<Node>(); // iterates over items in order of addition to set
+	Set<Node> visited = new LinkedHashSet<Node>(); // records those visited so as to not revisit
 	
 	public TopologicalOrder(Node root, RelationshipType relType) {
 		this.relType = relType;
@@ -21,9 +22,15 @@ public class TopologicalOrder implements Iterable<Node> {
 	
 	private void addNodesRecursive(Node n) {
 		for (Relationship r : n.getRelationships(relType, Direction.INCOMING)) {
-			addNodesRecursive(r.getStartNode());
+			if(visited.contains(r.getStartNode())==false){
+				visited.add(r.getStartNode());
+				addNodesRecursive(r.getStartNode());
+			}
 		}
-		nodes.add(n); // first occurrence is used for ordering, subsequent ones have no effect
+		if(visited.contains(n)==false){
+			nodes.add(n); // first occurrence is used for ordering, subsequent ones have no effect
+			visited.add(n);
+		}
 	}
 
 	@Override
