@@ -49,7 +49,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 
 		// could fail if we have MRCACHILDOF cycles. should probably use TAXCHILDOF and STREECHILDOF
 		// need to change constructor to accept a set of reltypes.
-		topologicalOrder = new TopologicalOrder(root, RelType.MRCACHILDOF);
+		topologicalOrder = new TopologicalOrder(root, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 
 		childRels = new HashMap<Long, HashSet<Relationship>>();
 

@@ -11,16 +11,16 @@ import org.neo4j.graphdb.RelationshipType;
 
 public class TopologicalOrder implements Iterable<Node> {
 
-	RelationshipType relType;
+	RelationshipType[] relTypes;
 	Set<Node> nodes = new LinkedHashSet<Node>(); // iterates over items in order of addition to set
 	
-	public TopologicalOrder(Node root, RelationshipType relType) {
-		this.relType = relType;
+	public TopologicalOrder(Node root, RelationshipType... relTypes) {
+		this.relTypes = relTypes;
 		addNodesRecursive(root);
 	}
 	
 	private void addNodesRecursive(Node n) {
-		for (Relationship r : n.getRelationships(relType, Direction.INCOMING)) {
+		for (Relationship r : n.getRelationships(Direction.INCOMING, relTypes)) {
 			addNodesRecursive(r.getStartNode());
 		}
 		nodes.add(n); // first occurrence is used for ordering, subsequent ones have no effect
