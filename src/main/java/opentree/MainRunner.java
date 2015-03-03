@@ -939,27 +939,62 @@ public class MainRunner {
 		String ts = "";
 		List<Tree> jt = new ArrayList<Tree>();
 		MessageLogger messageLogger = new MessageLogger("loadTreeAnalysis:");
+		Map<TreeNode, String> subsetTipInfo = null;
+		Map<Tree, String> sourceForTrees = null;
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
-				System.out.println("Reading newick file...");
-				while ((ts = br.readLine()) != null) {
-					if (ts.length() > 1) {
-						Tree tt = jade.tree.TreeReader.readTree(ts);
-						//adding the information in the tree for subsetting
-						//check the root first
-						/*System.out.println(tt.getRoot().getLabel());
-						System.exit(0);
-						if(((String)tt.getRoot().getLabel()).contains("subset=")){
-							System.out.println(((String)tt.getRoot().getLabel()).split("subset="));
-							System.exit(0);
-						}*/
-						//check the tips
-						jt.add(tt);
-						treeCounter++;
+			//if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
+			//assuming that it is newick not nexson
+			//assuming we either have the source in front of the newick or just plan newick
+			boolean sourceAvail = false;
+			String first = br.readLine();
+			if(first.split(" ").length > 1 && first.split(" ")[0].length() > 0){
+				sourceAvail = true;
+				sourceForTrees = new HashMap<Tree,String>();
+			}
+			br.close();
+			br = new BufferedReader(new FileReader(filename));
+			System.out.println("Reading newick file with sourceAvail="+sourceAvail+"...");
+			while ((ts = br.readLine()) != null) {
+				if (ts.length() > 1) {
+					String source = null;
+					if(sourceAvail){
+						String [] spls = ts.split(" ");
+						source= spls[0];
+						ts = spls[1];
 					}
+					Tree tt = jade.tree.TreeReader.readTree(ts);
+					//adding the information in the tree for subsetting
+					//check the root first
+					if(((String)tt.getRoot().getLabel()).contains("subset=")){
+						if(subsetTipInfo == null)
+							subsetTipInfo = new HashMap<TreeNode,String>();
+						String [] spls = ((String)tt.getRoot().getLabel()).split("subset=");
+						String subset = spls[1];
+						((jade.tree.JadeNode)tt.getRoot()).setName("");
+						subsetTipInfo.put(tt.getRoot(), subset);
+					}
+					//now check all the tips
+					for(TreeNode jn : tt.externalNodes()){
+						if(((String)jn.getLabel()).contains("__subset=")){
+							if(subsetTipInfo == null)
+								subsetTipInfo = new HashMap<TreeNode,String>();
+							String [] spls = ((String)jn.getLabel()).split("__subset=");
+							String name = spls[0];
+							String subset = spls[1];
+							((jade.tree.JadeNode)jn).setName(name);
+							subsetTipInfo.put(jn, subset);
+						}
+					}
+					if(sourceAvail)
+						sourceForTrees.put(tt, source);
+					//check the tips
+					jt.add(tt);
+					treeCounter++;
 				}
-			} /*else { // nexson
+			}
+			
+			/*} else { // nexson
 				System.out.println("Reading nexson file...");
 				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 					if (tree == null) {
@@ -987,7 +1022,7 @@ public class MainRunner {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
 		System.out.println("started graph import");
-		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,null,null);
+		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,sourceForTrees,subsetTipInfo);
 		
 		gdb.shutdownDb();
 		return 0;

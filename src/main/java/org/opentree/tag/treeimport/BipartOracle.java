@@ -152,7 +152,7 @@ public class BipartOracle {
 	
 	/** Just a simple container to keep track of rels we know we've made so we can cut down on database queries to find out of they exist. */
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
-	private Map<Long, HashMap<Long,HashSet<Integer>>> hasSTREEChildOf = new HashMap<Long, HashMap<Long,HashSet<Integer>>>();
+	private Map<Long, HashMap<Long,HashSet<String>>> hasSTREEChildOf = new HashMap<Long, HashMap<Long,HashSet<String>>>();
 	
 	// map for the list of relevant taxonomy nodes
 	Map<Node,TLongBipartition> taxonomyGraphNodesMap;
@@ -161,7 +161,7 @@ public class BipartOracle {
 	Map<TreeNode,Integer> rankForTreeNode;
 
 	/** this is just a map of node and the ORDER (higher is later in the list) of the tree it came from in the list */
-	Map<TreeNode,Integer> sourceForTreeNode;
+	Map<TreeNode,String> sourceForTreeNode;
 	
 	//these are subset tips and roots to be connected to other tips
 	Map<TreeNode, String> subsetTipInfo;
@@ -452,12 +452,26 @@ public class BipartOracle {
 	
 	private void createTreeIdRankMap(List<Tree> trees){
 		rankForTreeNode = new HashMap<TreeNode,Integer>();
-		sourceForTreeNode = new HashMap<TreeNode,Integer>();
+		sourceForTreeNode = new HashMap<TreeNode,String>();
 		int curt = trees.size();
 		int cust = 1; // starting at 1 not zero to avoid confusion with taxonomy
 		for (Tree t: trees) {
-			for (TreeNode tn: t.internalNodes(NodeOrder.PREORDER)) { rankForTreeNode.put(tn, curt); sourceForTreeNode.put(tn, cust);}
-			for (TreeNode tn: t.externalNodes()) { rankForTreeNode.put(tn, curt); sourceForTreeNode.put(tn, cust);}
+			for (TreeNode tn: t.internalNodes(NodeOrder.PREORDER)) {
+				rankForTreeNode.put(tn, curt); 
+				if(sourceForTrees == null){
+					sourceForTreeNode.put(tn, String.valueOf(cust));
+				}else{
+					sourceForTreeNode.put(tn,sourceForTrees.get(t));
+				}
+			}
+			for (TreeNode tn: t.externalNodes()) {
+				rankForTreeNode.put(tn, curt); 
+				if(sourceForTrees == null){
+					sourceForTreeNode.put(tn, String.valueOf(cust));
+				}else{
+					sourceForTreeNode.put(tn,sourceForTrees.get(t));
+				}
+			}
 			curt--;
 			cust++;
 		}
@@ -1765,9 +1779,9 @@ public class BipartOracle {
 	 * @param child
 	 * @param parent
 	 */
-	private void updateSTREEChildOf(Node child, Node parent, Integer source, Integer sourcerank ) {
+	private void updateSTREEChildOf(Node child, Node parent, String source, Integer sourcerank ) {
 		if (hasSTREEChildOf.get(child.getId()) == null) {
-			hasSTREEChildOf.put(child.getId(), new HashMap<Long,HashSet<Integer>>());
+			hasSTREEChildOf.put(child.getId(), new HashMap<Long,HashSet<String>>());
 		} else {
 			if (hasSTREEChildOf.get(child.getId()).containsKey(parent.getId())) {
 				if(hasSTREEChildOf.get(child.getId()).get(parent.getId()).contains(source))
@@ -1778,7 +1792,7 @@ public class BipartOracle {
 		rel.setProperty("source", source);
 		rel.setProperty("sourcerank", sourcerank);
 		if(hasSTREEChildOf.get(child.getId()).containsKey(parent.getId())==false)
-			hasSTREEChildOf.get(child.getId()).put(parent.getId(), new HashSet<Integer>());
+			hasSTREEChildOf.get(child.getId()).put(parent.getId(), new HashSet<String>());
 		hasSTREEChildOf.get(child.getId()).get(parent.getId()).add(source);
 	}
 	
