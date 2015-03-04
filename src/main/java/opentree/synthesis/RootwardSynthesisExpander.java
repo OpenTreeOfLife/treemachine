@@ -112,8 +112,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 							if (treeRelContainsOther(I,J)) {
 //								System.out.println(I + " contains " + J);
 								uprank(relsForMWIS.get(i), relsForMWIS.get(j));
-							}
-							else if (treeRelContainsOther(J,I)) {
+							} else if (treeRelContainsOther(J,I)) {
 //								System.out.println(J + " contains " + I);
 								uprank(relsForMWIS.get(j), relsForMWIS.get(i));
 							}
@@ -303,12 +302,43 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		double[] weights = new double[rels.size()];
 		Long[] relIds = new Long[rels.size()];
 		
+		int numValid = 0;
+		// check if no conflict
+		int taxSum = 0;
+		HashSet<Long> uniqueTips = new HashSet<Long>();
+		
 		Iterator<Relationship> relsIter = rels.iterator();
 		for (int i = 0; relsIter.hasNext(); i++) {
 			Relationship rel = relsIter.next();
-			relIds[i] = rel.getId();
-			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTipsAndInternal(rel.getId()));
 
+			// avoid null pointer
+			TLongBitArraySet currDesc = mrcaTipsAndInternal(rel.getId());
+			//System.out.println("currDesc = " + currDesc);
+			
+			if (currDesc != null) {
+				relIds[numValid] = rel.getId();
+				mrcaSetsForRels[numValid] = currDesc;
+				
+				long [] currTips = mrcaTips(rel);
+				taxSum += currTips.length;
+				for (int j = 0; j < currTips.length; j++) {
+					uniqueTips.add(currTips[j]);
+				}
+				if (USING_RANKS) {
+					weights[numValid] = getScoreRanked(rel);
+				} else {
+					weights[numValid] = getScoreNodeCount(rel); // this is the only one that seems to produce sensible results right now
+				}
+
+				if (VERBOSE) {
+					System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + 
+						") = " + nodeMrca.get(rel.getStartNode().getId()) + ". score = " + weights[numValid]);
+				}
+				numValid++;
+			} else {
+				System.out.println("*** rel '" + rel + "' [ID = " + rel.getId() + "] (somehow) has no descendants! relType = " + rel.getType());
+				continue;
+			}
 //			weights[i] = getScoreNodeCount(rel); // this is the only one that seems to make sense
 
 			// ranked scoring is messy and screws things up in unpredictable ways
@@ -327,14 +357,36 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			 * present ids. Of course, we will still want to prefer larger sets of rels as well. so that might get tricky since it will be
 			 * possible to add many rels to a set without increasing its score. but possibly doable...
 			 */
+		}
+		
+		// this is a sign things are not great i.e. children have not been visited before parents
+		// as a temporary hack, just skip them to allow things to proceed
+		if (numValid < 1) {
+			System.out.println("(no incoming rels have valid descendants)");
+			return new ArrayList<Long>();
+		}
+		
+		// dropped some rels. make new arrays. hacky for now to get it to work.
+		if (numValid != rels.size()) {
+			System.out.println("Only encountered " + numValid + " valid rels. Making new arrays.");
+			TLongBitArraySet[] mrcaSetsForRels2 = new TLongBitArraySet[numValid];
+			double[] weights2 = new double[numValid];
+			Long[] relIds2 = new Long[numValid];
 			
-			if (USING_RANKS) {
-				weights[i] = getScoreRanked(rel);
-			} else {
-				weights[i] = getScoreNodeCount(rel); // this is the only one that seems to produce sensible results right now
-			}
-
-			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId()) + ". score = " + weights[i]); }
+			System.arraycopy(mrcaSetsForRels, 0, mrcaSetsForRels2, 0, numValid);
+			System.arraycopy(weights, 0, weights2, 0, numValid);
+			System.arraycopy(relIds, 0, relIds2, 0, numValid);
+			
+			mrcaSetsForRels = mrcaSetsForRels2;
+			weights = weights2;
+			relIds = relIds2;
+		}
+		
+		// this seems to be a real timesaver: if there is no conflict, skip the set comparisons and just add everything
+		System.out.println("taxSum = " + taxSum + "; uniqueTips size = " + uniqueTips.size() + "; numValidRels = " + numValid);
+		if (taxSum == uniqueTips.size()) {
+			System.out.println("No conflict! Don't waste time doing " + ((int)(Math.pow(2, rels.size()) - 1)) + " comparisons! Just add all.");
+			return new ArrayList<Long>(Arrays.asList(relIds));
 		}
 		
 		if (USING_RANKS) {
