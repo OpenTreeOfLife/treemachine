@@ -95,34 +95,44 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 				}
 			}
 			
-			// collect the set of non-redundant rels
-			List<Relationship> relsForMWIS = new ArrayList<Relationship>(bestRelForNode.values());
-
-			if (USING_RANKS) {
-				// augment the ranks of rels that fully include all the descendants of other rels by
-				// the degree of the rank of the fully included rel. the goal here is to try and make
-				// sure we use more inclusive rels even when they have lower rank as long as they are
-				// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
-				// is EXPERIMENTAL and may be incorrect!!!!
-				for (int i = 0; i < relsForMWIS.size(); i++) {
-					for (int j = 0; j < relsForMWIS.size(); j++) {
-						if (i != j) {
-							Relationship I = relsForMWIS.get(i);
-							Relationship J = relsForMWIS.get(j);
-							if (treeRelContainsOther(I,J)) {
-//								System.out.println(I + " contains " + J);
-								uprank(relsForMWIS.get(i), relsForMWIS.get(j));
-							} else if (treeRelContainsOther(J,I)) {
-//								System.out.println(J + " contains " + I);
-								uprank(relsForMWIS.get(j), relsForMWIS.get(i));
+			List<Long> bestRelIds = new ArrayList<Long>();
+			if (!bestRelForNode.isEmpty()) {
+				
+				// collect the set of non-redundant rels
+				List<Relationship> relsForMWIS = new ArrayList<Relationship>(bestRelForNode.values());
+	
+				if (USING_RANKS) {
+					// augment the ranks of rels that fully include all the descendants of other rels by
+					// the degree of the rank of the fully included rel. the goal here is to try and make
+					// sure we use more inclusive rels even when they have lower rank as long as they are
+					// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
+					// is EXPERIMENTAL and may be incorrect!!!!
+					for (int i = 0; i < relsForMWIS.size(); i++) {
+						for (int j = 0; j < relsForMWIS.size(); j++) {
+							if (i != j) {
+								Relationship I = relsForMWIS.get(i);
+								Relationship J = relsForMWIS.get(j);
+								if (treeRelContainsOther(I,J)) {
+	//								System.out.println(I + " contains " + J);
+									uprank(relsForMWIS.get(i), relsForMWIS.get(j));
+								} else if (treeRelContainsOther(J,I)) {
+	//								System.out.println(J + " contains " + I);
+									uprank(relsForMWIS.get(j), relsForMWIS.get(i));
+								}
 							}
 						}
 					}
 				}
+				
+				// get all the best nontrivial rels and collect the ids of all descendant tips
+				bestRelIds = findBestNonOverlapping(relsForMWIS);
+			} else {
+				if (!singletons.isEmpty()) {
+					System.out.println("Only singletons found.");
+				} else {
+					System.out.println("This must be a tip.");
+				}
 			}
-			
-			// get all the best nontrivial rels and collect the ids of all descendant tips
-			List<Long> bestRelIds = findBestNonOverlapping(relsForMWIS);
 			TLongBitArraySet included = new TLongBitArraySet (mrcaTipsAndInternal(bestRelIds));
 			
 			if (VERBOSE) { for (Long b : bestRelIds) { Relationship r = gdb.getRelationshipById(b); System.out.println("selected source tree rel " + r + ": " + r.getStartNode() + " -> " + r.getEndNode()); }}

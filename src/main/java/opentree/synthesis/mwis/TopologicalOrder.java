@@ -12,7 +12,8 @@ import org.neo4j.graphdb.RelationshipType;
 public class TopologicalOrder implements Iterable<Node> {
 
 	RelationshipType[] relTypes;
-	Set<Node> nodes = new LinkedHashSet<Node>(); // iterates over items in order of addition to set
+	Set<Node> nodes = new LinkedHashSet<Node>();   // iterates over items in order of addition to set
+	Set<Node> visited = new LinkedHashSet<Node>(); // records those visited so as to not revisit
 	
 	public TopologicalOrder(Node root, RelationshipType... relTypes) {
 		this.relTypes = relTypes;
@@ -21,10 +22,23 @@ public class TopologicalOrder implements Iterable<Node> {
 	
 	private void addNodesRecursive(Node n) {
 		for (Relationship r : n.getRelationships(Direction.INCOMING, relTypes)) {
-			addNodesRecursive(r.getStartNode());
+			Node startNode = r.getStartNode();
+			if (visited.contains(startNode) == false) {
+				visited.add(startNode);
+				addNodesRecursive(startNode);
+			}
 		}
-		nodes.add(n); // first occurrence is used for ordering, subsequent ones have no effect
+		if (nodes.contains(n) == false) {
+			nodes.add(n); // first occurrence is used for ordering, subsequent ones have no effect
+		}
 	}
+	
+//	private void addNodesRecursive(Node n) {
+//		for (Relationship r : n.getRelationships(Direction.INCOMING, relTypes)) {
+//			addNodesRecursive(r.getStartNode());
+//		}
+//		nodes.add(n); // first occurrence is used for ordering, subsequent ones have no effect
+//	}
 
 	@Override
 	public Iterator<Node> iterator() {
