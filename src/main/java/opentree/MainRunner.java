@@ -2746,19 +2746,37 @@ public class MainRunner {
 		// read the tree from a file
 		String ts = "";
 		List<Tree> jt = new ArrayList<Tree>();
+		Map<Tree, String> sourceForTrees = null;
 		MessageLogger messageLogger = new MessageLogger("loadTreeAnalysis:");
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
+			boolean sourceAvail = false;
+			String first = br.readLine();
+			if(first.split(" ").length > 1 && first.split(" ")[0].length() > 0){
+				sourceAvail = true;
+				sourceForTrees = new HashMap<Tree,String>();
+			}
+			br.close();
+			br = new BufferedReader(new FileReader(filename));
+			System.out.println("Reading newick file with sourceAvail="+sourceAvail+"...");
+			//if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
 				System.out.println("Reading newick file...");
 				while ((ts = br.readLine()) != null) {
 					if (ts.length() > 1) {
+						String source = null;
+						if(sourceAvail){
+							String [] spls = ts.split(" ");
+							source= spls[0];
+							ts = spls[1];
+						}
 						Tree tt = jade.tree.TreeReader.readTree(ts);
 						jt.add(tt);
 						treeCounter++;
+						if(sourceAvail)
+							sourceForTrees.put(tt, source);
 					}
 				}
-			} /*else { // nexson
+				/*} else { // nexson
 				System.out.println("Reading nexson file...");
 				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 					if (tree == null) {
@@ -2786,12 +2804,11 @@ public class MainRunner {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
 		SubsetTreesUtility stu = new SubsetTreesUtility(gdb);
-		stu.subsetMultiple(jt, taxId);
+		stu.subsetMultiple(jt, taxId,sourceForTrees);
 		//stu.subsetSingle(jt,taxId);
 		
 		return 0;
 	}
-	
 	
 	
 	/**
