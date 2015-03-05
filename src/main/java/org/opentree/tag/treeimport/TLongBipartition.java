@@ -61,6 +61,35 @@ public class TLongBipartition {
 
 		return new TLongBipartition(sumIn, sumOut);
 	}
+	
+	/**
+	 * This differs from sum in that it doesn't not return a bipart if it is equal
+	 * and it requires overlap with the ingroups not ingroups or outgroups
+	 * 
+	 * @param that
+	 * @return
+	 */
+	public TLongBipartition strictSum(TLongBipartition that) {
+
+		if (!this.isCompatibleWith(that))
+			return null;
+		
+		if(!this.ingroup.containsAny(that.ingroup))
+			return null;
+
+		if (this.equals(that))
+			return null;
+		
+		CompactLongSet sumIn = new CompactLongSet();
+		sumIn.addAll(this.ingroup);
+		sumIn.addAll(that.ingroup);
+
+		CompactLongSet sumOut = new CompactLongSet();
+		sumOut.addAll(this.outgroup);
+		sumOut.addAll(that.outgroup);
+
+		return new TLongBipartition(sumIn, sumOut);
+	}
 
 	/**
 	 * Returns true if there is no conflict between these bipartitions. More formally, let A be the bipartition on which

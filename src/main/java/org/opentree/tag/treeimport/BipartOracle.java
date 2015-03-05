@@ -209,7 +209,11 @@ public class BipartOracle {
 		// first process the incoming trees and collect bipartitions
 		// populate class members: treeNode, original, treeNodeIds, nodeIdForName, nameForNodeId, bipartsByTree
 		gatherTreeData(trees);
-		gatherBipartitions(); // populate class member: bipart
+		
+		// need to get the relevant nodes from taxonomy in a set to be used for later analyses
+		if (USING_TAXONOMY) { populateTaxonomyGraphNodesMap(trees); }
+				
+		gatherBipartitions(trees); // populate class member: bipart
 		
 		// identify all the pairwise bipart nestings and find the valid hierarchical nestings (paths)
 		identifyNestedChildBiparts(trees); // populate class members: nestedChildren, nestedParents, nodeForBipart, bipartForNode
@@ -219,9 +223,6 @@ public class BipartOracle {
 		// 1) identify new ingroup/outgroup composition for nested biparts and make corresponding nodes
 		// 2) record all bipart nesting information for generating MRCACHILDOF rels among nodes
 		createNodesUsingPaths();
-
-		// need to get the relevant nodes from taxonomy in a set to be used for later analyses
-		if (USING_TAXONOMY) { populateTaxonomyGraphNodesMap(trees); }
 		
 		// connect all the appropriate nodes with MRCACHILDOF rels
 		// populate class members: graphNodesForTreeNode, hasMRCAChildOf
@@ -373,7 +374,7 @@ public class BipartOracle {
 	/**
 	 * Get pairwise sums of all tree biparts and put all biparts into a single array for future use.
 	 */
-	private void gatherBipartitions() {
+	private void gatherBipartitions(List<Tree> trees) {
 		//we don't want to do it like this because we want to retain which is being summed
 		/*
 		TLongBipartition[] summed = new BipartSetSum(bipartsByTreeNoDuplicates).toArray();
@@ -409,39 +410,15 @@ public class BipartOracle {
 		System.out.print("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups...");
 		z = new Date().getTime();
 
-		/* NEED TO DO MORE THAN ROOT
 		int originalCount = bipart.size();
-		for(int i=0; i<filteredRoots.size();i++){
-			for (int j = 0; j < filteredGroups.size(); j++) {
-				if(j == i)
-					continue;
-				for(TLongBipartition tlb: filteredGroups.get(j)){
-					TLongBipartition newsum = tlb.sum(filteredRoots.get(i));
-					if(newsum == null)
-						continue;
-					if(newsum.outgroup().size()==0)
-						continue;
-					if (! bipartId.containsKey(newsum)) {
-						bipart.add(newsum);
-						int k = bipart.size() - 1;
-						bipartId.put(newsum, k);
-						summedBipartIds.add(k);
-						ArrayList<Integer> pars = new ArrayList<Integer>();
-						pars.add(bipartId.get(filteredRoots.get(i)));pars.add(bipartId.get(tlb));
-						summedBipartSourceBiparts.put(k, pars);
-					}
-				}
-			}
-		}*/
-		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
-		int originalCount = bipart.size();
-		for(int i=0; i<filteredGroups.size();i++){
+		/*for(int i=0; i<filteredGroups.size();i++){
 			for (int j = 0; j < filteredGroups.size(); j++) {
 				if(j == i)
 					continue;
 				for(TLongBipartition tls: filteredGroups.get(i)){
 					for(TLongBipartition tlb: filteredGroups.get(j)){
-						TLongBipartition newsum = tlb.sum(tls);
+						//TODO: make sure strict Sum is 1) faster than sum 2) doesn't create any issues
+						TLongBipartition newsum = tlb.strictSum(tls);
 						if(newsum == null)
 							continue;
 						if(newsum.outgroup().size()==0)
@@ -458,7 +435,45 @@ public class BipartOracle {
 					}
 				}
 			}
+		}*/
+		//Trying a different approach with each node from each tree in a postorder fashion
+		// when you match you stop and move to the next node for a potential sum
+		// THIS SHOULD BE PARALLELIZED
+		for(Tree t: trees){
+			System.out.println(t.internalNodeCount()+" "+bipart.size());
+			for(Tree x: trees){
+				if (t == x)
+					continue;
+				//change this to a stack so you can break earlier
+				HashSet<TreeNode> done = new HashSet<TreeNode>();
+				for(TreeNode tnt : t.internalNodes(NodeOrder.POSTORDER)){
+					if(done.contains(tnt))
+						continue;
+					TLongBipartition tlb = getGraphBipartForTreeNode(tnt, t);
+					for(TreeNode tnx : x.internalNodes(NodeOrder.POSTORDER)){
+						TLongBipartition tls = getGraphBipartForTreeNode(tnx, x);
+						TLongBipartition newsum = tlb.strictSum(tls);
+						if(newsum == null)
+							continue;
+						if(newsum.outgroup().size()==0)
+							continue;
+						if (! bipartId.containsKey(newsum)) {
+							bipart.add(newsum);
+							int k = bipart.size() - 1;
+							bipartId.put(newsum, k);
+							summedBipartIds.add(k);
+							ArrayList<Integer> pars = new ArrayList<Integer>();
+							pars.add(bipartId.get(tls));pars.add(bipartId.get(tlb));
+							summedBipartSourceBiparts.put(k, pars);
+							break;
+						}
+					}
+				}
+			}
 		}
+		
+		
+		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 		
 /*		// add all the originals to the front of the bipart array
 		for (int i = 0; i < original.length; i++) {
@@ -665,6 +680,8 @@ public class BipartOracle {
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 		
 		// also need to do allxall for just the summed biparts
+		// THIS IS THE LEFT OVER ALL BY ALL WHICH IS NOT NECESSARY, WE CAN TAKE ADVATANGE OF THE NESTED BITS ALREADY
+		// CALCULATED
 		/*System.out.print("starting allxall nestedchildof comparison for " + summedBipartIds.size() + " sum-result biparts...");
 		z = new Date().getTime();
 		for (Integer p : summedBipartIds) {
