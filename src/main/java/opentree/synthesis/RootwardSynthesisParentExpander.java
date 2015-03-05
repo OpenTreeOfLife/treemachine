@@ -2,6 +2,7 @@ package opentree.synthesis;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +22,7 @@ import opentree.synthesis.mwis.GreedyApproximateWeightedIS;
 import opentree.synthesis.mwis.TopologicalOrder;
 import opentree.synthesis.mwis.WeightedUndirectedGraph;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -63,6 +65,8 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		
 		for (long tip : tips) {
 			Node n = gdb.getNodeById(tip);
+			
+			// hacky: terminal nodes need to be in map with empty hashset, or traversal doesn't know it is ok to stop
 			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 			parentRels.put(n.getId(), incomingRels);
 			boolean done = false;
@@ -86,6 +90,7 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 						counter++;
 					}
 					System.out.println("Found " + counter + " STREE relationships");
+					// if there are > 0 STREE rels, probably don't want to look at any TAX rels
 					counter = 0;
 					for (Relationship r : n.getRelationships(RelType.TAXCHILDOF, Direction.OUTGOING)) {
 						updateBestRankedRel(bestRelForParent, r);
@@ -187,39 +192,76 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	// very simple at the moment: just take highest ranked parent
 	// if a tie (must be from same source), take closest one (unless it has no parents of its own)
 	// TODO: check compatibility i.e. if passing through one immediate parent will also (eventually) get you through another
+	// use outmrca
 	public Node findBestParent(Map<Node, Relationship> candidateParents) {
 		System.out.println("Node has " + candidateParents.size() + " potential parents.");
 		Node bestParentNode = null;
 		int bestRank = 0;
-		int bestMRCA = 0;
+		List<Long> bestMRCA = null;
+		List<Long> bestOutMRCA = null;
+		//[] tips = (long[]) root.getProperty(NodeProperty.OUTMRCA.propertyName);
 		for (Map.Entry<Node, Relationship> entry : candidateParents.entrySet()) {
-		    Relationship r = entry.getValue();
+			Node currParent = entry.getKey();
+			// a hacky check to see if we reach a "deadend"
+			if (!hasParents(currParent)) {
+				System.out.println("Candidate " + currParent + " has no parents of its own. Skipping");
+				continue;
+			}
+			Relationship r = entry.getValue();
 		    int currRank = getRank(r);
-		    Node currParent = entry.getKey();
 		    System.out.println(currParent + "; currRank = " + currRank + "; source = " + r.getProperty("source"));
 		    if (currRank > bestRank) {
-		    	if (hasParents(currParent)) {
-			    	bestParentNode = currParent;
-			    	bestRank = currRank;
-			    	bestMRCA = ((long []) currParent.getProperty("mrca")).length;
-			    	System.out.println("Found a better ranked parent!");
+		    	bestParentNode = currParent;
+		    	bestRank = currRank;
+		    	
+		    	bestMRCA = Arrays.asList(ArrayUtils.toObject((long[]) currParent.getProperty("mrca")));
+		    	System.out.println("bestMRCA: " + bestMRCA.toString());
+		    	
+		    	if (currParent.hasProperty("outmrca")) {
+		    		bestOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) currParent.getProperty("outmrca")));
+		    		System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
 		    	}
+		    	
+		    	System.out.println("Tentatively accepting " + currParent + " as the best candidate parent.");
+
 		    } else if (currRank == bestRank) {
-		    	long [] mrca = (long [] ) currParent.getProperty("mrca");
-		    	System.out.println("Found a tied ranked parent! Old parent has " + bestMRCA + " descendants; new parent has " +
-		    			mrca.length + " descendants.");
-		    	if (hasParents(currParent)) {
-			    	if (mrca.length < bestMRCA) {
-			    		System.out.println("New parent has a smaller mrca. Taking that one.");
+		    	List<Long> candMRCA = Arrays.asList(ArrayUtils.toObject((long[]) currParent.getProperty("mrca")));
+		    	List<Long> candOutMRCA = null;
+		    	
+		    	System.out.println("candMrca = " + candMRCA.toString());
+		    	if (currParent.hasProperty("outmrca")) {
+		    		candOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) currParent.getProperty("outmrca")));
+		    		System.out.println("candOutMrca = " + candOutMRCA.toString());
+		    	}
+		    	
+		    	// if out of new contains any of ingroup of old
+		    	if (candOutMRCA != null) {
+			    	if (!Collections.disjoint(candOutMRCA, bestMRCA)) {
+			    		System.out.println(currParent + " outgroup contains taxa from current best ingroup (i.e. it is nested). We should take this!");
 			    		bestParentNode = currParent;
 				    	bestRank = currRank;
-				    	bestMRCA = mrca.length;
 			    	} else {
-			    		System.out.println("New parent has a larger mrca. Disregarding.");
+			    		System.out.println("Lists are disjoint. Nodes are not nested. Make a decision based on ingroup size!");
+			    		if (candMRCA.size() > bestMRCA.size()) {
+			    			System.out.println("Candidate parent has larger ingroup. Accept as better parent.");
+			    			bestParentNode = currParent;
+					    	bestRank = currRank;
+			    		}
 			    	}
 		    	} else {
-		    		System.out.println("New parent has no parents of its own. Choose different parent.");
+		    		System.out.println("Candidate parent has no outgroup. Not sure what to do...");
 		    	}
+		    	
+		    	
+//		    	if (candMrca.size() < bestMRCASize) {
+//		    		System.out.println("New parent has a smaller mrca. Taking that one.");
+//		    		bestParentNode = currParent;
+//			    	bestRank = currRank;
+//			    	bestMRCASize = candMrca.size();
+//		    	} else {
+//		    		System.out.println("New parent has a larger mrca. Disregarding.");
+//		    	}
+
 		    }
 		}
 		return bestParentNode;
