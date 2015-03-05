@@ -55,6 +55,8 @@ import opentree.synthesis.ranking.RelationshipRanker;
 import opentree.synthesis.ranking.SourcePropertyPrioritizedRankingCriterion;
 import opentree.synthesis.ranking.SourcePropertyRankingCriterion;
 
+import opentree.synthesis.RootwardSynthesisParentExpander;
+
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -431,6 +433,7 @@ public class GraphExplorer extends GraphBase {
 		return lastSharedAncestor;
 		*/
 	}
+	
 	
 	public JadeNode extractTaxonomySubtreeForTipNodes(Iterable<Node> tips) {
 		Node mrca = getDraftTreeMRCAForNodes(tips, true);
@@ -1501,7 +1504,8 @@ public class GraphExplorer extends GraphBase {
 		
 		// ================================ TESTING =================================
 		// 
-		draftSynthesisMethod = new RootwardSynthesisExpander(startNode);
+		//draftSynthesisMethod = new RootwardSynthesisExpander(startNode);
+		draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 		//
 		// ================================ TESTING =================================
 		
@@ -1523,7 +1527,6 @@ public class GraphExplorer extends GraphBase {
 			//	metadatanode.setProperty("synthmethod", arg1);
 			//	metadatanode.setProperty("command", command);
 			metadatanode.setProperty("sourcenames", sourceIdPriorityListString); // need to make sure that this list is processed correctly
-			
 			// Adding 1) taxonomy version and 2) start node to the metadata node too, as it seems convenient to have everything together
 			if (getTaxonomyVersion() != null) {
 				metadatanode.setProperty("taxonomy", getTaxonomyVersion());
@@ -1531,9 +1534,7 @@ public class GraphExplorer extends GraphBase {
 				metadatanode.setProperty("taxonomy", "0.0");
 			}
 			metadatanode.setProperty("startnode", startNode.getId()); // even though it is directly attached
-			
 			synthMetaIndex.add(metadatanode, "name", synthTreeName);
-			
 			this.graphDb.setGraphProperty("draftTreeRootNodeId", startNode.getId()); // hmm. do we want this i.e. if storing multiple trees?
 			
 			tx.success();

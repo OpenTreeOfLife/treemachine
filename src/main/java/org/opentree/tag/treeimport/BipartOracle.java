@@ -409,6 +409,7 @@ public class BipartOracle {
 		System.out.print("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups...");
 		z = new Date().getTime();
 
+		/* NEED TO DO MORE THAN ROOT
 		int originalCount = bipart.size();
 		for(int i=0; i<filteredRoots.size();i++){
 			for (int j = 0; j < filteredGroups.size(); j++) {
@@ -431,9 +432,33 @@ public class BipartOracle {
 					}
 				}
 			}
-		}
+		}*/
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
-
+		int originalCount = bipart.size();
+		for(int i=0; i<filteredGroups.size();i++){
+			for (int j = 0; j < filteredGroups.size(); j++) {
+				if(j == i)
+					continue;
+				for(TLongBipartition tls: filteredGroups.get(i)){
+					for(TLongBipartition tlb: filteredGroups.get(j)){
+						TLongBipartition newsum = tlb.sum(tls);
+						if(newsum == null)
+							continue;
+						if(newsum.outgroup().size()==0)
+							continue;
+						if (! bipartId.containsKey(newsum)) {
+							bipart.add(newsum);
+							int k = bipart.size() - 1;
+							bipartId.put(newsum, k);
+							summedBipartIds.add(k);
+							ArrayList<Integer> pars = new ArrayList<Integer>();
+							pars.add(bipartId.get(tls));pars.add(bipartId.get(tlb));
+							summedBipartSourceBiparts.put(k, pars);
+						}
+					}
+				}
+			}
+		}
 		
 /*		// add all the originals to the front of the bipart array
 		for (int i = 0; i < original.length; i++) {
@@ -595,7 +620,7 @@ public class BipartOracle {
 
 		// parallel implementation for *synchronized* lists
 		treeIds.parallelStream().forEach(i -> processBipartsForTree(i, trees));
-	
+		
 		// serial implementation -- keep for debugging
 //		for (Integer i : treeIds) { processBipartsForTree(i, trees); }
 

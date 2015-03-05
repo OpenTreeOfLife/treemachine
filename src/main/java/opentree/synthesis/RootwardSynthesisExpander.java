@@ -179,7 +179,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			
 			System.out.println("nodeMrca["+n.getId()+"] = " + nodeMrca.get(n.getId()));
 			
-			childRels.put(nodeId, incomingRels); 
+			childRels.put(nodeId, incomingRels);
 			System.out.println("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
 		}
 	}

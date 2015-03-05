@@ -29,13 +29,14 @@ public class SubsetTreesUtility {
 		this.gdb = gdb;
 	}
 	
-	public void subsetMultiple(List<Tree> jt, String [] taxId){
+	public void subsetMultiple(List<Tree> jt, String [] taxId, Map<Tree, String> sourceForTrees){
 		System.out.println("started subsetting process");
 		HashSet<Tree> alreadyContained = new HashSet<Tree> ();
 		HashMap<Tree,HashMap<String,HashSet<String>>> prunedOriginalLabels = new HashMap<Tree,HashMap<String,HashSet<String>>>();
 		HashMap<String,HashSet<Tree>> containedTrees = new HashMap<String,HashSet<Tree>>();
 		HashMap<String,HashSet<Tree>> prunedTrees = new HashMap<String,HashSet<Tree>>();
 		HashMap<String,HashMap<Tree,TreeNode>> prunedNodes = new HashMap<String,HashMap<Tree,TreeNode>>();
+		HashSet<TreeNode> alreadyPruned = new HashSet<TreeNode>();
 		explodedTipsHash = TipExploder.explodeTipsReturnHash(jt, gdb); 
 		System.out.println("getting subset mrca");
 		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
@@ -104,8 +105,18 @@ public class SubsetTreesUtility {
 							System.out.println("NONMONO:"+pruned);
 							System.exit(0);
 						}
-						toPruneTree.add(tr);
-						toPruneNode.put(tr,pruned);
+						if(alreadyPruned.contains(pruned)==false){
+							toPruneTree.add(tr);
+							toPruneNode.put(tr,pruned);
+							if(prunedOriginalLabels.containsKey(tr) == false)
+								prunedOriginalLabels.put(tr, new HashMap<String,HashSet<String>>());
+							HashSet<String> originalLabels = new HashSet<String>();
+							for (TreeNode tnd: pruned.getDescendantLeaves()){
+								originalLabels.add((String)tnd.getLabel());
+							}
+							prunedOriginalLabels.get(tr).put(tid, originalLabels);
+							alreadyPruned.add(pruned);
+						}
 					}else{
 						//System.out.println("not included within:"+tr);
 					}
@@ -134,17 +145,35 @@ public class SubsetTreesUtility {
 		for(String tid: taxId){
 			System.out.println("set:"+tid);
 			for (Tree tr: containedTrees.get(tid)){
-				System.out.println("\t"+tr);
+				if(sourceForTrees != null)
+					System.out.println("\t"+sourceForTrees.get(tr)+" "+tr+";");
+				else
+					System.out.println("\t"+tr+";");
 			}for (Tree tr: prunedTrees.get(tid)){
 				TreeNode pruned = prunedNodes.get(tid).get(tr);
-				System.out.println("\tpruned:"+pruned+"subset="+tid);
-				if(prunedOriginalLabels.containsKey(tr) == false)
-					prunedOriginalLabels.put(tr, new HashMap<String,HashSet<String>>());
-				HashSet<String> originalLabels = new HashSet<String>();
-				for (TreeNode tnd: pruned.getDescendantLeaves()){
-					originalLabels.add((String)tnd.getLabel());
+				
+				if(prunedOriginalLabels.containsKey(tr) == false){
+					if(sourceForTrees != null)
+						System.out.println("\tpruned:"+sourceForTrees.get(tr)+" "+pruned+"subset="+tid+";");
+					else
+						System.out.println("\tpruned:"+pruned+"subset="+tid+";");
+				}else{
+					HashSet<String> subsets_to_include = new HashSet<String>();
+					for(TreeNode tnn: pruned.getDescendantLeaves()){
+						if (tnn.getLabel().toString().contains("__subset=")){
+							subsets_to_include.add(tnn.getLabel().toString().split("__subset=")[1]);
+						}
+					}
+					if(sourceForTrees != null)
+						System.out.print("\tpruned:"+sourceForTrees.get(tr)+" "+pruned+"subset="+tid+";");
+					else
+						System.out.print("\tpruned:"+pruned+"subset="+tid+";");
+					for(String tid2: subsets_to_include){
+						if(prunedOriginalLabels.get(tr).containsKey(tid2))
+							System.out.print(" subset_"+tid2+"="+prunedOriginalLabels.get(tr).get(tid2));
+					}
+					System.out.print("\n");
 				}
-				prunedOriginalLabels.get(tr).put(tid, originalLabels);
 				TreeNode par = pruned.getParent();
 				par.removeChild(pruned);
 				TreeNode nn = new JadeNode();
@@ -157,14 +186,26 @@ public class SubsetTreesUtility {
 		for(Tree tr: jt){
 			if(alreadyContained.contains(tr)==false){
 				if(prunedOriginalLabels.containsKey(tr)){
-					System.out.print("\t"+tr);
-					for(String tid: taxId){
+					HashSet<String> subsets_to_include = new HashSet<String>();
+					for(TreeNode tnn: tr.getRoot().getDescendantLeaves()){
+						if (tnn.getLabel().toString().contains("__subset=")){
+							subsets_to_include.add(tnn.getLabel().toString().split("__subset=")[1]);
+						}
+					}
+					if(sourceForTrees != null)
+						System.out.print("\t"+sourceForTrees.get(tr)+" "+tr+";");
+					else
+						System.out.print("\t"+tr+";");
+					for(String tid: subsets_to_include){
 						if(prunedOriginalLabels.get(tr).containsKey(tid))
 							System.out.print(" subset_"+tid+"="+prunedOriginalLabels.get(tr).get(tid));
 					}
 					System.out.print("\n");
 				}else{
-					System.out.println("\t"+tr);
+					if(sourceForTrees != null)
+						System.out.println("\t"+sourceForTrees.get(tr)+" "+tr+";");
+					else
+						System.out.println("\t"+tr+";");
 				}
 			}
 		}
