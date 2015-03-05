@@ -186,101 +186,121 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	}
 	
 	public String getDescription() {
-		return "rootward synthesis method";
+		return "parent-wise rootward synthesis method";
 	}
 	
 	// very simple at the moment: just take highest ranked parent
 	// if a tie (must be from same source), take closest one (unless it has no parents of its own)
 	// TODO: check compatibility i.e. if passing through one immediate parent will also (eventually) get you through another
-	// use outmrca
 	public Node findBestParent(Map<Node, Relationship> candidateParents) {
+		
 		System.out.println("Node has " + candidateParents.size() + " potential parents.");
+		
 		Node bestParentNode = null;
 		int bestRank = 0;
 		List<Long> bestMRCA = null;
 		List<Long> bestOutMRCA = null;
-		//[] tips = (long[]) root.getProperty(NodeProperty.OUTMRCA.propertyName);
+		
 		for (Map.Entry<Node, Relationship> entry : candidateParents.entrySet()) {
-			Node currParent = entry.getKey();
+			boolean accept = false;
+			Node candParent = entry.getKey();
+			System.out.println("Considering candidate parent: "+ candParent);
 			// a hacky check to see if we reach a "deadend"
-			if (!hasParents(currParent)) {
-				System.out.println("Candidate " + currParent + " has no parents of its own. Skipping");
+			if (!hasParents(candParent)) {
+				System.out.println("Candidate " + candParent + " has no parents of its own. Skipping");
 				continue;
 			}
+			
 			Relationship r = entry.getValue();
-		    int currRank = getRank(r);
-		    System.out.println(currParent + "; currRank = " + currRank + "; source = " + r.getProperty("source"));
-		    if (currRank > bestRank) {
-		    	bestParentNode = currParent;
-		    	bestRank = currRank;
-		    	
-		    	bestMRCA = Arrays.asList(ArrayUtils.toObject((long[]) currParent.getProperty("mrca")));
-		    	System.out.println("bestMRCA: " + bestMRCA.toString());
-		    	
-		    	if (currParent.hasProperty("outmrca")) {
-		    		bestOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) currParent.getProperty("outmrca")));
+		    int candRank = getRank(r);
+		    List<Long> candMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("mrca")));
+	    	List<Long> candOutMRCA = null;
+	    	if (candParent.hasProperty("outmrca")) {
+	    		candOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("outmrca")));
+	    	}
+	    	if (bestParentNode == null) { // first valid parent. accept as tentative solution
+	    		System.out.println(candParent + " is the first viable candidate parent.");
+	    		accept = true;
+			}
+	    	if (!accept) {
+	    		boolean nested = false;
+	    		
+	    		// check if out of new contains any of ingroup of old
+		    	if (candOutMRCA != null && bestOutMRCA != null) { // doesn't allow taxonomy nodes. ignore for now (probably not a problem)
+		    		System.out.println("Checking for nesting of nodes.");
+		    		System.out.println("bestMRCA: " + bestMRCA.toString());
 		    		System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
-		    	}
-		    	
-		    	System.out.println("Tentatively accepting " + currParent + " as the best candidate parent.");
-
-		    } else if (currRank == bestRank) {
-		    	List<Long> candMRCA = Arrays.asList(ArrayUtils.toObject((long[]) currParent.getProperty("mrca")));
-		    	List<Long> candOutMRCA = null;
-		    	
-		    	System.out.println("candMrca = " + candMRCA.toString());
-		    	if (currParent.hasProperty("outmrca")) {
-		    		candOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) currParent.getProperty("outmrca")));
-		    		System.out.println("candOutMrca = " + candOutMRCA.toString());
-		    	}
-		    	
-		    	// if out of new contains any of ingroup of old
-		    	if (candOutMRCA != null) {
-			    	if (!Collections.disjoint(candOutMRCA, bestMRCA)) {
-			    		System.out.println(currParent + " outgroup contains taxa from current best ingroup (i.e. it is nested). We should take this!");
-			    		bestParentNode = currParent;
-				    	bestRank = currRank;
-			    	} else {
-			    		System.out.println("Lists are disjoint. Nodes are not nested. Make a decision based on ingroup size!");
-			    		if (candMRCA.size() > bestMRCA.size()) {
-			    			System.out.println("Candidate parent has larger ingroup. Accept as better parent.");
-			    			bestParentNode = currParent;
-					    	bestRank = currRank;
-			    		}
+		    		System.out.println("candMRCA: " + candMRCA.toString());
+		    		System.out.println("candOutMRCA: " + candOutMRCA.toString());
+		    		
+		    		if (!Collections.disjoint(candOutMRCA, bestMRCA)) {
+		    			if (Collections.disjoint(bestOutMRCA, candMRCA)) {
+		    				System.out.println(candParent + " is nested child of prevailing parent. Accept!");
+		    				nested = true;
+		    				accept = true;
+		    			}
 			    	}
-		    	} else {
-		    		System.out.println("Candidate parent has no outgroup. Not sure what to do...");
 		    	}
-		    	
-		    	
-//		    	if (candMrca.size() < bestMRCASize) {
-//		    		System.out.println("New parent has a smaller mrca. Taking that one.");
-//		    		bestParentNode = currParent;
-//			    	bestRank = currRank;
-//			    	bestMRCASize = candMrca.size();
-//		    	} else {
-//		    		System.out.println("New parent has a larger mrca. Disregarding.");
-//		    	}
-
+		    	if (!nested) {
+		    		System.out.println("Nodes are not nested. Looking at ranks.");
+		    		if (candRank > bestRank) {
+		    			System.out.println("Candidate parent has a higher rank. Accept!");
+		    			accept = true;
+		    		} else if (candRank == bestRank) {
+		    			System.out.println("Candidate parent has same rank as prevailing parent.");
+		    			if (candMRCA.size() > bestMRCA.size()) {
+			    			System.out.println("Candidate parent has larger ingroup. Accept!");
+			    			accept = true;
+			    		} else {
+			    			System.out.println("Candidate parent has smaller ingroup. Reject");
+			    		}
+		    		
+		    		}
+		    	}
+//		    	
+//			    System.out.println(candParent + "; currRank = " + candRank + "; source = " + r.getProperty("source"));
+//			    if (candRank > bestRank) {
+//			    	bestParentNode = candParent;
+//			    	bestRank = candRank;
+//			    	
+//			    	bestMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("mrca")));
+//			    	System.out.println("bestMRCA: " + bestMRCA.toString());
+//			    	
+//			    	if (candParent.hasProperty("outmrca")) {
+//			    		bestOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("outmrca")));
+//			    		System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
+//			    	}
+//	
+//			    } else if (candRank == bestRank) {
+//			    	System.out.println("candMrca = " + candMRCA.toString());
+//			    	if (candParent.hasProperty("outmrca")) {
+//			    		candOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("outmrca")));
+//			    		System.out.println("candOutMrca = " + candOutMRCA.toString());
+//			    	}
+//			    	
+//			    	
+//			    }
+	    	}
+		    if (accept) {
+		    	System.out.println("Tentatively accepting " + candParent + " as the best candidate parent.");
+		    	bestParentNode = candParent;
+		    	bestRank = candRank;
+		    	bestMRCA = candMRCA;
+		    	//System.out.println("bestMRCA: " + bestMRCA.toString());
+		    	bestOutMRCA = candOutMRCA;
+		    	//System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
 		    }
 		}
 		return bestParentNode;
 	}
 	
-	// check if proposed parent has parents of its own (i.e. not a dead end)
+	// check if proposed parent has parents of its own (i.e. not a dead end).
+	// doesn't check any further than immediate parent.
 	public boolean hasParents (Node n) {
-		boolean parents = false;
-		int counter = 0;
-		for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
-			counter++;
+		if (n.hasRelationship(Direction.OUTGOING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
+			return true;
 		}
-		for (Relationship r : n.getRelationships(RelType.TAXCHILDOF, Direction.OUTGOING)) {
-			counter++;
-		}
-		if (counter > 0) {
-			parents = true;
-		}
-		return parents;
+		return false;
 	}
 
 	@Override
