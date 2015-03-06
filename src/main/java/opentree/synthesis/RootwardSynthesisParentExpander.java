@@ -207,7 +207,7 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 			System.out.println("Considering candidate parent: "+ candParent);
 			// a hacky check to see if we reach a "deadend"
 			if (!hasParents(candParent)) {
-				System.out.println("Candidate " + candParent + " has no parents of its own. Skipping");
+				System.out.println("Candidate " + candParent + " has no parents of its own. Skipping.");
 				continue;
 			}
 			
@@ -239,7 +239,7 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		    				nested = true;
 		    				accept = true;
 		    			}
-			    	}
+					}
 		    	}
 		    	if (!nested) {
 		    		System.out.println("Nodes are not nested. Looking at ranks.");
@@ -249,12 +249,15 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		    		} else if (candRank == bestRank) {
 		    			System.out.println("Candidate parent has same rank as prevailing parent.");
 		    			if (candMRCA.size() > bestMRCA.size()) {
-			    			System.out.println("Candidate parent has larger ingroup. Accept!");
-			    			accept = true;
-			    		} else {
-			    			System.out.println("Candidate parent has smaller ingroup. Reject");
-			    		}
-		    		
+							System.out.println("Candidate parent has larger ingroup. Accept!");
+							accept = true;
+						} else if (candMRCA.size() < bestMRCA.size()) {
+							System.out.println("Candidate parent has smaller ingroup. Reject.");
+						} else {
+							System.out.println("Candidate parent has same size ingroup. What to do?!?");
+						}
+		    		} else {
+		    			System.out.println("Candidate parent has lower rank than prevailing parent. Reject.");
 		    		}
 		    	}
 //		    	
