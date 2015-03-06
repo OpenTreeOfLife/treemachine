@@ -223,7 +223,7 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	    		accept = true;
 			}
 	    	if (!accept) {
-	    		boolean nested = false;
+	    		boolean nesting = false; // does nesting status determine decision to be made?
 	    		
 	    		// check if out of new contains any of ingroup of old
 		    	if (candOutMRCA != null && bestOutMRCA != null) { // doesn't allow taxonomy nodes. ignore for now (probably not a problem)
@@ -233,15 +233,25 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		    		System.out.println("candMRCA: " + candMRCA.toString());
 		    		System.out.println("candOutMRCA: " + candOutMRCA.toString());
 		    		
+		    		// is candidate parent a nested child of prevailing parent?
 		    		if (!Collections.disjoint(candOutMRCA, bestMRCA)) {
 		    			if (Collections.disjoint(bestOutMRCA, candMRCA)) {
 		    				System.out.println(candParent + " is nested child of prevailing parent. Accept!");
-		    				nested = true;
+		    				nesting = true;
 		    				accept = true;
 		    			}
 					}
+		    		// need to check other direction of nesting, so that prevailing is not thrown out because of rank alone
+		    		if (!nesting) {
+		    			if (!Collections.disjoint(bestOutMRCA, candMRCA)) {
+			    			if (Collections.disjoint(candOutMRCA, bestMRCA)) {
+			    				System.out.println("Prevailing parent is nested child of " + candParent + ". Reject candidate parent.");
+			    				nesting = true;
+			    			}
+						}
+		    		}
 		    	}
-		    	if (!nested) {
+		    	if (!nesting) {
 		    		System.out.println("Nodes are not nested. Looking at ranks.");
 		    		if (candRank > bestRank) {
 		    			System.out.println("Candidate parent has a higher rank. Accept!");
@@ -260,29 +270,6 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		    			System.out.println("Candidate parent has lower rank than prevailing parent. Reject.");
 		    		}
 		    	}
-//		    	
-//			    System.out.println(candParent + "; currRank = " + candRank + "; source = " + r.getProperty("source"));
-//			    if (candRank > bestRank) {
-//			    	bestParentNode = candParent;
-//			    	bestRank = candRank;
-//			    	
-//			    	bestMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("mrca")));
-//			    	System.out.println("bestMRCA: " + bestMRCA.toString());
-//			    	
-//			    	if (candParent.hasProperty("outmrca")) {
-//			    		bestOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("outmrca")));
-//			    		System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
-//			    	}
-//	
-//			    } else if (candRank == bestRank) {
-//			    	System.out.println("candMrca = " + candMRCA.toString());
-//			    	if (candParent.hasProperty("outmrca")) {
-//			    		candOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("outmrca")));
-//			    		System.out.println("candOutMrca = " + candOutMRCA.toString());
-//			    	}
-//			    	
-//			    	
-//			    }
 	    	}
 		    if (accept) {
 		    	System.out.println("Tentatively accepting " + candParent + " as the best candidate parent.");
