@@ -2,6 +2,7 @@ package org.opentree.tag.treeimport;
 
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toList;
+import jade.tree.JadeNode;
 import jade.tree.TreeBipartition;
 import jade.tree.TreeNode;
 import jade.tree.NodeOrder;
@@ -161,6 +162,7 @@ public class BipartOracle {
 	
 	/** map for the list of relevant taxonomy nodes */
 	Map<Node,TLongBipartition> taxonomyGraphNodesMap;
+	JadeNode taxonomyJadeRoot;
 	
 	/** this is just a map of node and the RANK of the tree it came from in the list. higher is better--earlier in the list */
 	Map<TreeNode,Integer> rankForTreeNode;
@@ -662,46 +664,24 @@ public class BipartOracle {
 			TLongBipartition tlp = bipart.get(p);
 			//get the parent ids of these
 			//get the intersection of the parets and add
+			//TODO: make sure that we don't need augmented
 			for(Integer pi: nestedParents.get(parsbi.get(0))){
 				if(tlp.isNestedPartitionOf(bipart.get(pi))){
 					nestedParents.get(p).add(pi);
 					nestedChildren.get(pi).add(p);
-					nestedAugmentingParents.get(p).add(pi);
+					//nestedAugmentingParents.get(p).add(pi);
 				}
 			}for(Integer pi: nestedParents.get(parsbi.get(1))){
 				if(tlp.isNestedPartitionOf(bipart.get(pi))){
 					nestedParents.get(p).add(pi);
 					nestedChildren.get(pi).add(p);
-					nestedAugmentingParents.get(p).add(pi);
+					//nestedAugmentingParents.get(p).add(pi);
 				}
 			}
 		}
 		
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
-		
-		// also need to do allxall for just the summed biparts
-		// THIS IS THE LEFT OVER ALL BY ALL WHICH IS NOT NECESSARY, WE CAN TAKE ADVATANGE OF THE NESTED BITS ALREADY
-		// CALCULATED
-		/*System.out.print("starting allxall nestedchildof comparison for " + summedBipartIds.size() + " sum-result biparts...");
-		z = new Date().getTime();
-		for (Integer p : summedBipartIds) {
-			for (Integer q : summedBipartIds) {
-				TLongBipartition bp = bipart.get(p);
-				TLongBipartition bq = bipart.get(q);
-				boolean identicalTaxa = bp.hasIdenticalTaxonSetAs(bq);
-				if (bq.isNestedPartitionOf(bp)) {
-					nestedParents.get(q).add(p);
-					nestedChildren.get(p).add(q);
-					if (! identicalTaxa) { nestedAugmentingParents.get(q).add(p); }
-				}
-				if (bp.isNestedPartitionOf(bq)) {
-					nestedParents.get(p).add(q);
-					nestedChildren.get(q).add(p);
-					if (! identicalTaxa) { nestedAugmentingParents.get(p).add(q); }
-				}
-			}
-		}
-		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");*/
+
 	}
 	
 	/**
@@ -921,20 +901,9 @@ public class BipartOracle {
 //			Integer originalId = treeNodeIds.get(node);
 			int originalId = bipartId.get(bipartForTreeNode.get(node));
 			TLongBipartition nodeBipart = bipart.get(originalId);
-			/*
-			final int child = treeNodeIds.get(node);
-			List<Integer> moreParents = summedBipartIds.parallelStream() // use a parallel stream to explore all sum-result biparts
-					.map(parent -> { return bipart.get(child).isNestedPartitionOf(bipart.get(parent)) ? parent : null; })
-					.collect(toList()).stream()
-					.filter(a -> a != null)
-					.collect(toList());
-							
-			for (Integer parent : moreParents) {
-				nestedParents.get(child).add(parent);
-//				nestedChildren.get(parent).add(child);
-			} */
 			
 			// here we have to check in both directions, since we'll compare this tree to the summed biparts again
+			//TODO: make sure that we don't need augmented
 			for (Integer sid : summedBipartIds) {
 				TLongBipartition summedBipart = bipart.get(sid);
 				boolean identicalTaxa = summedBipart.hasIdenticalTaxonSetAs(nodeBipart);
@@ -942,16 +911,19 @@ public class BipartOracle {
 //					if (nestedParents.get(originalId) == null) { nestedParents.put(originalId, new HashSet<Integer>()); }
 					nestedParents.get(sid).add(originalId);
 					nestedChildren.get(originalId).add(sid);
-					if (identicalTaxa) { nestedAugmentingParents.get(sid).add(originalId); }
+					//if (identicalTaxa) { nestedAugmentingParents.get(sid).add(originalId); }
 				}
 				if (nodeBipart.isNestedPartitionOf(summedBipart)) {
 //					if (nestedParents.get(sid) == null) { nestedParents.put(sid, new HashSet<Integer>()); }
 					nestedParents.get(originalId).add(sid);
 					nestedChildren.get(sid).add(originalId);
-					if (identicalTaxa) { nestedAugmentingParents.get(originalId).add(sid); }
+					//if (identicalTaxa) { nestedAugmentingParents.get(originalId).add(sid); }
 				}
 			}
 		}
+		
+		//now doing the taxonomy ones
+		
 		
 		// we have now found all the nestedParents 
 		System.out.println("finished tree " + i);
@@ -1076,13 +1048,34 @@ public class BipartOracle {
 					if (taxonomyGraphNodesMap.keySet().contains(taxNode)){
 						TLongBipartition taxbp = taxonomyGraphNodesMap.get(taxNode);
 						if (taxbp.ingroup().containsAll(ndbpExp.ingroup())){
-							if(taxbp.ingroup().containsAny(ndbpExp.outgroup())) {
+							if(taxbp.ingroup().containsAny(ndbpExp.outgroup())) {//check as parent;
 								updateMRCAChildOf(graphNodeForBipart.get(ndbp), taxNode);
 								while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
 									taxNode = getParentTaxNode(taxNode);
 									updateMRCAChildOf(graphNodeForBipart.get(ndbp), taxNode);
 								}
 								break;
+							}else if(taxbp.ingroup().containsAny(ndbpExp.outgroup()) == false){//check as equivalent
+								//get children of ndbp and connect them
+								for (Integer childId : nestedChildren.get(bipartId.get(ndbp))) {
+									if(taxbp.ingroup().containsAll(bipart.get(childId).ingroup()) &&
+											taxbp.ingroup().containsAny(bipart.get(childId).outgroup())){
+										Node child = graphNodeForBipart.get(bipart.get(childId));
+										if(child == null)
+											continue;
+										updateMRCAChildOf(child,taxNode);
+									}
+								}//get parents of ndbp
+								for (Integer parentId : nestedParents.get(bipartId.get(ndbp))) {
+									if(bipart.get(parentId).ingroup().containsAny(taxbp.ingroup()) &&
+											bipart.get(parentId).outgroup().containsAny(taxbp.ingroup())== false &&
+											taxbp.ingroup().containsAll(bipart.get(parentId).ingroup())==false){
+										Node parent = graphNodeForBipart.get(bipart.get(parentId));
+										if(parent == null)
+											continue;
+										updateMRCAChildOf(taxNode,parent);
+									}
+								}								
 							}
 						}else if(ndbpExp.ingroup().containsAny(taxbp.ingroup())
 								&& taxbp.ingroup().containsAny(ndbpExp.outgroup())==false && 
@@ -1106,19 +1099,40 @@ public class BipartOracle {
 	 * 
 	 */
 	private void populateTaxonomyGraphNodesMap(List<Tree> trees){
+		JadeNode root =null;
+		boolean firstTimeThrough = true;
 		taxonomyGraphNodesMap = new HashMap<Node,TLongBipartition>();
+		HashMap<Node,JadeNode> taxTreeMap = new HashMap<Node,JadeNode>();
 		for(Tree tree: trees){
 			for(TreeNode treeLf : tree.getRoot().getDescendantLeaves()){
 				Node taxNode = gdb.getNodeById(nodeIdForLabel.get(treeLf.getLabel()));
+				JadeNode lastNode = null;
 				while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
 					taxNode = getParentTaxNode(taxNode);
-					if (taxonomyGraphNodesMap.containsKey(taxNode)){break;}
+					if (taxonomyGraphNodesMap.containsKey(taxNode)){
+						if(lastNode != null)
+							taxTreeMap.get(taxNode).addChild(lastNode);
+						break;
+					}
 					CompactLongSet taxonIngroup = new CompactLongSet((long[]) taxNode.getProperty(NodeProperty.MRCA.propertyName));
 					TLongBipartition taxonBipart = new TLongBipartition(taxonIngroup, new CompactLongSet());
 					taxonomyGraphNodesMap.put(taxNode, taxonBipart);
+					JadeNode newNode = new JadeNode();
+					newNode.assocObject("bipart", taxonBipart);
+					newNode.assocObject("dbnode", taxNode);
+					newNode.setName(String.valueOf(taxNode.getId()));
+					taxTreeMap.put(taxNode, newNode);
+					if(lastNode != null)
+						newNode.addChild(lastNode);
+					lastNode = newNode;
+				}
+				if(firstTimeThrough){
+					firstTimeThrough = false;
+					root = lastNode;
 				}
 			}
 		}
+		taxonomyJadeRoot = root;
 		System.out.println("gathered "+taxonomyGraphNodesMap.size()+" taxonomy nodes for additional mapping");
 	}
 	
@@ -1541,6 +1555,7 @@ public class BipartOracle {
 	 * to be created in the graph, with children {X'1, X'2, ..., X'N} corresponding to the bipartitions defined in this way at
 	 * each of this bipartition's N *completed* nested children. Sometimes the recursion stops without creating a node
 	 * (see cases below).
+	 * 
 	 * 
 	 * @param parentId
 	 * @param nested
