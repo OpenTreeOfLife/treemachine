@@ -990,8 +990,8 @@ public class BipartOracle {
 		//		list
 		for (int parentId = 0; parentId < bipart.size(); parentId++) {
 			System.out.println(parentId+" "+nestedChildren.get(parentId).size());
+			Node parent = graphNodeForBipart.get(bipart.get(parentId));
 			for (Integer childId : nestedChildren.get(parentId)) {
-				Node parent = graphNodeForBipart.get(bipart.get(parentId));
 				Node child = graphNodeForBipart.get(bipart.get(childId));
 				/*
 				 * this null check is added because there are nodes that don't need to be created
