@@ -23,7 +23,9 @@ public class TopologicalOrder implements Iterable<Node> {
 	private void addNodesRecursive(Node n) {
 		for (Relationship r : n.getRelationships(Direction.INCOMING, relTypes)) {
 			Node startNode = r.getStartNode();
-			if (visited.contains(startNode) == false) {
+			if (visited.contains(startNode)) {
+				throw new IllegalStateException("Found a cycle when attempting topological sort: " + startNode);
+			} else {
 				visited.add(startNode);
 				addNodesRecursive(startNode);
 			}

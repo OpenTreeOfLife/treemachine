@@ -119,7 +119,7 @@ public class BipartOracle {
 
 	/** The *valid* paths found during the findPaths procedure, each of which represents a linear sequence
 	 * of a nested child bipartitions to a parent, which is a nested child of another parent, and so on. */
-	HashSet<Path> paths;
+	Set<Path> paths;
 	
 	/** <tt>nestedChildren[i]</tt> contains the ids of all the biparts that are nested within <tt>bipart[i]</tt> */
 	List<Set<Integer>> nestedChildren;
@@ -409,7 +409,8 @@ public class BipartOracle {
 		observedOriginals = null; // free resource for garbage collector
 		System.out.println(" done. found " + d + " duplicate biparts. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
-		System.out.print("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups...");
+//		System.out.println("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups...");
+		System.out.println("starting treewise bipart sums");
 		z = new Date().getTime();
 
 		int originalCount = bipart.size();
@@ -441,17 +442,25 @@ public class BipartOracle {
 		//Trying a different approach with each node from each tree in a postorder fashion
 		// when you match you stop and move to the next node for a potential sum
 		// THIS SHOULD BE PARALLELIZED
+		int i = 0;
 		for(Tree t: trees){
-			System.out.println(t.internalNodeCount()+" "+bipart.size());
+			System.out.println("starting tree " + i++ + ". nodecount: " + t.internalNodeCount() + ". total biparts: " + bipart.size());
+			int j = 0;
 			for(Tree x: trees){
-				if (t == x)
-					continue;
+				j++;
+				if (t == x) { continue; }
+				System.out.println("comparing to tree " + j);
 				//change this to a stack so you can break earlier
 				HashSet<TreeNode> done = new HashSet<TreeNode>();
+
 				for(TreeNode tnt : t.internalNodes(NodeOrder.POSTORDER)){
-					if(done.contains(tnt))
-						continue;
+					if (done.contains(tnt)) { continue; }
 					TLongBipartition tlb = getGraphBipartForTreeNode(tnt, t);
+
+					// don't compare trees with identical taxon sets -- these are not the nodes you are looking for.
+					TreeNode childOfRootX = x.internalNodes(NodeOrder.PREORDER).iterator().next();
+					if (tlb.hasIdenticalTaxonSetAs(getGraphBipartForTreeNode(childOfRootX, x))) { continue; }
+					
 					for(TreeNode tnx : x.internalNodes(NodeOrder.POSTORDER)){
 						TLongBipartition tls = getGraphBipartForTreeNode(tnx, x);
 						TLongBipartition newsum = tlb.strictSum(tls);
@@ -702,11 +711,20 @@ public class BipartOracle {
 	 */
 	private void findAllPaths() {
 				
-		paths = new HashSet<Path>();
+		paths = Collections.synchronizedSet(new HashSet<Path>());
 		System.out.print("traversing potential paths through the graph to determine node ingroup/outgroup composition...");
 		long z = new Date().getTime();
 		Transaction tx = gdb.beginTx();
-		for (int i = 0; i < bipart.size(); i++) {
+
+		Set<TLongBipartition> nodesWithoutPaths = Collections.synchronizedSet(new HashSet<TLongBipartition>());
+		
+		// just make a list of bipart ids to iterate through
+		List<Integer> bipartIds = new ArrayList<Integer>();
+		for (int i = 0; i < bipart.size(); i++) { bipartIds.add(i); }
+		
+//		for (int i = 0; i < bipart.size(); i++) {
+		bipartIds.stream().forEach(i -> {
+			
 			System.out.println(i+" / "+bipart.size()+" "+paths.size());
 			if (bipart.get(i).outgroup().size() > 0) {
 				CompactLongSet pathResult = findPaths(i, new CompactLongSet(), new ArrayList<Integer>(), 0,i);
@@ -715,10 +733,19 @@ public class BipartOracle {
 					// biparts that are not nested in any others won't be saved in any of the paths, so we need to make graph nodes
 					// for them now. we will need these nodes for mapping trees
 					// actually, I thought none of these were null because itself would be in the path?
-					createNode(bipart.get(i));
+//					createNode(bipart.get(i));
+					nodesWithoutPaths.add(bipart.get(i));
 				}
 			}
+			
+		});
+		
+		for (TLongBipartition b : nodesWithoutPaths) {
+			createNode(b);
 		}
+
+//		}
+
 		tx.success();
 		tx.finish();
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds paths:"+paths.size());
