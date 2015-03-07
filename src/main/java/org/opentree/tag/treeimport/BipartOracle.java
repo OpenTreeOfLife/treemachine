@@ -1045,6 +1045,7 @@ public class BipartOracle {
 		
 		// now actually make the rels
 		System.out.print("recording " + n + " rels in the db...");
+		z = new Date().getTime();
 		Transaction tx = gdb.beginTx();
 		for (Node parent : relsToCreate.keySet()) {
 			for (Node child : relsToCreate.get(parent)) {
