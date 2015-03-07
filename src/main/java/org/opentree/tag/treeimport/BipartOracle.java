@@ -714,7 +714,6 @@ public class BipartOracle {
 		paths = Collections.synchronizedSet(new HashSet<Path>());
 		System.out.print("traversing potential paths through the graph to determine node ingroup/outgroup composition...");
 		long z = new Date().getTime();
-		Transaction tx = gdb.beginTx();
 
 		Set<LongBipartition> nodesWithoutPaths = Collections.synchronizedSet(new HashSet<LongBipartition>());
 		
@@ -722,7 +721,6 @@ public class BipartOracle {
 		List<Integer> bipartIds = new ArrayList<Integer>();
 		for (int i = 0; i < bipart.size(); i++) { bipartIds.add(i); }
 		
-//		for (int i = 0; i < bipart.size(); i++) {
 		bipartIds.parallelStream().forEach(i -> {
 			
 			System.out.println(i+" / "+bipart.size()+" "+paths.size());
@@ -733,21 +731,19 @@ public class BipartOracle {
 					// biparts that are not nested in any others won't be saved in any of the paths, so we need to make graph nodes
 					// for them now. we will need these nodes for mapping trees
 					// actually, I thought none of these were null because itself would be in the path?
-//					createNode(bipart.get(i));
 					nodesWithoutPaths.add(bipart.get(i));
 				}
 			}
-			
+
 		});
 		
+		Transaction tx = gdb.beginTx();
 		for (LongBipartition b : nodesWithoutPaths) {
 			createNode(b);
 		}
-
-//		}
-
 		tx.success();
 		tx.finish();
+
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds paths:"+paths.size());
 
 		// report results
