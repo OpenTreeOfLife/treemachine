@@ -22,6 +22,7 @@ public class ImmutableLongBipartition implements LongBipartition {
 		// ensure that the ingroup and outgroup are immutable sets
 		this.ingroup = new ImmutableCompactLongSet(ingroup);
 		this.outgroup = new ImmutableCompactLongSet(outgroup);
+		assert ! this.ingroup.containsAny(this.outgroup);
 		hashCode = computeHashCode();
 	}
 
@@ -29,6 +30,7 @@ public class ImmutableLongBipartition implements LongBipartition {
 		// ensure that the ingroup and outgroup are immutable sets
 		this.ingroup = new ImmutableCompactLongSet(ingroup);
 		this.outgroup = new ImmutableCompactLongSet(outgroup);
+		assert ! this.ingroup.containsAny(this.outgroup);
 		hashCode = computeHashCode();
 	}
 
@@ -36,6 +38,7 @@ public class ImmutableLongBipartition implements LongBipartition {
 		// ensure that the ingroup and outgroup are immutable sets
 		ingroup = new ImmutableCompactLongSet(original.ingroup());
 		outgroup = new ImmutableCompactLongSet(original.outgroup());
+		assert ! this.ingroup.containsAny(this.outgroup);
 		hashCode = computeHashCode();
 	}
 	
@@ -169,6 +172,8 @@ public class ImmutableLongBipartition implements LongBipartition {
 		boolean result = false;
 		if (this.ingroup().size() + this.outgroup().size() == that.ingroup().size() + that.outgroup().size()) {
 			
+			result = true;
+			/*
 			MutableCompactLongSet a = new MutableCompactLongSet(this.ingroup());
 			a.addAll(this.outgroup());
 			
@@ -176,6 +181,16 @@ public class ImmutableLongBipartition implements LongBipartition {
 			b.addAll(that.outgroup());
 
 			result = b.equals(a);
+			*/
+			// check if each element in this ingroup is in that ingroup or outgroup
+			for (long l : this.ingroup) {
+				if (!that.outgroup().contains(l) && !that.ingroup().contains(l)) { return false; }
+			}
+
+			// check if each element in this outgroup is in that ingroup or outgroup
+			for (long l : this.outgroup) {
+				if (!that.outgroup().contains(l) && !that.ingroup().contains(l)) { return false; }
+			}
 		}
 		return result;
 	}
@@ -215,9 +230,6 @@ public class ImmutableLongBipartition implements LongBipartition {
 		return s.toString();
 	}
 	
-	public static void main(String[] args) {
-		runSimpleTests(args);
-	}
 	
 	public static void runSimpleTests(String[] args) {
 		nestedTest(new long[][] {{1,2},{3}}, new long[][] {{1,4},{2}}, true);
@@ -225,10 +237,19 @@ public class ImmutableLongBipartition implements LongBipartition {
 		equalsTest(new long[][] {{0,2},{3}}, new long[][] {{2,0},{3}}, true);
 		equalsTest(new long[][] {{3},{0,2}}, new long[][] {{2,0},{3}}, false);
 		equalsTest(new long[][] {{},{}}, new long[][] {{},{}}, true);
-		equalsTest(new long[][] {{1,3},{2}}, new long[][] {{1,3},{3}}, false);
+		equalsTest(new long[][] {{1,3},{2}}, new long[][] {{1,3},{6}}, false);
 		equalsTest(new long[][] {{},{0}}, new long[][] {{},{0,0,0,0,0,0}}, true);
 		equalsTest(new long[][] {{0},{}}, new long[][] {{},{0,0,0,0,0,0}}, false);
 		equalsTest(new long[][] {{1,2},{0}}, new long[][] {{2,1},{0,0,0,0,0,0}}, true);
+		
+		identicalTaxonSetTest(new long[][] {{1,2},{0}}, new long[][] {{2,1},{0,0,0,0,0,0}}, true);
+		identicalTaxonSetTest(new long[][] {{1},{0, 2}}, new long[][] {{2,1},{0,0,0,0,0,0}}, true);
+		identicalTaxonSetTest(new long[][] {{1,2},{3,4}}, new long[][] {{2,4},{3,1}}, true);
+		identicalTaxonSetTest(new long[][] {{1,2},{3,4}}, new long[][] {{2,4},{3,1,5}}, false);
+		identicalTaxonSetTest(new long[][] {{1,2},{3,4}}, new long[][] {{2,4},{}}, false);
+		identicalTaxonSetTest(new long[][] {{},{}}, new long[][] {{},{}}, true);
+		identicalTaxonSetTest(new long[][] {{1},{}}, new long[][] {{},{}}, false);
+		identicalTaxonSetTest(new long[][] {{1},{}}, new long[][] {{},{1}}, true);
 	}
 	
 	private static void nestedTest(long[][] parent, long[][] child, boolean valid) {
@@ -246,4 +267,16 @@ public class ImmutableLongBipartition implements LongBipartition {
 		assert B.hashCode() == A.hashCode() == valid;
 		System.out.println();
 	}
+	
+	private static void identicalTaxonSetTest(long[][] parent, long[][] child, boolean valid) {
+		ImmutableLongBipartition A = new ImmutableLongBipartition(parent[0], parent[1]);
+		ImmutableLongBipartition B = new ImmutableLongBipartition(child[0], child[1]);
+		System.out.println(A + " has identical taxon set as " + B + " ? " + (B.hasIdenticalTaxonSetAs(A)));
+		assert B.hasIdenticalTaxonSetAs(A) == valid;
+	}
+
+	public static void main(String[] args) {
+		runSimpleTests(args);
+	}
+
 }

@@ -458,8 +458,8 @@ public class BipartOracle {
 					LongBipartition tlb = getGraphBipartForTreeNode(tnt, t);
 
 					// don't compare trees with identical taxon sets -- these are not the nodes you are looking for.
-					TreeNode childOfRootX = x.internalNodes(NodeOrder.PREORDER).iterator().next();
-					if (tlb.hasIdenticalTaxonSetAs(getGraphBipartForTreeNode(childOfRootX, x))) { continue; }
+//					TreeNode childOfRootX = x.internalNodes(NodeOrder.PREORDER).iterator().next();
+//					if (tlb.hasIdenticalTaxonSetAs(getGraphBipartForTreeNode(childOfRootX, x))) { continue; }
 					
 					for(TreeNode tnx : x.internalNodes(NodeOrder.POSTORDER)){
 						LongBipartition tls = getGraphBipartForTreeNode(tnx, x);
@@ -929,7 +929,7 @@ public class BipartOracle {
 			//TODO: make sure that we don't need augmented
 			for (Integer sid : summedBipartIds) {
 				LongBipartition summedBipart = bipart.get(sid);
-				boolean identicalTaxa = summedBipart.hasIdenticalTaxonSetAs(nodeBipart);
+//				boolean identicalTaxa = summedBipart.hasIdenticalTaxonSetAs(nodeBipart);
 				if (summedBipart.isNestedPartitionOf(nodeBipart)) {
 //					if (nestedParents.get(originalId) == null) { nestedParents.put(originalId, new HashSet<Integer>()); }
 					nestedParents.get(sid).add(originalId);
@@ -2176,7 +2176,7 @@ public static void main(String[] args) throws Exception {
 		String dbname = "test.db";
 //		runSimpleTest(nestedOverlap2(), dbname);
 //		runSimpleTest(conflictingAugmenting(), dbname);
-		runSimpleTest(complexCompatible(), dbname);
+//		runSimpleTest(complexCompatible(), dbname);
 //		runSimpleTest(cycleConflictTrees(), dbname);
 //		runSimpleTest(trivialConflict(), dbname);
 //		runSimpleTest(nonOverlapTrees(), dbname);
@@ -2187,7 +2187,7 @@ public static void main(String[] args) throws Exception {
 
 		// this is a stress test for the loading procedure -- 100 trees with 600 tips each.
 		// lots of duplicate biparts though so it should only take a few mins (if allowed to be decently parallel)
-//		loadATOLTreesTest(dbname);
+		loadATOLTreesTest(dbname);
 		
 		// these are tests for taxonomy
 //		runDipsacalesTest(dbname);
