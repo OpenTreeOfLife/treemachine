@@ -11,7 +11,7 @@ import jade.tree.deprecated.NexsonReader;
 import jade.tree.deprecated.TreeReader;
 import jade.tree.deprecated.JadeNode.NodeOrder;
 
-import org.opentree.bitarray.CompactLongSet;
+import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.tag.treeimport.BipartOracle;
 import org.opentree.tag.treeimport.SubsetTreesUtility;

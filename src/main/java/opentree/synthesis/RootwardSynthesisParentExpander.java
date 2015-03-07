@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.opentree.bitarray.CompactLongSet;
+import org.opentree.bitarray.LongSet;
 import org.opentree.bitarray.TLongBitArraySet;
 
 import opentree.constants.NodeProperty;

@@ -18,7 +18,9 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.kernel.Traversal;
-import org.opentree.bitarray.CompactLongSet;
+import org.opentree.bitarray.ImmutableCompactLongSet;
+import org.opentree.bitarray.LongSet;
+import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class SubsetTreesUtility {
@@ -46,7 +48,7 @@ public class SubsetTreesUtility {
 			HashSet<Tree> toPruneTree = new HashSet<Tree>();
 			HashMap<Tree,TreeNode> toPruneNode = new HashMap<Tree,TreeNode>();
 			Node hit = null;
-			CompactLongSet subset_mrcas = new CompactLongSet();//((long[]) hit.getProperty(NodeProperty.MRCA.propertyName));
+			MutableCompactLongSet subset_mrcas = new MutableCompactLongSet();//((long[]) hit.getProperty(NodeProperty.MRCA.propertyName));
 			try {
 				hit = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, tid).getSingle();
 				long [] tl = (long[]) hit.getProperty(NodeProperty.MRCA.propertyName);
@@ -61,7 +63,7 @@ public class SubsetTreesUtility {
 				if(alreadyContained.contains(tr))
 					continue;
 				TreeNode pruned = null;
-				CompactLongSet rootcls = getFullMRCAForNode(tr.getRoot());
+				LongSet rootcls = getFullMRCAForNode(tr.getRoot());
 				if(subset_mrcas.containsAll(rootcls)== false && subset_mrcas.containsAny(rootcls) ){
 					boolean external = false;
 					TreeNode nonmono = null;
@@ -70,8 +72,8 @@ public class SubsetTreesUtility {
 					for(TreeNode in: tr.internalNodes(jade.tree.NodeOrder.POSTORDER)){
 						if(in == tr.getRoot())
 							continue;
-						CompactLongSet ts = getFullMRCAForNode(in);
-						CompactLongSet other = new CompactLongSet(rootcls);
+						LongSet ts = getFullMRCAForNode(in);
+						MutableCompactLongSet other = new MutableCompactLongSet(rootcls);
 						other.removeAll(ts);
 						if(subset_mrcas.containsAll(ts) == true && subset_mrcas.containsAny(other) == false){
 							pruned = in;
@@ -87,8 +89,8 @@ public class SubsetTreesUtility {
 					//if null, it could be external node (not a subset) or if non monophyletic, we want the mrca (including the nonmonophyly
 					if(pruned == null){
 						for(TreeNode ex: tr.externalNodes()){
-							CompactLongSet ts = getFullMRCAForNode(ex);
-							CompactLongSet other = new CompactLongSet(rootcls);
+							LongSet ts = getFullMRCAForNode(ex);
+							MutableCompactLongSet other = new MutableCompactLongSet(rootcls);
 							other.removeAll(ts);
 							if(subset_mrcas.containsAll(ts) == true && subset_mrcas.containsAny(other) == false){
 								external = true;
@@ -229,7 +231,7 @@ public class SubsetTreesUtility {
 		System.out.println("getting subset mrca");
 		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
 		Node hit = null;
-		CompactLongSet subset_mrcas = new CompactLongSet();//((long[]) hit.getProperty(NodeProperty.MRCA.propertyName));
+		MutableCompactLongSet subset_mrcas = new MutableCompactLongSet();//((long[]) hit.getProperty(NodeProperty.MRCA.propertyName));
 		try {
 			hit = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, taxId).getSingle();
 			long [] tl = (long[]) hit.getProperty(NodeProperty.MRCA.propertyName);
@@ -242,7 +244,7 @@ public class SubsetTreesUtility {
 		}		
 		for(Tree tr : jt){
 			TreeNode pruned = null;
-			CompactLongSet rootcls = getFullMRCAForNode(tr.getRoot());
+			LongSet rootcls = getFullMRCAForNode(tr.getRoot());
 			if(subset_mrcas.containsAll(rootcls)== false && subset_mrcas.containsAny(rootcls) ){
 				boolean external = false;
 				TreeNode nonmono = null;
@@ -251,8 +253,8 @@ public class SubsetTreesUtility {
 				for(TreeNode in: tr.internalNodes(jade.tree.NodeOrder.POSTORDER)){
 					if(in == tr.getRoot())
 						continue;
-					CompactLongSet ts = getFullMRCAForNode(in);
-					CompactLongSet other = new CompactLongSet(rootcls);
+					LongSet ts = getFullMRCAForNode(in);
+					MutableCompactLongSet other = new MutableCompactLongSet(rootcls);
 					other.removeAll(ts);
 					if(subset_mrcas.containsAll(ts) == true && subset_mrcas.containsAny(other) == false){
 						pruned = in;
@@ -268,8 +270,8 @@ public class SubsetTreesUtility {
 				//if null, it could be external node (not a subset) or if non monophyletic, we want the mrca (including the nonmonophyly
 				if(pruned == null){
 					for(TreeNode ex: tr.externalNodes()){
-						CompactLongSet ts = getFullMRCAForNode(ex);
-						CompactLongSet other = new CompactLongSet(rootcls);
+						LongSet ts = getFullMRCAForNode(ex);
+						MutableCompactLongSet other = new MutableCompactLongSet(rootcls);
 						other.removeAll(ts);
 						if(subset_mrcas.containsAll(ts) == true && subset_mrcas.containsAny(other) == false){
 							external = true;
@@ -302,13 +304,13 @@ public class SubsetTreesUtility {
 		}
 	}
 	
-	private CompactLongSet getFullMRCAForNode(TreeNode nd){
-		CompactLongSet ret = new CompactLongSet();
+	private LongSet getFullMRCAForNode(TreeNode nd){
+		MutableCompactLongSet ret = new MutableCompactLongSet();
 		for(TreeNode tip: nd.getDescendantLeaves()){
 			for(Object ob:(HashSet<Object>)explodedTipsHash.get(tip)){
 				ret.add(Long.valueOf((String)ob));
 			}
 		}
-		return ret;
+		return new ImmutableCompactLongSet(ret);
 	}
 }
