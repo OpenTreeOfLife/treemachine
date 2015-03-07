@@ -223,25 +223,37 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	    		accept = true;
 			}
 	    	if (!accept) {
-	    		boolean nested = false;
+	    		boolean nesting = false; // does nesting status determine decision to be made?
+	    		
+	    		System.out.println("bestMRCA: " + bestMRCA.toString());
+	    		if (bestOutMRCA != null) System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
+	    		System.out.println("candMRCA: " + candMRCA.toString());
+	    		if (candOutMRCA != null) System.out.println("candOutMRCA: " + candOutMRCA.toString());
 	    		
 	    		// check if out of new contains any of ingroup of old
-		    	if (candOutMRCA != null && bestOutMRCA != null) { // doesn't allow taxonomy nodes. ignore for now (probably not a problem)
+		//    	if (candOutMRCA != null && bestOutMRCA != null) { // doesn't allow taxonomy nodes. ignore for now (probably not a problem)
 		    		System.out.println("Checking for nesting of nodes.");
-		    		System.out.println("bestMRCA: " + bestMRCA.toString());
-		    		System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
-		    		System.out.println("candMRCA: " + candMRCA.toString());
-		    		System.out.println("candOutMRCA: " + candOutMRCA.toString());
+		    		//System.out.println("bestMRCA: " + bestMRCA.toString());
+		    		//System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
+		    		//System.out.println("candMRCA: " + candMRCA.toString());
+		    		//System.out.println("candOutMRCA: " + candOutMRCA.toString());
 		    		
-		    		if (!Collections.disjoint(candOutMRCA, bestMRCA)) {
-		    			if (Collections.disjoint(bestOutMRCA, candMRCA)) {
-		    				System.out.println(candParent + " is nested child of prevailing parent. Accept!");
-		    				nested = true;
-		    				accept = true;
+		    		// is candidate parent a nested child of prevailing parent? if so, take it
+		    		if (nestedChildOf(bestMRCA, bestOutMRCA, candMRCA, candOutMRCA)) {
+		    			System.out.println(candParent + " is nested child of prevailing parent. Accept!");
+		    			nesting = true;
+	    				accept = true;
+		    		}
+		    		
+		    		// need to check other direction of nesting, so that prevailing parent is not thrown out because of rank alone
+		    		if (!nesting) {
+		    			if (nestedChildOf(candMRCA, candOutMRCA, bestMRCA, bestOutMRCA)) {
+		    				System.out.println("Prevailing parent is nested child of " + candParent + ". Reject candidate parent.");
+		    				nesting = true;
 		    			}
-					}
-		    	}
-		    	if (!nested) {
+		    		}
+		 //   	}
+		    	if (!nesting) {
 		    		System.out.println("Nodes are not nested. Looking at ranks.");
 		    		if (candRank > bestRank) {
 		    			System.out.println("Candidate parent has a higher rank. Accept!");
@@ -260,29 +272,6 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		    			System.out.println("Candidate parent has lower rank than prevailing parent. Reject.");
 		    		}
 		    	}
-//		    	
-//			    System.out.println(candParent + "; currRank = " + candRank + "; source = " + r.getProperty("source"));
-//			    if (candRank > bestRank) {
-//			    	bestParentNode = candParent;
-//			    	bestRank = candRank;
-//			    	
-//			    	bestMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("mrca")));
-//			    	System.out.println("bestMRCA: " + bestMRCA.toString());
-//			    	
-//			    	if (candParent.hasProperty("outmrca")) {
-//			    		bestOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("outmrca")));
-//			    		System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
-//			    	}
-//	
-//			    } else if (candRank == bestRank) {
-//			    	System.out.println("candMrca = " + candMRCA.toString());
-//			    	if (candParent.hasProperty("outmrca")) {
-//			    		candOutMRCA = Arrays.asList(ArrayUtils.toObject((long[]) candParent.getProperty("outmrca")));
-//			    		System.out.println("candOutMrca = " + candOutMRCA.toString());
-//			    	}
-//			    	
-//			    	
-//			    }
 	    	}
 		    if (accept) {
 		    	System.out.println("Tentatively accepting " + candParent + " as the best candidate parent.");
@@ -295,6 +284,24 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		    }
 		}
 		return bestParentNode;
+	}
+	
+	// is node2 a nested child of node1?
+	public boolean nestedChildOf (List<Long> node1MRCA, List<Long> node1OutMRCA, List<Long> node2MRCA, List<Long> node2OutMRCA) {
+		boolean nested = false;
+		if (node1OutMRCA != null && node2OutMRCA != null) {
+			if (!Collections.disjoint(node2OutMRCA, node1MRCA)) {
+				if (Collections.disjoint(node1OutMRCA, node2MRCA)) {
+					return true;
+				}
+			}
+		} else if (node1OutMRCA == null && node2OutMRCA == null) { // two taxonomy nodes
+			
+			if (node1MRCA.containsAll(node2MRCA)) {
+				return true;
+			}
+		}
+		return nested;
 	}
 	
 	// check if proposed parent has parents of its own (i.e. not a dead end).
