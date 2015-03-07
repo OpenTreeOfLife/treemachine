@@ -37,6 +37,7 @@ import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
@@ -50,6 +51,8 @@ public class BipartOracle {
 	private final boolean USING_TAXONOMY;
 	
 	boolean VERBOSE = false;
+	
+	boolean mapdeepest = false;
 	
 	// maps of tip names for higher taxon tips to sets of tip names for their included taxa
 
@@ -156,6 +159,9 @@ public class BipartOracle {
 	/** all the graph nodes that have been mapped to the tree node */
 	private Map<TreeNode, HashSet<Node>> graphNodesForTreeNode = new HashMap<TreeNode, HashSet<Node>>(); 
 	
+	/** these are the graph nodes that actually are used. this way we can remove the nodes and rels that aren't */
+	private HashSet<Long> nodesWithSTREERels = new HashSet<Long>();
+	
 	/** Just a simple container to keep track of rels we know we've made so we can cut down on database queries to find out of they exist. */
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
 	private Map<Long, HashMap<Long,HashSet<String>>> hasSTREEChildOf = new HashMap<Long, HashMap<Long,HashSet<String>>>();
@@ -238,9 +244,41 @@ public class BipartOracle {
 		// because taxonomy is added above, this isn't necessary
 		//if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
 		
+		//clean up the nodes and rels that aren't used at all
+		removeUnusedNodesAndRels();
+		
 		System.out.println("loading is complete. total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
 	}
 	
+	private void removeUnusedNodesAndRels() {
+		System.out.println("cleaning the ununsed nodes and relationships");
+		int removedNs = 0;
+		int removedRs = 0;
+		Transaction tx = gdb.beginTx();
+		for(Node nd: bipartForGraphNode.keySet()){
+			if(nodesWithSTREERels.contains(nd.getId()) == false){
+				boolean dont = false;
+				for(Relationship rel: nd.getRelationships()){
+					if(rel.getType().equals(RelType.STREECHILDOF) || 
+							rel.getType().equals(RelType.TAXCHILDOF)) {
+						dont = true;
+					}
+				}
+				if(dont == false){
+					for(Relationship rel: nd.getRelationships()){
+						rel.delete();
+						removedRs += 1;
+					}
+					nd.delete();
+					removedNs += 1;
+				}
+			}
+		}
+		tx.success();
+		tx.finish();
+		System.out.println("done cleaning "+removedNs+" nodes and "+removedRs+" relationships");
+	}
+
 	/**
 	 * check if the trees are appropriate. throws exceptions if errors are found.
 	 * @param trees
@@ -1401,6 +1439,41 @@ public class BipartOracle {
 						continue;
 					updateMRCAChildOf(tip, parent);
 					updateSTREEChildOf(tip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip));
+					/*
+					 * now we want to map to the "deepest" taxon node before the split and the 
+					 * 	nodes in between. so amborella,aster split will map to aster, asteraceae, asterales, etc.
+					 */
+					if(mapdeepest == true){
+						Node startTip = tip;
+						boolean going = true;
+						while(going == true){
+							startTip = startTip.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+							if(taxonomyGraphNodesMap.containsKey(startTip)){
+								LongBipartition pbip = null;
+								LongBipartition cbip = taxonomyGraphNodesMap.get(startTip);
+								if(bipartForGraphNodeExploded.containsKey(parent)){
+									pbip = bipartForGraphNodeExploded.get(parent);
+								}else{
+									pbip = taxonomyGraphNodesMap.get(parent);
+								}
+								if(pbip.ingroup().containsAny(cbip.ingroup())
+										&& cbip.ingroup().containsAny(pbip.outgroup()) == false
+										&& cbip.ingroup().containsAll(pbip.ingroup()) == false){//it is compatible with the parent
+									updateMRCAChildOf(tip, startTip);
+									updateSTREEChildOf(tip,startTip,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip));
+									if(startTip.equals(parent))
+										continue;
+									updateMRCAChildOf(startTip, parent);
+									updateSTREEChildOf(startTip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip));
+								}else{
+									going = false;
+									break;
+								}
+							}else{
+								break;
+							}
+						}
+					}
 				}
 			}
 			/*
@@ -1907,6 +1980,7 @@ public class BipartOracle {
 		if(hasSTREEChildOf.get(child.getId()).containsKey(parent.getId())==false)
 			hasSTREEChildOf.get(child.getId()).put(parent.getId(), new HashSet<String>());
 		hasSTREEChildOf.get(child.getId()).get(parent.getId()).add(source);
+		nodesWithSTREERels.add(child.getId());nodesWithSTREERels.add(parent.getId());
 	}
 	
 	
