@@ -1004,15 +1004,24 @@ public class BipartOracle {
 		} */
 		
 		// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
-		System.out.print("recording MRCACHILDOF rels (" +bipart.size()+","+ nestedChildren.size() + ") in the db...");
+		System.out.println("identifying MRCACHILDOF rels (biparts: " +bipart.size()+","+ " nested children: " + nestedChildren.size() + ") to be created in the db...");
 		long z = new Date().getTime();
-		Transaction tx = gdb.beginTx();
 //		for (LongBipartition parent : nestedChildren.keySet()) {
 //			for (LongBipartition child : nestedChildren.get(parent)) {
 		//TODO: wow! why is this so slow. I guess we are making tons of relationships but I wonder if we can just get them in a big 
 		//		list
+		
+		// first make a data structure to remember which rels to create and a list of all bipart ids to iterate through
+		Map<Node, Set<Node>> relsToCreate = Collections.synchronizedMap(new HashMap<Node, Set<Node>>());
+		List<Integer> bipartIds = new ArrayList<Integer>();
 		for (int parentId = 0; parentId < bipart.size(); parentId++) {
-			System.out.println(parentId+" "+nestedChildren.get(parentId).size());
+			bipartIds.add(parentId);
+			relsToCreate.put(graphNodeForBipart.get(bipart.get(parentId)), Collections.synchronizedSet(new HashSet<Node>()));
+		}
+		
+//		for (int parentId = 0; parentId < bipart.size(); parentId++) {
+		bipartIds.parallelStream().forEach(parentId -> {
+			System.out.println("for parent " + parentId + " there are " + nestedChildren.get(parentId).size() + " rels");
 			Node parent = graphNodeForBipart.get(bipart.get(parentId));
 			for (Integer childId : nestedChildren.get(parentId)) {
 				Node child = graphNodeForBipart.get(bipart.get(childId));
@@ -1021,18 +1030,33 @@ public class BipartOracle {
 				 * once they are updated so they don't get graph nodes. 
 				 * if there are issues, there is commented code in the generateallnodesfrompaths
 				 */
-				if(child == null || parent == null)
-					continue;
-				if (child.equals(parent))
-					continue;
+				if (child == null || parent == null) { continue; }
+				if (child.equals(parent)) { continue; }
+
+				relsToCreate.get(parent).add(child);
+			}
+		});
+		
+		int n = 0;
+		for (Node parent : relsToCreate.keySet()) {
+			n += relsToCreate.get(parent).size();
+		}
+		System.out.println("done. Identified " + n + " MRCACHILDOF rels to be created. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
+		
+		// now actually make the rels
+		System.out.print("recording " + n + " rels in the db...");
+		Transaction tx = gdb.beginTx();
+		for (Node parent : relsToCreate.keySet()) {
+			for (Node child : relsToCreate.get(parent)) {
 				updateMRCAChildOf(child, parent);
 			}
 		}
 		tx.success();
 		tx.finish();
+		System.out.println(" done recording MRCACHILDOF rels. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 		
-		if(USING_TAXONOMY){
-			System.out.print(" (also recording MRCACHILDOF rels for taxonomy["+taxonomyGraphNodesMap.keySet().size()+","+graphNodeForBipart.keySet().size()+"])...");
+		if (USING_TAXONOMY) {
+			System.out.print("Also recording MRCACHILDOF rels for taxonomy["+taxonomyGraphNodesMap.keySet().size()+","+graphNodeForBipart.keySet().size()+"])...");
 			//sequential for debugging right now
 			// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
 			tx = gdb.beginTx();
@@ -1110,11 +1134,10 @@ public class BipartOracle {
 				}
 			}
 			
-			
 			tx.success();
 			tx.finish();
+			System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 		}
-		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
 	}
 	
@@ -1988,6 +2011,32 @@ public class BipartOracle {
 
 	}
 	
+	private static void loadFabalesTreesTest(String dbname) throws Exception {
+
+		FileUtils.deleteDirectory(new File(dbname));
+		
+		String taxonomy = "test-synth/fabales/taxonomy.tsv";
+		String synonyms = "";
+		
+		GraphInitializer tl = new GraphInitializer(dbname);
+		tl.addInitialTaxonomyTableIntoGraph(taxonomy, synonyms, "2.8");
+		tl.shutdownDB();
+		
+		List<Tree> t = new ArrayList<Tree>();
+		BufferedReader br = new BufferedReader(new FileReader("test-synth/fabales/fab.tre"));
+		String str;
+		while((str = br.readLine())!=null){
+			t.add(TreeReader.readTree(str));
+		}
+		br.close();
+		System.out.println("trees read");
+	
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
+
+		BipartOracle bi = new BipartOracle(t, gdb, true, null, null);
+
+	}
+	
 	@SuppressWarnings("unused")
 	private static void runDipsacalesTest(String dbname) throws Exception {
 		String version = "1";
@@ -2187,7 +2236,8 @@ public static void main(String[] args) throws Exception {
 
 		// this is a stress test for the loading procedure -- 100 trees with 600 tips each.
 		// lots of duplicate biparts though so it should only take a few mins (if allowed to be decently parallel)
-		loadATOLTreesTest(dbname);
+//		loadATOLTreesTest(dbname);
+		loadFabalesTreesTest(dbname);
 		
 		// these are tests for taxonomy
 //		runDipsacalesTest(dbname);

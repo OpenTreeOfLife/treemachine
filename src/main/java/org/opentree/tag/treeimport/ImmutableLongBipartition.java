@@ -173,23 +173,23 @@ public class ImmutableLongBipartition implements LongBipartition {
 		if (this.ingroup().size() + this.outgroup().size() == that.ingroup().size() + that.outgroup().size()) {
 			
 			result = true;
-			/*
-			MutableCompactLongSet a = new MutableCompactLongSet(this.ingroup());
-			a.addAll(this.outgroup());
-			
-			MutableCompactLongSet b = new MutableCompactLongSet(that.ingroup());
-			b.addAll(that.outgroup());
 
-			result = b.equals(a);
-			*/
-			// check if each element in this ingroup is in that ingroup or outgroup
+			// looks for each element from this ingroup
 			for (long l : this.ingroup) {
-				if (!that.outgroup().contains(l) && !that.ingroup().contains(l)) { return false; }
+				if (! (that.outgroup().contains(l) || that.ingroup().contains(l))) {
+					result = false;
+					break;
+				}
 			}
 
-			// check if each element in this outgroup is in that ingroup or outgroup
-			for (long l : this.outgroup) {
-				if (!that.outgroup().contains(l) && !that.ingroup().contains(l)) { return false; }
+			// look for each element from this outgroup
+			if (result != false) { // if something in the ingroup was missing, don't bother checking the outgroup
+				for (long l : this.outgroup) {
+					if (! (that.outgroup().contains(l) || that.ingroup().contains(l))) {
+						result = false;
+						break;
+					}
+				}
 			}
 		}
 		return result;
@@ -234,6 +234,7 @@ public class ImmutableLongBipartition implements LongBipartition {
 	public static void runSimpleTests(String[] args) {
 		nestedTest(new long[][] {{1,2},{3}}, new long[][] {{1,4},{2}}, true);
 		nestedTest(new long[][] {{0,2},{3}}, new long[][] {{0,1,2,3},{}}, false);
+		
 		equalsTest(new long[][] {{0,2},{3}}, new long[][] {{2,0},{3}}, true);
 		equalsTest(new long[][] {{3},{0,2}}, new long[][] {{2,0},{3}}, false);
 		equalsTest(new long[][] {{},{}}, new long[][] {{},{}}, true);
@@ -245,6 +246,8 @@ public class ImmutableLongBipartition implements LongBipartition {
 		identicalTaxonSetTest(new long[][] {{1,2},{0}}, new long[][] {{2,1},{0,0,0,0,0,0}}, true);
 		identicalTaxonSetTest(new long[][] {{1},{0, 2}}, new long[][] {{2,1},{0,0,0,0,0,0}}, true);
 		identicalTaxonSetTest(new long[][] {{1,2},{3,4}}, new long[][] {{2,4},{3,1}}, true);
+		identicalTaxonSetTest(new long[][] {{1,2},{3,4}}, new long[][] {{5,6},{7,8}}, false);
+		identicalTaxonSetTest(new long[][] {{1,2},{3,4}}, new long[][] {{1,2},{3,9}}, false);
 		identicalTaxonSetTest(new long[][] {{1,2},{3,4}}, new long[][] {{2,4},{3,1,5}}, false);
 		identicalTaxonSetTest(new long[][] {{1,2},{3,4}}, new long[][] {{2,4},{}}, false);
 		identicalTaxonSetTest(new long[][] {{},{}}, new long[][] {{},{}}, true);

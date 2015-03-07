@@ -164,8 +164,6 @@ public abstract class GraphBase {
 		return graphDb.getNodeById((Long) graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_ID.propertyName));
 	}
 	
-	
-	
 	public String getTaxonomyVersion () {
 		return (String)graphDb.getGraphProperty(GraphProperty.GRAPH_ROOT_NODE_TAXONOMY.propertyName);
 	}
