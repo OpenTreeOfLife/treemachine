@@ -723,7 +723,7 @@ public class BipartOracle {
 		for (int i = 0; i < bipart.size(); i++) { bipartIds.add(i); }
 		
 //		for (int i = 0; i < bipart.size(); i++) {
-		bipartIds.stream().forEach(i -> {
+		bipartIds.parallelStream().forEach(i -> {
 			
 			System.out.println(i+" / "+bipart.size()+" "+paths.size());
 			if (bipart.get(i).outgroup().size() > 0) {
