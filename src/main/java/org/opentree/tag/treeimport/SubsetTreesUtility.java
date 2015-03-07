@@ -170,10 +170,10 @@ public class SubsetTreesUtility {
 						System.out.print("\tpruned:"+sourceForTrees.get(tr)+" "+pruned+"subset="+tid+";");
 					else
 						System.out.print("\tpruned:"+pruned+"subset="+tid+";");
-					for(String tid2: subsets_to_include){
+					/*for(String tid2: subsets_to_include){
 						if(prunedOriginalLabels.get(tr).containsKey(tid2))
 							System.out.print(" subset_"+tid2+"="+prunedOriginalLabels.get(tr).get(tid2));
-					}
+					}*/
 					System.out.print("\n");
 				}
 				TreeNode par = pruned.getParent();
@@ -198,10 +198,10 @@ public class SubsetTreesUtility {
 						System.out.print("\t"+sourceForTrees.get(tr)+" "+tr+";");
 					else
 						System.out.print("\t"+tr+";");
-					for(String tid: subsets_to_include){
+					/*for(String tid: subsets_to_include){
 						if(prunedOriginalLabels.get(tr).containsKey(tid))
 							System.out.print(" subset_"+tid+"="+prunedOriginalLabels.get(tr).get(tid));
-					}
+					}*/
 					System.out.print("\n");
 				}else{
 					if(sourceForTrees != null)
