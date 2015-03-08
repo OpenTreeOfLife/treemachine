@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.neo4j.graphdb.Transaction;
@@ -20,35 +21,32 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.Traversal;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 /**
  * Tarjan's strongly connected components algorithm.
+ * 
+ * Based on pseudocode from: http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
  * 
  * input: graph G = (V, E)
  * output: set of strongly connected components (sets of vertices)
  */
 public class TarjanSCC implements Iterable<Set<Node>> {
 	
-	// index := 0
 	int i = 0;
+	LinkedList<Node> S = new LinkedList<Node>();
+
+	// these could be more efficiently implemented as arrays if we knew |V|
 	Map<Node, Integer> index = new HashMap<Node, Integer>();
 	Map<Node, Integer> lowLink = new HashMap<Node, Integer>();
 	Map<Node, Boolean> onStack = new HashMap<Node, Boolean>();
 	
-	// S := empty
-	LinkedList<Node> S = new LinkedList<Node>();
-	
 	Set<Set<Node>> components = new HashSet<Set<Node>>();
 
-	public TarjanSCC(GraphDatabaseAgent G) {
-		
-		// for each v in V do
-		//	if (v.index is undefined) then
-	    //  	strongconnect(v)
-	    //	end if
-		// end for
+	private final RelType[] relTypes;
+
+	public TarjanSCC(GraphDatabaseAgent G, RelType ... relTypes) {
+		this.relTypes = relTypes;
 		for (Node v : G.getAllNodes()) {
 			if (index.get(v) == null) { // if we have not yet visited this node
 				strongConnect(v);
@@ -56,55 +54,43 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 		}
 	}
 	
-	// function strongconnect(v)
 	private void strongConnect(Node v) {
 		
 		// Set the depth index for v to the smallest unused index
-		// v.index := index
-		// v.lowlink := index
-		// index := index + 1
-		// S.push(v)
-		// v.onStack := true
 		index.put(v, i);
 		lowLink.put(v, i++);
 		S.push(v);
 		onStack.put(v, true);
 		
 	    // Consider successors of v
-		for (Relationship r : v.getRelationships(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) { // for each (v, w) in E do
+		for (Relationship r : v.getRelationships(Direction.INCOMING, relTypes)) {
 			Node w = r.getStartNode();
 
-			// if (w.index is undefined) then
 			if (index.get(w) == null) { // Successor w has not yet been visited; recurse on it
-				strongConnect(w); // strongconnect(w)
-				lowLink.put(v, minLink(v, w)); // v.lowlink  := min(v.lowlink, w.lowlink)
+				strongConnect(w);
+				lowLink.put(v, minLink(v, w));
 
-			// else if (w.onStack) then
 			} else if (onStack.get(w) != null && onStack.get(w)) { // Successor w is in stack S and hence in the current SCC
-				lowLink.put(v, minLink(v, w)); // v.lowlink  := min(v.lowlink, w.index)
-
-			} // end if
-		} // end for
+				lowLink.put(v, minLink(v, w));
+			}
+		}
 
 		// If v is a root node, pop the stack and generate an SCC
-		// if (v.lowlink = v.index) then
 		if (lowLink.get(v) == index.get(v)) {
 			
-			// start a new strongly connected component
+			// start a new SCC and add all the nodes that belong to it
 			Set<Node> C = new HashSet<Node>();
-			
-			// repeat until (w = v)
 			Node w = null;
 			while (w != v) {
-				w = S.pop(); // w := S.pop()
-				onStack.put(w, false); // w.onStack := false
-				C.add(w); // add w to current strongly connected component
+				w = S.pop();
+				onStack.put(w, false);
+				C.add(w);
 			}
 			
-			components.add(C); // output the current strongly connected component
+			components.add(C); // save this SCC
 
-		} // end if
-	} // end function
+		}
+	}
 	
 	private int minLink(Node v, Node w) {
 		int lv = lowLink.get(v);
@@ -117,11 +103,15 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 		return components.iterator();
 	}
 	
-	private static GraphDatabaseAgent nCycle(int N) throws IOException {
-		
-		FileUtils.deleteDirectory(new File("test.db"));
-		GraphDatabaseAgent G = new GraphDatabaseAgent(new EmbeddedGraphDatabase("test.db"));
-		
+	/**
+	 * Create a cycle with N nodes in the graph G. Return the set of nodes in the cycle.
+	 * @param G
+	 * @param N
+	 * @return
+	 * @throws IOException
+	 */
+	private static List<Node> createNCycle(GraphDatabaseAgent G, int N) throws IOException {
+				
 		Transaction tx = G.beginTx();
 		List<Node> nodes = new ArrayList<Node>();
 		for (int i = 0; i < N; i++) {
@@ -134,12 +124,99 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 		nodes.get(N-1).createRelationshipTo(nodes.get(0), RelType.STREECHILDOF);
 		tx.success();
 		tx.finish();
+
+		return nodes;
+	}
+	
+	/**
+	 * Create a cycle with N nodes and c random chords in the graph G. Return the set of nodes in the cycle.
+	 */
+	private static List<Node> createChordedNCycle(GraphDatabaseAgent G, int N, int c) throws IOException {
+		List<Node> cycle = createNCycle(G, N);
+
+		// need to check max number chords possible for a cycle of length N
+		//	N	maxChords		(N-3) * N
+		//	2	0
+		//	3	0
+		//	4	4				1 * 4 = 4
+		//	5	20
+		//	6	36		
+//		if (c > maxChords) { throw new IllegalArgumentException(); }
+
+		Transaction tx = G.beginTx();
+		for (int i = 0; i <  c; i++) {
+			Random r = new Random();
+			int p = r.nextInt(N);
+			int q = -1;
+			while (p == q || q < 0) { q = r.nextInt(N); }
+			G.getNodeById((long) p).createRelationshipTo(G.getNodeById((long) q), RelType.STREECHILDOF);
+		}
+		tx.success();
+		tx.finish();
+		
+		return cycle;
+	}
+	
+	private static GraphDatabaseAgent getCleanDatabase(String dbname) throws IOException {
+		FileUtils.deleteDirectory(new File(dbname));
+		return new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname));
+	}
+	
+	private static GraphDatabaseAgent simpleCycle(int N) throws IOException {
+		GraphDatabaseAgent G = getCleanDatabase("test.db");
+		createNCycle(G, N);
+		return G;
+	}
+
+	private static GraphDatabaseAgent chordedCycle(int N, int c) throws IOException {
+		GraphDatabaseAgent G = getCleanDatabase("test.db");
+		createChordedNCycle(G, N, c);
 		return G;
 	}
 	
-	private static void simpleTest(GraphDatabaseAgent G) {
+	private static GraphDatabaseAgent chainOfSimpleCycles(int N, int m) throws IOException {
+		GraphDatabaseAgent G = getCleanDatabase("test.db");
+		Random r = new Random();
+		List<Node> lastCycle = null;
+		Transaction tx = G.beginTx();
+		for (int i = 0; i < m; i++) {
+			Node toConnect = null;
+			if (lastCycle != null) { toConnect = lastCycle.get(r.nextInt(lastCycle.size())); }
+			lastCycle = createNCycle(G, N);
+			if (toConnect != null) {
+				lastCycle.get(r.nextInt(lastCycle.size())).createRelationshipTo(toConnect, RelType.STREECHILDOF);
+			}
+		}
+		tx.success();
+		tx.finish();
+		return G;
+	}
+	
+	private static GraphDatabaseAgent cycleOfSimpleCycles(int N, int m) throws IOException {
+		GraphDatabaseAgent G = getCleanDatabase("test.db");
+		Random r = new Random();
+		List<Node> lastCycle = null;
+		List<Node> firstCycle = null;
+		Transaction tx = G.beginTx();
+		for (int i = 0; i < m; i++) {
+			Node toConnect = null;
+			if (lastCycle != null) { toConnect = lastCycle.get(r.nextInt(lastCycle.size())); }
+			lastCycle = createNCycle(G, N);
+			if (toConnect != null) {
+				lastCycle.get(r.nextInt(lastCycle.size())).createRelationshipTo(toConnect, RelType.STREECHILDOF);
+			}
+			if (firstCycle == null) { firstCycle = lastCycle; }
+		}
+		// connect the cycle of cycles
+		firstCycle.get(r.nextInt(firstCycle.size())).createRelationshipTo(lastCycle.get(r.nextInt(lastCycle.size())), RelType.STREECHILDOF);
+		tx.success();
+		tx.finish();
+		return G;
+	}
+	
+	private static void simpleTest(GraphDatabaseAgent G) {		
 		System.out.println(getSTREEAdjacencyList(G));
-		for (Set<Node> component : new TarjanSCC(G)) {
+		for (Set<Node> component : new TarjanSCC(G, RelType.STREECHILDOF)) {
 			System.out.println(component);
 		}
 	}
@@ -157,7 +234,10 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		simpleTest(nCycle(10));
+		simpleTest(simpleCycle(10));
+		simpleTest(chordedCycle(10, 4)); // should return one connected component with everything in it
+		simpleTest(chainOfSimpleCycles(5, 5)); // should return each cycle as an independent connected component
+		simpleTest(cycleOfSimpleCycles(5, 5)); // should return one connected component with everything in it
 	}
 
 }
