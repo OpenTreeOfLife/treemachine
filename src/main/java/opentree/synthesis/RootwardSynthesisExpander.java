@@ -39,16 +39,13 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	private Map<Long, TLongBitArraySet> nodeMrca;
 	private GraphDatabaseAgent gdb;
 
-	private boolean trivialTestCase = false;
-	
 	private boolean VERBOSE = true;
 
 	private boolean USING_RANKS = false;
 	
 	public RootwardSynthesisExpander(Node root) {
 
-		// could fail if we have MRCACHILDOF cycles. should probably use TAXCHILDOF and STREECHILDOF
-		// need to change constructor to accept a set of reltypes.
+		// could fail if we have cycles. first need to find SCC's and break cycles
 		topologicalOrder = new TopologicalOrder(root, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 
 		childRels = new HashMap<Long, HashSet<Relationship>>();
@@ -77,7 +74,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 					// lower ranked rel that includes a node that is a singleton on a higher ranked rel--then
 					// the singleton higher ranked rel will be excluded (bad). we should still never need to include
 					// taxonomic singletons though.
-					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons!?!?! THIS MIGHT BE WRONG.
+					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons? THIS MIGHT BE WRONG.
 					
 					updateBestRankedRel(bestRelForNode, r); // check other source tree rels to see which one to record
 				}
@@ -483,6 +480,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	/* THIS SECTION IN STASIS. The plan is to use the WeightedDirectedGraph class with
 	 * an optimized exact solution to the MWIS. Not there yet though. **/
 	public Iterable<Long> findBestNonOverlappingGraph(Long[] relIds) {
+
+		boolean trivialTestCase = false;		
 
 		if (trivialTestCase) {
 			return Arrays.asList(relIds);

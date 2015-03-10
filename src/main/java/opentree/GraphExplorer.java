@@ -1504,8 +1504,8 @@ public class GraphExplorer extends GraphBase {
 		
 		// ================================ TESTING =================================
 		// 
-		//draftSynthesisMethod = new RootwardSynthesisExpander(startNode);
-		draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
+		draftSynthesisMethod = new RootwardSynthesisExpander(startNode);
+		//draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 		//
 		// ================================ TESTING =================================
 		
