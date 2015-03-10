@@ -45,8 +45,12 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	
 	public RootwardSynthesisExpander(Node root) {
 
-		// could fail if we have cycles. first need to find SCC's and break cycles
-		topologicalOrder = new TopologicalOrder(root, RelType.STREECHILDOF, RelType.TAXCHILDOF);
+		// TODO: the topological order will die if we have cycles. 
+		// first we need to find strongly connected components (SCCs) and identify edges
+		// whose exclusion will remove the cycles. use TarjanSCC to find the SCCs.
+		
+		GraphDatabaseAgent G = new GraphDatabaseAgent(root.getGraphDatabase());
+		topologicalOrder = new TopologicalOrder(G, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 
 		childRels = new HashMap<Long, HashSet<Relationship>>();
 
