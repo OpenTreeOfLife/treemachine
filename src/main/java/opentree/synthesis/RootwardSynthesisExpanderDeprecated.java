@@ -17,7 +17,6 @@ import opentree.constants.RelType;
 import opentree.synthesis.mwis.BaseWeightedIS;
 import opentree.synthesis.mwis.BruteWeightedIS;
 import opentree.synthesis.mwis.GreedyApproximateWeightedIS;
-import opentree.synthesis.mwis.TopologicalOrder;
 import opentree.synthesis.mwis.WeightedUndirectedGraph;
 
 import org.neo4j.graphdb.Direction;
@@ -32,24 +31,33 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 
 import scala.actors.threadpool.Arrays;
 
-public class RootwardSynthesisExpander extends SynthesisExpander implements PathExpander {
+/**
+ * This class attempted to include rootward synthesis techniques for ranked and nodecount based synthesis, but it
+ * has been deprecated in favor of separating these approaches into different classes. The new classes are:
+ * RootwardRankedSynthesisExpander and RootwardNodeCountSynthesisExpander.
+ * @author cody
+ *
+ */
+@Deprecated
+public class RootwardSynthesisExpanderDeprecated extends SynthesisExpander implements PathExpander {
 
 	private TopologicalOrder topologicalOrder;
 	private Map<Long, HashSet<Relationship>> childRels;
 	private Map<Long, TLongBitArraySet> nodeMrca;
 	private GraphDatabaseAgent gdb;
 
-	private boolean trivialTestCase = false;
-	
 	private boolean VERBOSE = true;
 
 	private boolean USING_RANKS = false;
 	
-	public RootwardSynthesisExpander(Node root) {
+	public RootwardSynthesisExpanderDeprecated(Node root) {
 
-		// could fail if we have MRCACHILDOF cycles. should probably use TAXCHILDOF and STREECHILDOF
-		// need to change constructor to accept a set of reltypes.
-		topologicalOrder = new TopologicalOrder(root, RelType.STREECHILDOF, RelType.TAXCHILDOF);
+		// TODO: the topological order will die if we have cycles. 
+		// first we need to find strongly connected components (SCCs) and identify edges
+		// whose exclusion will remove the cycles. use TarjanSCC to find the SCCs.
+		
+		GraphDatabaseAgent G = new GraphDatabaseAgent(root.getGraphDatabase());
+		topologicalOrder = new TopologicalOrder(G, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 
 		childRels = new HashMap<Long, HashSet<Relationship>>();
 
@@ -77,7 +85,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 					// lower ranked rel that includes a node that is a singleton on a higher ranked rel--then
 					// the singleton higher ranked rel will be excluded (bad). we should still never need to include
 					// taxonomic singletons though.
-					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons!?!?! THIS MIGHT BE WRONG.
+					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons? THIS MIGHT BE WRONG.
 					
 					updateBestRankedRel(bestRelForNode, r); // check other source tree rels to see which one to record
 				}
@@ -483,6 +491,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	/* THIS SECTION IN STASIS. The plan is to use the WeightedDirectedGraph class with
 	 * an optimized exact solution to the MWIS. Not there yet though. **/
 	public Iterable<Long> findBestNonOverlappingGraph(Long[] relIds) {
+
+		boolean trivialTestCase = false;		
 
 		if (trivialTestCase) {
 			return Arrays.asList(relIds);

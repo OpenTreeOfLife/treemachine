@@ -36,7 +36,8 @@ import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
 
 import opentree.synthesis.DraftTreePathExpander;
-import opentree.synthesis.RootwardSynthesisExpander;
+import opentree.synthesis.NodeCountTopoOrderSynthesisExpander;
+import opentree.synthesis.SourceRankTopoOrderSynthesisExpander;
 import opentree.synthesis.SynthesisExpander;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
 import opentree.synthesis.conflictresolution.RankResolutionMethodInferredPath;
@@ -54,7 +55,6 @@ import opentree.synthesis.ranking.RankingOrder;
 import opentree.synthesis.ranking.RelationshipRanker;
 import opentree.synthesis.ranking.SourcePropertyPrioritizedRankingCriterion;
 import opentree.synthesis.ranking.SourcePropertyRankingCriterion;
-
 import opentree.synthesis.RootwardSynthesisParentExpander;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -1504,8 +1504,9 @@ public class GraphExplorer extends GraphBase {
 		
 		// ================================ TESTING =================================
 		// 
-		//draftSynthesisMethod = new RootwardSynthesisExpander(startNode);
-		draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
+//		draftSynthesisMethod = new NodeCountTopoOrderSynthesisExpander(startNode);
+		draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpander(startNode);
+//		draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 		//
 		// ================================ TESTING =================================
 		
