@@ -32,16 +32,9 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 
 import scala.actors.threadpool.Arrays;
 
-public class RootwardNodeCountSynthesisExpander extends SynthesisExpander implements PathExpander {
-
-	private TopologicalOrder topologicalOrder;
-	private Map<Long, HashSet<Relationship>> childRels;
-	private Map<Long, TLongBitArraySet> nodeMrca;
-	private GraphDatabaseAgent G;
+public class RootwardNodeCountSynthesisExpander extends RootwardSynthesisExpander {
 
 	private boolean VERBOSE = true;
-
-	private boolean USING_RANKS = false;
 	
 	public RootwardNodeCountSynthesisExpander(Node root) {
 
@@ -62,9 +55,6 @@ public class RootwardNodeCountSynthesisExpander extends SynthesisExpander implem
 			if (VERBOSE) { System.out.println("\nvisiting node " + n);
 				System.out.println("looking for best non-overlapping rels"); }
 
-			// find the maximum-weight independent set of the incoming rels
-			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
-			
 			// collect the relationships
 			Map<Node, Relationship> bestRelForNode = new HashMap<Node, Relationship>();
 			List<Relationship> singletons = new ArrayList<Relationship>();
@@ -83,11 +73,15 @@ public class RootwardNodeCountSynthesisExpander extends SynthesisExpander implem
 			List<Relationship> relsForMWIS = new ArrayList<Relationship>(bestRelForNode.values());
 			
 			// get all the best non-singleton rels and collect the ids of all descendant tips
+			// TODO: should convert this to return relationship objects instead of ids, rels are easier
+			// to work with directly and the only reason we return ids is because that's what's used by the mwis
 			List<Long> bestRelIds = findBestNonOverlapping(relsForMWIS);
-
+			List<Relationship> bestRels = new ArrayList<Relationship>();
+			for (Long id : bestRelIds) { bestRels.add(G.getRelationshipById(id)); }
+			
 			TLongBitArraySet included = new TLongBitArraySet(mrcaTipsAndInternal(bestRelIds));
 			
-			if (VERBOSE) { for (Long b : bestRelIds) { Relationship r = G.getRelationshipById(b); System.out.println("selected source tree rel " + r + ": " + r.getStartNode() + " -> " + r.getEndNode()); }}
+			if (VERBOSE) { for (Relationship r : bestRels) { System.out.println("selected source tree rel " + r + ": " + r.getStartNode() + " -> " + r.getEndNode()); }}
 
 			// add the singleton rels that aren't included in any rels already selected
 			for (Relationship s : singletons) {
@@ -96,72 +90,13 @@ public class RootwardNodeCountSynthesisExpander extends SynthesisExpander implem
 				long singleTipId = l[0];
 				if (! included.contains(singleTipId)) {
 					included.add(singleTipId);
-					bestRelIds.add(s.getId());
+					bestRels.add(s);
 					if (VERBOSE) { System.out.println("adding singleton rel " + s + ": " + s.getStartNode() + " -> " + s.getEndNode()); }
 				}
 			}
 			
-			// record the rels that were identified as the best set
-			TLongBitArraySet descendants = new TLongBitArraySet();
-			for (Long relId : bestRelIds) {
-
-				Relationship r = n.getGraphDatabase().getRelationshipById(relId);
-				long childId = r.getStartNode().getId();
-			
-				incomingRels.add(n.getGraphDatabase().getRelationshipById(relId));
-				descendants.add(childId);
-				descendants.addAll(nodeMrca.get(childId));
-				System.out.println("adding descendants of child " + childId + ": "+nodeMrca.get(childId)+" to nodeMrca["+n.getId()+"]");
-			}
-
-			long nodeId = n.getId();
-			descendants.add(nodeId);
-			nodeMrca.put(nodeId, descendants);
-			
-			System.out.println("nodeMrca["+n.getId()+"] = " + nodeMrca.get(n.getId()));
-			
-			childRels.put(nodeId, incomingRels);
-			System.out.println("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
+			recordRels(n, bestRels);
 		}
-	}
-	
-	private Iterable<Relationship> getALLStreeAndTaxRels(Node n) {
-		return Traversal.description()
-		.relationships(RelType.STREECHILDOF, Direction.INCOMING)
-		.relationships(RelType.TAXCHILDOF, Direction.INCOMING)
-		.evaluator(Evaluators.toDepth(1))
-		.breadthFirst().traverse(n).relationships();
-	}
-	
-	/**
-	 * Return a list containing all the *graph tip nodes* (which will be terminal taxa if taxonomy is being used) that
-	 * are descended from the child node of this relationship. This should be used for assessing taxonomic overlap among
-	 * nodes.
-	 * @param rel
-	 * @return
-	 */
-	private long[] mrcaTips(Relationship rel) {
-		return (long[]) rel.getStartNode().getProperty(NodeProperty.MRCA.propertyName);
-	}
-
-	/**
-	 * Get *all* the graph nodes--tips as well as internal--that are descended from this node in synthesis.
-	 * @param rel
-	 * @return
-	 */
-	private Set<Long> mrcaTipsAndInternal(Iterable<Long> relIds) {
-		HashSet<Long> included = new HashSet<Long>();
-		for (Long relId : relIds) { included.addAll(mrcaTipsAndInternal(relId)); }
-		return included;
-	}	
-
-	/**
-	 * Get *all* the graph nodes--tips as well as internal--that are descended from this node in synthesis.
-	 * @param rel
-	 * @return
-	 */
-	private TLongBitArraySet mrcaTipsAndInternal(Long relId) {
-		return nodeMrca.get(G.getRelationshipById(relId).getStartNode().getId());
 	}
 		
 	public String getDescription() {
@@ -221,7 +156,6 @@ public class RootwardNodeCountSynthesisExpander extends SynthesisExpander implem
 		}
 	}
 
-
 	/**
 	 * This is the simplest node scoring criterion we could come up with: just the number of descendants.
 	 * Joseph has done some work coming up with a better one that included the structure of the tree.
@@ -230,30 +164,6 @@ public class RootwardNodeCountSynthesisExpander extends SynthesisExpander implem
 	 */
 	private double getScoreNodeCount(Relationship rel) {
 		return nodeMrca.get(rel.getStartNode().getId()).cardinality();
-	}
-		
-	/**
-	 * Just a very simple helper function to improve code clarity.
-	 * @param relId
-	 * @return
-	 */
-	private long getStartNodeId(Long relId) {
-		return G.getRelationshipById(relId).getStartNode().getId();
-	}
-
-	@Override
-	public Iterable<Relationship> expand(Path arg0, BranchState arg1) {
-
-		// testing
-		System.out.println("looking for rels starting at: " + arg0.endNode());
-		System.out.println(childRels.get(arg0.endNode().getId()));
-		
-		return childRels.get(arg0.endNode().getId());
-	}
-
-	@Override
-	public PathExpander reverse() {
-		throw new UnsupportedOperationException();
 	}
 
 	/* THIS SECTION IN STASIS. The plan is to use the WeightedDirectedGraph class with
