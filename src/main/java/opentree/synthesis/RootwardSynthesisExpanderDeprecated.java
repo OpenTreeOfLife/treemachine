@@ -32,7 +32,15 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 
 import scala.actors.threadpool.Arrays;
 
-public class RootwardSynthesisExpander extends SynthesisExpander implements PathExpander {
+/**
+ * This class attempted to include rootward synthesis techniques for ranked and nodecount based synthesis, but it
+ * has been deprecated in favor of separating these approaches into different classes. The new classes are:
+ * RootwardRankedSynthesisExpander and RootwardNodeCountSynthesisExpander.
+ * @author cody
+ *
+ */
+@Deprecated
+public class RootwardSynthesisExpanderDeprecated extends SynthesisExpander implements PathExpander {
 
 	private TopologicalOrder topologicalOrder;
 	private Map<Long, HashSet<Relationship>> childRels;
@@ -43,7 +51,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 
 	private boolean USING_RANKS = false;
 	
-	public RootwardSynthesisExpander(Node root) {
+	public RootwardSynthesisExpanderDeprecated(Node root) {
 
 		// TODO: the topological order will die if we have cycles. 
 		// first we need to find strongly connected components (SCCs) and identify edges
