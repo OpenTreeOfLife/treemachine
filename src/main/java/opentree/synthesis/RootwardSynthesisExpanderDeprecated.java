@@ -17,7 +17,6 @@ import opentree.constants.RelType;
 import opentree.synthesis.mwis.BaseWeightedIS;
 import opentree.synthesis.mwis.BruteWeightedIS;
 import opentree.synthesis.mwis.GreedyApproximateWeightedIS;
-import opentree.synthesis.mwis.TopologicalOrder;
 import opentree.synthesis.mwis.WeightedUndirectedGraph;
 
 import org.neo4j.graphdb.Direction;

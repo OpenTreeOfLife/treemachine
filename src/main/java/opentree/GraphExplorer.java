@@ -36,8 +36,8 @@ import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
 
 import opentree.synthesis.DraftTreePathExpander;
-import opentree.synthesis.RootwardNodeCountSynthesisExpander;
-import opentree.synthesis.RootwardRankedSynthesisExpander;
+import opentree.synthesis.NodeCountTopoOrderSynthesisExpander;
+import opentree.synthesis.SourceRankTopoOrderSynthesisExpander;
 import opentree.synthesis.SynthesisExpander;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
 import opentree.synthesis.conflictresolution.RankResolutionMethodInferredPath;
@@ -1504,8 +1504,8 @@ public class GraphExplorer extends GraphBase {
 		
 		// ================================ TESTING =================================
 		// 
-//		draftSynthesisMethod = new RootwardRankedSynthesisExpander(startNode);
-		draftSynthesisMethod = new RootwardNodeCountSynthesisExpander(startNode);
+//		draftSynthesisMethod = new NodeCountTopoOrderSynthesisExpander(startNode);
+		draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpander(startNode);
 //		draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 		//
 		// ================================ TESTING =================================

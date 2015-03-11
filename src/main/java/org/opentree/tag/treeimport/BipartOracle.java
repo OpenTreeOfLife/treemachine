@@ -47,7 +47,7 @@ public class BipartOracle {
 	
 	boolean VERBOSE = false;
 	
-	boolean mapdeepest = false;
+	boolean mapdeepest = true;
 	
 	// maps of tip names for higher taxon tips to sets of tip names for their included taxa
 
