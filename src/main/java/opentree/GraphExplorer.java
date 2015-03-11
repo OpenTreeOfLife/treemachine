@@ -36,7 +36,7 @@ import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
 
 import opentree.synthesis.DraftTreePathExpander;
-import opentree.synthesis.RootwardSynthesisExpander;
+import opentree.synthesis.RootwardNodeCountSynthesisExpander;
 import opentree.synthesis.SynthesisExpander;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
 import opentree.synthesis.conflictresolution.RankResolutionMethodInferredPath;
@@ -1504,7 +1504,7 @@ public class GraphExplorer extends GraphBase {
 		
 		// ================================ TESTING =================================
 		// 
-		draftSynthesisMethod = new RootwardSynthesisExpander(startNode);
+		draftSynthesisMethod = new RootwardNodeCountSynthesisExpander(startNode);
 		//draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 		//
 		// ================================ TESTING =================================
