@@ -160,7 +160,10 @@ public class ImmutableLongBipartition implements LongBipartition {
 	 */
 	public boolean isNestedPartitionOf(LongBipartition A) {
 		if (A.outgroup().containsAny(this.ingroup())) { return false; } // this cannot be nested within A
-		return this.outgroup().containsAny(A.ingroup()); // whether this can be used to partition A's ingroup
+		return this.outgroup().containsAny(A.ingroup()) && this.ingroup().containsAny(A.ingroup()); // whether this can be used to partition A's ingroup
+		
+//		if (A.outgroup().containsAny(this.ingroup())) { return false; } // this cannot be nested within A
+//		return this.outgroup().containsAny(A.ingroup()); // whether this can be used to partition A's ingroup
 	}
 	
 	public boolean overlapsWith(LongBipartition that) {

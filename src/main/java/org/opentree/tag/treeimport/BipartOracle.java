@@ -502,6 +502,8 @@ public class BipartOracle {
 						if(newsum.outgroup().size()==0)
 							continue;
 						if (! bipartId.containsKey(newsum)) {
+							if(VERBOSE)
+								System.out.println("generating new summed bipart "+newsum);
 							bipart.add(newsum);
 							int k = bipart.size() - 1;
 							bipartId.put(newsum, k);
