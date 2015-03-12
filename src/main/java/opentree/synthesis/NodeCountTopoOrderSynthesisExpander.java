@@ -42,7 +42,8 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 		List<Relationship> singletons = new ArrayList<Relationship>();
 	
 		for (Relationship r : getALLStreeAndTaxRels(n)) {
-			if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip *all* singletons
+//			if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip *all* singletons
+			if (mrcaTips(r.getStartNode()).size() == 1) { singletons.add(r); continue; } // skip *all* singletons
 			// for non-singletons, just keep one (arbitrary) rel pointing at each child node -- the others are redundant
 			bestRelForNode.put(r.getStartNode(), r);
 		}
@@ -55,21 +56,26 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 		List<Relationship> relsForMWIS = new ArrayList<Relationship>(bestRelForNode.values());
 		
 		// get all the best non-singleton rels and collect the ids of all descendant tips
-		// TODO: should convert this to return relationship objects instead of ids, rels are easier
-		// to work with directly and the only reason we return ids is because that's what's used by the mwis
 		List<Long> bestRelIds = findBestNonOverlapping(relsForMWIS);
+
+		// TODO: this is a bit of a mess. we should convert findBestNonOverlapping to return
+		// relationship objects instead of ids, the only reason we return ids is because that's
+		// what's used by the mwis
 		List<Relationship> bestRels = new ArrayList<Relationship>();
 		for (Long id : bestRelIds) { bestRels.add(G.getRelationshipById(id)); }
+		List<Node> bestRelStartNodes = new ArrayList<Node>();
+		for (Long id : bestRelIds) { bestRelStartNodes.add(G.getRelationshipById(id).getStartNode()); }		
 		
-		TLongBitArraySet included = new TLongBitArraySet(mrcaTipsAndInternal(bestRelIds));
+		TLongBitArraySet included = new TLongBitArraySet(mrcaTipsAndInternal(bestRelStartNodes));
 		
 		if (VERBOSE) { for (Relationship r : bestRels) { print("selected source tree rel ", r, ": ", r.getStartNode(), " -> ", r.getEndNode()); }}
 	
 		// add the singleton rels that aren't included in any rels already selected
 		for (Relationship s : singletons) {
-			long[] l = mrcaTips(s);
-			assert l.length == 1;
-			long singleTipId = l[0];
+//			long[] l = mrcaTips(s);
+			TLongBitArraySet l = mrcaTips(s.getStartNode());
+			assert l.size() == 1;
+			long singleTipId = l.get(0); // is this the correct method?
 			if (! included.contains(singleTipId)) {
 				included.add(singleTipId);
 				bestRels.add(s);
@@ -100,7 +106,7 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 		for (int i = 0; relsIter.hasNext(); i++) {
 			Relationship rel = relsIter.next();
 			
-			TLongBitArraySet currDesc = mrcaTipsAndInternal(rel.getId());
+			TLongBitArraySet currDesc = mrcaTipsAndInternal(rel.getStartNode());
 			
 			// this represents a pathological case, so die horribly
 			if (currDesc == null) { throw new IllegalStateException("Found a rel with no descendants: " + rel); }
@@ -109,13 +115,17 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 			mrcaSetsForRels[i] = currDesc;
 			weights[i] = getScoreNodeCount(rel);
 
-			long [] currTips = mrcaTips(rel);
-			taxSum += currTips.length;
-			for (int j = 0; j < currTips.length; j++) {
-				uniqueTips.add(currTips[j]);
+//			long [] currTips = mrcaTips(rel);
+			TLongBitArraySet currTips = mrcaTips(rel.getStartNode());
+			taxSum += currTips.size();
+//			for (int j = 0; j < currTips.size(); j++) {
+//				uniqueTips.add(currTips.get(j));
+//			}
+			for (long t : currTips) {
+				uniqueTips.add(t);
 			}
 
-			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId()) + ". score = " + weights[i]); }
+			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrcaTipsAndInternal.get(rel.getStartNode().getId()) + ". score = " + weights[i]); }
 		}
 		
 		System.out.println("taxSum = " + taxSum + "; uniqueTips size = " + uniqueTips.size() + "; incoming rels = " + relIds.length);
@@ -139,12 +149,12 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 	 * @return
 	 */
 	private double getScoreNodeCount(Relationship rel) {
-		return nodeMrca.get(rel.getStartNode().getId()).cardinality();
+		return nodeMrcaTipsAndInternal.get(rel.getStartNode().getId()).cardinality();
 	}
 
 	/** simple weight based only on the size of the mrca set of the node */
 	private int getWeight(long id) {
-		TLongBitArraySet m = nodeMrca.get(id);
+		TLongBitArraySet m = nodeMrcaTipsAndInternal.get(id);
 		if (m == null) {
 			return 1;
 		} else {
@@ -180,7 +190,7 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 			long a = getStartNodeId(relIds[i]);
 			for (int j = i+1; j < relIds.length; j++) {
 				long b = getStartNodeId(relIds[j]);
-				if (nodeMrca.get(a).containsAny(nodeMrca.get(b))) {
+				if (nodeMrcaTipsAndInternal.get(a).containsAny(nodeMrcaTipsAndInternal.get(b))) {
 					G.getNode(a).attachTo(b);
 				}
 			}
