@@ -40,7 +40,8 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	Map<Long, HashSet<Relationship>> childRels = new HashMap<Long, HashSet<Relationship>>();;
 	
 	/** stores the node ids of all the descendants (not just terminals) in the synthesis tree for a given ancestor node's id */
-	Map<Long, TLongBitArraySet> nodeMrca = new HashMap<Long, TLongBitArraySet>();
+	Map<Long, TLongBitArraySet> nodeMrcaTipsAndInternal = new HashMap<Long, TLongBitArraySet>();
+	Map<Long, TLongBitArraySet> nodeMrcaTips = new HashMap<Long, TLongBitArraySet>();
 
 	/** the graph */
 	GraphDatabaseAgent G;
@@ -106,7 +107,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * @param rel
 	 * @return
 	 */
-	long[] mrcaTips(Relationship rel) {
+	long[] getMrcaProperty(Relationship rel) {
 		return (long[]) rel.getStartNode().getProperty(NodeProperty.MRCA.propertyName);
 	}
 
@@ -118,24 +119,31 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 */
 	private void recordRels(Node n, Iterable<Relationship> bestRels) {
 		TLongBitArraySet descendants = new TLongBitArraySet();
+		TLongBitArraySet descendantTips = new TLongBitArraySet();
 		HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 
 		for (Relationship r : bestRels) {
 			long childId = r.getStartNode().getId();
 			incomingRels.add(r);
 			descendants.add(childId);
-			descendants.addAll(nodeMrca.get(childId));
-			if (VERBOSE) { print("adding descendants of child " + childId + ": "+nodeMrca.get(childId)+" to nodeMrca["+n.getId()+"]"); }
+			descendants.addAll(nodeMrcaTipsAndInternal.get(childId));
+			descendantTips.addAll(nodeMrcaTips.get(childId));
+			if (VERBOSE) { print("adding descendants of child " + childId + ": " + nodeMrcaTipsAndInternal.get(childId) + " to nodeMrca["+n.getId()+"]"); }
+		}
+		
+		if (! n.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
+			descendantTips.add(n.getId());
 		}
 
 		long nodeId = n.getId();
 		descendants.add(nodeId);
-		nodeMrca.put(nodeId, descendants);
+		nodeMrcaTipsAndInternal.put(nodeId, descendants);
+		nodeMrcaTips.put(nodeId, descendantTips);
 		
 		childRels.put(nodeId, incomingRels);
 		if (VERBOSE) {
 			print("\nrecorded rels for node n:");
-			print("nodeMrca["+n.getId()+"] = " + nodeMrca.get(n.getId()));
+			print("nodeMrca["+n.getId()+"] = " + nodeMrcaTipsAndInternal.get(n.getId()));
 			print("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
 		};
 	}
@@ -145,9 +153,9 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * @param rel
 	 * @return
 	 */
-	Set<Long> mrcaTipsAndInternal(Iterable<Long> relIds) {
+	Set<Long> mrcaTipsAndInternal(Iterable<Node> nodes) {
 		HashSet<Long> included = new HashSet<Long>();
-		for (Long relId : relIds) { included.addAll(mrcaTipsAndInternal(relId)); }
+		for (Node n : nodes) { included.addAll(mrcaTipsAndInternal(n)); }
 		return included;
 	}	
 
@@ -158,8 +166,19 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * @param rel
 	 * @return
 	 */
-	TLongBitArraySet mrcaTipsAndInternal(Long relId) {
-		return nodeMrca.get(G.getRelationshipById(relId).getStartNode().getId());
+	TLongBitArraySet mrcaTipsAndInternal(Node n) {
+		return nodeMrcaTipsAndInternal.get(n.getId());
+	}
+	
+	/**
+	 * Get *all* the graph nodes--tips as well as internal--that are descended from the start node of the 
+	 * passed relId in the synthetic topology. <strong>Clarification:</strong> The argument should be a 
+	 * neo4j relationship id.
+	 * @param rel
+	 * @return
+	 */
+	TLongBitArraySet mrcaTips(Node n) {
+		return nodeMrcaTips.get(n.getId());
 	}
 	
 	/**

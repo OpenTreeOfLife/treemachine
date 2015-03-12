@@ -86,7 +86,7 @@ public class SourceRankTopoOrderSynthesisExpander extends TopologicalOrderSynthe
 	private int nodeCount(Set<Relationship> rels) {
 		int n = 0;
 		for (Relationship r : rels) {
-			n += mrcaTipsAndInternal(r.getId()).size();
+			n += mrcaTipsAndInternal(r.getStartNode()).size();
 		}
 		return n;
 	}
@@ -99,6 +99,8 @@ public class SourceRankTopoOrderSynthesisExpander extends TopologicalOrderSynthe
 	 * completely contained by r.
 	 */
 	private Set<Relationship> updateSet(Relationship candidate, Set<Relationship> setToUpdate) {
+
+		if (VERBOSE) { print("assessing candidate ", candidate, ":", mrcaTips(candidate.getStartNode())); }
 		
 		Set<Relationship> updated = new HashSet<Relationship>();
 		
@@ -106,8 +108,9 @@ public class SourceRankTopoOrderSynthesisExpander extends TopologicalOrderSynthe
 		boolean addCandidate = true;
 
 		for (Relationship s : setToUpdate) {
+			if (VERBOSE) { print("checking for overlap with", s, ":", mrcaTips(s.getStartNode())); }
 			
-			if (ancestorOf(s, candidate)) {
+			if (containsAllTips(s, candidate)) {
 				containedByCandidate.add(s);
 				if (VERBOSE) { print("candidate", candidate, "contains all of previously saved", s); }
 			} else if (overlapsWith(candidate, s)) {
@@ -165,24 +168,21 @@ public class SourceRankTopoOrderSynthesisExpander extends TopologicalOrderSynthe
 	 * others.<br><br>
 	 */
 	private boolean overlapsWith(Relationship r, Relationship s) {
-		return mrcaTipsAndInternal(s.getId()).containsAny(mrcaTipsAndInternal(r.getId()));
+		return mrcaTipsAndInternal(s.getStartNode()).containsAny(mrcaTipsAndInternal(r.getStartNode()));
 	}
 	
 	/**
 	 * Is anc an ancestor of desc? Returns true if and only if following edge anc necessarily leads to the
-	 * inclusion in the synthetic tree of (the child node of) desc.<br><br>
-	 * 
-	 * This depends on the topological order--this will throw NullPointerException if the topological order
-	 * has not been observed and an attempt is made to check for inclusion of a child that has not yet been
-	 * visited.
+	 * inclusion of all tips of desc in the synthetic tree. TODO: this description needs work.
 	 * 
 	 * @param r
 	 * @param s
 	 */
-	boolean ancestorOf(Relationship desc, Relationship anc) {
-		return mrcaTipsAndInternal(anc.getId()).contains(desc.getStartNode().getId());
+	boolean containsAllTips(Relationship desc, Relationship anc) {
+//		return mrcaTipsAndInternal(anc.getId()).contains(desc.getStartNode().getId());
+		return mrcaTips(anc.getStartNode()).containsAll(mrcaTips(desc.getStartNode()));
 	}
-
+	
 	/**
 	 * Get the rank for this relationship relative to relationships from other trees.
 	 */
