@@ -11,3 +11,7 @@ FAILING_TREEMACHINE_TEST=overlapthroughtaxon ./run_synth_tests.sh
 FAILING_TREEMACHINE_TEST=manysmallrels ./run_synth_tests.sh
 FAILING_TREEMACHINE_TEST=nontrivialaugmenting ./run_synth_tests.sh
 FAILING_TREEMACHINE_TEST=nonmonophyletictaxon ./run_synth_tests.sh
+FAILING_TREEMACHINE_TEST=missingchildren ./run_synth_tests.sh
+FAILING_TREEMACHINE_TEST=dipsacales ./run_synth_tests.sh
+FAILING_TREEMACHINE_TEST=maptohigher ./run_synth_tests.sh
+FAILING_TREEMACHINE_TEST=usenodetaxa ./run_synth_tests.sh

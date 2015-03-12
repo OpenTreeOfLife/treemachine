@@ -35,11 +35,17 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 import scala.actors.threadpool.Arrays;
 
 public class RootwardSynthesisParentExpander extends SynthesisExpander implements PathExpander {
-
-	private Map<Long, HashSet<Relationship>> parentRels;
+	
+	private Map<Long, HashSet<Relationship>> parentRels; // key is parent, value is incoming rels.
+	// key is childnodeid, value is parentnodeid
+	HashMap<Long, Long> childParentMap;
+	private Node root;
+	private List<Long> tips;
+	private List<Long> taxOnlyTips; // tips that have only taxonomy rels. do last.
+	private List<Long> goodTaxa;    // taxonomy nodes that are traversed.
+	// for nonmonophyletic taxa, where to place unsampled tips
+	Map<Node, Node> taxOnlyRemap; // key is initial (invalid) parent, value is valid parent.
 	private GraphDatabaseAgent gdb;
-
-	private boolean trivialTestCase = false;
 	
 	private boolean VERBOSE = true;
 
@@ -47,27 +53,36 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	
 	// look at parents rather than children. only want one relationship
 	// only quirk is looking at compatible relationships: given a choice, if they join up, take more resolved
-	public RootwardSynthesisParentExpander(Node root) {
-		
-		//topologicalOrder = new TopologicalOrder(root, RelType.STREECHILDOF, RelType.TAXCHILDOF);
+	public RootwardSynthesisParentExpander(Node startNode) {
 		
 		// key is childnodeid, value is parentnodeid
-		HashMap<Long, Long> childParentMap = new HashMap<Long, Long>();
+		childParentMap = new HashMap<Long, Long>();
+		
+		root = startNode;
 		gdb = new GraphDatabaseAgent(root.getGraphDatabase());
-		long[] tips = (long[]) root.getProperty(NodeProperty.MRCA.propertyName);
+		
+		tips = Arrays.asList(ArrayUtils.toObject((long[]) root.getProperty(NodeProperty.MRCA.propertyName)));
+		taxOnlyTips = new ArrayList<Long>();
+		goodTaxa = new ArrayList<Long>();
+		taxOnlyRemap = new HashMap<Node, Node>();
 		
 		long w = new Date().getTime(); // for timing
 		parentRels = new HashMap<Long, HashSet<Relationship>>();
 		
 		System.out.println("Starting synthesis at root: " + root + " [" + root.getProperty("name") +
-				"] with: " + tips.length + " tip descendants.");
+				"] with: " + tips.size() + " tip descendants.");
 		
 		for (long tip : tips) {
 			Node n = gdb.getNodeById(tip);
-			
 			// hacky: terminal nodes need to be in map with empty hashset, or traversal doesn't know it is ok to stop
-			HashSet<Relationship> incomingRels = new HashSet<Relationship>();
-			parentRels.put(n.getId(), incomingRels);
+			parentRels.put(n.getId(), new HashSet<Relationship>());
+			
+			if (taxonomyOnlyTip(n)) { // process after tips with STREE rels
+				System.out.println("\nNode " + n + " [" + n.getProperty("name") + "] has only taxonomy relationships. Process later.");
+				taxOnlyTips.add(tip);
+				//continue;
+			}
+			
 			boolean done = false;
 			while (!done) {
 				
@@ -113,6 +128,12 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 				
 				Long parentId = bestParent.getId();
 				Long childId = n.getId();
+				if (isTaxonomyNode(bestParent)) {
+					if (!goodTaxa.contains(parentId)) {
+						System.out.println("Adding " + bestParent + " [" + bestParent.getProperty("name") + "] to list of good taxa.");
+						goodTaxa.add(parentId);
+					}
+				}
 				childParentMap.put(childId, parentId);
 				n = bestParent;
 				Relationship parentRel = bestRelForParent.get(bestParent);
@@ -145,53 +166,62 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 				System.out.println("Finished with: " + n);
 			}
 		}
+		
+		// now process taxonomy-only tips, given the results of the other tips.
+		/*
+		if (taxOnlyTips.size() > 0) {
+			System.out.println("/nProcessing " + taxOnlyTips.size() + " taxonomy-only tips.");
+			for (int i = 0; i < taxOnlyTips.size(); i++) {
+				
+				Node n = gdb.getNodeById(taxOnlyTips.get(i));
+				Map<Node, Relationship> taxParent = placeTaxonomyOnlyTip(n);
+				Long parentID = 
+				if (!taxParent.isEmpty()) {
+					System.out.println("Adding: " + n);
+					if (!childParentMap.containsKey(parentId)) {
+						HashSet<Relationship> incomingRel = new HashSet<Relationship>();
+						incomingRel.add(parentRel);
+						parentRels.put(parentId, incomingRel);
+					} else {
+						parentRels.get(parentId).add(parentRel);
+					}
+				}
+			}
+		}
+		*/
 		System.out.println("\nFinished with synthesis traversal. Total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
 		System.out.println("Synthesis set contains " + childParentMap.size() + " child-parent relationships.");
 	}
 	
-	// high rank is better
-	private void updateBestRankedRel(Map<Node, Relationship> bestRelForNode, Relationship rel) {
-		Node parent = rel.getEndNode();
-		if ( (! bestRelForNode.containsKey(parent)) || getRank(bestRelForNode.get(parent)) < getRank(rel)) {
-			bestRelForNode.put(parent, rel); 
-		}
-	}
-	
-	private Iterable<Relationship> getALLStreeAndTaxRels(Node n) {
-		return Traversal.description()
-		.relationships(RelType.STREECHILDOF, Direction.OUTGOING)
-		.relationships(RelType.TAXCHILDOF, Direction.OUTGOING)
-		.evaluator(Evaluators.toDepth(1))
-		.breadthFirst().traverse(n).relationships();
-	}
+	// not working/completed at the moment
+	public Map<Node, Relationship> placeTaxonomyOnlyTip (Node n) {
+		Map<Node, Relationship> bestParentNode = new HashMap<Node, Relationship>();;
 		
-	private int getRank(Relationship r) {
-		int rank = 0;
-		if (!isTaxonomyRel(r)) {
-			rank = (Integer) r.getProperty("sourcerank");
+		Relationship taxRel = n.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING);
+		Node parent = taxRel.getEndNode();
+		
+		if (goodTaxa.contains(parent.getId())) { // good parent, as has others passing through
+			bestParentNode.put(parent, taxRel);
+			return bestParentNode;
+		} 
+		/*
+		else if (taxOnlyRemap.containsKey(parent)) { // bad parent, but previously re-mapped
+			parent = taxOnlyRemap.get(parent);
+			return parent;
+		} else {
+			boolean done = false;
+			while (!done) { // keep walking back on taxonomy until good parent found
+				
+			}
 		}
-		return rank;
-	}
-	
-	/**
-	 * A simple helper method for code clarity
-	 * @param r
-	 * @return
-	 */
-	private static boolean isTaxonomyRel(Relationship r) {
-		// taxonomy streechildofs don't have this property. this is a temporary property though. in general we should
-		// probably not be making streechildofs for taxonomy and then we won't have to worry about differentiating them
-		return ! r.hasProperty("sourcerank");
-	}
-	
-	public String getDescription() {
-		return "parent-wise rootward synthesis method";
+		*/
+		return bestParentNode;
 	}
 	
 	// very simple at the moment: just take highest ranked parent
 	// if a tie (must be from same source), take closest one (unless it has no parents of its own)
 	// TODO: check compatibility i.e. if passing through one immediate parent will also (eventually) get you through another
-	public Node findBestParent(Map<Node, Relationship> candidateParents) {
+	public Node findBestParent (Map<Node, Relationship> candidateParents) {
 		
 		System.out.println("Node has " + candidateParents.size() + " potential parents.");
 		
@@ -206,8 +236,10 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 			System.out.println("Considering candidate parent: "+ candParent);
 			// a hacky check to see if we reach a "deadend"
 			if (!hasParents(candParent)) {
-				System.out.println("Candidate " + candParent + " has no parents of its own. Skipping.");
-				continue;
+				if (candParent.getId() != root.getId()) {
+					System.out.println("Candidate " + candParent + " has no parents of its own. Skipping.");
+					continue;
+				}
 			}
 			
 			Relationship r = entry.getValue();
@@ -230,28 +262,22 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	    		if (candOutMRCA != null) System.out.println("candOutMRCA: " + candOutMRCA.toString());
 	    		
 	    		// check if out of new contains any of ingroup of old
-		//    	if (candOutMRCA != null && bestOutMRCA != null) { // doesn't allow taxonomy nodes. ignore for now (probably not a problem)
-		    		System.out.println("Checking for nesting of nodes.");
-		    		//System.out.println("bestMRCA: " + bestMRCA.toString());
-		    		//System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
-		    		//System.out.println("candMRCA: " + candMRCA.toString());
-		    		//System.out.println("candOutMRCA: " + candOutMRCA.toString());
-		    		
-		    		// is candidate parent a nested child of prevailing parent? if so, take it
-		    		if (nestedChildOf(bestMRCA, bestOutMRCA, candMRCA, candOutMRCA)) {
-		    			System.out.println(candParent + " is nested child of prevailing parent. Accept!");
-		    			nesting = true;
-	    				accept = true;
-		    		}
-		    		
-		    		// need to check other direction of nesting, so that prevailing parent is not thrown out because of rank alone
-		    		if (!nesting) {
-		    			if (nestedChildOf(candMRCA, candOutMRCA, bestMRCA, bestOutMRCA)) {
-		    				System.out.println("Prevailing parent is nested child of " + candParent + ". Reject candidate parent.");
-		    				nesting = true;
-		    			}
-		    		}
-		 //   	}
+	    		System.out.println("Checking for nesting of nodes.");
+	    		// is candidate parent a nested child of prevailing parent? if so, take it
+	    		if (nestedChildOf(bestMRCA, bestOutMRCA, candMRCA, candOutMRCA)) {
+	    			System.out.println(candParent + " is nested child of prevailing parent. Accept!");
+	    			nesting = true;
+    				accept = true;
+	    		}
+	    		
+	    		// need to check other direction of nesting, so that prevailing parent is not thrown out because of rank alone
+	    		if (!nesting) {
+	    			if (nestedChildOf(candMRCA, candOutMRCA, bestMRCA, bestOutMRCA)) {
+	    				System.out.println("Prevailing parent is nested child of " + candParent + ". Reject candidate parent.");
+	    				nesting = true;
+	    			}
+	    		}
+	    		
 		    	if (!nesting) {
 		    		System.out.println("Nodes are not nested. Looking at ranks.");
 		    		if (candRank > bestRank) {
@@ -285,6 +311,41 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		return bestParentNode;
 	}
 	
+	private int getRank (Relationship r) {
+		int rank = 0;
+		if (!isTaxonomyRel(r)) {
+			rank = (Integer) r.getProperty("sourcerank");
+		}
+		return rank;
+	}
+	
+	/**
+	 * A simple helper method for code clarity
+	 * @param r
+	 * @return
+	 */
+	private boolean isTaxonomyRel (Relationship r) {
+		// taxonomy streechildofs don't have this property. this is a temporary property though. in general we should
+		// probably not be making streechildofs for taxonomy and then we won't have to worry about differentiating them
+		return ! r.hasProperty("sourcerank");
+	}
+	
+	private boolean taxonomyOnlyTip (Node n) {
+		boolean taxonomyOnly = true;
+		if (n.hasRelationship(RelType.STREECHILDOF, Direction.OUTGOING)) {
+			return false;
+		}
+		return taxonomyOnly;
+	}
+	
+	private boolean isTaxonomyNode (Node n) {
+		boolean taxonomy = true;
+		if (n.hasProperty("outmrca")) {
+			return false;
+		}
+		return taxonomy;
+	}
+	
 	// is node2 a nested child of node1?
 	public boolean nestedChildOf (List<Long> node1MRCA, List<Long> node1OutMRCA, List<Long> node2MRCA, List<Long> node2OutMRCA) {
 		boolean nested = false;
@@ -295,7 +356,16 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 				}
 			}
 		} else if (node1OutMRCA == null && node2OutMRCA == null) { // two taxonomy nodes
-			
+			if (node1MRCA.containsAll(node2MRCA)) {
+				return true;
+			}
+		} else if (node1OutMRCA == null && node2OutMRCA != null) { // first node is taxonomy, second is not
+			List<Long> temp = new ArrayList<Long>(node2MRCA);
+			temp.addAll(node2OutMRCA);
+			if (node1MRCA.containsAll(temp)) {
+				return true;
+			}
+		} else if (node1OutMRCA != null && node2OutMRCA == null) { // just second node is taxonomy
 			if (node1MRCA.containsAll(node2MRCA)) {
 				return true;
 			}
@@ -312,6 +382,26 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		return false;
 	}
 
+	// high rank is better
+	private void updateBestRankedRel (Map<Node, Relationship> bestRelForNode, Relationship rel) {
+		Node parent = rel.getEndNode();
+		if ( (! bestRelForNode.containsKey(parent)) || getRank(bestRelForNode.get(parent)) < getRank(rel)) {
+			bestRelForNode.put(parent, rel); 
+		}
+	}
+	
+	private Iterable<Relationship> getALLStreeAndTaxRels (Node n) {
+		return Traversal.description()
+		.relationships(RelType.STREECHILDOF, Direction.OUTGOING)
+		.relationships(RelType.TAXCHILDOF, Direction.OUTGOING)
+		.evaluator(Evaluators.toDepth(1))
+		.breadthFirst().traverse(n).relationships();
+	}
+	
+	public String getDescription() {
+		return "Parent-wise rootward synthesis method";
+	}
+	
 	@Override
 	public Iterable<Relationship> expand(Path arg0, BranchState arg1) {
 		
