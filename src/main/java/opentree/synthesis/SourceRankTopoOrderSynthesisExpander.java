@@ -10,6 +10,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import static org.opentree.utils.GeneralUtils.print;
+import static org.opentree.utils.GeneralUtils.getRelationshipsFromTo;
+import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -19,6 +21,20 @@ import org.neo4j.graphdb.traversal.BranchState;
 
 public class SourceRankTopoOrderSynthesisExpander extends TopologicalOrderSynthesisExpander {
 
+	/**
+	 * We record the number of unique source tree edges that are represented in the subgraph below each node,
+	 * and use this info for tie-breaking. In short, the map contains elements of the form:<br><br>
+	 * 
+	 * <tt>{ node -> { rank -> { source edge ids }}</tt><br><br>
+	 * 
+	 * The top-level key is a node. For each node, there is a map for which
+	 * the keys are the source tree ranks, and the values are sets of integers identifying the unique source
+	 * tree edges, for the tree of that rank, that are represented by graph edges in the synthesis tree below
+	 * the given node. We use ranks as keys instead of ids because we will be breaking ties in order of rank,
+	 * so using ranks as keys makes for easier lookups.
+	 */
+	Map<Node, Map<Integer, Set<Long>>> treeEdgesForRankByNode = new HashMap<Node, Map<Integer, Set<Long>>>();
+
 	public SourceRankTopoOrderSynthesisExpander(Node root) {
 		VERBOSE = true;
 		synthesizeFrom(root);		
@@ -27,7 +43,7 @@ public class SourceRankTopoOrderSynthesisExpander extends TopologicalOrderSynthe
 	@Override
 	List<Relationship> selectRelsForNode(Node n) {
 
-		if (VERBOSE) { print("\nvisiting", n); }
+		if (VERBOSE) { print("\n==== visiting", n, "=================================================================================\n"); }
 		
 		// get all the incoming rels and group them by sourcerank and sourceedgeid
 		Map<Integer, Map<Long, Set<Relationship>>> relsByRankAndEdgeId = new HashMap<Integer, Map<Long, Set<Relationship>>>();
@@ -56,7 +72,6 @@ public class SourceRankTopoOrderSynthesisExpander extends TopologicalOrderSynthe
 		if (VERBOSE) { print("selecting edges in order of ranks:", sortedRanks); }
 		
 		// select rels for inclusion in order of source tree rank
-//		List<Relationship> bestRels = new ArrayList<Relationship>();
 		Set<Relationship> bestSetForLastRank = new HashSet<Relationship>();
 		for (int currentRank : sortedRanks) {
 			
@@ -71,16 +86,62 @@ public class SourceRankTopoOrderSynthesisExpander extends TopologicalOrderSynthe
 				// for each graph edge mapped to this child edge, see if adding it to the set produces a better result
 				for (Relationship r : candidateRelsForEdgeId.getValue()) {
 					Set<Relationship> candidateSet = updateSet(r, bestSetForLastRank);
-//					print(candidateSet);
-//					print(bestSetForCurrentRank);
+					
+					// TODO: need to use the source tree edge counts here for tie breaking
 					if (nodeCount(candidateSet) > nodeCount(bestSetForCurrentRank)) {
 						bestSetForCurrentRank = candidateSet;
 					}
+					
 				}
 				bestSetForLastRank = bestSetForCurrentRank;
 			}
 		}
+		
+		recordCoveredTreeEdges(n, bestSetForLastRank);
+		
 		return new ArrayList<Relationship>(bestSetForLastRank);
+	}
+	
+	/**
+	 * For tie breaking, we will accumulate a count, for each source tree, of the number of edges from that
+	 * source tree that are represented within the synthesized subtree below each node as we finish it.
+	 * 
+	 * @param n
+	 * @param bestRels
+	 */
+	private void recordCoveredTreeEdges(Node n, Set<Relationship> bestRels) {
+
+		Map<Integer, Set<Long>> currNodeEdgesForRank = new HashMap<Integer, Set<Long>>();
+		for (Relationship r : bestRels) {
+
+			Node child = r.getStartNode();
+
+			// add *all* the stree/tax edges congruent with this rel (not just this rel, but parallel rels as well)
+			for (Relationship p : getRelationshipsFromTo(child, n, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
+				int rank = rank(p);
+				updateSetMap(rank, currNodeEdgesForRank);
+				currNodeEdgesForRank.get(rank).add(edgeId(p));
+			}
+
+			// accumulate stree edges represented by this node's children (which contain all their children's edges, etc.)
+			for (Entry<Integer, Set<Long>> childEdgesForRank : treeEdgesForRankByNode.get(child).entrySet()) {
+				int rank = childEdgesForRank.getKey();
+				updateSetMap(rank, currNodeEdgesForRank);
+				currNodeEdgesForRank.get(rank).addAll(childEdgesForRank.getValue());
+			}
+		}
+		
+		treeEdgesForRankByNode.put(n, currNodeEdgesForRank);
+		if (VERBOSE) { print(n + " contains source tree edges (by rank) " + treeEdgesForRankByNode.get(n), "\n"); }
+	}
+	
+	/**
+	 * trivial convenience function for code simplification.
+	 * @param v
+	 * @param m
+	 */
+	private void updateSetMap(int v, Map<Integer, Set<Long>> m) {
+		if (! m.containsKey(v)) { m.put(v, new HashSet<Long>()); }
 	}
 	
 	private int nodeCount(Set<Relationship> rels) {
