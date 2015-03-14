@@ -41,6 +41,7 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	HashMap<Long, Long> childParentMap;
 	private Node root;
 	private List<Long> tips;
+	private int numTips;
 	private List<Long> taxOnlyTips; // tips that have only taxonomy rels. do last.
 	private List<Long> goodTaxa;    // taxonomy nodes that are traversed.
 	// for nonmonophyletic taxa, where to place unsampled tips
@@ -62,6 +63,7 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		gdb = new GraphDatabaseAgent(root.getGraphDatabase());
 		
 		tips = Arrays.asList(ArrayUtils.toObject((long[]) root.getProperty(NodeProperty.MRCA.propertyName)));
+		numTips = tips.size();
 		taxOnlyTips = new ArrayList<Long>();
 		goodTaxa = new ArrayList<Long>();
 		taxOnlyRemap = new HashMap<Node, Node>();
@@ -96,22 +98,21 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 				
 				// collect the best relationships for each potential parent
 				Map<Node, Relationship> bestRelForParent = new HashMap<Node, Relationship>();
+				Map<Node, ArrayList<Relationship>> candidateRels = new HashMap<Node, ArrayList<Relationship>>();
 				
 				if (USING_RANKS) {
-					int counter = 0;
 					for (Relationship r : n.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
-						updateBestRankedRel(bestRelForParent, r);
-						counter++;
+						addCandidateRel(candidateRels, r);
 					}
-					System.out.println("Found " + counter + " STREE relationships");
+					System.out.println("Found " + candidateRels.size() + " STREE parents");
 					// if there are > 0 STREE rels, probably don't want to look at any TAX rels
-					counter = 0;
+					int counter = 0;
 					for (Relationship r : n.getRelationships(RelType.TAXCHILDOF, Direction.OUTGOING)) {
-						updateBestRankedRel(bestRelForParent, r);
+						addCandidateRel(candidateRels, r);
 						counter++;
 					}
 					// don't think you can get more than one of these
-					System.out.println("Found " + counter + " TAX relationships");
+					System.out.println("Found " + counter + " TAX parents");
 				} else { // not using ranks
 					for (Relationship r : getALLStreeAndTaxRels(n)) {
 						bestRelForParent.put(r.getStartNode(), r);
@@ -119,9 +120,9 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 				}
 				
 				// get all the best nontrivial rels and collect the ids of all descendant tips
-				Node bestParent = (Node) bestRelForParent.keySet().toArray()[0];
-				if (bestRelForParent.size() > 1) {
-					bestParent = findBestParent(bestRelForParent);
+				Node bestParent = (Node) candidateRels.keySet().toArray()[0];
+				if (candidateRels.size() > 1) {
+					bestParent = findBestParent(candidateRels);
 				} else {
 					System.out.println("Only one parent! Easy-peasy.");
 				}
@@ -136,7 +137,7 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 				}
 				childParentMap.put(childId, parentId);
 				n = bestParent;
-				Relationship parentRel = bestRelForParent.get(bestParent);
+				Relationship parentRel = candidateRels.get(bestParent).get(0);
 				
 				if (!parentRels.containsKey(parentId)) {
 					HashSet<Relationship> incomingRel = new HashSet<Relationship>();
@@ -221,19 +222,25 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	// very simple at the moment: just take highest ranked parent
 	// if a tie (must be from same source), take closest one (unless it has no parents of its own)
 	// TODO: check compatibility i.e. if passing through one immediate parent will also (eventually) get you through another
-	public Node findBestParent (Map<Node, Relationship> candidateParents) {
-		
-		System.out.println("Node has " + candidateParents.size() + " potential parents.");
+	public Node findBestParent (Map<Node, ArrayList<Relationship>> candidateRels) {
 		
 		Node bestParentNode = null;
 		int bestRank = 0;
 		List<Long> bestMRCA = null;
 		List<Long> bestOutMRCA = null;
 		
+		Map<Node, Relationship> candidateParents = getBestRelForNode(candidateRels);
+		System.out.println("Node has " + candidateParents.size() + " potential parents.");
+		
 		for (Map.Entry<Node, Relationship> entry : candidateParents.entrySet()) {
 			boolean accept = false;
 			Node candParent = entry.getKey();
-			System.out.println("Considering candidate parent: "+ candParent);
+			System.out.print("Considering candidate parent: " + candParent);
+			if (bestParentNode != null) {
+				System.out.print("; Current best parent: " + bestParentNode);
+			}
+			System.out.print("\n");
+			System.out.println(candParent + " has " + candidateRels.get(candParent).size() + " supporting source(s).");
 			// a hacky check to see if we reach a "deadend"
 			if (!hasParents(candParent)) {
 				if (candParent.getId() != root.getId()) {
@@ -256,16 +263,16 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	    	if (!accept) {
 	    		boolean nesting = false; // does nesting status determine decision to be made?
 	    		
-	    		System.out.println("bestMRCA: " + bestMRCA.toString());
-	    		if (bestOutMRCA != null) System.out.println("bestOutMRCA: " + bestOutMRCA.toString());
-	    		System.out.println("candMRCA: " + candMRCA.toString());
-	    		if (candOutMRCA != null) System.out.println("candOutMRCA: " + candOutMRCA.toString());
-	    		
 	    		// check if out of new contains any of ingroup of old
-	    		System.out.println("Checking for nesting of nodes.");
+	    		System.out.println("Checking for nesting of nodes:");
+	    		System.out.println("   " + bestParentNode + " MRCA: " + bestMRCA.toString());
+	    		if (bestOutMRCA != null) System.out.println("   " + bestParentNode + " OutMRCA: " + bestOutMRCA.toString());
+	    		System.out.println("   " + candParent + " MRCA: " + candMRCA.toString());
+	    		if (candOutMRCA != null) System.out.println("   " + candParent + " OutMRCA: " + candOutMRCA.toString());
+	    		
 	    		// is candidate parent a nested child of prevailing parent? if so, take it
 	    		if (nestedChildOf(bestMRCA, bestOutMRCA, candMRCA, candOutMRCA)) {
-	    			System.out.println(candParent + " is nested child of prevailing parent. Accept!");
+	    			System.out.println(candParent + " is nested child of prevailing parent " + bestParentNode + ". Accept!");
 	    			nesting = true;
     				accept = true;
 	    		}
@@ -273,7 +280,7 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 	    		// need to check other direction of nesting, so that prevailing parent is not thrown out because of rank alone
 	    		if (!nesting) {
 	    			if (nestedChildOf(candMRCA, candOutMRCA, bestMRCA, bestOutMRCA)) {
-	    				System.out.println("Prevailing parent is nested child of " + candParent + ". Reject candidate parent.");
+	    				System.out.println("Prevailing parent " + bestParentNode + " is nested child of " + candParent + ". Reject candidate parent.");
 	    				nesting = true;
 	    			}
 	    		}
@@ -346,10 +353,10 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		return taxonomy;
 	}
 	
-	// is node2 a nested child of node1?
+	// is node2 a (nested) child of node1?
 	public boolean nestedChildOf (List<Long> node1MRCA, List<Long> node1OutMRCA, List<Long> node2MRCA, List<Long> node2OutMRCA) {
 		boolean nested = false;
-		if (node1OutMRCA != null && node2OutMRCA != null) {
+		if (node1OutMRCA != null && node2OutMRCA != null) { // two non-taxonomy nodes
 			if (!Collections.disjoint(node2OutMRCA, node1MRCA)) {
 				if (Collections.disjoint(node1OutMRCA, node2MRCA)) {
 					return true;
@@ -382,13 +389,43 @@ public class RootwardSynthesisParentExpander extends SynthesisExpander implement
 		return false;
 	}
 
-	// high rank is better
-	private void updateBestRankedRel (Map<Node, Relationship> bestRelForNode, Relationship rel) {
+	// keep all rels, in case of tie-breaks, etc.
+	private void addCandidateRel (Map<Node, ArrayList<Relationship>> candidateRels, Relationship rel) {
 		Node parent = rel.getEndNode();
-		if ( (! bestRelForNode.containsKey(parent)) || getRank(bestRelForNode.get(parent)) < getRank(rel)) {
-			bestRelForNode.put(parent, rel); 
+		if (!candidateRels.containsKey(parent)) {
+			ArrayList<Relationship> incomingRel = new ArrayList<Relationship>();
+			incomingRel.add(rel);
+			candidateRels.put(parent, incomingRel);
+		} else {
+			candidateRels.get(parent).add(rel);
 		}
 	}
+	
+	// find highest-ranked rel for each candidate parent (high rank is better)
+	private Map<Node, Relationship> getBestRelForNode (Map<Node, ArrayList<Relationship>> candidateRels) {
+		Map<Node, Relationship> bestRelForNode = new HashMap<Node, Relationship>();
+		
+		for (Map.Entry<Node, ArrayList<Relationship>> entry : candidateRels.entrySet()) {
+			Node candParent = entry.getKey();
+			ArrayList<Relationship> rels = entry.getValue();
+			Relationship bestRel = rels.get(0);
+			
+			if (rels.size() > 1) {
+				for (int i = 1; i < rels.size(); i++) {
+					Relationship rel = rels.get(i);
+					if (getRank(bestRel) < getRank(rel)) {
+						bestRel = rel;
+					}
+				}
+			}
+			bestRelForNode.put(candParent, bestRel);
+			for (Relationship rel : rels) {
+				
+			}
+		}
+		return bestRelForNode;
+	}
+
 	
 	private Iterable<Relationship> getALLStreeAndTaxRels (Node n) {
 		return Traversal.description()

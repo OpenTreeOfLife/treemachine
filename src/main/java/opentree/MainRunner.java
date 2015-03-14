@@ -5,6 +5,7 @@ import jade.deprecated.JSONMessageLogger;
 import jade.deprecated.MessageLogger;
 import jade.tree.Tree;
 import jade.tree.TreeNode;
+import jade.tree.TreeParseException;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
@@ -1646,6 +1647,59 @@ public class MainRunner {
 		return 2;
 	}
 	
+	
+	/**
+	 * this will check to make sure that we have all the branches in a tree supported
+	 * @param args
+	 * @return
+	 */
+	private int testsynth(String[] args) {
+		if (args.length != 4) {
+			System.out.println("synthtreefile sourcetreefilename db");
+			return 1;
+		}
+		//read treeset
+		String filename = args[2];
+		String ts = "";
+		String graphname = args[3];
+		ArrayList<jade.tree.Tree> jt = new ArrayList<jade.tree.Tree>();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while ((ts = br.readLine()) != null) {
+				if (ts.length() > 1)
+					jt.add(jade.tree.TreeReader.readTree(ts));
+			}
+			br.close();
+		} catch (IOException ioe) {} catch (TreeParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//read synth
+		filename = args[1];
+		Tree synth = null;
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while ((ts = br.readLine()) != null) {
+				if (ts.length() > 1)
+					synth = jade.tree.TreeReader.readTree(ts.replaceAll("'", ""));
+			}
+			br.close();
+		} catch (IOException ioe) {} catch (TreeParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		for(TreeNode tn: synth.externalNodes()){
+			String [] spls = tn.getLabel().toString().split("_ott");
+			((jade.tree.JadeNode)tn).setName(spls[spls.length-1]);
+		}
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
+		SynthCheck sc = new SynthCheck(synth,jt,gdb);
+		sc.testSynth();
+		gdb.shutdownDb();
+		return 0;
+	}
 	
 	/**
 	 * this will just fill out the ncbi counts
@@ -3368,6 +3422,8 @@ public class MainRunner {
 				cmdReturnCode = mr.taxCompare(args);
 			} else if (command.compareTo("filtertreesforload") == 0){
 				cmdReturnCode = mr.filterTreesForLoad(args);
+			} else if (command.compareTo("testsynth") == 0){
+				cmdReturnCode = mr.testsynth(args);
 			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
