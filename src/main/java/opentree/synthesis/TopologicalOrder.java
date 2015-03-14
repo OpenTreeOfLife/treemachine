@@ -28,7 +28,11 @@ public class TopologicalOrder implements Iterable<Node> {
 
 		this.relTypes = relTypes;
 		
-		for (Node n : G.getAllNodes()) { unmarked.add(n); }
+		for (Node n : G.getAllNodes()) {
+			if (n.hasRelationship(relTypes)) {
+				unmarked.add(n);
+			}
+		}
 
 		while (! unmarked.isEmpty()) {
 			visit(unmarked.iterator().next());
