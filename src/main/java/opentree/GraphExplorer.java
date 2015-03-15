@@ -36,26 +36,18 @@ import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
 
 import opentree.synthesis.DraftTreePathExpander;
-import opentree.synthesis.NodeCountTopoOrderSynthesisExpander;
 import opentree.synthesis.SourceRankTopoOrderSynthesisExpander;
 import opentree.synthesis.SynthesisExpander;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
-import opentree.synthesis.conflictresolution.RankResolutionMethodInferredPath;
 import opentree.synthesis.conflictresolution.RelationshipConflictResolver;
 import opentree.synthesis.conflictresolution.TreeMakingBandB;
 import opentree.synthesis.filtering.RelationshipFilter;
 import opentree.synthesis.filtering.SetComparison;
-import opentree.synthesis.filtering.SingleValueComparison;
 import opentree.synthesis.filtering.FilterCriterion;
 import opentree.synthesis.filtering.Directive;
-import opentree.synthesis.filtering.Test;
 import opentree.synthesis.filtering.SourcePropertySetTest;
-import opentree.synthesis.filtering.TestValue;
-import opentree.synthesis.ranking.RankingOrder;
 import opentree.synthesis.ranking.RelationshipRanker;
 import opentree.synthesis.ranking.SourcePropertyPrioritizedRankingCriterion;
-import opentree.synthesis.ranking.SourcePropertyRankingCriterion;
-import opentree.synthesis.RootwardSynthesisParentExpander;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;

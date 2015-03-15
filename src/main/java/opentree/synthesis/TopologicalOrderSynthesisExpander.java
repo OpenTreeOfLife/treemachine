@@ -122,13 +122,15 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		TLongBitArraySet descendantTips = new TLongBitArraySet();
 		HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 
+		print();
+		
 		for (Relationship r : bestRels) {
 			long childId = r.getStartNode().getId();
 			incomingRels.add(r);
 			descendants.add(childId);
 			descendants.addAll(nodeMrcaTipsAndInternal.get(childId));
 			descendantTips.addAll(nodeMrcaTips.get(childId));
-			if (VERBOSE) { print("adding descendants of child " + childId + ": " + nodeMrcaTipsAndInternal.get(childId) + " to nodeMrca["+n.getId()+"]"); }
+			if (VERBOSE) { print("adding descendants of rel " + r + ": " + nodeMrcaTipsAndInternal.get(childId) + " to nodeMrca["+n.getId()+"]"); }
 		}
 		
 		if (! n.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
@@ -142,22 +144,32 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		
 		childRels.put(nodeId, incomingRels);
 		if (VERBOSE) {
-			print("\nrecorded rels for node n:");
 			print("nodeMrca["+n.getId()+"] = " + nodeMrcaTipsAndInternal.get(n.getId()));
 			print("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
 		};
 	}
+	
+	/*
+	 * Get *all* the graph nodes--tips as well as internal--that are descended from this node in synthesis.
+	 * @param rel
+	 * @return
+	 *
+	Set<Long> mrcaTipsAndInternal(Iterable<Node> nodes) {
+		HashSet<Long> included = new HashSet<Long>();
+		for (Node n : nodes) { included.addAll(mrcaTipsAndInternal(n)); }
+		return included;
+	} */
 	
 	/**
 	 * Get *all* the graph nodes--tips as well as internal--that are descended from this node in synthesis.
 	 * @param rel
 	 * @return
 	 */
-	Set<Long> mrcaTipsAndInternal(Iterable<Node> nodes) {
+	Set<Long> mrcaTipsAndInternal(Iterable<Relationship> rels) {
 		HashSet<Long> included = new HashSet<Long>();
-		for (Node n : nodes) { included.addAll(mrcaTipsAndInternal(n)); }
+		for (Relationship r : rels) { included.addAll(mrcaTipsAndInternal(r)); }
 		return included;
-	}	
+	}
 
 	/**
 	 * Get *all* the graph nodes--tips as well as internal--that are descended from the start node of the 
@@ -166,8 +178,8 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * @param rel
 	 * @return
 	 */
-	TLongBitArraySet mrcaTipsAndInternal(Node n) {
-		return nodeMrcaTipsAndInternal.get(n.getId());
+	TLongBitArraySet mrcaTipsAndInternal(Relationship r) {
+		return nodeMrcaTipsAndInternal.get(r.getStartNode().getId());
 	}
 	
 	/**

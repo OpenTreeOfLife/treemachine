@@ -63,10 +63,10 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 		// what's used by the mwis
 		List<Relationship> bestRels = new ArrayList<Relationship>();
 		for (Long id : bestRelIds) { bestRels.add(G.getRelationshipById(id)); }
-		List<Node> bestRelStartNodes = new ArrayList<Node>();
-		for (Long id : bestRelIds) { bestRelStartNodes.add(G.getRelationshipById(id).getStartNode()); }		
+//		List<Node> bestRelStartNodes = new ArrayList<Node>();
+//		for (Long id : bestRelIds) { bestRelStartNodes.add(G.getRelationshipById(id).getStartNode()); }		
 		
-		TLongBitArraySet included = new TLongBitArraySet(mrcaTipsAndInternal(bestRelStartNodes));
+		TLongBitArraySet included = new TLongBitArraySet(mrcaTipsAndInternal(bestRels));
 		
 		if (VERBOSE) { for (Relationship r : bestRels) { print("selected source tree rel ", r, ": ", r.getStartNode(), " -> ", r.getEndNode()); }}
 	
@@ -106,7 +106,7 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 		for (int i = 0; relsIter.hasNext(); i++) {
 			Relationship rel = relsIter.next();
 			
-			TLongBitArraySet currDesc = mrcaTipsAndInternal(rel.getStartNode());
+			TLongBitArraySet currDesc = mrcaTipsAndInternal(rel);
 			
 			// this represents a pathological case, so die horribly
 			if (currDesc == null) { throw new IllegalStateException("Found a rel with no descendants: " + rel); }
