@@ -1,4 +1,4 @@
-package opentree.synthesis.conflictresolution;
+	package opentree.synthesis.conflictresolution;
 
 import gnu.trove.set.hash.TLongHashSet;
 
@@ -28,8 +28,8 @@ public class RelationshipConflictResolver {
 		return method;
 	}
 	
-	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> candidateRels) {
-		return method.resolveConflicts(candidateRels);
+	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> candidateRels, boolean reinitialize) {
+		return method.resolveConflicts(candidateRels,reinitialize);
 	}
 	
 	public String getDescription() {

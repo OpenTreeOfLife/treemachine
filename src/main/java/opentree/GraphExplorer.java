@@ -38,7 +38,9 @@ import org.opentree.exceptions.TreeNotFoundException;
 import opentree.synthesis.DraftTreePathExpander;
 import opentree.synthesis.SourceRankTopoOrderSynthesisExpander;
 import opentree.synthesis.SynthesisExpander;
+import opentree.synthesis.SynthesisExpanderNEW;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
+import opentree.synthesis.conflictresolution.RankResolutionMethodNEW;
 import opentree.synthesis.conflictresolution.RelationshipConflictResolver;
 import opentree.synthesis.conflictresolution.TreeMakingBandB;
 import opentree.synthesis.filtering.RelationshipFilter;
@@ -1497,7 +1499,7 @@ public class GraphExplorer extends GraphBase {
 		// ================================ TESTING =================================
 		// 
 //		draftSynthesisMethod = new NodeCountTopoOrderSynthesisExpander(startNode);
-		draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpander(startNode);
+//		draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpander(startNode);
 //		draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 		//
 		// ================================ TESTING =================================

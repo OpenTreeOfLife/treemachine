@@ -4,16 +4,12 @@ import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 
 import opentree.LicaUtil;
 
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.opentree.bitarray.ImmutableCompactLongSet;
-import org.opentree.bitarray.MutableCompactLongSet;
 
 /**
  * This conflict resolution method finds the set of relationships with completely non-overlapping leaf sets,
@@ -24,7 +20,7 @@ import org.opentree.bitarray.MutableCompactLongSet;
  * 
  * @author stephen smith and cody hinchliff
  */
-public class RankResolutionMethod implements ResolutionMethod {
+public class RankResolutionMethodNEW implements ResolutionMethod {
 
 	// containers used to make decisions about best paths
 	HashMap<Relationship, TLongArrayList> candRelDescendantIdsMap;
@@ -32,7 +28,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 	//this will include all the mrcas that were found in this round that should be excluded
 	TLongHashSet dupMRCAS;
 	
-	public RankResolutionMethod() {
+	public RankResolutionMethodNEW() {
 		initialize();
 	}
 	
@@ -52,6 +48,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 		if(((String)rel.getProperty("source")).equals("taxonomy") == false
 				&& rel.hasProperty("compat")==false){
 			TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
+			//TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
 			descendantIds.retainAll(exclusiveIds);
 		}
 		candRelDescendantIdsMap.put(rel, descendantIds);
@@ -95,99 +92,20 @@ public class RankResolutionMethod implements ResolutionMethod {
 	}
 	
 	@Override
-	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> rels,boolean reinitialize) {
-		if (reinitialize) {
+	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> rels, boolean reinitialize) {
+		if(reinitialize)
 			initialize();
-		}
 		Iterator<Relationship> relsIter = rels.iterator();
 		//these are all the mrcas that are actually included in the set of saveRels
 		TLongHashSet totalIncluded = new TLongHashSet();
 		//these are all the mrcas that are included in the subtending nodes
 		TLongHashSet totalMRCAS = new TLongHashSet();
-		//pick best rel from the ranks and edges
 		
-		if(relsIter.hasNext() == false)
-			return bestRels;
-		/*
-		 * because we need to make sure that we have the best ranked thing accounted for we are going to do that first
-		 */
-		HashMap<Integer,ImmutableCompactLongSet> rank1requirements = new HashMap<Integer,ImmutableCompactLongSet>();
-		HashMap<Integer,HashMap<Integer,HashSet<Node>>> ranksets = new HashMap<Integer,HashMap<Integer,HashSet<Node>>>();
-		HashMap<Integer,HashMap<Integer,HashSet<Relationship>>> ranksetsrels = new HashMap<Integer,HashMap<Integer,HashSet<Relationship>>>();
-		Integer highestrank = 0;
-		for(Relationship rel: rels){
-			Integer sourcerank = (Integer) rel.getProperty("sourcerank");
-			if (sourcerank > highestrank)
-				highestrank = sourcerank;
-			Integer edgeid = (Integer) rel.getProperty("sourceedgeid");
-			if(ranksets.containsKey(sourcerank)==false){
-				ranksets.put(sourcerank,new HashMap<Integer,HashSet<Node>>());
-				ranksetsrels.put(sourcerank,new HashMap<Integer,HashSet<Relationship>>());
-			}
-			if(ranksets.get(sourcerank).containsKey(edgeid) == false){
-				ranksets.get(sourcerank).put(edgeid, new HashSet<Node>());
-				ranksetsrels.get(sourcerank).put(edgeid, new HashSet<Relationship>());
-			}
-			ranksets.get(sourcerank).get(edgeid).add(rel.getStartNode());
-			ranksetsrels.get(sourcerank).get(edgeid).add(rel);
-		}
-		System.out.println("highest:"+highestrank+" "+ranksets);
-		HashMap<Integer,Node> bestSet = new HashMap<Integer,Node>();
-		HashMap<Integer,Relationship> bestSetRel = new HashMap<Integer,Relationship>();
-		for(Integer edge: ranksetsrels.get(highestrank).keySet()){
-			ImmutableCompactLongSet ics = new ImmutableCompactLongSet(
-					(long [])ranksetsrels.get(highestrank).get(edge).iterator().next().getProperty("exclusive_mrca"));
-			rank1requirements.put(edge, ics);
-			int bestinternal = 0;
-			Node bestnode = null;
-			Relationship bestrel = null;
-			for(Relationship rel: ranksetsrels.get(highestrank).get(edge)){
-				Node nd = rel.getStartNode();
-				if (((long[])nd.getProperty("mrca")).length > bestinternal){
-					bestinternal = ((long[])nd.getProperty("mrca")).length;
-					bestnode = nd;
-					bestrel = rel;
-				}
-			}
-			bestSet.put(edge, bestnode);
-			bestSetRel.put(edge, bestrel);
-		}
-		System.out.println(bestSetRel);
-		/*
-		 * now all we are checking are per rel! whether there is something that can be a parent of a set of the best rels
-		 */
-		
-		
-		/*
-		 * for each other rel, we want to check whether it is the parent of each 
-		 * combination of relexclusivemrcas
-		 */
-		for(Integer ti: ranksetsrels.keySet()){
-			if(ti == highestrank)
-				continue;
-			for(Integer ti2: ranksetsrels.get(ti).keySet()){
-				for(Relationship rel: ranksetsrels.get(ti).get(ti2)){
-					Node nd = rel.getStartNode();
-					ImmutableCompactLongSet ics = new ImmutableCompactLongSet(((long[])nd.getProperty("mrca")));
-					for(Integer edge: rank1requirements.keySet()){                                                                           
-						HashSet<Integer> contains = new HashSet<Integer>();
-						MutableCompactLongSet curset = new MutableCompactLongSet(rank1requirements.get(edge));
-						if(ics.containsAll(curset)){
-							System.out.println(rel+" may be better than "+bestSetRel.get(edge));
-						}
-					}
-				}
-			}
-		}
-		
-		bestRels = new LinkedList<Relationship>(bestSetRel.values());
-		//need to add the ones that don't overlap with highest rank with the same idea as above
-		return bestRels;
 	    // for every candidate relationship
-	    /*while (relsIter.hasNext()) {
+	    while (relsIter.hasNext()) {
 	    	
 	    	Relationship candidate = relsIter.next();
-	    	System.out.println("\ttesting rel " + candidate.getId() + " rank:"+candidate.getProperty("sourcerank")+" for conflicts");
+	    	System.out.println("\ttesting rel " + candidate.getId() + " for conflicts");
 
 	    	boolean saveRel = true;
 	    	// test for conflict between candidate against all saved
@@ -228,7 +146,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 	    	}
 	    }
 
-		return bestRels;*/
+		return bestRels;
 	}
 	
 	@Override
