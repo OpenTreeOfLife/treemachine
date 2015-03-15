@@ -1648,6 +1648,23 @@ public class MainRunner {
 	}
 	
 	
+	/*
+	 * this is to run after joseph's synth to sink the lost clades
+	 */
+	private int sinkSynth(String [] args){
+		if(args.length != 3){
+			System.out.println("ottid db");
+			return 1;
+		}
+		Long startNodeId = Long.valueOf(args[1]);
+		String graphname = args[2];
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
+		SynthSinker ss = new SynthSinker(startNodeId,gdb);
+		ss.sinkSynth();
+		gdb.shutdownDb();
+		return 0;
+	}
+	
 	/**
 	 * this will check to make sure that we have all the branches in a tree supported
 	 * @param args
@@ -3424,6 +3441,8 @@ public class MainRunner {
 				cmdReturnCode = mr.filterTreesForLoad(args);
 			} else if (command.compareTo("testsynth") == 0){
 				cmdReturnCode = mr.testsynth(args);
+			} else if (command.compareTo("sinksynth") == 0){
+				cmdReturnCode = mr.sinkSynth(args);
 			}else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
