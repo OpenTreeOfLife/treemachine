@@ -3,10 +3,13 @@ package opentree.synthesis.conflictresolution;
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 import opentree.LicaUtil;
 
@@ -96,8 +99,141 @@ public class RankResolutionMethod implements ResolutionMethod {
 		return dupMRCAS;
 	}
 	
+	
 	@Override
 	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> rels,boolean reinitialize) {
+		if (reinitialize) {
+			initialize();
+		}
+		Iterator<Relationship> relsIter = rels.iterator();
+		//these are all the mrcas that are actually included in the set of saveRels
+		TLongHashSet totalIncluded = new TLongHashSet();
+		//these are all the mrcas that are included in the subtending nodes
+		TLongHashSet totalMRCAS = new TLongHashSet();
+		//pick best rel from the ranks and edges
+		
+		if(relsIter.hasNext() == false)
+			return bestRels;
+
+		HashMap<Integer,HashMap<Integer,HashSet<Node>>> ranksets = new HashMap<Integer,HashMap<Integer,HashSet<Node>>>();
+		HashMap<Integer,HashMap<Integer,HashSet<Relationship>>> ranksetsrels = new HashMap<Integer,HashMap<Integer,HashSet<Relationship>>>();
+		for(Relationship rel: rels){
+			Integer sourcerank = (Integer) rel.getProperty("sourcerank");
+			Integer edgeid = (Integer) rel.getProperty("sourceedgeid");
+			if(ranksets.containsKey(sourcerank)==false){
+				ranksets.put(sourcerank,new HashMap<Integer,HashSet<Node>>());
+				ranksetsrels.put(sourcerank,new HashMap<Integer,HashSet<Relationship>>());
+			}
+			if(ranksets.get(sourcerank).containsKey(edgeid) == false){
+				ranksets.get(sourcerank).put(edgeid, new HashSet<Node>());
+				ranksetsrels.get(sourcerank).put(edgeid, new HashSet<Relationship>());
+			}
+			ranksets.get(sourcerank).get(edgeid).add(rel.getStartNode());
+			ranksetsrels.get(sourcerank).get(edgeid).add(rel);
+		}
+		HashSet<Node> bestSet = new HashSet<Node>();
+		HashSet<Relationship> bestSetRel = new HashSet<Relationship>();
+		HashMap<Relationship,MutableCompactLongSet> bestRelCLS = new HashMap<Relationship,MutableCompactLongSet>();
+		
+		List<Integer> ranks = new ArrayList<Integer>(ranksetsrels.keySet());
+		Collections.reverse(ranks);
+
+		
+		
+		/*
+		 * for each rank
+		 */
+		for(Integer ti: ranks){
+			System.out.println("working on rank: "+ti);
+			HashMap<MutableCompactLongSet,HashSet<Relationship>> combos = new HashMap<MutableCompactLongSet,HashSet<Relationship>>();
+			for(Relationship ed: bestRelCLS.keySet()){
+				MutableCompactLongSet combinations = new MutableCompactLongSet();
+				combinations.addAll(bestRelCLS.get(ed));
+				HashSet<Relationship> edges = new HashSet<Relationship>();
+				edges.add(ed);
+				for(Relationship ed2: bestRelCLS.keySet()){
+					if (ed != ed2){
+						combinations.addAll(bestRelCLS.get(ed2));
+						edges.add(ed2);
+						combos.put(combinations,edges);
+					}
+				}
+			}
+			
+			//for each rel in this rank, check to see if there is overlap, if so, only keep if they would completely
+			//    encompass a set
+			for(Integer edge: ranksetsrels.get(ti).keySet()){
+				MutableCompactLongSet ics = new MutableCompactLongSet(
+						(long [])ranksetsrels.get(ti).get(edge).iterator().next().getProperty("exclusive_mrca"));
+				Relationship bestRelforEdge = null;
+				boolean replace = false;
+				HashSet<Relationship> toReplace = new HashSet<Relationship>();
+				int bestinternal = 0;
+				int highestedges = 0;
+				int highestmrca = 0;
+				boolean overlap = false;
+				for(Relationship rel: ranksetsrels.get(ti).get(edge)){
+					MutableCompactLongSet mcs = new MutableCompactLongSet((long[])rel.getStartNode().getProperty("mrca"));
+					for(Relationship rel2: bestRelCLS.keySet()){
+						MutableCompactLongSet mcs2 = new MutableCompactLongSet((long[])rel2.getStartNode().getProperty("mrca"));
+						if(mcs.containsAny(bestRelCLS.get(rel2)) || mcs.containsAny(mcs2) ){
+							System.out.println("\t\toverlap with "+rel +" "+rel2);
+							overlap = true;
+							//find whether there is more than one edge
+							for(MutableCompactLongSet mmcs: combos.keySet()){
+								if(mcs.containsAll(mmcs)){
+									System.out.println("\t\t\t will replace "+combos.get(mmcs) +" with "+rel);
+									replace = true;
+									if(mcs.size() > highestmrca && combos.get(mmcs).size()>=highestedges){
+										highestedges = combos.get(mmcs).size();
+										highestmrca = (int) mcs.size();
+										bestRelforEdge = rel;
+										toReplace = combos.get(mmcs);
+									}
+								}
+							}
+						}
+					}if(overlap == false){
+						Node nd = rel.getStartNode();
+						if(((long[])nd.getProperty("mrca")).length > bestinternal){
+							bestRelforEdge = rel;
+							bestinternal = ((long[])nd.getProperty("mrca")).length;
+						}
+					}
+				}
+				/*
+				 * need to add the tip bit
+				 */
+				System.out.println("    edge:"+edge+" "+bestRelforEdge);
+				if(bestRelforEdge != null){
+					if(replace == true){
+						MutableCompactLongSet ns = new MutableCompactLongSet(ics);
+						for(Relationship r: toReplace){
+							bestSet.remove(r.getStartNode());
+							bestSetRel.remove(r);
+							ns.addAll(bestRelCLS.get(r));
+							bestRelCLS.remove(r);
+						}
+						bestSetRel.add(bestRelforEdge);
+						bestRelCLS.put(bestRelforEdge, ns);
+						bestSet.add(bestRelforEdge.getStartNode());
+					}else if(overlap == false){
+						bestSet.add(bestRelforEdge.getStartNode());
+						bestSetRel.add(bestRelforEdge);
+						bestRelCLS.put(bestRelforEdge, ics);
+					}
+				}
+				
+			}
+		}
+		System.out.println(" bestRels:"+bestSetRel);
+		bestRels = new LinkedList<Relationship>(bestSetRel);
+		
+		return bestRels;
+		
+	}
+	//@Override
+	public Iterable<Relationship> resolveConflictsOLD(Iterable<Relationship> rels,boolean reinitialize) {
 		if (reinitialize) {
 			initialize();
 		}
@@ -136,6 +272,7 @@ public class RankResolutionMethod implements ResolutionMethod {
 		System.out.println("highest:"+highestrank+" "+ranksets);
 		HashMap<Integer,Node> bestSet = new HashMap<Integer,Node>();
 		HashMap<Integer,Relationship> bestSetRel = new HashMap<Integer,Relationship>();
+		
 		for(Integer edge: ranksetsrels.get(highestrank).keySet()){
 			ImmutableCompactLongSet ics = new ImmutableCompactLongSet(
 					(long [])ranksetsrels.get(highestrank).get(edge).iterator().next().getProperty("exclusive_mrca"));
@@ -180,7 +317,10 @@ public class RankResolutionMethod implements ResolutionMethod {
 		 * for each other rel, we want to check whether it is the parent of each 
 		 * combination of relexclusivemrcas
 		 */
-		for(Integer ti: ranksetsrels.keySet()){
+		List<Integer> ranks = new ArrayList(ranksetsrels.keySet());
+		Collections.sort(ranks);
+
+		for(Integer ti: ranks){
 			if(ti == highestrank)
 				continue;
 			for(Integer ti2: ranksetsrels.get(ti).keySet()){
