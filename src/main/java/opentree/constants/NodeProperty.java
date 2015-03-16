@@ -15,6 +15,7 @@ public enum NodeProperty {
 	MRCA ("mrca", long[].class, "An array containing the node ids of all descendant nodes of this node. Used in graph algorithms."),
 	OUTMRCA ("outmrca", long[].class, "An array containing the node ids of all nodes known *not* to descend from this node. Used in graph algorithms."),
 	NESTED_MRCA ("nested_mrca", long[].class, "??"),
+	EXCLUSIVE_MRCA ("exclusive_mrca", long[].class, "An array containing the node ids of all *terminal* graph nodes that descend from all the graph nodes that descend from the *source tree* node that was mapped to the child node of this rel. Basically, the ingroup of the corresponding source tree node, but inclusive of all the terminal graph nodes in the case that the source tree node was mapped to a deeper taxon."),
 	
 	// ===== Taxonomy nodes
 	NAME ("name", String.class, "The taxonomic name of this node. Generally used only for taxonomy nodes..."),
