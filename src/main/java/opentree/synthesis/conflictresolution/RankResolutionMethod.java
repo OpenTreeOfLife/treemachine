@@ -15,6 +15,8 @@ import org.neo4j.graphdb.Relationship;
 import org.opentree.bitarray.ImmutableCompactLongSet;
 import org.opentree.bitarray.MutableCompactLongSet;
 
+import scala.collection.immutable.Stack;
+
 /**
  * This conflict resolution method finds the set of relationships with completely non-overlapping leaf sets,
  * preferring higher-ranked relationships. Ranking order is interpreted as the order of the relationships in
@@ -154,8 +156,24 @@ public class RankResolutionMethod implements ResolutionMethod {
 		}
 		System.out.println(bestSetRel);
 		/*
+		 * NEED TO MAKE UNIQUE COMBINTAIONS OF EXCLUSIVE MRCAS FOR TOP RANK TREE COMPARISON BELOW
 		 * now all we are checking are per rel! whether there is something that can be a parent of a set of the best rels
 		 */
+		HashMap<MutableCompactLongSet,HashSet<Integer>> combos = new HashMap<MutableCompactLongSet,HashSet<Integer>>();
+		for(Integer ed: rank1requirements.keySet()){
+			MutableCompactLongSet combinations = new MutableCompactLongSet();
+			combinations.addAll(rank1requirements.get(ed));
+			HashSet<Integer> edges = new HashSet<Integer>();
+			edges.add(ed);
+			for(Integer ed2: rank1requirements.keySet()){
+				if (ed != ed2){
+					combinations.addAll(rank1requirements.get(ed2));
+					edges.add(ed2);
+					combos.put(combinations,edges);
+				}
+			}
+		}
+		System.out.println(combos);
 		
 		
 		/*
@@ -166,20 +184,58 @@ public class RankResolutionMethod implements ResolutionMethod {
 			if(ti == highestrank)
 				continue;
 			for(Integer ti2: ranksetsrels.get(ti).keySet()){
+				int highestedges = 0;
+				int highestmrca = 0;
+				MutableCompactLongSet replace = null;
+				Relationship replacerel = null;
 				for(Relationship rel: ranksetsrels.get(ti).get(ti2)){
 					Node nd = rel.getStartNode();
 					ImmutableCompactLongSet ics = new ImmutableCompactLongSet(((long[])nd.getProperty("mrca")));
-					for(Integer edge: rank1requirements.keySet()){                                                                           
-						HashSet<Integer> contains = new HashSet<Integer>();
-						MutableCompactLongSet curset = new MutableCompactLongSet(rank1requirements.get(edge));
-						if(ics.containsAll(curset)){
-							System.out.println(rel+" may be better than "+bestSetRel.get(edge));
+					/*
+					 * we want the most all encompassing (has the most edges included and then the largest set of mrcas
+					 */
+					for(MutableCompactLongSet mcs: combos.keySet()){
+						if(ics.containsAll(mcs)){
+							System.out.print(rel+" may be better than ");
+							for(Integer edge: combos.get(mcs)){
+								System.out.print(bestSetRel.get(edge));
+							}
+							System.out.print("\n");
+							if(ics.size() > highestmrca && combos.get(mcs).size()>=highestedges){
+								highestedges = combos.get(mcs).size();
+								highestmrca = (int) ics.size();
+								replace = mcs;
+								replacerel = rel;
+							}
 						}
 					}
 				}
+				/*
+				 * NEED TO MAKE SURE THIS IS IN THE RIGHT ORDER OF RANK AND STOP AT SOME POINT
+				 */
+				if(highestedges > 0){
+					System.out.println(highestedges+" "+highestmrca+" would replace "+replace+" with Rel "+replacerel);
+					for(Integer edge: combos.get(replace)){
+						bestSetRel.put(edge,replacerel);
+					}
+					combos.remove(replace);
+				}
 			}
 		}
+		/* AFTER CHECKING TO SEE IF THERE IS A REL IN LOWER RANK THAT IS BETTER NESTED
+		 * NOW CHECK TO SEE IF THERE IS A BETTER ONE THAT JUST HAS MORE MRCAS, SHOULD BE JUST TIPS HERE
+		 * check for individual edges that may be left
+		 * for(Integer edge: rank1requirements.keySet()){                                                                           
+			HashSet<Integer> contains = new HashSet<Integer>();
+			MutableCompactLongSet curset = new MutableCompactLongSet(rank1requirements.get(edge));
+			if(ics.containsAll(curset)){
+				System.out.println(rel+" may be better than "+bestSetRel.get(edge));
+			}
+		}*/
 		
+		/*
+		 * NEED TO ADD THE OTHER, NONOVERLAPPING RELS INCLUDING TAXONOMY
+		 */
 		bestRels = new LinkedList<Relationship>(bestSetRel.values());
 		//need to add the ones that don't overlap with highest rank with the same idea as above
 		return bestRels;
