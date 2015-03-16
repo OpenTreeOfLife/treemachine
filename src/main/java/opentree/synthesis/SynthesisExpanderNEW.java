@@ -1,6 +1,8 @@
 package opentree.synthesis;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
@@ -31,7 +33,7 @@ import org.neo4j.kernel.Traversal;
  * @author cody hinchliff and stephen smith
  *
  */
-public class SynthesisExpander implements PathExpander {
+public class SynthesisExpanderNEW implements PathExpander {
 
 	private RelationshipFilter filter;
 	private RelationshipRanker ranker;
@@ -40,21 +42,25 @@ public class SynthesisExpander implements PathExpander {
 	private Iterable<Relationship> bestRels;
 	private TLongHashSet dupMRCAS;
 	private TLongHashSet deadnodes;
+	private boolean checkForTrivialConflicts;
+	private boolean checkForSubsumedEdges;
 	
-	public SynthesisExpander() {
+	public SynthesisExpanderNEW() {
 		this.filter = null;
 		this.ranker = null;
 		this.resolver = null;
+		this.checkForTrivialConflicts = true; //@mth
+		this.checkForSubsumedEdges = true; //@mth
 		dupMRCAS = new TLongHashSet();
 		deadnodes = new TLongHashSet();
 	}
 	
-	public SynthesisExpander setFilter(RelationshipFilter filter) {
+	public SynthesisExpanderNEW setFilter(RelationshipFilter filter) {
 		this.filter = filter;
 		return this;
 	}
 
-	public SynthesisExpander setRanker(RelationshipRanker ranker) {
+	public SynthesisExpanderNEW setRanker(RelationshipRanker ranker) {
 		this.ranker = ranker;
 		return this;
 	}
@@ -76,7 +82,7 @@ public class SynthesisExpander implements PathExpander {
 	 * @param resolver
 	 * @return RelationshipEvaluator
 	 */
-	public SynthesisExpander setConflictResolver(RelationshipConflictResolver resolver) {
+	public SynthesisExpanderNEW setConflictResolver(RelationshipConflictResolver resolver) {
 		this.resolver = resolver;
 		return this;
 	}
@@ -117,10 +123,42 @@ public class SynthesisExpander implements PathExpander {
 	private void resolveConflicts() {
 		System.out.println("candidates: "+candidateRels);
 		if (resolver != null) {
-			bestRels = resolver.resolveConflicts(candidateRels,true);
-			dupMRCAS.addAll(resolver.getDupMRCAS());
-			System.out.println("dups from method: "+dupMRCAS.size());
-			//System.out.println(dupMRCAS);
+
+			if (this.checkForSubsumedEdges || this.checkForTrivialConflicts) {
+				ArrayList<Relationship> trivRels = new ArrayList<Relationship>();
+				ArrayList<Relationship> nontrivialRels = new ArrayList<Relationship>();
+				Iterator<Relationship> allRelsIt = candidateRels.iterator();
+				while (allRelsIt.hasNext()) {
+					Relationship candidate = allRelsIt.next();
+					if (((long[]) candidate.getStartNode().getProperty("mrca")).length == 1) {
+						trivRels.add(candidate);
+					} else {
+						nontrivialRels.add(candidate);
+					}
+				}
+				if (this.checkForSubsumedEdges) {
+					System.out.println("non trivial candidates: " + nontrivialRels);
+					bestRels = resolver.resolveConflicts(nontrivialRels, true);
+					System.out.println("   post reinitialize resolve: "+bestRels);
+					System.out.println("trivial candidates: " + trivRels);
+					bestRels = resolver.resolveConflicts(trivRels, false);
+					System.out.println("   post nonreinitialize resolve: "+bestRels);
+					dupMRCAS.addAll(resolver.getDupMRCAS());
+					System.out.println("dups from method: " + dupMRCAS.size());
+				} else {
+					System.out.println("non trivial candidates: " + nontrivialRels);
+					bestRels = resolver.resolveConflicts(nontrivialRels, true);
+					System.out.println("trivial candidates: " + trivRels);
+					bestRels = resolver.resolveConflicts(trivRels, false);
+					dupMRCAS.addAll(resolver.getDupMRCAS());
+					System.out.println("dups from method: "+dupMRCAS.size());
+				}
+			} else {
+				System.out.println("candidates: "+candidateRels);
+				bestRels = resolver.resolveConflicts(candidateRels, true);
+				dupMRCAS.addAll(resolver.getDupMRCAS());
+				System.out.println("dups from method: "+dupMRCAS.size());
+			}
 		} else {
 			bestRels = candidateRels;
 		}
@@ -229,6 +267,7 @@ public class SynthesisExpander implements PathExpander {
 			if (((String)rel.getProperty("source")).equals("taxonomy") == false &&
 					rel.hasProperty("compat") == false) {
 				TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
+				//TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getStartNode().getProperty("mrca"));
 				tem.retainAll(exclusiveIds);
 			}
 			tem.removeAll(dupMRCAS);

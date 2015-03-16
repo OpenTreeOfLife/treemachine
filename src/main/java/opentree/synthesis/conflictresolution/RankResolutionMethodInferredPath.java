@@ -123,9 +123,9 @@ public class RankResolutionMethodInferredPath implements ResolutionMethod {
 	}
 	
 	@Override
-	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> rels) {
-
-		initialize();
+	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> rels,boolean reinitialize) {
+		if(reinitialize)
+			initialize();
 		Iterator<Relationship> relsIter = rels.iterator();
 		//these are all the mrcas that are actually included in the set of saveRels
 		TLongHashSet totalIncluded = new TLongHashSet();
