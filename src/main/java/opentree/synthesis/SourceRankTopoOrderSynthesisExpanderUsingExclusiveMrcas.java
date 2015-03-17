@@ -14,6 +14,7 @@ import static org.opentree.utils.GeneralUtils.print;
 import static org.opentree.utils.GeneralUtils.getRelationshipsFromTo;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
+import opentree.synthesis.Combinations.PrunableSetIterator;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -31,15 +32,6 @@ import scala.actors.threadpool.Arrays;
 public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends TopologicalOrderSynthesisExpander {
 
 	// these get reinitialized for each node we visit
-	Map<Integer, Map<Long, Set<Relationship>>> relsByRankAndEdgeId;
-	Set<Integer> observedRanks;
-	List<Integer> sortedRanks;
-	MutableCompactLongSet savedMrcas;
-	
-	public SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas(Node root) {
-		VERBOSE = true;
-		synthesizeFrom(root);		
-	}
 
 	/**
 	 * all the rels that have been saved for each rank
@@ -51,9 +43,17 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 	 * <tt>{ rank -> { relationship -> { exclusive mrcas for this rel }}</tt><br><br>
 	 */
 	Map<Integer, Map<Relationship, LongSet>> savedRelsByRank = new HashMap<Integer, Map<Relationship, LongSet>>();
-
 	Set<Relationship> remainingRelsForCurrentRank;
+	Map<Integer, Map<Long, Set<Relationship>>> relsByRankAndEdgeId;
+	Set<Integer> observedRanks;
+	List<Integer> sortedRanks;
+	MutableCompactLongSet savedMrcas;
 	
+	public SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas(Node root) {
+		VERBOSE = true;
+		synthesizeFrom(root);		
+	}
+
 	@Override
 	List<Relationship> selectRelsForNode(Node n) {
 
@@ -119,8 +119,13 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 			 */
 
 			// replace any combinations of rels from tree(higherRank) that are covered by p
-			for (Set<Relationship> combination : new Combinations<Relationship>(getRelsForRank(higherRank)).mostInclusiveFirst()) {
-			
+			PrunableSetIterator combinations = new Combinations<Relationship>(getRelsForRank(higherRank))
+					.prunableIterator()
+					.leastInclusiveFirst();
+			while (combinations.hasNext()) {
+				Set<Relationship> combination = combinations.next();
+				if (combination.size() < 2) { continue; } // could make this more efficient but this is good enough for now
+				
 				if (VERBOSE) { print("checking combination", combination); }
 				
 				if (containsAllExclusiveMrca(p, higherRank, combination)) {
@@ -184,7 +189,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 	/** STEP 3 */
 	private void addBestNonOverlapping(int currentRank) {
 			
-		if (VERBOSE) { print("\nlooking for rels of rank", currentRank, "that don't overlap with any saved higher ranked rels"); }
+		if (VERBOSE) { print("\nlooking for rels of rank", currentRank, "that don't overlap with any saved higher ranked rels: ", cumulativeExclusiveMrca()); }
+		
 
 		Set<Set<Relationship>> edgeSetsForRemainingRels = new HashSet<Set<Relationship>>();
 		for (Entry<Long, Set<Relationship>> e : relsByRankAndEdgeId.get(currentRank).entrySet()) {
@@ -236,7 +242,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 			if (VERBOSE) { print("picking best combinations of rels to add from non-overlapping edge sets"); }
 			for (Set<Relationship> proposed : combinations.withMissingElements()) {
 				
-				if (! internallyConsistent(proposed)) { continue; } // TODO: replace this with a prunable cartesian product generator
+				if (! internallyConsistent(proposed, currentRank)) { continue; } // TODO: replace this with a prunable cartesian product generator
 				
 				if (VERBOSE) { print("\nbest set so far is:", bestSet + ", with total mrca size:", mrca(bestSet).size()); }
 
@@ -274,7 +280,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 		
 		boolean result = true;
 		for (Relationship q : proposedHigher) {
-			if (! mrcaLower.containsAll(savedRelsByRank.get(rankHigher).get(q))) {
+			print(cumulativeExclusiveMrca(q, rankHigher));
+			if (! mrcaLower.containsAll(cumulativeExclusiveMrca(q, rankHigher))) {
 				result = false;
 				break;
 			}
@@ -289,7 +296,11 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 	 * @return
 	 */
 	private LongSet exclusiveMrca(Relationship r) {
-		return new ImmutableCompactLongSet((long[]) r.getProperty(NodeProperty.EXCLUSIVE_MRCA.propertyName));
+		MutableCompactLongSet ids = new MutableCompactLongSet();
+		if (! isTaxonomyRel(r)) {
+			ids.addAll((long[]) r.getProperty(NodeProperty.EXCLUSIVE_MRCA.propertyName));
+		}
+		return ids;
 	}
 	
 	/**
@@ -336,11 +347,31 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 		}
 		return rels;
 	}
+
+	private LongSet cumulativeExclusiveMrca() {
+		MutableCompactLongSet ids = new MutableCompactLongSet();
+		for (int rank : this.savedRelsByRank.keySet()) {
+			for (Relationship r : savedRelsByRank.get(rank).keySet()) {
+				ids.addAll(savedRelsByRank.get(rank).get(r));
+			}
+		}
+		return ids;
+	}
 	
 	private LongSet cumulativeExclusiveMrca(Set<Relationship> rels, int rank) {
 		MutableCompactLongSet ids = new MutableCompactLongSet();
 		if (this.savedRelsByRank.containsKey(rank)) {
 			for (Relationship r : savedRelsByRank.get(rank).keySet()) {
+				ids.addAll(savedRelsByRank.get(rank).get(r));
+			}
+		}
+		return ids;
+	}
+
+	private LongSet cumulativeExclusiveMrca(Relationship r, int rank) {
+		MutableCompactLongSet ids = new MutableCompactLongSet();
+		if (savedRelsByRank.containsKey(rank)) {
+			if (savedRelsByRank.get(rank).containsKey(r)) {
 				ids.addAll(savedRelsByRank.get(rank).get(r));
 			}
 		}
@@ -359,11 +390,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 		}
 	}
 	
-	private boolean internallyConsistent(Set<Relationship> rels) {
+	private boolean internallyConsistent(Set<Relationship> rels, int rank) {
 		boolean valid = true;
 		TLongBitArraySet cumulativeMrca = new TLongBitArraySet();
 		for (Relationship r : rels) {
-			TLongBitArraySet currMrca = mrcaTipsAndInternal(r);
+//			TLongBitArraySet currMrca = mrcaTipsAndInternal(r);
+			LongSet currMrca = cumulativeExclusiveMrca(r, rank);
 			if (cumulativeMrca.containsAny(currMrca)) {
 				valid = false;
 				if (VERBOSE) { print("set:", rels, "has internal overlap and will not be considered."); }
@@ -375,9 +407,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 	} 
 	
 	private void initialize() {
+		savedRelsByRank = new HashMap<Integer, Map<Relationship, LongSet>>();
 		relsByRankAndEdgeId = new HashMap<Integer, Map<Long, Set<Relationship>>>();
 		observedRanks = new HashSet<Integer>();
 		savedMrcas = new MutableCompactLongSet();
+		remainingRelsForCurrentRank = new HashSet<Relationship>();
+		sortedRanks = new ArrayList<Integer>();
 	}
 	
 	private void processIncomingRel(Relationship r) {

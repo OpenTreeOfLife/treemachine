@@ -30,7 +30,7 @@ public class Combinations<T> {
 		return new Iterable<Set<T>>() {
 			@Override
 			public Iterator<Set<T>> iterator() {
-				return new PrunableIterator(true);
+				return new PrunableSetIterator(true);
 			}
 		};
 	}
@@ -39,34 +39,60 @@ public class Combinations<T> {
 		return new Iterable<Set<T>>() {
 			@Override
 			public Iterator<Set<T>> iterator() {
-				return new PrunableIterator(false);
+				return new PrunableSetIterator(false);
 			}
 		};
 	}
 	
-	public class PrunableIterator implements Iterator<Set<T>> {
+	public PrunableSetIterator prunableIterator() {
+		return new PrunableSetIterator(false);
+	}
+	
+	public class PrunableSetIterator implements Iterator<Set<T>> {
 	
 		/** simple container class */
 		private class Sample {
 			BitMask bitmask;
 			int nextPosition;
-			public Sample(BitMask bitmask, int nextPosition) {
+			int size;
+			public Sample(BitMask bitmask, int nextPosition, int size) {
 				this.bitmask = bitmask;
 				this.nextPosition = nextPosition;
+				this.size = size;
 			}
 		}
 		
 		int count = 0;
+		int minimumSize = 0;
 		boolean mostInclusiveFirst;
 		LinkedList<Sample> approved = new LinkedList<Sample>();
 		List<Sample> proposed = new ArrayList<Sample>();
 		
-		PrunableIterator(boolean mostInclusiveFirst) {
+		PrunableSetIterator(boolean mostInclusiveFirst) {
 			this.mostInclusiveFirst = mostInclusiveFirst;
 			BitMask start = mostInclusiveFirst ? getFullBitMask(set.size()) : getEmptyBitMask(set.size());
-			approved.add(new Sample(start, -1));
+			int startSize = mostInclusiveFirst ? set.size() : minimumSize;
+			approved.add(new Sample(start, -1, startSize));
 		}
 		
+		public PrunableSetIterator minimumSize(int n) {
+			if (! mostInclusiveFirst) {
+				throw new IllegalArgumentException("cannot set minimum size unless visiting most inclusive sets first");
+			}
+			minimumSize = n;
+			return this;
+		}
+		
+		public PrunableSetIterator leastInclusiveFirst() {
+			mostInclusiveFirst = false;
+			return this;
+		}
+
+		public PrunableSetIterator mostInclusiveFirst() {
+			mostInclusiveFirst = true;
+			return this;
+		}
+
 		@Override
 		public boolean hasNext() {
 			// approve all the proposed samples derived from the last combination if they have not been pruned
@@ -85,6 +111,7 @@ public class Combinations<T> {
 			Sample s = approved.pop();
 			BitMask bitmask = s.bitmask;
 			int lastPos = s.nextPosition;
+			int size = s.size;
 			
 			// collect the set that corresponds to this sample
 			Set<T> t = new HashSet<T>();
@@ -93,6 +120,7 @@ public class Combinations<T> {
 			}
 			
 			// queue the proposed upcoming samples derived from this one
+			size += mostInclusiveFirst ? -1 : 1;
 			for (int i = 1; i + lastPos < bitmask.size(); i++) {
 				int nextPos = lastPos + i;
 				BitMask candidate = getBitMask(bitmask);
@@ -101,7 +129,8 @@ public class Combinations<T> {
 				} else {
 					candidate.open(nextPos);
 				}
-				proposed.add(new Sample(candidate, nextPos));
+				proposed.add(new Sample(candidate, nextPos, size));
+//				}
 			}
 			
 			count++;
