@@ -36,7 +36,6 @@ import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
 
 import opentree.synthesis.DraftTreePathExpander;
-import opentree.synthesis.SourceRankTopoOrderSynthesisExpanderUsingEdgeIds;
 import opentree.synthesis.SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas;
 import opentree.synthesis.SynthesisExpander;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;

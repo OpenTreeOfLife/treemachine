@@ -25,6 +25,11 @@ public class LongBitMask implements BitMask {
 		size = original.size;
 	}
 
+	public LongBitMask (int size, boolean initVal) {
+		mask = initVal ? Long.MAX_VALUE : 0;
+		this.size = size;
+	}
+	
 	public void open(int i) {
 		if (i >= size()) {throw new IllegalArgumentException();};
 		mask = mask | i2b(i);
@@ -73,9 +78,11 @@ public class LongBitMask implements BitMask {
 		return s.toString();
 	}
 	
+	/** this could be better. right now it builds a new list for each call to iterator() */
 	public Iterator<Integer> iterator() {
 		List<Integer> positions = new ArrayList<Integer>();
-		for (int j = 0; j <= maxBitPosition(mask); j++) {
+//		for (int j = 0; j <= maxBitPosition(mask); j++) {
+		for (int j = 0; j < size; j++) {
 			if (getBit(mask, j) > 0) {
 				positions.add(j);
 			}
