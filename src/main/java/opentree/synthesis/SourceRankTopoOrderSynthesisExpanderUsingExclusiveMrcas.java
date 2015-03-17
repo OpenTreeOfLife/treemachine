@@ -423,7 +423,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 	 * @return
 	 */
 	private static boolean isTaxonomyRel(Relationship r) {
-		return (r.getType() == RelType.TAXCHILDOF);
+		return (r.isType(RelType.TAXCHILDOF));
 	}
 	
 	@Override

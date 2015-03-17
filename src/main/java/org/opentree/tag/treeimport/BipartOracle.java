@@ -1663,7 +1663,7 @@ public class BipartOracle {
 		for(Node gn: taxNodesMatched){
 			for (Relationship trel: gn.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
 				if (graphNodes.contains(trel.getStartNode())){
-					updateSTREEChildOf(trel.getStartNode(),gn,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), edgeId,null);
+					updateSTREEChildOf(trel.getStartNode(),gn,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), edgeId,nodeBipartExp);
 				}
 			}
 		}
