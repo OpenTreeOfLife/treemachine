@@ -28,6 +28,7 @@ import java.util.function.Predicate;
 import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
+import opentree.synthesis.TopologicalOrder;
 
 import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.Direction;
@@ -1517,6 +1518,11 @@ public class BipartOracle {
 			tx.success();
 			tx.finish();
 			System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
+			// CHECKING FOR CYCLES NOW
+			TopologicalOrder to = new TopologicalOrder(this.gdb,RelType.STREECHILDOF);
+			for(Node n: to){
+				
+			}
 		}	
 		System.out.println("all trees have been mapped.");
 	}
