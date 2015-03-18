@@ -13,6 +13,7 @@ import java.util.Set;
 import static org.opentree.utils.GeneralUtils.print;
 import static org.opentree.utils.GeneralUtils.getRelationshipsFromTo;
 import opentree.constants.RelType;
+import opentree.synthesis.CartesianProduct.PrunableCPIterator;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -118,17 +119,26 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 			while (overlappingSets.size() > 0) {
 
 				// first see if we can update the best set with any rels from edge sets that overlap with the best set
-				CartesianProduct<Relationship> combinations = new CartesianProduct<Relationship>(overlappingSets);
 				if (VERBOSE) { print("picking best combinations of rels to add from overlapping edge sets"); }
-				for (Set<Relationship> proposed : combinations.withMissingElements()) {
+				
+//				CartesianProduct<Relationship> combinations = new CartesianProduct<Relationship>(overlappingSets);
+//				for (Set<Relationship> proposed : combinations.withMissingElements()) {
+				
+				PrunableCPIterator<Relationship> combinations = new CartesianProduct<Relationship>(overlappingSets)
+						.prunableIterator(true);
+				while (combinations.hasNext()) {
+
+					Set<Relationship> proposed = combinations.next();
 					
-					if (! internallyConsistent(proposed)) { continue; }
+					if (! internallyConsistent(proposed)) { combinations.prune(); continue; }
 
 					if (VERBOSE) { print("\nbest set so far is:", bestSetForCurrentRank + ", which exemplifies", scoreForRank(bestSetForCurrentRank, currentRank), "edges from tree of rank", currentRank); }
 
-					// will return the original bestSet unless the proposed rels can improve it
+					// will return null if bestSet cannot be updated by proposed (because of partial overlap)
 					Set<Relationship> candidate = updateSet(n, proposed, bestSet, currentRank);
-	
+
+					if (candidate == null) { combinations.prune(); continue; }
+					
 					// replace the previous best candidate if this one has more rels representing edges from the current ranked tree
 					// or if it has the same number of rels from the current ranked tree but contains more nodes
 					int candidateScore = scoreForRank(candidate, currentRank);
@@ -270,17 +280,23 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 			Set<Relationship> bestCandidate = null;
 			int bestScore = -1;
 			Set<Long> mrcaIdsBestCandidate = new HashSet<Long>();
-			for (Set<Relationship> candidate : new CartesianProduct<Relationship>(currOverlappingSetOfAugmentingEdgeSets).withMissingElements()) {
-				if (internallyConsistent(candidate)) {
-					int candidateScore = scoreForRank(candidate, workingRank);
-					if ((candidateScore > bestScore) ||
-					   ((candidateScore == bestScore) 
-							   && (mrcaTipsAndInternal(candidate).size() > mrcaIdsBestCandidate.size()))) {
-						bestCandidate = candidate;
-						bestScore = candidateScore;
-						mrcaIdsBestCandidate = mrcaTipsAndInternal(bestCandidate);
-					}
+			PrunableCPIterator<Relationship> combinations = new CartesianProduct<Relationship>(currOverlappingSetOfAugmentingEdgeSets)
+					.prunableIterator(true);
+
+			while (combinations.hasNext()) {
+				Set<Relationship> candidate = combinations.next();
+
+				if (! internallyConsistent(candidate)) { combinations.prune(); continue; }
+
+				int candidateScore = scoreForRank(candidate, workingRank);
+				if ((candidateScore > bestScore) ||
+				   ((candidateScore == bestScore) 
+						   && (mrcaTipsAndInternal(candidate).size() > mrcaIdsBestCandidate.size()))) {
+					bestCandidate = candidate;
+					bestScore = candidateScore;
+					mrcaIdsBestCandidate = mrcaTipsAndInternal(bestCandidate);
 				}
+
 			}
 			if (VERBOSE) { print("selected best candidate", bestCandidate); }
 			
@@ -290,7 +306,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 					toUpdate.add(r);
 				}
 			}
-		
 		}
 
 		return toUpdate;
@@ -470,7 +485,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 			} 
 		}
 		
-		Set<Relationship> updated;
+		Set<Relationship> updated = null;
 		if (addProposed) {
 			if (VERBOSE) { print("did not find any overlapping but not completely contained rels. proposed set", proposed, "will", (containedByProposed.size() > 0 ? "replace " + containedByProposed : "be added to set")); }
 			updated = proposed;
@@ -481,7 +496,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 			}
 		} else {
 			if (VERBOSE) { print("set will not be updated."); }
-			updated = toUpdate;
 		}
 
 //		if (VERBOSE) { print(); }

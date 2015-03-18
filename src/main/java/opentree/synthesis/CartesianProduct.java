@@ -1,12 +1,17 @@
 package opentree.synthesis;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Collection;
 
+
+//import opentree.synthesis.Combinations.PrunableSetIterator.Sample;
+import opentree.synthesis.mwis.BitMask;
 import static org.opentree.utils.GeneralUtils.print;
 
 public class CartesianProduct<T> implements Iterable<Set<T>> {
@@ -23,7 +28,7 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 
 	@Override
 	public Iterator<Set<T>> iterator() {
-		return new CPIterator(false); // no missing elements
+		return new PrunableCPIterator(sets, false); // no missing elements
 	}
 	
 	public int numberOfSets() {
@@ -46,82 +51,125 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 		return new Iterable<Set<T>> () {
 			@Override
 			public Iterator<Set<T>> iterator() {
-				return new CPIterator(true); // make sets with missing elements
+				return new PrunableCPIterator(sets, true); // make sets with missing elements
 			}
 		};
 	}
 	
-	private class CPIterator implements Iterator<Set<T>> {
+	public PrunableCPIterator<T> prunableIterator(boolean withMissingElements) {
+		return new PrunableCPIterator<T>(sets, true);
+	}
+	
+	public static class PrunableCPIterator<R> implements Iterator<Set<R>> {
 		
-		int[] index;
+//		int[] index;
 		boolean withMissing;
-		boolean hasNext = true;
+		List<List<R>> sets;
+//		boolean hasNext = true;
+		LinkedList<Sample> approved = new LinkedList<Sample>();
+		List<Sample> proposed = new ArrayList<Sample>();
 
-		public CPIterator(boolean withMissingElements) {
-			index = new int[sets.size()];
-			withMissing = withMissingElements;
-			if (sets.size() < 1) {
-				hasNext = false;
+		/** simple container class */
+		private class Sample {
+			int[] index;
+			int lastPosition;
+//			int size;
+			public Sample(int[] index, int nextPosition) {
+				this.index = index;
+				this.lastPosition = nextPosition;
+//				this.size = size;
 			}
+		}
+				
+		public PrunableCPIterator(List<List<R>> sets, boolean withMissingElements) {
+			this.sets = sets;
+			withMissing = withMissingElements;
+			int[] start = new int[sets.size()];
+			for (int i = 0; i < start.length; i++) { start[i] = withMissing ? -1 : 0; }
+			approved.add(new Sample(start, -1));
 		}
 		
 		@Override
 		public boolean hasNext() {
-			return hasNext;
+			// approve all the proposed samples derived from the last combination if they have not been pruned
+			if (proposed != null) { approved.addAll(proposed); }
+			proposed = new ArrayList<Sample>();
+			return approved.size() > 0;
 		}
 
 		@Override
-		public Set<T> next() {
-			Set<T> sample = new HashSet<T>();
-			for(int i = 0; i < index.length; i++) {
-				if (! (withMissing && index[i] >= sets.get(i).size())) {
-					sample.add(sets.get(i).get(index[i]));
+		public Set<R> next() {
+			
+			// get the next sample from the approved queue
+			Sample s = approved.pop();
+			
+			// collect the set that corresponds to this sample
+			Set<R> t = new HashSet<R>();
+			for(int i = 0; i < s.index.length; i++) {
+				if (s.index[i] >= 0) {
+					t.add(sets.get(i).get(s.index[i]));
 				}
 			}
-			// TODO: remember the position we need to updating the next index so we don't
-			// have to search for it every time (would save a lot of time for large numbers
-			// of sets). just have the increment function return the column where the next
-			// increment operation should occur.
-			increment(0);
-			return sample;
+			
+			for (int column = s.lastPosition + 1; column < s.index.length; column++) {
+				for (int j = 0; j < maxPosition(column); j++) {
+					int[] index = Arrays.copyOf(s.index, s.index.length);
+					index[column] = j;
+					proposed.add(new Sample(index, column));
+				}
+			}
+			
+			return t;
 		}
 		
-		private void increment(int column) {
+/*		private Sample increment(int[] index, int curColumn) {
 			
-			if (index[column] > maxPosition(column)) {
-				rollOver(column);
+			Sample s;
+			if (index[curColumn] > maxPosition(curColumn)) {
+				s = rollOver(index, curColumn);
 				
-			} else if (column == sets.size() - 1) {
-				if (index[column] < maxPosition(column)) {
-					index[column]++;
+			} else if (curColumn == sets.size() - 1) {
+				if (index[curColumn] < maxPosition(curColumn)) {
+					index[curColumn]++;
+					s = new Sample(index, curColumn);
 				} else {
-					rollOver(column);
+					s = rollOver(index, curColumn);
 				}
 
 			} else {
-				increment(column + 1);
+				s = increment(index, curColumn + 1);
 			}
-		}
+			
+			return s;
+		} */
 		
 		private int maxPosition(int column) {
 			return withMissing ? sets.get(column).size() : sets.get(column).size() - 1;
 		}
 		
-		private void rollOver(int column) {
+/*		private Sample rollOver(int[] index, int column) {
+			Sample s;
 			if (column > 0) {
 				// rollover the previous column if it is finished
 				if (index[column-1] >= maxPosition(column-1)) {
-					rollOver(column-1);
+					s = rollOver(index, column-1);
 				} else {
 					// reset all deeper columns
 					for (int c = column; c < index.length; c++) {
 						index[c] = 0;
 					}
-					index[column-1]++;
+					index[--column]++;
+					s = new Sample(index, column);
 				}
 			} else { // attempt to roll over first column means we're done
-				hasNext = false;
+				s = null;
 			}
+			return s;
+		} */
+		
+		/** exclude all the the potential sets that could have been generated using the last set returned by the next() method. */
+		public void prune() {
+			proposed = new ArrayList<Sample>();
 		}
 	}
 	
@@ -145,9 +193,37 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 			print(s);
 		}
 	}
+
+	private static void pruneIfSumExceedsTest(Object[][] i, boolean withMissingElements, double maxVal) {
+		Set<Set<Integer>> t = (Set<Set<Integer>>)(Set<?>) makeSets((Object[][]) i);
+		CartesianProduct<Integer> samples = new CartesianProduct<Integer>(t);
+		PrunableCPIterator<Integer> combinations = samples.prunableIterator(withMissingElements);
+		while (combinations.hasNext()) {
+
+			Set<Integer> s = combinations.next();
+			if (sum(s) > maxVal) {
+				combinations.prune();
+			} else {
+				print(s);
+			}
+		}
+	}
 	
+	private static <T extends Number> double sum(Set<T> incoming) {
+		Double sum = 0.0;
+		for (Number n : incoming) {
+			sum += n.doubleValue();
+		}
+		return sum;
+	}
+
 	public static void main(String[] args) {
-		simpleTest(new Integer[][] {{0,1,2}, {3,4,5}, {6,7,8}, {9,10,11}}, true);
+		simpleTest(new Integer[][] {{0,1}, {3,4}, {6,7}}, true);
 		simpleTest(new Double[][] {{0.1,0.2}, {0.3,0.4}, {0.5,0.6}, {0.7,0.8}}, true);
+		simpleTest(new Integer[][] {{0,1}, {10,11,12}, {20,21,22,23}}, true);
+		pruneIfSumExceedsTest(new Integer[][] {{0,1}, {10,11,12}, {20,21,22,23}}, true, 5);
+		pruneIfSumExceedsTest(new Integer[][] {{0,1}, {10,11,12}, {20,21,22,23}}, true, 15);
+		pruneIfSumExceedsTest(new Integer[][] {{0,1}, {10,11,12}, {20,21,22,23}}, true, 25);
+		pruneIfSumExceedsTest(new Integer[][] {{0,1}, {10,11,12}, {20,21,22,23}}, true, 35);
 	}
 }
