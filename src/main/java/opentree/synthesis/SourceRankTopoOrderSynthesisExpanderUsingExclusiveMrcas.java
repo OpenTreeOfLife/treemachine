@@ -62,7 +62,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 		initialize();
 		
 		// get all the incoming rels and group them by sourcerank and sourceedgeid
-		for (Relationship r : getALLStreeAndTaxRels(n)) {
+		for (Relationship r : availableRelsForSynth(n, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
 			processIncomingRel(r);
 		}
 				

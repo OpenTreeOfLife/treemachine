@@ -278,5 +278,6 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 		pruneIfSumExceedsTest(new Integer[][] {{0,1}, {10,11,12}, {20,21,22,23}}, true, 15);
 		pruneIfSumExceedsTest(new Integer[][] {{0,1}, {10,11,12}, {20,21,22,23}}, true, 25);
 		pruneIfSumExceedsTest(new Integer[][] {{0,1}, {10,11,12}, {20,21,22,23}}, true, 35);
+		pruneIfSumExceedsTest(new Integer[][] {{0,1}, {3,4}, {6,7}}, true, 10);
 	}
 }

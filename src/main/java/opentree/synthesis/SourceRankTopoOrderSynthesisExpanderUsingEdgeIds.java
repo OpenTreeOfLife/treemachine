@@ -26,8 +26,6 @@ import org.opentree.bitarray.LongSet;
 import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.bitarray.TLongBitArraySet;
 
-import scala.actors.threadpool.Arrays;
-
 public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends TopologicalOrderSynthesisExpander {
 
 	/**
@@ -70,15 +68,13 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 		initialize();
 		
 		// get all the incoming rels and group them by sourcerank and sourceedgeid
-		for (Relationship r : n.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
-			if (! excludedRels.contains(r)) {
-				processIncomingRel(r);
-			}
+		for (Relationship r : availableRelsForSynth(n, RelType.STREECHILDOF)) {
+			processIncomingRel(r);
 		}
 		
 		Set<Relationship> taxonomySingletonRels = new HashSet<Relationship>();
 		Set<Node> taxonomySingletonNodes = new HashSet<Node>();
-		for (Relationship r : n.getRelationships(Direction.INCOMING, RelType.TAXCHILDOF)) {
+		for (Relationship r : availableRelsForSynth(n, RelType.TAXCHILDOF)) {
 			Node childNode = r.getStartNode();
 			if (childNode.hasRelationship(Direction.INCOMING, RelType.TAXCHILDOF, RelType.STREECHILDOF)) {
 				processIncomingRel(r);
@@ -507,7 +503,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 	}
 
 	/**
-	 * 
+	 * Gather information about the tree edges that are part of this set.
 	 */
 	private void collectCoveredTreeEdges(Node parent, Set<Node> children) {
 

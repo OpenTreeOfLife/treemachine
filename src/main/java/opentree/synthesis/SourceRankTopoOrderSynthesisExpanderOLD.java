@@ -72,7 +72,7 @@ public class SourceRankTopoOrderSynthesisExpanderOLD extends TopologicalOrderSyn
 		// note, we only care about the rels from the highest ranked source, but we can't be sure what that is until we've
 		// processed all the incoming rels, so we just save edges for all ranks
 		Set<Integer> observedRanks = new HashSet<Integer>();
-		for (Relationship r : getALLStreeAndTaxRels(n)) {
+		for (Relationship r : this.availableRelsForSynth(n, RelType.STREECHILDOF, RelType.TAXCHILDOF)) { //getALLStreeAndTaxRels(n)) {
 
 			Node child = r.getStartNode();
 			if (! ranksForRelsFromChildNode.containsKey(child)) {

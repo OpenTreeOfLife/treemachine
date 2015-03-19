@@ -162,7 +162,7 @@ public class GraphGenerator {
 		for (int i = 0; i < nBackEdges; i++) {
 		
 			// pick a random internal node `parent` and gather all its descendants
-			Node p = G.getNodeById((long) r.nextInt(N - nTips) + nTips);
+			Node p = G.getNodeById((long) r.nextInt(N - nTips) + nTips + 1);
 			LinkedList<Node> toVisit = new LinkedList<Node>();
 			toVisit.add(p);
 			List<Node> descendants = new ArrayList<Node>();

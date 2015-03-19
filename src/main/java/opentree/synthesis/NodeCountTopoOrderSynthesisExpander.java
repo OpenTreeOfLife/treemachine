@@ -12,6 +12,7 @@ import java.util.Set;
 import org.opentree.bitarray.TLongBitArraySet;
 
 import static org.opentree.utils.GeneralUtils.print;
+import opentree.constants.RelType;
 import opentree.synthesis.mwis.BruteWeightedIS;
 import opentree.synthesis.mwis.GreedyApproximateWeightedIS;
 import opentree.synthesis.mwis.WeightedUndirectedGraph;
@@ -43,7 +44,7 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 		Map<Node, Relationship> bestRelForNode = new HashMap<Node, Relationship>();
 		List<Relationship> singletons = new ArrayList<Relationship>();
 	
-		for (Relationship r : getALLStreeAndTaxRels(n)) {
+		for (Relationship r : availableRelsForSynth(n, RelType.STREECHILDOF, RelType.TAXCHILDOF)) { // getALLStreeAndTaxRels(n)) {
 //			if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip *all* singletons
 			if (mrcaTips(r.getStartNode()).size() == 1) { singletons.add(r); continue; } // skip *all* singletons
 			// for non-singletons, just keep one (arbitrary) rel pointing at each child node -- the others are redundant

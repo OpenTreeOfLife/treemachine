@@ -32,6 +32,10 @@ import org.opentree.graphdb.GraphDatabaseAgent;
  * 
  * input: graph G = (V, E)
  * output: set of strongly connected components (sets of vertices)
+ * 
+ * 
+ * TODO: something here seems to be broken, it doesn't appear to find the cycle in the Fungi db.
+ * 
  */
 public class TarjanSCC implements Iterable<Set<Node>> {
 	
@@ -150,8 +154,6 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 		simpleTest(GraphGenerator.chainOfSimpleCycles(5, 5, dbname), 5);
 		simpleTest(GraphGenerator.cycleOfSimpleCycles(5, 5, dbname ), 1);
 		simpleTest(GraphGenerator.randomTree(20, 2, dbname), 20+20-1);
-		
-//		maximumCountTest(GraphGenerator.randomTreeWithBackEdges(10, 2, 1, dbname), 18);
 		
 		int maxTips = 10;
 		int nReps = 1000;

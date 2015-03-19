@@ -1,5 +1,6 @@
 package opentree.synthesis;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PathExpander;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.traversal.BranchState;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.kernel.Traversal;
@@ -89,13 +91,23 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		}
 	}
 	
-	/**
+	/*
 	 * Helper method that returns an iterable of all incoming STREECHILDOF and TAXCHILDOF rels at a given node.
 	 * @param n
 	 * @return
-	 */
+	 *
 	Iterable<Relationship> getALLStreeAndTaxRels(Node n) {
 		return n.getRelationships(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF);
+	} */
+	
+	Iterable<Relationship> availableRelsForSynth(Node n, RelationshipType ... relTypes) {
+		List<Relationship> rels = new ArrayList<Relationship>();
+		for (Relationship r : n.getRelationships(Direction.INCOMING, relTypes)) {
+			if (! excludedRels.contains(r)) {
+				rels.add(r);
+			}
+		}
+		return rels;
 	}
 	
 	/**
