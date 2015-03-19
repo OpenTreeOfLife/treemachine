@@ -21,10 +21,13 @@ public class TopologicalOrder implements Iterable<Node> {
 	private Set<Node> unmarked = new HashSet<Node>();
 	private Set<Node> temporaryMarked = new HashSet<Node>();
 	private List<Node> nodes = new LinkedList<Node>();
+	private Set<Relationship> excludedRels;
 	
 	private final RelationshipType[] relTypes;
 	
-	public TopologicalOrder(GraphDatabaseAgent G, RelationshipType... relTypes) {
+	public TopologicalOrder(GraphDatabaseAgent G, Set<Relationship> excludedRels, RelationshipType... relTypes) {
+
+		this.excludedRels = excludedRels;
 
 		this.relTypes = relTypes;
 		
@@ -47,7 +50,9 @@ public class TopologicalOrder implements Iterable<Node> {
 		if (unmarked.contains(n)) {
 			temporaryMarked.add(n);
 			for (Relationship m : n.getRelationships(Direction.INCOMING, relTypes)) {
-				visit(m.getStartNode());
+				if (excludedRels.contains(m)) {
+					visit(m.getStartNode());
+				}
 			}
 			
 			unmarked.remove(n);
@@ -66,7 +71,7 @@ public class TopologicalOrder implements Iterable<Node> {
 		GraphDatabaseAgent G = GraphGenerator.randomTree(10, 2, "test.db");
 		System.out.println("input graph: \n" + GraphGenerator.getSTREEAdjacencyList(G));
 
-		TopologicalOrder order = new TopologicalOrder(G, RelType.STREECHILDOF);
+		TopologicalOrder order = new TopologicalOrder(G, new HashSet<Relationship>(), RelType.STREECHILDOF);
 		System.out.println("nodes in topological order: \n");
 		for (Node n : order) {
 			System.out.println(n);

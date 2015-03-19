@@ -13,7 +13,7 @@ import java.util.Set;
 import static org.opentree.utils.GeneralUtils.print;
 import static org.opentree.utils.GeneralUtils.getRelationshipsFromTo;
 import opentree.constants.RelType;
-import opentree.synthesis.CartesianProduct.PrunableCPIterator;
+import opentree.synthesis.CartesianProduct.PrunableCPSupersetIterator;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -121,11 +121,11 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 				// first see if we can update the best set with any rels from edge sets that overlap with the best set
 				if (VERBOSE) { print("picking best combinations of rels to add from overlapping edge sets"); }
 				
-//				CartesianProduct<Relationship> combinations = new CartesianProduct<Relationship>(overlappingSets);
-//				for (Set<Relationship> proposed : combinations.withMissingElements()) {
-				
-				PrunableCPIterator<Relationship> combinations = new CartesianProduct<Relationship>(overlappingSets)
-						.prunableIterator(true);
+				// this critter allows us to generate sets S' from the Cartesian product, stopping short (here called 'pruning')
+				// when we encounter any S' for which we don't want to visit any set S | S.supersetof(S').
+				PrunableCPSupersetIterator<Relationship> combinations = new CartesianProduct<Relationship>(overlappingSets)
+						.withMissingElements()
+						.prunableIterator();
 				while (combinations.hasNext()) {
 
 					Set<Relationship> proposed = combinations.next();
@@ -137,6 +137,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 					// will return null if bestSet cannot be updated by proposed (because of partial overlap)
 					Set<Relationship> candidate = updateSet(n, proposed, bestSet, currentRank);
 
+					// if this set cannot update the bestSet, then none of its supersets can either, so don't visit them
 					if (candidate == null) { combinations.prune(); continue; }
 					
 					// replace the previous best candidate if this one has more rels representing edges from the current ranked tree
@@ -247,7 +248,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 						idsForCombinedSet.addAll(idsForOverlapping.get(setId));
 //						setsToRemove.add(setId);
 					}
-					if (VERBOSE) { print(setId+": cumulative union=", idsForCombinedSet); }
+					if (VERBOSE) { print(setId + ": cumulative union=", idsForCombinedSet); }
 				}
 				assert setsToCombine.size() > 0;
 
@@ -268,6 +269,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 			cumulativeIds.addAll(edgeSetIds);
 		}
 		
+		// find the best set of non-overlapping rels from each set of overlapping edge sets
 		for (Integer setId : overlapping) {
 		
 			Set<Set<Relationship>> currOverlappingSetOfAugmentingEdgeSets = new HashSet<Set<Relationship>>();
@@ -280,12 +282,13 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 			Set<Relationship> bestCandidate = null;
 			int bestScore = -1;
 			Set<Long> mrcaIdsBestCandidate = new HashSet<Long>();
-			PrunableCPIterator<Relationship> combinations = new CartesianProduct<Relationship>(currOverlappingSetOfAugmentingEdgeSets)
-					.prunableIterator(true);
-
+			PrunableCPSupersetIterator<Relationship> combinations = new CartesianProduct<Relationship>(currOverlappingSetOfAugmentingEdgeSets)
+					.withMissingElements()
+					.prunableIterator();
+			
 			while (combinations.hasNext()) {
 				Set<Relationship> candidate = combinations.next();
-
+				
 				if (! internallyConsistent(candidate)) { combinations.prune(); continue; }
 
 				int candidateScore = scoreForRank(candidate, workingRank);
@@ -637,8 +640,9 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 	}
 	
 	@Override
-	void breakCycles() {
+	Set<Relationship> breakCycles() {
 		System.out.println("currently not breaking cycles! topological order should fail if it encounters one.");
+		return new HashSet<Relationship>();
 	}
 
 	

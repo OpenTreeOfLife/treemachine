@@ -43,6 +43,8 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	Map<Long, TLongBitArraySet> nodeMrcaTipsAndInternal = new HashMap<Long, TLongBitArraySet>();
 	Map<Long, TLongBitArraySet> nodeMrcaTips = new HashMap<Long, TLongBitArraySet>();
 
+	Set<Relationship> excludedRels;
+	
 	/** the graph */
 	GraphDatabaseAgent G;
 	
@@ -58,8 +60,9 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * so this method must be implemented individually by each class that extends the abstract TopologicalOrderSynthesisExpander.
 	 * If a given implementation of this method is ineffective and does not remove all cycles, then the topological sort should
 	 * throw an IllegalArgumentException on the first cycle it encounters.
+	 * @return 
 	 */
-	abstract void breakCycles();
+	abstract Set<Relationship> breakCycles();
 	
 	/**
 	 * This method must be implemented by each class extending the TopologicalOrderSynthesisExpander. It must accept a node, and
@@ -77,8 +80,8 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 */
 	void synthesizeFrom(Node root) {
 		G = new GraphDatabaseAgent(root.getGraphDatabase());
-		breakCycles();
-		topologicalOrder = new TopologicalOrder(G, RelType.STREECHILDOF, RelType.TAXCHILDOF);
+		excludedRels = breakCycles(); // find and flag rels to be excluded from the topological order
+		topologicalOrder = new TopologicalOrder(G, excludedRels, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 		
 		// now process all the nodes
 		for (Node n : topologicalOrder) {
