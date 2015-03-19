@@ -639,12 +639,61 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 		return updated;
 	}
 	
+	private Set<Node> unmarkedForCycle = new HashSet<Node>();
+	private Set<Node> temporaryMarkedForCycle = new HashSet<Node>();
+	private HashSet<Relationship> excludedRels = new HashSet<Relationship>();
+
 	@Override
 	Set<Relationship> breakCycles() {
-		System.out.println("currently not breaking cycles! topological order should fail if it encounters one.");
-		return new HashSet<Relationship>();
-	}
+		System.out.println("breaking cycles");
+		boolean breaking = true;
+		while(breaking){
+			breaking = false;
+			unmarkedForCycle = new HashSet<Node>();
+			temporaryMarkedForCycle = new HashSet<Node>();
+			for (Node n : G.getAllNodes()) {
+				if (n.hasRelationship(RelType.STREECHILDOF)) {
+					unmarkedForCycle.add(n);
+				}
+			}
 
+			while (! unmarkedForCycle.isEmpty()) {
+				breaking = visitNodeForBreakCycles(unmarkedForCycle.iterator().next(),null);
+				if (breaking == true)
+					break;
+			}
+		}
+		//System.out.println("currently not breaking cycles! topological order should fail if it encounters one.");
+		return excludedRels;
+	}
+	
+
+	private boolean visitNodeForBreakCycles(Node n,Node p){
+		if (temporaryMarkedForCycle.contains(n)) {
+			if(p == null)
+				throw new IllegalArgumentException("The graph contains a directed cycle that includes the node: " + n+" with no parent, change implementation");
+			else{
+				for(Relationship r: getRelationshipsFromTo(n, p, RelType.STREECHILDOF)){
+					excludedRels.add(r);
+					return true;
+				}
+			}
+		}
+
+		if (unmarkedForCycle.contains(n)) {
+			temporaryMarkedForCycle.add(n);
+			for (Relationship m : n.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
+				if(excludedRels.contains(m)==true)
+					continue;
+				boolean ret = visitNodeForBreakCycles(m.getStartNode(),n);
+				if (ret)
+					return true;
+			}
+			unmarkedForCycle.remove(n);
+			temporaryMarkedForCycle.remove(n);
+		}
+		return false;
+	}
 	
 	/**
 	 * Returns true if and only if r contains no descendant tips that are shared by any of the rels in

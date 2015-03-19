@@ -50,7 +50,7 @@ public class TopologicalOrder implements Iterable<Node> {
 		if (unmarked.contains(n)) {
 			temporaryMarked.add(n);
 			for (Relationship m : n.getRelationships(Direction.INCOMING, relTypes)) {
-				if (excludedRels.contains(m)) {
+				if (excludedRels.contains(m)==false) {
 					visit(m.getStartNode());
 				}
 			}
