@@ -518,7 +518,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 			// add *all* the stree/tax edges congruent with this rel (not just this rel, but parallel rels as well)
 			for (Relationship r : getRelationshipsFromTo(child, parent, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
 
-				if (excludedRels.contains(r)) { continue; } // avoid rels identified during cycles. think it is necessary here!
+				// avoid rels identified during cycles? it's not clear whether we actually want to do avoid these here.
+				// visiting these rels here just records information about source tree edges, and should not introduce
+				// technical errors in the procedure. but it could do weird things to make synth decisions based on
+				// information about source trees from rels that we're not actually including in the synthesis. so for
+				// now i am leaving this here.
+				if (excludedRels.contains(r)) { continue; } 
 
 				int rank = rank(r);
 				updateSetMap(rank, currNodeEdgesForRank);
