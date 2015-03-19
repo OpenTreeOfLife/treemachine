@@ -28,6 +28,7 @@ import java.util.function.Predicate;
 import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
+import opentree.synthesis.TarjanSCC;
 import opentree.synthesis.TopologicalOrder;
 
 import org.apache.commons.io.FileUtils;
@@ -1519,10 +1520,20 @@ public class BipartOracle {
 			tx.finish();
 			System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 			// CHECKING FOR CYCLES NOW
-			TopologicalOrder to = new TopologicalOrder(this.gdb,RelType.STREECHILDOF);
-			for(Node n: to){
-				
+			int x = 0;
+			int g = 0;
+			for (Set<Node> component : new TarjanSCC(this.gdb, RelType.STREECHILDOF)) {
+				if(component.size() > 1){
+					System.out.println(x++ + ", " + component);
+					g+=1;
+				}
 			}
+			if(g > 0){
+				this.gdb.shutdownDb();
+				System.err.println("found a cycle");
+				System.exit(0);
+			}
+			System.out.println();
 		}	
 		System.out.println("all trees have been mapped.");
 	}
