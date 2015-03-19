@@ -106,8 +106,7 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 	}
 	
 	public Set<Set<Node>> components() {
-		Set<Set<Node>>() immutable
-		for 
+		return Collections.unmodifiableSet(components);
 	}
 	
 	private static void simpleTest(GraphDatabaseAgent G, int e) {
