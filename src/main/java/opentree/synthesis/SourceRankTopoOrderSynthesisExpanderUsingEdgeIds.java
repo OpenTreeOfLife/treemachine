@@ -517,6 +517,9 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 
 			// add *all* the stree/tax edges congruent with this rel (not just this rel, but parallel rels as well)
 			for (Relationship r : getRelationshipsFromTo(child, parent, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
+
+				if (excludedRels.contains(r)) { continue; } // avoid rels identified during cycles. think it is necessary here!
+
 				int rank = rank(r);
 				updateSetMap(rank, currNodeEdgesForRank);
 				currNodeEdgesForRank.get(rank).add(edgeId(r));
