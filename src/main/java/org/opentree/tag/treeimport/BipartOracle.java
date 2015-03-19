@@ -1520,7 +1520,7 @@ public class BipartOracle {
 			tx.finish();
 			System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 			// CHECKING FOR CYCLES NOW
-			int x = 0;
+			/*int x = 0;
 			int g = 0;
 			for (Set<Node> component : new TarjanSCC(this.gdb, RelType.STREECHILDOF)) {
 				if(component.size() > 1){
@@ -1532,7 +1532,12 @@ public class BipartOracle {
 				this.gdb.shutdownDb();
 				System.err.println("found a cycle");
 				System.exit(0);
+			}*/
+			TopologicalOrder to = new TopologicalOrder(this.gdb,RelType.STREECHILDOF);
+			for(Node n: to){
+				
 			}
+			
 			System.out.println();
 		}	
 		System.out.println("all trees have been mapped.");
