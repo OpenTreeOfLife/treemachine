@@ -160,15 +160,29 @@ public class GraphGenerator {
 		Transaction tx = G.beginTx();
 		Random r = new Random();
 		for (int i = 0; i < nBackEdges; i++) {
-			long p = r.nextInt(N - nTips) + 2;
-			long q = all.size();
-			while (p <= q) { q = r.nextInt(N - nTips - 1) + 1; System.out.println(p + " " + q); }
-			G.getNodeById(p).createRelationshipTo(G.getNodeById(q), RelType.STREECHILDOF);
+		
+			// pick a random internal node `parent` and gather all its descendants
+			Node p = G.getNodeById((long) r.nextInt(N - nTips) + nTips);
+			LinkedList<Node> toVisit = new LinkedList<Node>();
+			toVisit.add(p);
+			List<Node> descendants = new ArrayList<Node>();
+			while (toVisit.size() > 0) {
+				addChildren(toVisit.pop(), descendants);
+			}
+			
+			// connect parent as a child of a random descendants
+			p.createRelationshipTo(descendants.get(r.nextInt(descendants.size())), RelType.STREECHILDOF);
 		}
 		tx.success();
 		tx.finish();
 		
 		return G;
+	}
+	
+	private static void addChildren(Node p, List<Node> toAdd) {
+		for (Relationship s : p.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
+			toAdd.add(s.getStartNode());
+		}
 	}
 
 	

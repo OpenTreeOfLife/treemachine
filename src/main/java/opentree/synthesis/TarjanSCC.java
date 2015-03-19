@@ -151,9 +151,9 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 		simpleTest(GraphGenerator.cycleOfSimpleCycles(5, 5, dbname ), 1);
 		simpleTest(GraphGenerator.randomTree(20, 2, dbname), 20+20-1);
 		
-		maximumCountTest(GraphGenerator.randomTreeWithBackEdges(10, 2, 1, dbname), 18);
+//		maximumCountTest(GraphGenerator.randomTreeWithBackEdges(10, 2, 1, dbname), 18);
 		
-/*		int maxTips = 10;
+		int maxTips = 10;
 		int nReps = 1000;
 		Random r = new Random();
 		for (int i = 0; i < nReps; i++) {
@@ -161,7 +161,7 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 			int maxSCCs = (2 * maxTips) - 2;
 			int nBackEdges = 1;
 			maximumCountTest(GraphGenerator.randomTreeWithBackEdges(nTips, 2, nBackEdges, dbname), maxSCCs);
-		} */
+		}
 	}
 
 }
