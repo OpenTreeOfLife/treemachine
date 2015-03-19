@@ -1533,7 +1533,7 @@ public class BipartOracle {
 				System.err.println("found a cycle");
 				System.exit(0);
 			}*/
-			TopologicalOrder to = new TopologicalOrder(this.gdb,RelType.STREECHILDOF);
+			TopologicalOrder to = new TopologicalOrder(this.gdb, new HashSet<Relationship>(), RelType.STREECHILDOF);
 			for(Node n: to){
 				
 			}

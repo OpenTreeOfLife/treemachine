@@ -9,13 +9,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.Collection;
 
-
-//import opentree.synthesis.Combinations.PrunableSetIterator.Sample;
-import opentree.synthesis.mwis.BitMask;
 import static org.opentree.utils.GeneralUtils.print;
 
 public class CartesianProduct<T> implements Iterable<Set<T>> {
 
+	boolean withMissingElements = false;
 	List<List<T>> sets;
 	
 	CartesianProduct (Collection<Set<T>> sets) { 
@@ -26,9 +24,19 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 		java.lang.System.out.println();
 	}
 
+	public CartesianProduct<T> withMissingElements() {
+		withMissingElements = true;
+		return this;
+	}
+
+	public CartesianProduct<T> withoutMissingElements() {
+		withMissingElements = false;
+		return this;
+	}
+	
 	@Override
 	public Iterator<Set<T>> iterator() {
-		return new PrunableCPIterator(sets, false); // no missing elements
+		return new PrunableCPSupersetIterator<T>(sets, withMissingElements);
 	}
 	
 	public int numberOfSets() {
@@ -47,25 +55,54 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 		return n;
 	}
 
-	public Iterable<Set<T>> withMissingElements() {
-		return new Iterable<Set<T>> () {
-			@Override
-			public Iterator<Set<T>> iterator() {
-				return new PrunableCPIterator(sets, true); // make sets with missing elements
-			}
-		};
+	public PrunableCPSupersetIterator<T> prunableIterator() {
+		return new PrunableCPSupersetIterator<T>(sets, withMissingElements);
 	}
-	
-	public PrunableCPIterator<T> prunableIterator(boolean withMissingElements) {
-		return new PrunableCPIterator<T>(sets, true);
-	}
-	
-	public static class PrunableCPIterator<R> implements Iterator<Set<R>> {
-		
-//		int[] index;
-		boolean withMissing;
+
+	/* work in progress... may not be necessary
+	public static class PrunableCPSubsetIterator<R> implements Iterator<Set<R>> {
+
+		boolean withMissingElements;
+
 		List<List<R>> sets;
-//		boolean hasNext = true;
+		LinkedList<Sample> approved = new LinkedList<Sample>();
+		List<Sample> proposed = new ArrayList<Sample>();
+
+		/** simple container class *
+		private class Sample {
+			int[] index;
+			int lastPosition;
+			public Sample(int[] index, int nextPosition) {
+				this.index = index;
+				this.lastPosition = nextPosition;
+			}
+		}
+		
+		public PrunableCPSubsetIterator(List<List<R>> sets, boolean withMissingElements) {
+			this.sets = sets;
+			this.withMissingElements = withMissingElements;
+			
+			int[] start = new int[sets.size()];
+//			for (int i = 0; i < start.length; i++) { start[i] = startVal(i); }
+			approved.add(new Sample(start, -1));
+		}
+		
+		@Override
+		public boolean hasNext() {
+			// approve all the proposed samples derived from the last combination if they have not been pruned
+			if (proposed != null) { approved.addAll(proposed); }
+			proposed = new ArrayList<Sample>();
+			return approved.size() > 0;
+		}
+
+
+	} */
+	
+	public static class PrunableCPSupersetIterator<R> implements Iterator<Set<R>> {
+		
+		boolean withMissingElements;
+
+		List<List<R>> sets;
 		LinkedList<Sample> approved = new LinkedList<Sample>();
 		List<Sample> proposed = new ArrayList<Sample>();
 
@@ -73,20 +110,23 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 		private class Sample {
 			int[] index;
 			int lastPosition;
-//			int size;
 			public Sample(int[] index, int nextPosition) {
 				this.index = index;
 				this.lastPosition = nextPosition;
-//				this.size = size;
 			}
 		}
 				
-		public PrunableCPIterator(List<List<R>> sets, boolean withMissingElements) {
+		public PrunableCPSupersetIterator(List<List<R>> sets, boolean withMissingElements) {
 			this.sets = sets;
-			withMissing = withMissingElements;
+			this.withMissingElements = withMissingElements;
+			
 			int[] start = new int[sets.size()];
-			for (int i = 0; i < start.length; i++) { start[i] = withMissing ? -1 : 0; }
+			for (int i = 0; i < start.length; i++) { start[i] = startVal(i); }
 			approved.add(new Sample(start, -1));
+		}
+		
+		private int startVal(int i) {
+			return withMissingElements ? -1 : 0;
 		}
 		
 		@Override
@@ -105,23 +145,40 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 			
 			// collect the set that corresponds to this sample
 			Set<R> t = new HashSet<R>();
-			for(int i = 0; i < s.index.length; i++) {
+			for (int i = 0; i < s.index.length; i++) {
 				if (s.index[i] >= 0) {
 					t.add(sets.get(i).get(s.index[i]));
 				}
 			}
 			
+			// add the samples that dervive from this one to the proposed queue
+			addSamplesLeastInclusiveFirst(s);
+			
+			return t;
+		}
+		
+		private void addSamplesLeastInclusiveFirst(Sample s) {
 			for (int column = s.lastPosition + 1; column < s.index.length; column++) {
-				for (int j = 0; j < maxPosition(column); j++) {
+				for (int j = 0; j <= maxPosition(column); j++) {
 					int[] index = Arrays.copyOf(s.index, s.index.length);
 					index[column] = j;
 					proposed.add(new Sample(index, column));
 				}
 			}
-			
-			return t;
 		}
 		
+		private int maxPosition(int column) {
+			return sets.get(column).size() - 1;
+		}
+
+		/**
+		 * exclude all the the potential sets that could have been generated using the last set returned by the next() method
+		 * as a starting point.
+		 */
+		public void prune() {
+			proposed = new ArrayList<Sample>();
+		}
+
 /*		private Sample increment(int[] index, int curColumn) {
 			
 			Sample s;
@@ -143,10 +200,6 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 			return s;
 		} */
 		
-		private int maxPosition(int column) {
-			return withMissing ? sets.get(column).size() : sets.get(column).size() - 1;
-		}
-		
 /*		private Sample rollOver(int[] index, int column) {
 			Sample s;
 			if (column > 0) {
@@ -166,11 +219,6 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 			}
 			return s;
 		} */
-		
-		/** exclude all the the potential sets that could have been generated using the last set returned by the next() method. */
-		public void prune() {
-			proposed = new ArrayList<Sample>();
-		}
 	}
 	
 	private static Set<Set<Object>> makeSets(Object[][] input) {
@@ -189,15 +237,20 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 	private static void simpleTest(Object[][] i, boolean withMissingElements) {
 		Set<Set<Integer>> t = (Set<Set<Integer>>)(Set<?>) makeSets((Object[][]) i);
 		CartesianProduct<Integer> samples = new CartesianProduct<Integer>(t);
-		for (Set<Integer> s : (withMissingElements ? samples.withMissingElements() : samples)) {
+		if (withMissingElements) {
+			samples = samples.withMissingElements();
+		} else {
+			samples = samples.withoutMissingElements();
+		}
+		for (Set<Integer> s : samples) {
 			print(s);
 		}
 	}
 
 	private static void pruneIfSumExceedsTest(Object[][] i, boolean withMissingElements, double maxVal) {
 		Set<Set<Integer>> t = (Set<Set<Integer>>)(Set<?>) makeSets((Object[][]) i);
-		CartesianProduct<Integer> samples = new CartesianProduct<Integer>(t);
-		PrunableCPIterator<Integer> combinations = samples.prunableIterator(withMissingElements);
+		CartesianProduct<Integer> samples = new CartesianProduct<Integer>(t).withMissingElements();
+		PrunableCPSupersetIterator<Integer> combinations = samples.prunableIterator();
 		while (combinations.hasNext()) {
 
 			Set<Integer> s = combinations.next();

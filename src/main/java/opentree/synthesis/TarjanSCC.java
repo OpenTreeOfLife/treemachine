@@ -111,6 +111,26 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 	
 	private static void simpleTest(GraphDatabaseAgent G, int e) {
 
+		int i = findSCCs(G);
+		
+		if (e > 0) { // if we don't know how many SCCs to expect, setting e < 0 circumvents the check
+			if (e + 1 != i) {
+				// the +1 is to account for the SCC containing only the node 0
+				throw new AssertionError("found " + i + " cycles but expected " + e);
+			}
+		}
+	}
+	
+	private static void maximumCountTest(GraphDatabaseAgent G, int max) {
+		
+		int i = findSCCs(G);
+		if (max + 1 < i) {
+			// the + 1 is to account for the SCC containing only the node 0
+			throw new AssertionError("found " + i + " cycles but expected AT MOST " + max);
+		}
+	}
+
+	private static int findSCCs(GraphDatabaseAgent G) {
 		System.out.println("input graph:");
 		System.out.println(GraphGenerator.getSTREEAdjacencyList(G));
 
@@ -120,10 +140,7 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 			System.out.println(i++ + ", " + component);
 		}
 		System.out.println();
-		
-		if (e + 1 != i) { // account for the SCC containing only the node 0
-			throw new AssertionError("found " + i + " cycles but expected " + e);
-		}
+		return i;
 	}
 	
 	public static void main(String[] args) throws IOException {
@@ -132,6 +149,19 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 		simpleTest(GraphGenerator.chordedCycle(10, 4, dbname), 1);
 		simpleTest(GraphGenerator.chainOfSimpleCycles(5, 5, dbname), 5);
 		simpleTest(GraphGenerator.cycleOfSimpleCycles(5, 5, dbname ), 1);
+		simpleTest(GraphGenerator.randomTree(20, 2, dbname), 20+20-1);
+		
+		maximumCountTest(GraphGenerator.randomTreeWithBackEdges(10, 2, 1, dbname), 18);
+		
+/*		int maxTips = 10;
+		int nReps = 1000;
+		Random r = new Random();
+		for (int i = 0; i < nReps; i++) {
+			int nTips = r.nextInt(maxTips - 3) + 3; // tree must have at least 3 tips
+			int maxSCCs = (2 * maxTips) - 2;
+			int nBackEdges = 1;
+			maximumCountTest(GraphGenerator.randomTreeWithBackEdges(nTips, 2, nBackEdges, dbname), maxSCCs);
+		} */
 	}
 
 }

@@ -57,7 +57,7 @@ public class RootwardSynthesisExpanderDeprecated extends SynthesisExpander imple
 		// whose exclusion will remove the cycles. use TarjanSCC to find the SCCs.
 		
 		GraphDatabaseAgent G = new GraphDatabaseAgent(root.getGraphDatabase());
-		topologicalOrder = new TopologicalOrder(G, RelType.STREECHILDOF, RelType.TAXCHILDOF);
+		topologicalOrder = new TopologicalOrder(G, new HashSet<Relationship>(), RelType.STREECHILDOF, RelType.TAXCHILDOF);
 
 		childRels = new HashMap<Long, HashSet<Relationship>>();
 

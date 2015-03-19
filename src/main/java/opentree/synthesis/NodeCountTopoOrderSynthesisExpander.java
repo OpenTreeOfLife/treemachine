@@ -7,10 +7,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.opentree.bitarray.TLongBitArraySet;
-import static org.opentree.utils.GeneralUtils.print;
 
+import static org.opentree.utils.GeneralUtils.print;
 import opentree.synthesis.mwis.BruteWeightedIS;
 import opentree.synthesis.mwis.GreedyApproximateWeightedIS;
 import opentree.synthesis.mwis.WeightedUndirectedGraph;
@@ -28,8 +29,9 @@ public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthes
 	}
 
 	@Override
-	void breakCycles() {
+	Set<Relationship> breakCycles() {
 		print("currently not breaking cycles! topological order should fail if it encounters one.");
+		return new HashSet<Relationship>();
 	}
 	
 	@Override

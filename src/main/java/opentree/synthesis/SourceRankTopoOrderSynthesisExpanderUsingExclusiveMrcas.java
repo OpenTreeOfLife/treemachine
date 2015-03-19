@@ -448,8 +448,9 @@ public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends Top
 	}
 	
 	@Override
-	void breakCycles() {
+	Set<Relationship> breakCycles() {
 		System.out.println("currently not breaking cycles! topological order should fail if it encounters one.");
+		return new HashSet<Relationship>();
 	}
 	
 	/**

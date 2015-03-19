@@ -3,8 +3,11 @@ package opentree.synthesis;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Random;
 
 import opentree.constants.RelType;
@@ -18,7 +21,21 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class GraphGenerator {
-
+	
+	private static <T> T popLast(List<T> x) {
+		if (x.size() < 1) {
+			throw new NoSuchElementException();
+		}
+		int i = lastIndex(x);
+		T t = x.get(i);
+		x.remove(i);
+		return t;
+	}
+	
+	private static int lastIndex(List<?> x) {
+		return x.size() - 1;
+	}
+	
 	/**
 	 * Create a cycle with N nodes in the graph G. Return the set of nodes in the cycle.
 	 * @param G
@@ -26,7 +43,7 @@ public class GraphGenerator {
 	 * @return
 	 * @throws IOException
 	 */
-	private static List<Node> createNCycle(GraphDatabaseAgent G, int N) throws IOException {
+	private static List<Node> createNCycle(GraphDatabaseAgent G, int N) {
 				
 		Transaction tx = G.beginTx();
 		List<Node> nodes = new ArrayList<Node>();
@@ -47,7 +64,7 @@ public class GraphGenerator {
 	/**
 	 * Create a cycle with N nodes and c random chords in the graph G. Return the set of nodes in the cycle.
 	 */
-	private static List<Node> createChordedNCycle(GraphDatabaseAgent G, int N, int c) throws IOException {
+	private static List<Node> createChordedNCycle(GraphDatabaseAgent G, int N, int c) {
 		List<Node> cycle = createNCycle(G, N);
 
 		// need to check max number chords possible for a cycle of length N
@@ -63,9 +80,9 @@ public class GraphGenerator {
 		Transaction tx = G.beginTx();
 		for (int i = 0; i <  c; i++) {
 			Random r = new Random();
-			int p = r.nextInt(N);
+			int p = r.nextInt(N-1) + 1;
 			int q = -1;
-			while (p == q || q < 0) { q = r.nextInt(N); }
+			while (p == q || q < 1) { q = r.nextInt(N-1)+1; }
 			G.getNodeById((long) p).createRelationshipTo(G.getNodeById((long) q), RelType.STREECHILDOF);
 		}
 		tx.success();
@@ -78,7 +95,7 @@ public class GraphGenerator {
 	 * Create a random tree with the specified number of tips and return the root node. The maxChildren argument
 	 * specifies the maximum size for a polytomy (minimum 2, cannot be greater than N).
 	 */
-	private static Node createRandomNTree(GraphDatabaseAgent G, int N, int maxChildren) throws IOException {
+	private static Node createRandomNTree(GraphDatabaseAgent G, int N, int maxChildren) {
 		
 		if (maxChildren < 2 || maxChildren > N) { throw new IllegalArgumentException(); }
 		
@@ -120,6 +137,37 @@ public class GraphGenerator {
 	public static GraphDatabaseAgent randomTree(int N, int maxChildren, String dbname) throws IOException {
 		GraphDatabaseAgent G = emptyGraph(dbname);
 		createRandomNTree(G, N, maxChildren);
+		return G;
+	}
+	
+	/**
+	 * return a graph containing a tree with N tips and nBackEdges backward edges.
+	 * @throws IOException 
+	 */
+	public static GraphDatabaseAgent randomTreeWithBackEdges(int nTips, int maxChildren, int nBackEdges, String dbname) throws IOException {
+		if (nTips < 3) { throw new IllegalArgumentException(); }
+		
+		// generate a tree
+		GraphDatabaseAgent G = emptyGraph(dbname);
+		createRandomNTree(G, nTips, maxChildren);
+		List<Node> all = new ArrayList<Node>();
+		for (Node n : new TopologicalOrder(G, new HashSet<Relationship>(), RelType.STREECHILDOF)) { if (n.getId() != 0) all.add(n); }
+		int N = all.size() - 1;
+		System.out.println(N);
+		System.out.println(N-nTips);
+
+		// make back edges
+		Transaction tx = G.beginTx();
+		Random r = new Random();
+		for (int i = 0; i < nBackEdges; i++) {
+			long p = r.nextInt(N - nTips) + 2;
+			long q = all.size();
+			while (p <= q) { q = r.nextInt(N - nTips - 1) + 1; System.out.println(p + " " + q); }
+			G.getNodeById(p).createRelationshipTo(G.getNodeById(q), RelType.STREECHILDOF);
+		}
+		tx.success();
+		tx.finish();
+		
 		return G;
 	}
 
