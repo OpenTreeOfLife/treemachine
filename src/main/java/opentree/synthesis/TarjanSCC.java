@@ -3,6 +3,8 @@ package opentree.synthesis;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -87,7 +89,7 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 				C.add(w);
 			}
 			
-			components.add(C); // save this SCC
+			components.add(Collections.unmodifiableSet(C)); // save this SCC
 
 		}
 	}
@@ -101,6 +103,11 @@ public class TarjanSCC implements Iterable<Set<Node>> {
 	@Override
 	public Iterator<Set<Node>> iterator() {
 		return components.iterator();
+	}
+	
+	public Set<Set<Node>> components() {
+		Set<Set<Node>>() immutable
+		for 
 	}
 	
 	private static void simpleTest(GraphDatabaseAgent G, int e) {
