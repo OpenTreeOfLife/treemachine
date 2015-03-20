@@ -49,7 +49,7 @@ public class BipartOracle {
 	
 	boolean VERBOSE = false;
 	
-	boolean mapdeepest = true;
+	boolean mapdeepest = false;
 	
 	// maps of tip names for higher taxon tips to sets of tip names for their included taxa
 
@@ -1533,6 +1533,9 @@ public class BipartOracle {
 				System.err.println("found a cycle");
 				System.exit(0);
 			}*/
+			//TopologicalOrder to = new TopologicalOrder(this.gdb,RelType.STREECHILDOF);
+			
+			
 		}	
 		System.out.println("all trees have been mapped.");
 	}
@@ -1571,6 +1574,11 @@ public class BipartOracle {
 				Node potentialChild = r.getStartNode();
 				LongBipartition childBipart;
 				LongBipartition childBipartExp=null;
+				LongBipartition nodeParent = bipartForTreeNode.get(treeNode.getParent());
+				LongBipartition nodeParentExp = null;
+				if(USING_TAXONOMY)
+					nodeParentExp = bipartForTreeNodeExploded.get(treeNode.getParent());
+
 				if(USING_TAXONOMY == false || taxonomyGraphNodesMap.containsKey(potentialChild)==false){
 					childBipart = bipartForGraphNode.get(potentialChild);
 				}else{
@@ -1626,7 +1634,8 @@ public class BipartOracle {
 					}else{
 						if(childBipartExp.containsAll(nodeBipartExp) &&
 								taxonomyGraphNodesMap.get(parent).ingroup().containsAll(childBipartExp.ingroup()) &&
-								taxonomyGraphNodesMap.get(parent).ingroup().containsAny(childBipartExp.outgroup())){
+								taxonomyGraphNodesMap.get(parent).ingroup().containsAny(childBipartExp.outgroup()) //){
+								&& childBipartExp.isNestedPartitionOf(nodeParentExp)){
 							graphNodes.add(potentialChild);
 							updateSTREEChildOf(potentialChild,parent,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), 
 									edgeId,nodeBipartExp,false);
@@ -1674,7 +1683,7 @@ public class BipartOracle {
 						continue;
 					*/
 					if (childBipart.containsAll(nodeBipart) 
-							&& childBipart.isNestedPartitionOf(testParent)){
+							&& childBipart.isNestedPartitionOf(nodeParent)){//testParent)){
 						graphNodes.add(potentialChild);
 						updateSTREEChildOf(potentialChild,parent,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), 
 								edgeId,nodeBipartExp,false);

@@ -664,8 +664,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 
 			while (! unmarkedForCycle.isEmpty()) {
 				breaking = visitNodeForBreakCycles(unmarkedForCycle.iterator().next(),null);
-				if (breaking == true)
+				if (breaking == true){
+					System.out.println("cycle found. Total excluded rels: "+excludedRels.size());
 					break;
+				}
 			}
 		}
 		//System.out.println("currently not breaking cycles! topological order should fail if it encounters one.");
@@ -678,16 +680,18 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends Topologica
 			if(p == null)
 				throw new IllegalArgumentException("The graph contains a directed cycle that includes the node: " + n+" with no parent, change implementation");
 			else{
-				for(Relationship r: getRelationshipsFromTo(n, p, RelType.STREECHILDOF)){
+				System.out.println("cycle at :"+n+" "+p);
+				for(Relationship r: getRelationshipsFromTo(n, p, RelType.STREECHILDOF,RelType.TAXCHILDOF)){
+					System.out.println(r.getProperty("source"));
 					excludedRels.add(r);
-					return true;
 				}
+				return true;
 			}
 		}
 
 		if (unmarkedForCycle.contains(n)) {
 			temporaryMarkedForCycle.add(n);
-			for (Relationship m : n.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
+			for (Relationship m : n.getRelationships(Direction.INCOMING, RelType.STREECHILDOF,RelType.TAXCHILDOF)) {
 				if(excludedRels.contains(m)==true)
 					continue;
 				boolean ret = visitNodeForBreakCycles(m.getStartNode(),n);
