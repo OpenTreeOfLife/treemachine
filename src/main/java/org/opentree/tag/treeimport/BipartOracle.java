@@ -49,7 +49,7 @@ public class BipartOracle {
 	
 	boolean VERBOSE = false;
 	
-	boolean mapdeepest = false;
+	boolean mapdeepest = true;
 	
 	// maps of tip names for higher taxon tips to sets of tip names for their included taxa
 
@@ -489,7 +489,7 @@ public class BipartOracle {
 				HashSet<TreeNode> done = new HashSet<TreeNode>();
 
 				for(TreeNode tnt : t.internalNodes(NodeOrder.POSTORDER)){
-					if (done.contains(tnt)) { continue; }
+					//if (done.contains(tnt)) { continue; }
 					LongBipartition tlb = getGraphBipartForTreeNode(tnt, t);
 
 					// don't compare trees with identical taxon sets -- these are not the nodes you are looking for.
@@ -513,7 +513,7 @@ public class BipartOracle {
 							ArrayList<Integer> pars = new ArrayList<Integer>();
 							pars.add(bipartId.get(tls));pars.add(bipartId.get(tlb));
 							summedBipartSourceBiparts.put(k, pars);
-							break;
+							//break;
 						}
 					}
 				}
