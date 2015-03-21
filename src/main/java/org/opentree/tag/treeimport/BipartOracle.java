@@ -551,7 +551,7 @@ public class BipartOracle {
 		LongBipartition ss = par1.strictSum(par2);
 		if (ss == null)
 			return null;
-		if(xor.ingroup().size()==0 || xor.outgroup().size() == 0)
+		if(xor.ingroup().size()==0 || xor.outgroup().size() == 0 || par1.outgroup().size() == 0 || par2.outgroup().size() == 0)
 			return ss;
 		MutableCompactLongSet runningIn = new MutableCompactLongSet();
 		MutableCompactLongSet runningOut = new MutableCompactLongSet();
