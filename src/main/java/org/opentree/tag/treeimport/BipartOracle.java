@@ -728,9 +728,22 @@ public class BipartOracle {
 		treeIds.parallelStream().forEach(i -> processBipartsForTree(i, trees));
 		
 		//doing the rest of the sums but taking advantage of the work from the processBiparts
+		//TODO: can reduce this by half because you don't have to do 1 and 2 and 2 and 1
+		HashMap<Integer,HashSet<Integer>> sdone = new HashMap<Integer,HashSet<Integer>> ();
 		for(int s = 0; s<compatibleBiparts.size();s++){
-			System.out.println("summing bipart: "+s+" of "+compatibleBiparts.size() +" (set size"+compatibleBiparts.get(s).size()+")");
+			if(sdone.containsKey(s)==false)
+				sdone.put(s, new HashSet<Integer>());
+			System.out.println("summing bipart: "+s+" of "+compatibleBiparts.size() +" (set size "+compatibleBiparts.get(s).size()+")");
 			for(Integer j: compatibleBiparts.get(s)){
+				if(sdone.get(s).contains(j))
+					continue;
+				else{
+					sdone.get(s).add(j);
+					if(sdone.containsKey(j)==false){
+						sdone.put(j,new HashSet<Integer>());
+					}
+					sdone.get(j).add(s);
+				}
 				LongBipartition newsum = testSum(bipart.get(s),bipart.get(j),observedOriginals);
 				//System.out.println("\t"+newsum+" "+bipart.get(s)+" "+bipart.get(j));
 				//LongBipartition newsum = tlb.strictSum(tls);
@@ -754,7 +767,7 @@ public class BipartOracle {
 					summedBipartSourceBiparts.put(k, pars);
 				}
 			}
-		}
+		}sdone = null;observedOriginals = null;compatibleBiparts=null; //garbage collection
 		
 		// parallel implementation for *synchronized* lists
 		treeIds.parallelStream().forEach(i -> processSummedBipartsForTree(i, trees));
