@@ -753,13 +753,13 @@ public class BipartOracle {
 				if(tlp.isNestedPartitionOf(bipart.get(pi))){
 					nestedParents.get(p).add(pi);
 					nestedChildren.get(pi).add(p);
-					//nestedAugmentingParents.get(p).add(pi);
+					nestedAugmentingParents.get(p).add(pi);
 				}
 			}for(Integer pi: nestedParents.get(parsbi.get(1))){
 				if(tlp.isNestedPartitionOf(bipart.get(pi))){
 					nestedParents.get(p).add(pi);
 					nestedChildren.get(pi).add(p);
-					//nestedAugmentingParents.get(p).add(pi);
+					nestedAugmentingParents.get(p).add(pi);
 				}
 			}
 		}
