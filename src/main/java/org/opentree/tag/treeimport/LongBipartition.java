@@ -17,5 +17,5 @@ public abstract interface LongBipartition {
 	public boolean overlapsWith(LongBipartition that);
 	public boolean hasIdenticalTaxonSetAs(LongBipartition that);
 	public String toString(Map<Long, Object> names);
-
+	public LongBipartition xor(LongBipartition that); 
 }

@@ -287,4 +287,30 @@ public class ImmutableLongBipartition implements LongBipartition {
 		runSimpleTests(args);
 	}
 
+	@Override
+	public LongBipartition xor(LongBipartition that) {
+		MutableCompactLongSet retBipartIn= new MutableCompactLongSet();
+		MutableCompactLongSet retBipartOut = new MutableCompactLongSet();
+
+		for(Long l: this.ingroup()){
+			if (that.ingroup().contains(l)==false)
+				retBipartIn.add(l);
+		}
+		for(Long l: that.ingroup()){
+			if (this.ingroup().contains(l)==false)
+				retBipartIn.add(l);
+		}
+		for(Long l: this.outgroup()){
+			if (that.outgroup().contains(l)==false)
+				retBipartOut.add(l);
+		}
+		for(Long l: that.outgroup()){
+			if (this.outgroup().contains(l)==false)
+				retBipartOut.add(l);
+		}
+		return new ImmutableLongBipartition(retBipartIn,retBipartOut);
+	}
+
+
+
 }

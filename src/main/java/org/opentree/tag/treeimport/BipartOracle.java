@@ -39,6 +39,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.opentree.bitarray.LongSet;
 import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
@@ -441,7 +442,7 @@ public class BipartOracle {
 			filteredGroups.add(filteredCurTree);
 			filteredRoots.add(filteredRoot);
 		}
-		observedOriginals = null; // free resource for garbage collector
+		//observedOriginals = null; // free resource for garbage collector
 		System.out.println(" done. found " + d + " duplicate biparts. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 
 //		System.out.println("now summing " + n + " unique biparts across " + filteredGroups.size() + " groups...");
@@ -477,6 +478,7 @@ public class BipartOracle {
 		//Trying a different approach with each node from each tree in a postorder fashion
 		// when you match you stop and move to the next node for a potential sum
 		// THIS SHOULD BE PARALLELIZED
+		//TODO: need to not try and make things that will be made with paths, just a waste of time
 		int i = 0;
 		for(Tree t: trees){
 			System.out.println("starting tree " + i++ + ". nodecount: " + t.internalNodeCount() + ". total biparts: " + bipart.size());
@@ -498,7 +500,8 @@ public class BipartOracle {
 					
 					for(TreeNode tnx : x.internalNodes(NodeOrder.POSTORDER)){
 						LongBipartition tls = getGraphBipartForTreeNode(tnx, x);
-						LongBipartition newsum = tlb.strictSum(tls);
+						LongBipartition newsum = testSum(tls,tlb,observedOriginals);
+						//LongBipartition newsum = tlb.strictSum(tls);
 						if(newsum == null)
 							continue;
 						if(newsum.outgroup().size()==0)
@@ -541,6 +544,41 @@ public class BipartOracle {
 			}
 		}*/
 		System.out.println("retained " + originalCount + " biparts and created " + summedBipartIds.size() + " new combinations. total: " + bipart.size());
+	}
+	
+	private LongBipartition testSum(LongBipartition par1,LongBipartition par2,Set<LongBipartition> originalBiparts){
+		LongBipartition xor = par1.xor(par2);
+		LongBipartition ss = par1.strictSum(par2);
+		if (ss == null)
+			return null;
+		if(xor.ingroup().size()==0 || xor.outgroup().size() == 0)
+			return ss;
+		MutableCompactLongSet runningIn = new MutableCompactLongSet();
+		MutableCompactLongSet runningOut = new MutableCompactLongSet();
+		for(LongBipartition testBi: originalBiparts){
+			if(testBi.isCompatibleWith(ss) == false)
+				continue;
+			LongSet tin = LSintersection(testBi.ingroup(),xor.ingroup());
+			LongSet tou = LSintersection(testBi.outgroup(),xor.outgroup());
+			if(tin.size() > 0 && tou.size() > 0){
+				runningIn.addAll(tin);
+				runningOut.addAll(tou);
+				if(runningIn.size() == xor.ingroup().size() && runningOut.size() == xor.outgroup().size())
+					return ss;
+			}
+		}
+		return null;
+	}
+	
+	private LongSet LSintersection(LongSet x,LongSet y){
+		MutableCompactLongSet in = new MutableCompactLongSet();
+		for(Long l1:x){
+			for(Long l2: y){
+				if (l1 == l2)
+					in.add(l1);
+			}
+		}
+		return in;
 	}
 	
 	private void createTreeIdRankMap(List<Tree> trees){
