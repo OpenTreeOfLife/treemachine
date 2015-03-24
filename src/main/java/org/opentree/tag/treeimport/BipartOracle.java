@@ -533,7 +533,11 @@ public class BipartOracle {
 				//}
 			}
 		}*/
-		
+		/*
+		 * CAN ADD THESE TREE AWARE TAXA AWARE TESTS TO THE OTHER SUMS
+		 * 
+		 * IT WOULD BE IN processBipartsForTree
+		 */
 		int i=0;
 		for(Tree t: trees){
 			System.out.println("starting tree "+ i++ +". nodecount: " + t.internalNodeCount() + ". total biparts: " + bipart.size());
