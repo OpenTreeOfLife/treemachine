@@ -1108,6 +1108,7 @@ public class BipartOracle {
 					LongBipartition bq = bipart.get(qid);
 					ImmutableCompactLongSet qshallow = shallowestNodeTaxa.get(p);
 					
+					//TODO: this needs to be tested or checked / meant to remove cycles but may not be succesful
 					if (bq.isNestedPartitionOf(bp) && (qshallow.containsAll(pdeep) && qshallow.size() > pdeep.size())==false) {
 						// record this nestedchildof relationship
 //						if (nestedParents.get(qid) == null) { nestedParents.put(qid, new HashSet<Integer>()); }
