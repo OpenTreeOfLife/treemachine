@@ -556,7 +556,6 @@ public class BipartOracle {
 						continue;
 					}
 					LongBipartition tls = getGraphBipartForTreeNode(tnx, x);
-					//LongBipartition newsum = testSum(tls,tlb,observedOriginals);
 					LongBipartition newsum = tlb.strictSum(tls);
 					if(newsum == null)
 						continue;
@@ -1092,6 +1091,8 @@ public class BipartOracle {
 //				int pid = treeNodeIds.get(p);
 				int pid = bipartId.get(bipartForTreeNode.get(p));
 				LongBipartition bp = bipart.get(pid);
+				ImmutableCompactLongSet pdeep = deepestNodeTaxa.get(p);
+
 
 				LinkedList<TreeNode> qStack = new LinkedList<TreeNode>();
 				HashSet<TreeNode> qvisited = new HashSet<TreeNode>();
@@ -1105,8 +1106,9 @@ public class BipartOracle {
 //					int qid = treeNodeIds.get(q);
 					int qid = bipartId.get(bipartForTreeNode.get(q));
 					LongBipartition bq = bipart.get(qid);
-
-					if (bq.isNestedPartitionOf(bp)) {
+					ImmutableCompactLongSet qshallow = shallowestNodeTaxa.get(p);
+					
+					if (bq.isNestedPartitionOf(bp) && (qshallow.containsAll(pdeep) && qshallow.size() > pdeep.size())==false) {
 						// record this nestedchildof relationship
 //						if (nestedParents.get(qid) == null) { nestedParents.put(qid, new HashSet<Integer>()); }
 						nestedParents.get(qid).add(pid);
