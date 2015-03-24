@@ -987,10 +987,13 @@ public class BipartOracle {
 		System.out.print("now creating all lica nodes in the graph...");
 		long z = new Date().getTime();
 		Transaction tx = gdb.beginTx();
+		System.out.println("on path:");
+		int pn=0;
 		for (Path p : paths) {
-			//System.out.println(p);
+			System.out.println(pn+" / "+paths.size());
 			generateNodesFromPaths(0, new MutableCompactLongSet(), p.toArray());
 			//System.out.println(nestedChildren.size());
+			pn++;
 		}
 		tx.success();
 		tx.finish();
