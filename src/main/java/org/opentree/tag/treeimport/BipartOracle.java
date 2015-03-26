@@ -50,7 +50,7 @@ public class BipartOracle {
 	private final GraphDatabaseAgent gdb;
 	private final boolean USING_TAXONOMY;
 	
-	boolean VERBOSE = true;
+	boolean VERBOSE = false;
 	
 	boolean mapdeepest = true;
 	
