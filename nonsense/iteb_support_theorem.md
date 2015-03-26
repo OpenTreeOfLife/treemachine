@@ -75,7 +75,7 @@ contains some edge `v->v'` such that:
   * iteb1: `L(V) ∩ L(t) = L(t, v)`
   * iteb2: `L(V') ∩ out(t, v)` is not empty
 
-26-Mar-note by MTH: you need another condition: none of the children can have `L(V) ∩ L(t) = L(t, v)`
+26-Mar-note by MTH: you need another condition: no of the child, `c` of `v` is allowed to satisfy `L(V) ∩ L(t) = L(t, c)`
 
 If an edge has ITEB > 0, then collapsing the
 edge in the synthetic tree could be considered to result in a worse tree in the sense
