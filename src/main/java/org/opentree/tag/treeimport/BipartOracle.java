@@ -167,6 +167,9 @@ public class BipartOracle {
 	/** Just a simple container to keep track of rels we know we've made so we can cut down on database queries to find out of they exist. */
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
 	private Map<Long, HashMap<Long,HashSet<String>>> hasSTREEChildOf = new HashMap<Long, HashMap<Long,HashSet<String>>>();
+	private Map<Long, HashSet<Long>> notValidSTREEChildOf = new HashMap<Long, HashSet<Long>>();
+	private Map<Long, HashSet<Long>> testedSTREEChildOf = new HashMap<Long, HashSet<Long>>();
+
 	
 	/** map for the list of relevant taxonomy nodes */
 	Map<Node,LongBipartition> taxonomyGraphNodesMap;
@@ -1798,18 +1801,18 @@ public class BipartOracle {
 			if(USING_TAXONOMY)
 				nodeBipartExp = getExpandedTaxonomyBipart(nodeBipart);
 		}
-		System.out.println(treeNode.getNewick(false)+" "+rankForTreeNode.get(treeNode));
-		System.out.println("\t"+nodeBipart);
-		System.out.println("\t"+graphNodesForParent);
+		//System.out.println(treeNode.getNewick(false)+" "+rankForTreeNode.get(treeNode));
+		//System.out.println("\t"+nodeBipart);
+		//System.out.println("\t"+graphNodesForParent);
 
 		HashSet<Node> graphNodes = new HashSet<Node>();
 		HashSet<Node> taxNodesMatched = new HashSet<Node>();
 		
 		// if you create the mrcachildofs before, then you can do this
 		for (Node parent : graphNodesForParent){
-			System.out.println(parent);
+			//System.out.println(parent);
 			for (Relationship r: parent.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
-				System.out.println(" "+r);
+				//System.out.println(" "+r);
 				Node potentialChild = r.getStartNode();
 				LongBipartition childBipart;
 				LongBipartition childBipartExp=null;
@@ -1831,8 +1834,8 @@ public class BipartOracle {
 						childBipartExp = bipartForGraphNodeExploded.get(potentialChild);	
 					}
 				}
-				System.out.println("\t\t"+potentialChild+"\t"+childBipart+"\t"+nodeBipart);
-				System.out.println("\t\t\t"+taxonomyGraphNodesMap.containsKey(parent)+" "+taxonomyGraphNodesMap.containsKey(potentialChild));
+				//System.out.println("\t\t"+potentialChild+"\t"+childBipart+"\t"+nodeBipart);
+				//System.out.println("\t\t\t"+taxonomyGraphNodesMap.containsKey(parent)+" "+taxonomyGraphNodesMap.containsKey(potentialChild));
 				if(USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(parent)){
 					if(taxonomyGraphNodesMap.containsKey(potentialChild)){
 						if(parent.equals(potentialChild) == false && 
@@ -1928,7 +1931,7 @@ public class BipartOracle {
 								edgeId,nodeBipartExp,false);
 					}	
 				}
-				System.out.println("\t\t"+graphNodes);
+				//System.out.println("\t\t"+graphNodes);
 			}
 		}
 		//connect equivalent tax nodes to the nodes
@@ -2245,6 +2248,21 @@ public class BipartOracle {
 		hasMRCAChildOf.get(child.getId()).add(parent.getId());
 	}
 	
+	private boolean testChildOf(Node child,Node parent){
+		ImmutableCompactLongSet cin = new ImmutableCompactLongSet((long[])child.getProperty("mrca"));
+		ImmutableCompactLongSet cout = null;
+		if(child.hasProperty("outmrca"))
+			cout = new ImmutableCompactLongSet((long[])child.getProperty("outmrca"));
+
+		ImmutableCompactLongSet pin = new ImmutableCompactLongSet((long[])parent.getProperty("mrca"));
+		ImmutableCompactLongSet pout = null;
+		if(parent.hasProperty("outmrca"))
+			pout = new ImmutableCompactLongSet((long[])parent.getProperty("outmrca"));
+		
+		//TODO: put the test here
+		return true;
+	}
+	
 	/**
 	 * This will check to see if an STREECHILDOF rel already exists for that source between the child and the
 	 * parent, and if not it will make one.
@@ -2256,7 +2274,18 @@ public class BipartOracle {
 			LongBipartition childBipart, boolean istip ) {
 		if (hasSTREEChildOf.get(child.getId()) == null) {
 			hasSTREEChildOf.put(child.getId(), new HashMap<Long,HashSet<String>>());
+			notValidSTREEChildOf.put(child.getId(), new HashSet<Long>());
+			testedSTREEChildOf.put(child.getId(), new HashSet<Long>());
 		} else {
+			if(testedSTREEChildOf.get(child.getId()).contains(parent.getId())==false){
+				boolean test = testChildOf(child,parent);
+				testedSTREEChildOf.get(child.getId()).add(parent.getId());
+				if(test == false)
+					notValidSTREEChildOf.get(child.getId()).add(parent.getId());
+			}
+			if(notValidSTREEChildOf.get(child.getId()).contains(parent.getId())){
+				return;
+			}
 			if (hasSTREEChildOf.get(child.getId()).containsKey(parent.getId())) {
 				if(hasSTREEChildOf.get(child.getId()).get(parent.getId()).contains(source))
 					return;
