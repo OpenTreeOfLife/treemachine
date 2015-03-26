@@ -168,6 +168,9 @@ public class BipartOracle {
 	/** Just a simple container to keep track of rels we know we've made so we can cut down on database queries to find out of they exist. */
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
 	private Map<Long, HashMap<Long,HashSet<String>>> hasSTREEChildOf = new HashMap<Long, HashMap<Long,HashSet<String>>>();
+	private Map<Long, HashSet<Long>> notValidSTREEChildOf = new HashMap<Long, HashSet<Long>>();
+	private Map<Long, HashSet<Long>> testedSTREEChildOf = new HashMap<Long, HashSet<Long>>();
+
 	
 	/** map for the list of relevant taxonomy nodes */
 	Map<Node,LongBipartition> taxonomyGraphNodesMap;
@@ -649,28 +652,72 @@ public class BipartOracle {
 		System.out.println("retained " + originalCount + " biparts and created " + summedBipartIds.size() + " new combinations. total: " + bipart.size());
 	}
 	
+	/**
+	 * This differs from sum in that it doesn't not return a bipart if it is equal
+	 * and it requires overlap with the ingroups not ingroups or outgroups. No guarantee is made about the type of the
+	 * returned bipartition--it may be mutable or not. To ensure it is the correct type, pass it to a constructor for
+	 * the desired object type.
+	 * 
+	 * @param that
+	 * @return
+	 */
+	public LongBipartition strictSumPhylo(LongBipartition t1, LongBipartition t2) {
+
+		if (! t1.isCompatibleWith(t2))
+			return null;
+		
+		if (! t1.ingroup().containsAny(t2.ingroup()))
+			return null;
+
+		if (t1.equals(t2))
+			return null;
+		
+		MutableCompactLongSet sumIn = new MutableCompactLongSet();
+		sumIn.addAll(t1.ingroup());
+		sumIn.addAll(t2.ingroup());
+
+		MutableCompactLongSet sumOut = new MutableCompactLongSet();
+		sumOut.addAll(LSintersection(t1.outgroup(),t2.outgroup()));
+		if(sumOut.size()==0)
+			return null;
+
+		return new ImmutableLongBipartition(sumIn, sumOut);
+	}
+	
 	private LongBipartition testSum(LongBipartition par1,LongBipartition par2,Set<LongBipartition> originalBiparts){
 		LongBipartition xor = par1.xor(par2);
 		LongBipartition ss = par1.strictSum(par2);
+		System.out.println(ss);
 		if (ss == null)
 			return null;
-		if(xor.ingroup().size()==0 || xor.outgroup().size() == 0 || par1.outgroup().size() == 0 || par2.outgroup().size() == 0)
+		//else
+		//	return ss;
+		if(xor.ingroup().size()==0 || xor.outgroup().size() == 0 || par1.outgroup().size() == 0 || par2.outgroup().size() == 0){
+			System.out.println("would make "+ par1+" "+par2);
 			return ss;
+		}else{
+			System.out.println("would make "+ par1+" "+par2);
+			return ss;
+		}
+		/*
 		MutableCompactLongSet runningIn = new MutableCompactLongSet();
 		MutableCompactLongSet runningOut = new MutableCompactLongSet();
 		for(LongBipartition testBi: originalBiparts){
 			if(testBi.isCompatibleWith(ss) == false)
 				continue;
-			LongSet tin = LSintersection(testBi.ingroup(),xor.ingroup());
-			LongSet tou = LSintersection(testBi.outgroup(),xor.outgroup());
+			LongSet tin = LSintersection(testBi.ingroup(),ss.ingroup());
+			LongSet tou = LSintersection(testBi.outgroup(),ss.outgroup());
 			if(tin.size() > 0 && tou.size() > 0){
 				runningIn.addAll(tin);
 				runningOut.addAll(tou);
-				if(runningIn.size() == xor.ingroup().size() && runningOut.size() == xor.outgroup().size())
+				if(runningIn.size() == ss.ingroup().size() && runningOut.size() == ss.outgroup().size()){
+					System.out.println("would make "+ par1+" "+par2);
 					return ss;
+				}
 			}
 		}
-		return null;
+		System.out.println("wouldn't make "+ par1+" "+par2);
+		return null;*/
 	}
 	
 	private LongSet LSintersection(LongSet x,LongSet y){
@@ -1093,6 +1140,8 @@ public class BipartOracle {
 				int pid = bipartId.get(bipartForTreeNode.get(p));
 				LongBipartition bp = bipart.get(pid);
 				ImmutableCompactLongSet pdeep = deepestNodeTaxa.get(p);
+				//get the parent bipart for compatibel checking
+				LongBipartition bpParent = bipart.get(bipartId.get(bipartForTreeNode.get(p.getParent())));
 
 
 				LinkedList<TreeNode> qStack = new LinkedList<TreeNode>();
@@ -1119,7 +1168,11 @@ public class BipartOracle {
 //							if (nestedAugmentingParents.get(qid) == null) { nestedAugmentingParents.put(qid, new HashSet<Integer>()); }
 							nestedAugmentingParents.get(qid).add(pid);
 						}
-					}if(bq.isCompatibleWith(bp)){
+					}
+					LongBipartition bqParent = bipart.get(bipartId.get(bipartForTreeNode.get(q.getParent())));
+
+					if(bq.isCompatibleWith(bp) && (bq.isCompatibleWith(bpParent) == false)
+							&& (bp.isCompatibleWith(bqParent) == false)){
 						compatibleBiparts.get(qid).add(pid);
 					}
 					
@@ -1597,8 +1650,8 @@ public class BipartOracle {
 			fullsetout.addAll(toexpandoutgroup.get(tip));
 		}*/
 		LongBipartition retBipart = new ImmutableLongBipartition(fullsetin,fullsetout); // made immutable
-		if(VERBOSE)
-			System.out.println(inbipart+" -> "+retBipart);
+		//if(VERBOSE)
+		//	System.out.println(inbipart+" -> "+retBipart);
 		return retBipart;
 	}
 	
@@ -2196,6 +2249,21 @@ public class BipartOracle {
 		hasMRCAChildOf.get(child.getId()).add(parent.getId());
 	}
 	
+	private boolean testChildOf(Node child,Node parent){
+		ImmutableCompactLongSet cin = new ImmutableCompactLongSet((long[])child.getProperty("mrca"));
+		ImmutableCompactLongSet cout = null;
+		if(child.hasProperty("outmrca"))
+			cout = new ImmutableCompactLongSet((long[])child.getProperty("outmrca"));
+
+		ImmutableCompactLongSet pin = new ImmutableCompactLongSet((long[])parent.getProperty("mrca"));
+		ImmutableCompactLongSet pout = null;
+		if(parent.hasProperty("outmrca"))
+			pout = new ImmutableCompactLongSet((long[])parent.getProperty("outmrca"));
+		
+		//TODO: put the test here
+		return true;
+	}
+	
 	/**
 	 * This will check to see if an STREECHILDOF rel already exists for that source between the child and the
 	 * parent, and if not it will make one.
@@ -2207,7 +2275,18 @@ public class BipartOracle {
 			LongBipartition childBipart, boolean istip ) {
 		if (hasSTREEChildOf.get(child.getId()) == null) {
 			hasSTREEChildOf.put(child.getId(), new HashMap<Long,HashSet<String>>());
+			notValidSTREEChildOf.put(child.getId(), new HashSet<Long>());
+			testedSTREEChildOf.put(child.getId(), new HashSet<Long>());
 		} else {
+			if(testedSTREEChildOf.get(child.getId()).contains(parent.getId())==false){
+				boolean test = testChildOf(child,parent);
+				testedSTREEChildOf.get(child.getId()).add(parent.getId());
+				if(test == false)
+					notValidSTREEChildOf.get(child.getId()).add(parent.getId());
+			}
+			if(notValidSTREEChildOf.get(child.getId()).contains(parent.getId())){
+				return;
+			}
 			if (hasSTREEChildOf.get(child.getId()).containsKey(parent.getId())) {
 				if(hasSTREEChildOf.get(child.getId()).get(parent.getId()).contains(source))
 					return;
