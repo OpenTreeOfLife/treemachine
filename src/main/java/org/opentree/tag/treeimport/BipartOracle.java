@@ -28,6 +28,7 @@ import java.util.function.Predicate;
 import opentree.GraphExplorer;
 import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
+import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.synthesis.TarjanSCC;
 import opentree.synthesis.TopologicalOrder;
@@ -2216,7 +2217,7 @@ public class BipartOracle {
 		rel.setProperty("source", source);
 		rel.setProperty("sourcerank", sourcerank);
 		rel.setProperty("sourceedgeid", edgeId);
-		if(istip==true){rel.setProperty("childIsTip", true);}
+		if(istip==true){rel.setProperty(RelProperty.CHILD_IS_TIP.propertyName, true);}
 		if(childBipart != null){
 			rel.setProperty("exclusive_mrca", childBipart.ingroup().toArray());
 			rel.setProperty("exclusive_outmrca", childBipart.outgroup().toArray());
@@ -2224,7 +2225,7 @@ public class BipartOracle {
 		if(hasSTREEChildOf.get(child.getId()).containsKey(parent.getId())==false)
 			hasSTREEChildOf.get(child.getId()).put(parent.getId(), new HashSet<String>());
 		hasSTREEChildOf.get(child.getId()).get(parent.getId()).add(source);
-		nodesWithSTREERels.add(child.getId());nodesWithSTREERels.add(parent.getId());
+		nodesWithSTREERels.add(child.getId()); nodesWithSTREERels.add(parent.getId());
 	}
 	
 	private LongBipartition getGraphBipartForTreeNode(TreeNode p, Tree t) {
