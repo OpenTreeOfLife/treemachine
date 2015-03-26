@@ -115,7 +115,7 @@ public class ImmutableLongBipartition implements LongBipartition {
 
 		return new ImmutableLongBipartition(sumIn, sumOut);
 	}
-
+	
 	/**
 	 * Returns true if there is no conflict between these bipartitions. More formally, let A be the bipartition on which
 	 * the method is called and B the bipartition passed to the method. Then, we return true if and only if (1) the
