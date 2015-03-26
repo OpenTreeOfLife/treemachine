@@ -351,15 +351,20 @@ public class GraphInitializer extends GraphBase{
 			if (tflag.equals("hidden")){
 				System.out.println("skipping hidden "+name);	
 				return;
-			}if (tflag.equals("unclassified")){
+			}
+			if (tflag.equals("unclassified")){
 				System.out.println("skipping unclassified "+name);	
 				return;
 			}
-			
+	// was "tattered" turned off from filtering on purpose?!?
 			if (tflag.equals("tattered")){
 				System.out.println("skipping tattered "+name);	
 			//	return;
 			}
+            if (tflag.equals("tattered_inherited")){
+                System.out.println("skipping tattered_inherited "+name);
+             //  return;
+            }
 		}
 		
 		Node tnode = graphDb.createNode();
