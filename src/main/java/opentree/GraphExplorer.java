@@ -1403,7 +1403,7 @@ public class GraphExplorer extends GraphBase {
 		}
 		
 		// alternative way. not using now.
-		String synthName = "";
+		//String synthName = "";
 		
 		// build the list of ids, have to use generic objects
 		String [] sourceIdPriorityListString = new String [sourceIdPriorityList.size()];
@@ -1418,19 +1418,22 @@ public class GraphExplorer extends GraphBase {
 				justSourcePriorityList.add(sourceId.split("_")[0]);
 			}
 			// build up synthesis name
+		/*
 			if (synthName == "") {
 				synthName = sourceId;
 			} else {
 				synthName += "_" + sourceId;
 			}
+		*/
 			sourceIdPriorityListString[iii] = sourceId;
 			iii++;
 		}
 		
-		System.out.println("\nsynthName built up to: " + synthName + "\n");
+		//System.out.println("\nsynthName built up to: " + synthName + "\n");
 		
-		boolean done = false;
+		//boolean done = false;
 		String tempSynthTreeName = DRAFTTREENAME;
+	/*
 		int jj = 0;
 		while (!done) {
 			String terp = tempSynthTreeName;
@@ -1447,7 +1450,7 @@ public class GraphExplorer extends GraphBase {
 			}
 			jj++;
 		}
-		
+	*/
 		// define the synthesis protocol
 		SynthesisExpander draftSynthesisMethod = new SynthesisExpander();
 		
