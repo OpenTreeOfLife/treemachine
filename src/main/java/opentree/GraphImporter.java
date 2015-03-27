@@ -163,6 +163,65 @@ public class GraphImporter extends GraphBase {
 		}
 		loadTree();
 	}
+
+	// map to deepest exemplified taxon, set tip names to uid
+	public JadeTree relabelDeepest () throws Exception {
+		for (JadeNode curLeaf : inputJadeTreeLeaves) {
+			Long ottId = (Long) curLeaf.getObject("ot:ottId");
+			Node matchedGraphNode = null;
+			IndexHits<Node> hits = null;
+			try {
+				hits = graphTaxUIDNodeIndex.get("tax_uid", ottId);
+				int numh = hits.size();
+				if (numh < 1) {
+					throw new TaxonNotFoundException(String.valueOf(ottId));
+				} else if (numh > 1) {
+					throw new AmbiguousTaxonException("tax_uid = " + ottId);
+				} else {
+					matchedGraphNode = hits.getSingle();
+				}
+			} finally {
+				hits.close();
+			}
+			inputJadeTreeLeafToMatchedGraphNodeIdMap.put(curLeaf, matchedGraphNode.getId());
+		}
+		
+		HashMap<JadeNode, Long> shallowTaxonMappings = new HashMap<JadeNode, Long>(inputJadeTreeLeafToMatchedGraphNodeIdMap);
+		System.out.println("attempting to remap tips to deepest exemplified taxa");
+
+		tx = graphDb.beginTx();
+		try {
+			for (JadeNode curLeaf : shallowTaxonMappings.keySet()) {
+				
+				Long originalMatchedNodeId = shallowTaxonMappings.get(curLeaf);
+				TLongArrayList outgroupIds = new TLongArrayList();
+				for (Long tid : shallowTaxonMappings.values()) {
+					if (tid.equals(originalMatchedNodeId) == false) {
+						outgroupIds.addAll((long[]) graphDb.getNodeById(tid).getProperty("mrca"));
+					}
+				}
+				Node newMatch = getDeepestExemplifiedTaxon(graphDb.getNodeById(originalMatchedNodeId), outgroupIds);
+				if (!originalMatchedNodeId.equals(newMatch.getId())) {
+					inputJadeTreeLeafToMatchedGraphNodeIdMap.put(curLeaf, newMatch.getId());
+					System.out.println("\t" + curLeaf.getName() + " was remapped to " + getIdString(newMatch));
+				}
+			}
+		} catch (Exception ex) { // dump the transaction if remapping fails
+			tx.failure();
+			tx.finish();
+			throw ex;
+		} finally {
+			tx.success();
+			tx.finish();
+		}
+		// relabel the tree already
+		for (JadeNode curLeaf : inputJadeTreeLeaves) {
+			Node graphNode = graphDb.getNodeById(inputJadeTreeLeafToMatchedGraphNodeIdMap.get(curLeaf));
+			curLeaf.setName(graphNode.getProperty("tax_uid").toString());
+		}
+		return inputTree;
+	}
+
 	
 	/**
 	 * Ingest the current JadeTree (in the jt data member) to the GoL.
