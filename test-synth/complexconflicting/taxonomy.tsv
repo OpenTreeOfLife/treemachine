@@ -1,0 +1,33 @@
+uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|	
+805080	|		|	life	|	no rank	|		|		|		|	
+C1	|	C	|	C1	|	no rank	|		|		|		|	
+C2	|	C	|	C2	|	no rank	|		|		|		|	
+C3	|	C	|	C3	|	no rank	|		|		|		|	
+C4	|	C	|	C4	|	no rank	|		|		|		|	
+C5	|	C	|	C5	|	no rank	|		|		|		|	
+D1	|	D	|	D1	|	no rank	|		|		|		|	
+D2	|	D	|	D2	|	no rank	|		|		|		|	
+D3	|	D	|	D3	|	no rank	|		|		|		|	
+D4	|	D	|	D4	|	no rank	|		|		|		|	
+D5	|	D	|	D5	|	no rank	|		|		|		|	
+D6	|	D	|	D6	|	no rank	|		|		|		|	
+D7	|	D	|	D7	|	no rank	|		|		|		|	
+D8	|	D	|	D8	|	no rank	|		|		|		|	
+D9	|	D	|	D9	|	no rank	|		|		|		|	
+D10	|	D	|	D10	|	no rank	|		|		|		|	
+D11	|	D	|	D11	|	no rank	|		|		|		|	
+E1	|	E	|	E1	|	no rank	|		|		|		|	
+E2	|	E	|	E2	|	no rank	|		|		|		|	
+F1	|	F	|	F1	|	no rank	|		|		|		|	
+F2	|	F	|	F2	|	no rank	|		|		|		|	
+F3	|	F	|	F3	|	no rank	|		|		|		|	
+F4	|	F	|	F4	|	no rank	|		|		|		|	
+G1	|	G	|	G1	|	no rank	|		|		|		|	
+G2	|	G	|	G3	|	no rank	|		|		|		|	
+D	|	DEF	|	D	|	no rank	|		|		|		|	
+E	|	DEF	|	E	|	no rank	|		|		|		|	
+F	|	DEF	|	F	|	no rank	|		|		|		|	
+DEF	|	CDEF	|	DEF	|	no rank	|		|		|		|	
+C	|	CDEF	|	C	|	no rank	|		|		|		|	
+CDEF	|	805080	|	CDEF	|	no rank	|		|		|		|	
+G	|	805080	|	G	|	no rank	|		|		|		|	
