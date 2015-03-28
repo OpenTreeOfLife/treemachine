@@ -2478,6 +2478,132 @@ public class MainRunner {
 	}
 	
 	
+	/*
+	 * Read in a nexson, export a newick where:
+	 * 1. duplicate taxa are pruned
+	 * 2. taxa are just represented by their ottIDs
+	 * 3. optionally taxa can be "mapped deeper"
+	 * Args are: nexson_filename, treeid, graph.db
+	 */
+	public int processtree(String [] args) throws Exception {
+		if (args.length != 4 & args.length != 5) {
+			System.out.println("the argument has to be: nexson_filename treeid graphdb (optional: <mapdeeper[T|F]>)");
+			return 0;
+		}
+		String filen = args[1];
+		File file = new File(filen);
+		System.err.println("file " + file);
+		String treeid = args[2];
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[3]);
+		boolean mapDeeper = false;
+		if (args.length == 5) {
+			String smapDeeper = args[4];			
+			if (smapDeeper.toLowerCase().equals("t")) {
+				mapDeeper = true;
+			}
+		}
+		
+		BufferedReader br = null;
+		MessageLogger messageLogger = new MessageLogger("processtree", " ");
+		
+		try {
+			br = new BufferedReader(new FileReader(file));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			graphDb.shutdownDb();
+			return -1;
+		}
+		
+		List<JadeTree> rawTreeList = null;
+		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+		rawTreeList = NexsonReader.readNexson(br, false, messageLogger);
+		for (JadeTree j : rawTreeList) {
+			if (j == null) {
+				continue;
+			} else {
+				// kick out early if tree is already in graph
+				String sourcename = "";
+				if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)j.getObject("ot:studyId");
+				}
+				String treeJId = (String)j.getObject("id");
+				if (treeJId != null) {
+					if (treeJId.compareTo(treeid) == 0) {
+						jt.add(j);
+						break;
+					}
+				}
+			}
+		}
+		br.close();
+		
+		if (jt.size() == 0) {
+			System.out.println("\nTree ID '" + treeid + "' not found!\n");
+			return 0;
+		}
+		try {
+			boolean good = PhylografterConnector.fixNamesFromTreesNOTNRS(jt, graphDb, true, messageLogger);
+			System.out.println("done fixing name");
+			if (good == false) {
+				System.err.println("failed to get the names from server fixNamesFromTrees 3");
+				return -1;
+			}
+		} catch (IOException ioe) {
+			System.err.println("exception to get the names from server fixNamesFromTrees 4");
+			throw ioe;
+		}
+		
+		for (JadeTree j : jt) {
+			GraphImporter gi = new GraphImporter(graphDb);
+			boolean doubname = false;
+			String treeJId = (String)j.getObject("id");
+			if (treeid != null) {
+				if (treeJId.equals(treeid) == false) {
+					System.out.println("skipping tree: " + treeJId);
+					continue;
+				}
+			}
+			HashSet<Long> ottols = new HashSet<Long>();
+			messageLogger.indentMessageStr(1, "Checking for uniqueness of OTT IDs", "tree id", treeJId);
+			for (int m = 0; m < j.getExternalNodeCount(); m++) {
+				// System.out.println(j.getExternalNode(m).getName() + " " + j.getExternalNode(m).getObject("ot:ottId"));
+				if (j.getExternalNode(m).getObject("ot:ottId") == null) {//use doubname as also 
+					messageLogger.indentMessageStr(2, "null OTT ID for node", "name", j.getExternalNode(m).getName());
+					doubname = true;
+					break;
+				}
+				String ottID = j.getExternalNode(m).getObject("ot:ottId").toString();
+				j.getExternalNode(m).setName(ottID);
+				if (ottols.contains(ottID) == true) {
+					System.out.println("Found a duplicate ottID: " + ottID + ". That's not good.");
+					doubname = true;
+					break;
+				} else {
+					ottols.add((Long)j.getExternalNode(m).getObject("ot:ottId"));
+				}
+			}
+			// check for any duplicate ottol:id. hmm, none should make it this far
+			if (doubname == true) {
+				messageLogger.indentMessageStr(1, "Null or duplicate names. Skipping tree", "tree id", treeJId);
+			}
+			if (mapDeeper) {
+				gi.setTree(j);
+				j = gi.relabelDeepest();
+			}
+			String studyn = filen.substring(filen.lastIndexOf('/') + 1);
+			String outfile = studyn + "_" + treeid + ".tre";
+			FileWriter fw;
+			try {
+				fw = new FileWriter(outfile);
+				fw.write(j.getRoot().getNewick(false) + ";");
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return 0;
+	}
+
 	public static int loadPhylografterStudy(GraphDatabaseAgent graphDb, 
 											BufferedReader nexsonContentBR, String treeid, String SHA,
 											MessageLogger messageLogger,
@@ -3433,17 +3559,19 @@ public class MainRunner {
 				cmdReturnCode = mr.loadOTT(args);
 			} else if (command.compareTo("nodestatus") == 0) {
 				cmdReturnCode = mr.getNodeStatus(args);
-			} else if (command.compareTo("treecomp") == 0){
+			} else if (command.compareTo("treecomp") == 0) {
 				cmdReturnCode = mr.treeCompare(args);
-			} else if (command.compareTo("taxcomp") == 0){
+			} else if (command.compareTo("taxcomp") == 0) {
 				cmdReturnCode = mr.taxCompare(args);
 			} else if (command.compareTo("filtertreesforload") == 0){
 				cmdReturnCode = mr.filterTreesForLoad(args);
-			} else if (command.compareTo("testsynth") == 0){
+			} else if (command.compareTo("testsynth") == 0) {
 				cmdReturnCode = mr.testsynth(args);
-			} else if (command.compareTo("sinksynth") == 0){
+			} else if (command.compareTo("sinksynth") == 0) {
 				cmdReturnCode = mr.sinkSynth(args);
-			}else {
+			} else if (command.compareTo("processtree") == 0) {
+				cmdReturnCode = mr.processtree(args);
+			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}
