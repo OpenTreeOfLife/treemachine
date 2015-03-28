@@ -83,7 +83,6 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	void synthesizeFrom(Node root) {
 		G = new GraphDatabaseAgent(root.getGraphDatabase());
 		excludedRels = breakCycles(); // find and flag rels to be excluded from the topological order
-//		topologicalOrder = new TopologicalOrder(G, excludedRels, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 		topologicalOrder = new TopologicalOrder(root, excludedRels, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 		
 		// now process all the nodes
@@ -91,15 +90,6 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 			recordRels(n, selectRelsForNode(n));
 		}
 	}
-	
-	/*
-	 * Helper method that returns an iterable of all incoming STREECHILDOF and TAXCHILDOF rels at a given node.
-	 * @param n
-	 * @return
-	 *
-	Iterable<Relationship> getALLStreeAndTaxRels(Node n) {
-		return n.getRelationships(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF);
-	} */
 	
 	Iterable<Relationship> availableRelsForSynth(Node n, RelationshipType ... relTypes) {
 		List<Relationship> rels = new ArrayList<Relationship>();
@@ -146,7 +136,6 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 			descendants.add(childId);
 			descendants.addAll(nodeMrcaTipsAndInternal.get(childId));
 			descendantTips.addAll(nodeMrcaTips.get(childId));
-//			if (VERBOSE) { print("adding descendants of rel " + r + ": " + nodeMrcaTipsAndInternal.get(childId) + " to nodeMrca["+n.getId()+"]"); }
 		}
 		
 		if (! n.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
