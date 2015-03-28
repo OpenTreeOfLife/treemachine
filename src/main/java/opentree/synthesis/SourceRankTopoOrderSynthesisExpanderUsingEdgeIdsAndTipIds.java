@@ -673,7 +673,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		
 		bestSet.info().finalize();
 		print("\n" + n, "completed. the synthesized subtree below this node contains:\n" + bestSet.info());
-		storeInfoForCompletedSubtree(n, bestSet.info());
+		updateCompletedSubtreeInfo(n, bestSet.info());
 		return new ArrayList<Relationship>(bestSet);
 	}
 	
@@ -688,12 +688,34 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	}
 	
 	/**
-	 * Trivial convenience method that abstracts the storage implementation (the map) from the activity.
+	 * Update the subtree info storage when we finish a subtree.
 	 * @param r
 	 * @return
 	 */
-	private void storeInfoForCompletedSubtree(Node n, SynthesisSubtreeInfo s) {
+	private void updateCompletedSubtreeInfo(Node n, SynthesisSubtreeInfo s) {
 		availableSubtrees.put(n, bestSet.info());
+		finishedNodes.add(n);
+		
+		// see if any of this node's children can be removed from the available subtrees map
+		for (Relationship r : n.getRelationships(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
+			Node child = r.getStartNode();
+
+			// check whether all the possible parents of this child have been visited
+			boolean allParentsCompleted = true;
+			for (Relationship t : child.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
+				if (excludedRels.contains(t)) { continue; }
+				Node parent = t.getEndNode();
+				if (! finishedNodes.contains(parent)) {
+					allParentsCompleted = false;
+					break;
+				}
+			}
+
+			// if there are no unvisited parents, then we will never see this node again, so we can free up space in the map
+			if (allParentsCompleted) {
+				availableSubtrees.remove(child);
+			}
+		}
 	}
 		
 	private boolean internallyDisjoint(Set<Relationship> rels) {
