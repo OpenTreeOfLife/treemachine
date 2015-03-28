@@ -923,16 +923,19 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int loadTreeAnalysis(String [] args) throws Exception {
-		if (args.length != 4) {
-			System.out.println("arguments should be: filename graphdbfolder (taxonomyalreadyloaded)T|F");
+		if (args.length < 4) {
+			System.out.println("arguments should be: filename graphdbfolder (taxonomyalreadyloaded)T|F (subset)");
 			return 1;
 		}
 		String filename = args[1];
 		String taxaloaded = args[3];
 		boolean tloaded = true;
+		boolean isSubset = false;
 		if (taxaloaded.toLowerCase().equals("f")) {
 			tloaded = false;
 		}
+		if(args.length == 5)
+			isSubset = true;
 		String graphname = args[2];
 		int treeCounter = 0;
 		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
@@ -965,6 +968,10 @@ public class MainRunner {
 						ts = spls[1];
 					}
 					Tree tt = jade.tree.TreeReader.readTree(ts);
+					if(tt.internalNodeCount() < 2){
+						System.out.println("skipping "+tt);
+						continue;
+					}
 					//adding the information in the tree for subsetting
 					//check the root first
 					if(((String)tt.getRoot().getLabel()).contains("subset=")){
@@ -1023,7 +1030,7 @@ public class MainRunner {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
 		System.out.println("started graph import");
-		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,sourceForTrees,subsetTipInfo);
+		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,sourceForTrees,subsetTipInfo,isSubset);
 		
 		gdb.shutdownDb();
 		return 0;

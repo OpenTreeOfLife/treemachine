@@ -53,6 +53,8 @@ public class BipartOracle {
 	
 	boolean VERBOSE = false;
 	
+	boolean subset = false;
+	
 	boolean mapdeepest = true;
 	
 	// maps of tip names for higher taxon tips to sets of tip names for their included taxa
@@ -198,8 +200,8 @@ public class BipartOracle {
 	 * @throws Exception
 	 */
 	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy, 
-			Map<Tree, String> sources, Map<TreeNode,String> subsetInfo) throws Exception {
-		
+			Map<Tree, String> sources, Map<TreeNode,String> subsetInfo, boolean subset) throws Exception {
+		this.subset = subset;
 		this.gdb = gdb;
 		this.USING_TAXONOMY = useTaxonomy;
 		this.subsetTipInfo = subsetInfo;
@@ -1486,10 +1488,12 @@ public class BipartOracle {
 			//need to expand the rootBipart for the searching
 	
 			HashSet<Node> graphNodes = new HashSet<Node>();
-			for(LongBipartition b : graphNodeForBipart.keySet()){
-				if(b.containsAll(rootBipart)){
-					System.out.println("mapping root to "+graphNodeForBipart.get(b));
-					graphNodes.add(graphNodeForBipart.get(b));
+			if(subset == false){//subset assumes you are connecting the taxonomy because you subset at taxonomy
+				for(LongBipartition b : graphNodeForBipart.keySet()){
+					if(b.containsAll(rootBipart)){
+						System.out.println("mapping root to "+graphNodeForBipart.get(b));
+						graphNodes.add(graphNodeForBipart.get(b));
+					}
 				}
 			}
 			if(USING_TAXONOMY){
@@ -2400,7 +2404,7 @@ public class BipartOracle {
 	
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb, false,null,null);
+		BipartOracle bi = new BipartOracle(t, gdb, false,null,null,false);
 
 	}
 	
@@ -2426,7 +2430,7 @@ public class BipartOracle {
 	
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb, true, null, null);
+		BipartOracle bi = new BipartOracle(t, gdb, true, null, null,false);
 
 	}
 	
@@ -2461,7 +2465,7 @@ public class BipartOracle {
 
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb, true,null,null);
+		BipartOracle bi = new BipartOracle(t, gdb, true,null,null,false);
 
 	}
 	
@@ -2469,7 +2473,7 @@ public class BipartOracle {
 	private static void runSimpleTest(List<Tree> t, String dbname) throws Exception {
 
 		FileUtils.deleteDirectory(new File(dbname));
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), false,null,null);
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), false,null,null,false);
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.size(); i++) {
@@ -2492,7 +2496,7 @@ public class BipartOracle {
 	@SuppressWarnings("unused")
 	private static void runSimpleOTTTest(List<Tree> t, String dbname) throws Exception {
 
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), true,null,null);
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), true,null,null,false);
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.size(); i++) {
