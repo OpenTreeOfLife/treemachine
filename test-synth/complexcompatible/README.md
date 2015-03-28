@@ -14,4 +14,4 @@ The taxonomy conflicts with tree2 but not tree1.
 
 Synthesis should recover a topology consistent with both trees, but should also include those taxa not sampled by either tree.
 
-Currently it fails because it doesn't do any ranking, so taxonomy ends up trumping some relationships from the trees.
+Interestingly, the expected tree in this case contains a soft polytomy--there is insufficient information to place the P clade exactly, although we can be sure it is more closely related to A1 than to A5 or A6, so it is placed in a polytomy at the base of the A1-A4 clade to indicate that it could go anywhere in that clade.

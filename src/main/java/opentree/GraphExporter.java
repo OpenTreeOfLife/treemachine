@@ -19,6 +19,7 @@ import java.util.LinkedList;
 import java.util.Stack;
 
 import opentree.constants.NodeProperty;
+import opentree.constants.RelProperty;
 //import opentree.RelTypes;
 import opentree.constants.RelType;
 
@@ -249,7 +250,6 @@ public class GraphExporter extends GraphBase {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 				Long relid = rel.getId();
 				if (!visitedRels.contains(relid)) {
-					String rname = "r" + relid + " s";
 					Long snid = rel.getStartNode().getId();
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
@@ -260,7 +260,7 @@ public class GraphExporter extends GraphBase {
 					assert relSource2ColInd.containsKey(relSource);
 					Integer colorOffset = relSource2ColInd.get(relSource);
 					relcolor = relColorArr[colorOffset];
-					rname += relSource;
+					String rname = "r" + relid + " s" + relSource + " e" + rel.getProperty(RelProperty.SOURCE_EDGE_ID.propertyName);
 					
 					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"" + relcolor + "\" color=\"" + relcolor + "\"];\n");
 					visitedRels.add(relid);

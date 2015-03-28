@@ -42,12 +42,15 @@ public enum RelProperty {
 	
 	CHILD_IS_TIP ("child_is_tip", boolean.class),
 
+	SOURCE_EDGE_ID ("source_edge_id", int.class),
+
 	// SYNTHCHILDOF relationships
 	/** The name used to identify this synthetic tree */
 	NAME ("name", String.class),
 	
 	/** The phylografter ids of the source trees supporting this synthetic rel. Format is <studyid>_<treeid> */
 	SUPPORTING_SOURCES ("supporting_sources", String[].class);
+	
 	
 	public String propertyName;
 	public final Class<?> type;

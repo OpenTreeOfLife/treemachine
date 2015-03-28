@@ -1846,7 +1846,7 @@ public class BipartOracle {
 							graphNodes.add(potentialChild);
 							taxNodesMatched.add(potentialChild);
 							updateSTREEChildOf(potentialChild,parent,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), edgeId,
-									nodeBipartExp,false);
+									nodeBipartExp,external);
 							//Go through for the taxonomy
 							//if we match taxonomy then we might check all the children of the taxonomy and map through
 							// we don't have to do this for the other nodes because they will be connected by MRCACHILDOFs
@@ -1866,7 +1866,7 @@ public class BipartOracle {
 										graphNodes.add(tch);
 										taxNodesMatched.add(tch);
 										updateSTREEChildOf(tch,curchild,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), 
-												edgeId,nodeBipartExp,false);
+												edgeId,nodeBipartExp,external);
 										going = true;
 										curchild = tch;
 										break;
@@ -1881,7 +1881,7 @@ public class BipartOracle {
 								&& childBipartExp.isNestedPartitionOf(nodeParentExp)){
 							graphNodes.add(potentialChild);
 							updateSTREEChildOf(potentialChild,parent,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), 
-									edgeId,nodeBipartExp,false);
+									edgeId,nodeBipartExp,external);
 						}
 					}
 				}else if (USING_TAXONOMY && taxonomyGraphNodesMap.containsKey(potentialChild)){
@@ -1890,7 +1890,7 @@ public class BipartOracle {
 						graphNodes.add(potentialChild);
 						taxNodesMatched.add(potentialChild);
 						updateSTREEChildOf(potentialChild,parent,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), 
-								edgeId,nodeBipartExp,false);
+								edgeId,nodeBipartExp,external);
 						//Go through for the taxonomy
 						//if we match taxonomy then we might check all the children of the taxonomy and map through
 						// we don't have to do this for the other nodes because they will be connected by MRCACHILDOFs
@@ -1908,7 +1908,7 @@ public class BipartOracle {
 									graphNodes.add(tch);
 									taxNodesMatched.add(tch);
 									updateSTREEChildOf(tch,curchild,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), 
-											edgeId,nodeBipartExp,false);
+											edgeId,nodeBipartExp,external);
 									going = true;
 									curchild = tch;
 									break;
@@ -1929,7 +1929,7 @@ public class BipartOracle {
 							&& childBipart.isNestedPartitionOf(nodeParent)){//testParent)){
 						graphNodes.add(potentialChild);
 						updateSTREEChildOf(potentialChild,parent,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), 
-								edgeId,nodeBipartExp,false);
+								edgeId,nodeBipartExp,external);
 					}	
 				}
 				//System.out.println("\t\t"+graphNodes);
@@ -1940,7 +1940,7 @@ public class BipartOracle {
 			for (Relationship trel: gn.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
 				if (graphNodes.contains(trel.getStartNode())){
 					updateSTREEChildOf(trel.getStartNode(),gn,sourceForTreeNode.get(treeNode), rankForTreeNode.get(treeNode), 
-							edgeId,nodeBipartExp,false);
+							edgeId,nodeBipartExp,external);
 				}
 			}
 		}
@@ -2295,9 +2295,9 @@ public class BipartOracle {
 		Relationship rel = child.createRelationshipTo(parent, RelType.STREECHILDOF);
 		rel.setProperty("source", source);
 		rel.setProperty("sourcerank", sourcerank);
-		rel.setProperty("sourceedgeid", edgeId);
-		if(istip==true){rel.setProperty(RelProperty.CHILD_IS_TIP.propertyName, true);}
-		if(childBipart != null){
+		rel.setProperty(RelProperty.SOURCE_EDGE_ID.propertyName, edgeId);
+		if (istip) { rel.setProperty(RelProperty.CHILD_IS_TIP.propertyName, true); }
+		if (childBipart != null) {
 			rel.setProperty("exclusive_mrca", childBipart.ingroup().toArray());
 			rel.setProperty("exclusive_outmrca", childBipart.outgroup().toArray());
 		}

@@ -145,7 +145,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 			descendants.add(childId);
 			descendants.addAll(nodeMrcaTipsAndInternal.get(childId));
 			descendantTips.addAll(nodeMrcaTips.get(childId));
-			if (VERBOSE) { print("adding descendants of rel " + r + ": " + nodeMrcaTipsAndInternal.get(childId) + " to nodeMrca["+n.getId()+"]"); }
+//			if (VERBOSE) { print("adding descendants of rel " + r + ": " + nodeMrcaTipsAndInternal.get(childId) + " to nodeMrca["+n.getId()+"]"); }
 		}
 		
 		if (! n.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
@@ -158,10 +158,10 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		nodeMrcaTips.put(nodeId, descendantTips);
 		
 		childRels.put(nodeId, incomingRels);
-		if (VERBOSE) {
-			print("nodeMrca["+n.getId()+"] = " + nodeMrcaTipsAndInternal.get(n.getId()));
-			print("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
-		};
+//		if (VERBOSE) {
+//			print("nodeMrca["+n.getId()+"] = " + nodeMrcaTipsAndInternal.get(n.getId()));
+//			print("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
+//		};
 	}
 	
 	/*

@@ -21,7 +21,6 @@ public class CartesianProduct<T> implements Iterable<Set<T>> {
 		for (Collection<T> t : sets) {
 			this.sets.add(new ArrayList<T>(t));
 		}
-		java.lang.System.out.println();
 	}
 
 	public CartesianProduct<T> withMissingElements() {
