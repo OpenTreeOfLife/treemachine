@@ -24,19 +24,61 @@ public class TopologicalOrder implements Iterable<Node> {
 	private Set<Relationship> excludedRels;
 	
 	private final RelationshipType[] relTypes;
+
+	public TopologicalOrder(Node root, Set<Relationship> excludedRels, RelationshipType... relTypes) {
+		this.excludedRels = excludedRels;
+		this.relTypes = relTypes;
+		sort(breadthFirst(root));
+	}
 	
 	public TopologicalOrder(GraphDatabaseAgent G, Set<Relationship> excludedRels, RelationshipType... relTypes) {
-
 		this.excludedRels = excludedRels;
-
 		this.relTypes = relTypes;
+		sort(G.getAllNodes());
+	}
+	
+	private Iterable<Node> breadthFirst(Node n) {
+		return new Iterable<Node> () {
+			public Iterator<Node> iterator() {
+				return new BreadthFirstIterator(n);
+			}
+		};
+	}
+	
+	private class BreadthFirstIterator implements Iterator<Node> {
 		
-		for (Node n : G.getAllNodes()) {
+		private LinkedList<Node> toVisit = new LinkedList<Node>();
+		private HashSet<Node> visited = new HashSet<Node>();
+		
+		public BreadthFirstIterator (Node root) {
+			toVisit.add(root);
+		}
+
+		@Override
+		public boolean hasNext() {
+			return ! toVisit.isEmpty();
+		}
+
+		@Override
+		public Node next() {
+			Node p = toVisit.pollFirst();
+			visited.add(p);
+			for (Relationship r : p.getRelationships(Direction.INCOMING, relTypes)) {
+				Node c = r.getStartNode();
+				if (! visited.contains(c)) {
+					toVisit.add(c);
+				}
+			}
+			return p;
+		}
+	}
+
+	private void sort(Iterable<Node> nodes) {
+		for (Node n : nodes) {
 			if (n.hasRelationship(relTypes)) {
 				unmarked.add(n);
 			}
 		}
-
 		while (! unmarked.isEmpty()) {
 			visit(unmarked.iterator().next());
 		}
