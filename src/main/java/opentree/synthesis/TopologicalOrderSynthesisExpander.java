@@ -83,6 +83,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	void synthesizeFrom(Node root) {
 		G = new GraphDatabaseAgent(root.getGraphDatabase());
 		excludedRels = breakCycles(); // find and flag rels to be excluded from the topological order
+		if (VERBOSE) { print("will only visit those nodes in the subgraph below", root + ". collecting them now..."); }
 		topologicalOrder = new TopologicalOrder(root, excludedRels, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 		
 		// now process all the nodes

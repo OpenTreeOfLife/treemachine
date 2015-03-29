@@ -8,19 +8,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 import static org.opentree.utils.GeneralUtils.print;
 import static org.opentree.utils.GeneralUtils.getRelationshipsFromTo;
-import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.synthesis.CartesianProduct.PrunableCPSupersetIterator;
 
-import org.mortbay.log.Slf4jLog;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -30,7 +25,6 @@ import org.neo4j.graphdb.traversal.BranchState;
 import org.opentree.bitarray.ImmutableCompactLongSet;
 import org.opentree.bitarray.LongSet;
 import org.opentree.bitarray.MutableCompactLongSet;
-import org.opentree.bitarray.TLongBitArraySet;
 
 public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends TopologicalOrderSynthesisExpander {
 
