@@ -14,6 +14,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class TopologicalOrder implements Iterable<Node> {
@@ -48,7 +49,7 @@ public class TopologicalOrder implements Iterable<Node> {
 	private class BreadthFirstIterator implements Iterator<Node> {
 		
 		private LinkedList<Node> toVisit = new LinkedList<Node>();
-		private HashSet<Node> visited = new HashSet<Node>();
+		private MutableCompactLongSet visited = new MutableCompactLongSet();
 		
 		public BreadthFirstIterator (Node root) {
 			toVisit.add(root);
@@ -62,11 +63,10 @@ public class TopologicalOrder implements Iterable<Node> {
 		@Override
 		public Node next() {
 			Node p = toVisit.pollFirst();
-			visited.add(p);
+			visited.add(p.getId());
 			for (Relationship r : p.getRelationships(Direction.INCOMING, relTypes)) {
-				Node c = r.getStartNode();
-				if (! visited.contains(c)) {
-					toVisit.add(c);
+				if (! visited.contains(r.getStartNode().getId())) {
+					toVisit.addLast(r.getStartNode());
 				}
 			}
 			return p;
