@@ -726,7 +726,7 @@ public class BipartOracle {
 		MutableCompactLongSet in = new MutableCompactLongSet();
 		for(Long l1:x){
 			for(Long l2: y){
-				if (l1 == l2)
+				if (l1.equals(l2))
 					in.add(l1);
 			}
 		}
