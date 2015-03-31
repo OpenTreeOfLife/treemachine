@@ -29,7 +29,7 @@ import org.opentree.bitarray.TLongBitArraySet;
 
 import scala.actors.threadpool.Arrays;
 
-public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends TopologicalOrderSynthesisExpander {
+public class SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas extends TopologicalOrderSynthesisExpanderOLD {
 
 	// these get reinitialized for each node we visit
 

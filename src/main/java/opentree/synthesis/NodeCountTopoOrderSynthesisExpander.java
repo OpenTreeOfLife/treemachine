@@ -22,7 +22,7 @@ import org.neo4j.graphdb.Relationship;
 
 import scala.actors.threadpool.Arrays;
 
-public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthesisExpander {
+public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthesisExpanderOLD {
 	
 	public NodeCountTopoOrderSynthesisExpander(Node root) {
 		VERBOSE = true;

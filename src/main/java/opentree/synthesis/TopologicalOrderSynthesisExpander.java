@@ -41,10 +41,6 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	/** stores the rels to be included in the final synthetic tree, indexed by node id */
 	Map<Long, HashSet<Relationship>> childRels = new HashMap<Long, HashSet<Relationship>>();;
 	
-	/** stores the node ids of all the descendants (not just terminals) in the synthesis tree for a given ancestor node's id */
-	Map<Long, TLongBitArraySet> nodeMrcaTipsAndInternal = new HashMap<Long, TLongBitArraySet>();
-	Map<Long, TLongBitArraySet> nodeMrcaTips = new HashMap<Long, TLongBitArraySet>();
-
 	Set<Relationship> excludedRels;
 	
 	/** the graph */
@@ -125,7 +121,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * @param bestRelIds
 	 */
 	private void recordRels(Node n, Iterable<Relationship> bestRels) {
-		TLongBitArraySet descendants = new TLongBitArraySet();
+/*		TLongBitArraySet descendants = new TLongBitArraySet();
 		TLongBitArraySet descendantTips = new TLongBitArraySet();
 		HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 
@@ -146,9 +142,14 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		long nodeId = n.getId();
 		descendants.add(nodeId);
 		nodeMrcaTipsAndInternal.put(nodeId, descendants);
-		nodeMrcaTips.put(nodeId, descendantTips);
-		
-		childRels.put(nodeId, incomingRels);
+		nodeMrcaTips.put(nodeId, descendantTips); */
+
+		HashSet<Relationship> incomingRels = new HashSet<Relationship>();
+		for (Relationship r : bestRels) { incomingRels.add(r); }
+
+		childRels.put(n.getId(), incomingRels);
+
+//		childRels.put(nodeId, incomingRels);
 //		if (VERBOSE) {
 //			print("nodeMrca["+n.getId()+"] = " + nodeMrcaTipsAndInternal.get(n.getId()));
 //			print("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
@@ -166,38 +167,38 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		return included;
 	} */
 	
-	/**
+	/*
 	 * Get *all* the graph nodes--tips as well as internal--that are descended from this node in synthesis.
 	 * @param rel
 	 * @return
-	 */
+	 *
 	Set<Long> mrcaTipsAndInternal(Iterable<Relationship> rels) {
 		HashSet<Long> included = new HashSet<Long>();
 		for (Relationship r : rels) { included.addAll(mrcaTipsAndInternal(r)); }
 		return included;
-	}
+	} */
 
-	/**
+	/*
 	 * Get *all* the graph nodes--tips as well as internal--that are descended from the start node of the 
 	 * passed relId in the synthetic topology. <strong>Clarification:</strong> The argument should be a 
 	 * neo4j relationship id.
 	 * @param rel
 	 * @return
-	 */
+	 *
 	TLongBitArraySet mrcaTipsAndInternal(Relationship r) {
 		return nodeMrcaTipsAndInternal.get(r.getStartNode().getId());
-	}
+	} */
 	
-	/**
+	/*
 	 * Get *all* the graph nodes--tips as well as internal--that are descended from the start node of the 
 	 * passed relId in the synthetic topology. <strong>Clarification:</strong> The argument should be a 
 	 * neo4j relationship id.
 	 * @param rel
 	 * @return
-	 */
+	 *
 	TLongBitArraySet mrcaTips(Node n) {
 		return nodeMrcaTips.get(n.getId());
-	}
+	} */
 	
 	/**
 	 * Just a very simple helper function to improve code clarity.

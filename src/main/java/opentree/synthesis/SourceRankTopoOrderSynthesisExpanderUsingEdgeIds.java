@@ -26,7 +26,7 @@ import org.opentree.bitarray.LongSet;
 import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.bitarray.TLongBitArraySet;
 
-public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends TopologicalOrderSynthesisExpander {
+public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIds extends TopologicalOrderSynthesisExpanderOLD {
 
 	/**
 	 * We record the number of unique source tree edges that are represented in the subgraph below each node,

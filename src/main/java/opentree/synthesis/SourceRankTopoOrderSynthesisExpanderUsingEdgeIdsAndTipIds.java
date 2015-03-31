@@ -847,7 +847,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			edgeSetsByRankAndEdgeId.get(rank).put(edgeId, new EdgeSet(r.getEndNode(), rank, edgeId));
 		}
 		
-		if (VERBOSE) { print("adding non-singleton", r, " (" + mrcaTipsAndInternal(r) + ") to set of incoming rels. rank =", rank, "edgeid =", edgeId); }
+//		if (VERBOSE) { print("adding non-singleton", r, " (" + mrcaTipsAndInternal(r) + ") to set of incoming rels. rank =", rank, "edgeid =", edgeId); }
+		if (VERBOSE) { print("adding non-singleton", r, "to set of incoming rels. rank =", rank, "edgeid =", edgeId); }
 		edgeSetsByRankAndEdgeId.get(rank).get(edgeId(r)).add(r);
 	}
 	
@@ -922,6 +923,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		if (! m.containsKey(v)) { m.put(v, new HashSet<LongSet>()); }
 	}
 	
+	/*
 	private Set<Node> unmarkedForCycle = new HashSet<Node>();
 	private Set<Node> temporaryMarkedForCycle = new HashSet<Node>();
 	private HashSet<Relationship> excludedRels = new HashSet<Relationship>();
@@ -951,7 +953,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		//System.out.println("currently not breaking cycles! topological order should fail if it encounters one.");
 		return excludedRels;
 	}
-	
 
 	private boolean visitNodeForBreakCycles(Node n,Node p){
 		if (temporaryMarkedForCycle.contains(n)) {
@@ -980,8 +981,13 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			temporaryMarkedForCycle.remove(n);
 		}
 		return false;
-	}
+	} */
 	
+	@Override
+	Set<Relationship> breakCycles() {
+		return new HashSet<Relationship>();
+	}
+
 	/**
 	 * Get the rank for this relationship relative to relationships from other trees.
 	 */
