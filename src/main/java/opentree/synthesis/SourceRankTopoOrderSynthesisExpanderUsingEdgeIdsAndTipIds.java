@@ -32,7 +32,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	Set<Node> children;
 	Set<Integer> observedRanks;
 	CandidateRelSet bestSet;
-	CandidateRelSet bestSetForCurrentRank;
+//	CandidateRelSet bestSetForCurrentRank;
 	
 	/**
 	 * Stores the accumulated information about each completed synthesis subtree that could still be included as
@@ -41,12 +41,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 */
 	Map<Node, SynthesisSubtreeInfo> availableSubtrees = new HashMap<Node, SynthesisSubtreeInfo>();
 	// TODO: could use a TreeMap to save memory (probably not a huge amount). Would need to create a ComparableNode
-	// class that implemented the Comparable interface in order to do this, the straight neo4j Node class does not.
+	// class that implements the Comparable interface in order to do this; the straight neo4j Node class does not.
 	
 	/**
-	 * Stores the set of nodes which have been completely finished. We use this to keep track of nodes that we've
-	 * done so we can remove information from the maps for nodes that will never be visited again. Does *not* get
-	 * reinitialized!
+	 * Stores the set of nodes which have been completely finished. We use this information to determine when nodes
+	 * will never be seen again (i.e. when all their parents are finished), so we can free up space in the data structures.
+	 * Does *not* get reinitialized!
 	 */
 	Set<Node> finishedNodes = new HashSet<Node>();
 
@@ -61,7 +61,13 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		synthesizeFrom(root);
 		System.out.println("using edge ids *and* tip ids.");
 	}
-	
+
+	/**
+	 * Simple container class that binds SynthesisSubtreeInfo to a set of rels.
+	 * Implements the Set<Relationship> interface so we can use it with things like CartesianProduct.
+	 * @author cody
+	 *
+	 */
 	private abstract class RelSet implements Set<Relationship> {
 		
 		SynthesisSubtreeInfo info;
@@ -72,69 +78,35 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		}
 
 		@Override
-		public int size() {
-			return rels.size();
-		}
+		public int size() { return rels.size(); }
 
 		@Override
-		public boolean isEmpty() {
-			return rels.isEmpty();
-		}
+		public boolean isEmpty() { return rels.isEmpty(); }
 
 		@Override
-		public boolean contains(Object o) {
-			return rels.contains(o);
-		}
+		public boolean contains(Object o) { return rels.contains(o); }
 
 		@Override
-		public Iterator<Relationship> iterator() {
-			return rels.iterator();
-		}
+		public Iterator<Relationship> iterator() { return rels.iterator(); }
 
 		@Override
-		public Object[] toArray() {
-			return rels.toArray();
-		}
+		public Object[] toArray() { return rels.toArray(); }
 
 		@Override
-		public <T> T[] toArray(T[] a) {
-			return rels.toArray(a);
-		}
+		public <T> T[] toArray(T[] a) { return rels.toArray(a); }
 
-		@Override
-		public boolean remove(Object o) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public boolean containsAll(Collection<?> c) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public boolean addAll(Collection<? extends Relationship> c) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public boolean retainAll(Collection<?> c) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public boolean removeAll(Collection<?> c) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void clear() {
-			throw new UnsupportedOperationException();
-		}
+		// the following methods are required by the Set interface but are irrelevant for this class
+		@Override public boolean remove(Object o) { throw new UnsupportedOperationException(); }
+		@Override public boolean containsAll(Collection<?> c) { throw new UnsupportedOperationException(); }
+		@Override public boolean addAll(Collection<? extends Relationship> c) { throw new UnsupportedOperationException(); }
+		@Override public boolean retainAll(Collection<?> c) { throw new UnsupportedOperationException(); }
+		@Override public boolean removeAll(Collection<?> c) { throw new UnsupportedOperationException(); }
+		@Override public void clear() { throw new UnsupportedOperationException(); }
 	}
 	
 	/**
 	 * A set of relationships that are assumed to share the same parent node. This class is used to assess potential 
-	 * sets of rels that are being considered for inclusion in synthesis.
+	 * sets of rels that are being considered (as a set) for inclusion in synthesis as child edges of the parent node.
 	 * @author cody
 	 *
 	 */
@@ -281,14 +253,14 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		/**
 		 * The root of this synthesis subtree.<br><br>
 		 * 
-		 * This is used as a reference point when adding info by calling 
-		 * include(Node child)--source tree info is extracted from the rels between the root and the specified
-		 * child. If the child does not have a rel to the root, then an error is thrown.<br><br>
+		 * This is used as a reference point when adding info by calling <tt>this.include(child)</tt>--source
+		 * tree info is extracted from the rels between the <tt>this.root<tt> and <tt>child</tt>. If the child
+		 * does not have a rel to the root, then an exception is thrown.<br><br>
 		 * 
 		 * If the finalize() method has been called on this synthesis subtree info object, then the root is
 		 * included in the information returned about the subtree.
 		 */
-		Node root;
+		private Node root;
 		
 		public SynthesisSubtreeInfo(Node root) {
 			this.root = root;
@@ -299,7 +271,9 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			include(child);
 		}
 
-		/** accumulate stree edge and tip id represented in the specified synth subtree info object */
+		/**
+		 * accumulate stree edge and tip id represented in the specified synth subtree info object
+		 */
 		private void accumulate(SynthesisSubtreeInfo s) {
 			for (int rank : s.ranksForIncludedEdges()) {
 				updateSetMap(rank, edgeIdsByRank);
@@ -312,6 +286,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			includedNodeIds.addAll(s.includedNodeIds());
 		}
 
+		/**
+		 * Add the information about the synthesis subtree below <tt>child</tt> to this SynthesisSubtreeInfo object.
+		 * Information from source trees about the relationships between the root of this SynthesisSubtreeInfo object
+		 * and <tt>child</tt> will be included as well.
+		 * @param child
+		 */
 		public void include(Node child) {
 			
 			if (finalized) { throw new UnsupportedOperationException(); }
@@ -348,10 +328,24 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 		}
 		
+		/**
+		 * Whether or not this synthesis subtree contains any nodes or represents any tree edges that are also contained/represented by
+		 * <tt>that</tt>. (If so, then the subtrees cannot both be included in synthesis).
+		 * @param that
+		 * @param workingRank
+		 * @return
+		 */
 		public boolean overlapsWith(SynthesisSubtreeInfo that, int workingRank) {
 			return includedNodeIds.containsAny(that.includedNodeIds) ? true : containsAnyStreeElementsOf(that, workingRank); 
 		}
 		
+		/**
+		 * Whether or not this synthesis subtree contains any edges/nodes representing the same tree edges that are represented by
+		 * nodes/edges in <tt>that</tt>.
+		 * @param that
+		 * @param workingRank
+		 * @return
+		 */
 		public boolean containsAnyStreeElementsOf(SynthesisSubtreeInfo that, int workingRank) {
 			boolean containsAny = false;
 			for (int rank : ranksForIncludedEdges()) {
@@ -388,6 +382,15 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			return containsAny;
 		}
 		
+		/**
+		 * Check if this SynthesisSubtreeInfo object describes a set of edges/nodes that would be more preferable than <tt>that</tt>.
+		 * The answer to this question is dependent on the rank at which we are making the decision (e.g. some subtree may contain more
+		 * edges of rank 2 than some other, but fewer edges of rank 3), so we must also provide the maximum rank to be used for making
+		 * decisions.
+		 * @param that
+		 * @param testRank
+		 * @return
+		 */
 		public boolean improvesUpon(SynthesisSubtreeInfo that, int testRank) {
 			if (that == null) { throw new NullPointerException(); }
 
@@ -396,6 +399,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			// until we have enough info to either accept or reject this candidate, or we run out of trees to use
 			Boolean result = null;
 			while (result == null && testRank > 0) {
+				
+				// testing
+//				print(testRank);
+//				print("this", this.edgeIdsByRank.containsKey(testRank) ? (this.edgeIdsForRank(testRank) + ", " + this.edgeIdsForRank(testRank).size()) : "contains no edges of specified rank");
+//				print("that", that.edgeIdsByRank.containsKey(testRank) ? (that.edgeIdsForRank(testRank) + ", " + that.edgeIdsForRank(testRank).size()) : "contains no edges of specified rank");
+
 				int candidateScore = this.edgeIdsByRank.containsKey(testRank) ? this.edgeIdsForRank(testRank).size() : 0;
 				int bestScore = that.edgeIdsByRank.containsKey(testRank) ? that.edgeIdsForRank(testRank).size() : 0;
 				if (VERBOSE) { print("for tree of rank", testRank + ", X includes", candidateScore, "edges; Y includes", bestScore, "edges."); }
@@ -430,16 +439,14 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 			return result;
 		}
-		
-		/*
-		 * returns -1 if the info object contains no edges or tips
-		 *
-		public int maxExemplifiedTreeRank() {
-			int maxEdgeRank = ranksForIncludedEdges().isEmpty() ? -1 : new TreeSet<Integer>(ranksForIncludedEdges()).last();
-			int maxTipRank = ranksForIncludedTips().isEmpty() ? -1 : new TreeSet<Integer>(ranksForIncludedTips()).last();
-			return Math.max(maxEdgeRank, maxTipRank);
-		} */
-				
+			
+		/**
+		 * Whether or not this synthesis subtree contains edges/nodes representing <strong>all</strong> the same tree edges that
+		 * are represented by nodes/edges in <tt>that</tt>.
+		 * @param that
+		 * @param workingRank
+		 * @return
+		 */
 		public boolean containsAllStreeElementsOf(SynthesisSubtreeInfo that, int workingRank) {
 			boolean containsAll = true;
 			for (int rank : that.ranksForIncludedEdges()) {
@@ -480,18 +487,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			return containsAll;
 		}
 		
-		/*
-		public int scoreForRank(int rank) {
-			int score = 0;
-			score = edgeIdsByRank.containsKey(rank) ? edgeIdsByRank.get(rank).size() : 0;
-			if (tipIdSetsByRank.containsKey(rank)) {
-				for (LongSet s : tipIdSetsByRank.get(rank)) {
-					score += s.size();
-				}
-			}
-			return score;
-		} */
-		
 		@Override
 		public String toString() {
 			StringBuilder s = new StringBuilder();
@@ -530,14 +525,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		}
 	}
 	
-	private static LongSet exclusiveMrca(Relationship r) {
-		return new ImmutableCompactLongSet((long[]) r.getProperty(RelProperty.EXCLUSIVE_MRCA.propertyName));
-	}
-	
-	private static boolean childIsTip(Relationship r) {
-		return r.hasProperty(RelProperty.CHILD_IS_TIP.propertyName) ? (boolean) r.getProperty(RelProperty.CHILD_IS_TIP.propertyName) : false;
-	}
-	
+	/**
+	 * Called once for each node, visited in topological order. This method contains the high level logic to make decisions
+	 * about which child nodes to include as descendants in the synthesis subtree of the node <tt>n</tt>.
+	 */
 	@Override
 	List<Relationship> selectRelsForNode(Node n) {
 
@@ -594,7 +585,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 			
 			// now attempt to augment the previous best rels set with rels from the edge sets for this rank
-			bestSetForCurrentRank = bestSet;
+//			bestSetForCurrentRank = bestSet;
 			while (overlappingSets.size() > 0) {
 
 				// first see if we can update the best set with any rels from edge sets that overlap with the best set
@@ -614,7 +605,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 					
 					if (! internallyDisjoint(proposed)) { combinations.prune(); continue; }
 
-					if (VERBOSE) { print("\nbest set so far is:", bestSetForCurrentRank, ":", bestSetForCurrentRank.info(), "\nassessing proposed set", proposed, ":", proposed.info()); }
+//					if (VERBOSE) { print("\nbest set so far is:", bestSetForCurrentRank, ":", bestSetForCurrentRank.info(), "\nassessing proposed set", proposed, ":", proposed.info()); 
+					if (VERBOSE) { print("\nbest set so far is:", bestSet, ":", bestSet.info(), "\nassessing proposed set", proposed, ":", proposed.info()); }
 
 					// will return null if bestSet cannot be updated by proposed (because of partial overlap)
 					CandidateRelSet candidate = (CandidateRelSet) updateSet(n, proposed, bestSet, currentRank);
@@ -624,9 +616,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 					
 					// replace the previous best candidate if this one has more rels representing edges from the current ranked tree
 					// or if it has the same number of rels from the current ranked tree but contains more nodes
-					if (VERBOSE) { print("\nfound a new viable set X to compare to previous best set Y. comparing:\nX =", candidate, "and\nY =", bestSetForCurrentRank); }
-					if (candidate.info().improvesUpon(bestSetForCurrentRank.info(), currentRank)) {
-						bestSetForCurrentRank = candidate;
+//					if (VERBOSE) { print("\nfound a new viable set X to compare to previous best set Y. comparing:\nX =", candidate, "and\nY =", bestSetForCurrentRank); }
+//					if (candidate.info().improvesUpon(bestSetForCurrentRank.info(), currentRank)) {
+//						bestSetForCurrentRank = candidate;
+					if (VERBOSE) { print("\nfound a new viable set X to compare to previous best set Y. comparing:\nX =", candidate, "and\nY =", bestSet); }
+					if (candidate.info().improvesUpon(bestSet.info(), currentRank)) {
+						bestSet = candidate;
 					}
 				}
 			
@@ -635,7 +630,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				Iterator<EdgeSet> nonOverlappingIter = nonOverlappingSets.iterator();
 				while (nonOverlappingIter.hasNext()) {
 					EdgeSet edgeSet = nonOverlappingIter.next();
-					if (bestSetForCurrentRank.info().overlapsWith(edgeSet.info(), currentRank)) {
+//					if (bestSetForCurrentRank.info().overlapsWith(edgeSet.info(), currentRank)) {
+					if (bestSet.info().overlapsWith(edgeSet.info(), currentRank)) {
 						overlappingSets.add(edgeSet);
 						nonOverlappingIter.remove();
 					} 
@@ -644,10 +640,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				// for the edge sets that still don't overlap, find the best individual edge from each set to add to the best set
 				if (! nonOverlappingSets.isEmpty()) {
 					if (VERBOSE) { print("\nnow attempting to add remaining subtrees that don't overlap with those already selected"); }
-					bestSetForCurrentRank = augmentFromNonOverlappingSets(bestSetForCurrentRank, nonOverlappingSets, currentRank);
+//					bestSetForCurrentRank = augmentFromNonOverlappingSets(bestSetForCurrentRank, nonOverlappingSets, currentRank);
+					bestSet = augmentFromNonOverlappingSets(bestSet, nonOverlappingSets, currentRank);
 				}
 				
-				if (VERBOSE) { print("\nbest set so far is: ", bestSetForCurrentRank, ":", bestSetForCurrentRank.info()); }
+//				if (VERBOSE) { print("\nbest set so far is: ", bestSetForCurrentRank, ":", bestSetForCurrentRank.info()); }
+				if (VERBOSE) { print("\nbest set so far is: ", bestSet, ":", bestSet.info()); }
 
 				// for the edge sets that do overlap with the best set, repeat the procedure
 			}
@@ -655,7 +653,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			// in case there were no overlapping rels, find the best individual edge each edge set
 			if (! nonOverlappingSets.isEmpty()) {
 				if (VERBOSE) { print("\nno subtrees found that overlap with previously selected subtrees."); }
-				bestSet = augmentFromNonOverlappingSets(bestSetForCurrentRank, nonOverlappingSets, currentRank);
+//				bestSet = augmentFromNonOverlappingSets(bestSetForCurrentRank, nonOverlappingSets, currentRank);
+				bestSet = augmentFromNonOverlappingSets(bestSet, nonOverlappingSets, currentRank);
 			}
 		}
 
@@ -666,7 +665,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		}
 		
 		bestSet.info().finalize();
-		print("\n" + n, "completed. the synthesized subtree below this node contains:\n" + bestSet.info());
+		print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info());
 		updateCompletedSubtreeInfo(n, bestSet.info());
 		return new ArrayList<Relationship>(bestSet);
 	}
@@ -711,7 +710,13 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 		}
 	}
-		
+	
+	/**
+	 * Just check if the completed subtrees below the set of incoming rels has any internal overlap. If so, the set cannot
+	 * be included in the synthesis tree.
+	 * @param rels
+	 * @return
+	 */
 	private boolean internallyDisjoint(Set<Relationship> rels) {
 		boolean valid = true;
 		MutableCompactLongSet cumulativeMrca = new MutableCompactLongSet();
@@ -847,23 +852,17 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			edgeSetsByRankAndEdgeId.get(rank).put(edgeId, new EdgeSet(r.getEndNode(), rank, edgeId));
 		}
 		
-//		if (VERBOSE) { print("adding non-singleton", r, " (" + mrcaTipsAndInternal(r) + ") to set of incoming rels. rank =", rank, "edgeid =", edgeId); }
 		if (VERBOSE) { print("adding non-singleton", r, "to set of incoming rels. rank =", rank, "edgeid =", edgeId); }
 		edgeSetsByRankAndEdgeId.get(rank).get(edgeId(r)).add(r);
 	}
 	
 	/**
-	 * Basically, check if the incoming set of relationships can be added to toUpdate. The incoming set will be
-	 * added as long as it does not *partially* overlap with any rels already in toUpdate. A proposed set
-	 * Y overlaps with an existing rel X if the synthesis subtree of any rel in Y contains any nodes that are in
-	 * the synthesis subtree below X, or if the subtree of any rel in Y contains any edges that represent the same
-	 * source tree edge as any rel in the subtree of X. Y completely contains X if the set of all nodes contained in
-	 * subtrees of Y contains *all* the nodes in the subtree of X, and if all set set of all source tree edges
-	 * represented by rels in the subtrees of all rels in Y contains all the source tree edges represented by rels
-	 * in the subtree of X.<br><br>
-	 * If there are no rels in Y that partly (but do not completely) overlap with any rels in toUpdate, then the rels
-	 * in Y will be added to toUpdate. In this case, any rels in toUpdate that are contained by Y will be removed
-	 * from toUpdate.
+	 * Basically, check if the incoming set of relationships X can be added to toUpdate. The incoming set will be
+	 * added as long as it does not *partially* overlap with any rels already in toUpdate; that is, if X contains
+	 * *all* of the same source tree edges as some rel Y in toUpdate, then it will replace Y in toUpdate. If X
+	 * contains *none* of of the graph nodes/source tree edges of rel Y (elementof) toUpdate, then X will be added
+	 * to toUpdate. If X contains some of the graph nodes or source tree edges in Y, then this method will return null.
+	 * Otherwise, the updated set will be returned.
 	 * @param proposed
 	 * @param toUpdate
 	 */
@@ -919,6 +918,11 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		if (! m.containsKey(v)) { m.put(v, new HashSet<Long>()); }
 	}
 
+	/**
+	 * trivial convenience function for code simplification.
+	 * @param v
+	 * @param m
+	 */
 	private void updateLongSetMap(int v, Map<Integer, Set<LongSet>> m) {
 		if (! m.containsKey(v)) { m.put(v, new HashSet<LongSet>()); }
 	}
@@ -1009,16 +1013,33 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * @return
 	 */
 	private static boolean isTaxonomyRel(Relationship r) {
-		// TODO: taxonomy streechildofs don't have this property. this is a temporary property though
-		return ! r.hasProperty("sourcerank");
+		return r.isType(RelType.TAXCHILDOF);
+	}
+	
+	/**
+	 * Access and return the 'mrca' property of the node.
+	 * @param r
+	 * @return
+	 */
+	private static LongSet exclusiveMrca(Relationship r) {
+		return new ImmutableCompactLongSet((long[]) r.getProperty(RelProperty.EXCLUSIVE_MRCA.propertyName));
+	}
+	
+	/**
+	 * Access and return the "child_is_tip" property of the node.
+	 * @param r
+	 * @return
+	 */
+	private static boolean childIsTip(Relationship r) {
+		return r.hasProperty(RelProperty.CHILD_IS_TIP.propertyName) ? (boolean) r.getProperty(RelProperty.CHILD_IS_TIP.propertyName) : false;
 	}
 	
 	@Override
 	public Iterable expand(Path path, BranchState state) {
 
 		// testing
-		System.out.println("looking for rels starting at: " + path.endNode());
-		System.out.println(childRels.get(path.endNode().getId()));
+//		System.out.println("looking for rels starting at: " + path.endNode());
+//		System.out.println(childRels.get(path.endNode().getId()));
 		
 		return childRels.get(path.endNode().getId());
 	}
