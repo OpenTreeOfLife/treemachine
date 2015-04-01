@@ -722,6 +722,7 @@ public class BipartOracle {
             //populate Q and reduce bipartition set
             HashSet<LongBipartition> totest = new HashSet<LongBipartition>();
             for (LongBipartition testBi : originalBiparts) {
+                //System.out.println(testBi);
                 //TODO: make this a phylogenetic compatible comparison instead
                 if (testBi.ingroup().containsAny(ss.outgroup()) && testBi.outgroup().containsAny(ss.ingroup())
                         && testBi.ingroup().containsAny(ss.ingroup())) {
@@ -732,9 +733,8 @@ public class BipartOracle {
                     //for each ingroup intersection, add the others and add the outgroup intersection to the mutable set
                     LongSet ing1 = LSintersection(testBi.ingroup(), ss.ingroup());
                     LongSet ing2 = LSintersection(testBi.outgroup(), ss.ingroup());
-                        //System.out.println(testBi);
-                    //System.out.println(ss);
-                    //System.out.println(ing1+" "+ing2);
+                    //System.out.println(testBi);
+                    //System.out.println("i: "+ing1+" "+ing2);
                     for (Long l1 : ing1) {
                         for (Long l2 : ing1) {
                             if (l1 == l2) {
@@ -746,6 +746,7 @@ public class BipartOracle {
                     //outgroup
                     LongSet out1 = LSintersection(testBi.ingroup(), ss.outgroup());
                     LongSet out2 = LSintersection(testBi.outgroup(), ss.outgroup());
+                    //System.out.println("o: "+out1+" "+out2);
                     for (Long l1 : out1) {
                         for (Long l2 : out1) {
                             if (l1 == l2) {
@@ -754,7 +755,17 @@ public class BipartOracle {
                             Q.get(l1).get(l2).addAll(out2);
                         }
                     }
-
+                    if(out1.size()>0 && ing1.size() > 0){
+                        for (Long l1 : out1) {
+                            for (Long l2 : ing1) {
+                                if(Q.get(l1).containsKey(l2)==false)
+                                    Q.get(l1).put(l2, new MutableCompactLongSet());
+                                Q.get(l1).get(l2).addAll(out2);
+                            }
+                        }
+                    }
+                    //System.out.println(Q);
+                    //System.out.println("=======");
                 }
             }
             //System.out.println(Q);
@@ -774,8 +785,10 @@ public class BipartOracle {
                     outtoadd.put(l1, new MutableCompactLongSet());
                     outtoadd.get(l1).add(l1);
                     for (Long l2 : Q.get(l1).keySet()) {
-                        if (testBi.outgroup().containsAny(Q.get(l1).get(l2))) {
+                        if (ss.ingroup().contains(l2)==false && testBi.outgroup().containsAny(Q.get(l1).get(l2))) {
                             outtoadd.get(l1).add(l2);
+                        }if (ss.ingroup().contains(l2) && testBi.ingroup().contains(l2)) {
+                            outtoadd.get(l1).addAll(Q.get(l1).get(l2));
                         }
                     }
                 }
@@ -795,8 +808,8 @@ public class BipartOracle {
                         }
                     }
                 }
-
             }
+            //System.out.println(R);
             for (Long l : ss.ingroup()) {
                 if (R.get(l).size() != ss.outgroup().size()) {
                     System.out.println("wouldn't make " + ss);
