@@ -687,46 +687,131 @@ public class BipartOracle {
 	}
 	
 	private LongBipartition testSum(LongBipartition par1,LongBipartition par2,Set<LongBipartition> originalBiparts){
-		LongBipartition xor = par1.xor(par2);
-		LongBipartition ss = par1.strictSum(par2);
-		System.out.println(ss);
-		if (ss == null)
-			return null;
+            LongBipartition xor = par1.xor(par2);
+            LongBipartition ss = par1.strictSum(par2);
+            //System.out.println(ss);
+            if (ss == null) {
+                return null;
+            }
+           // System.out.println(par1+" "+par2);
 		//else
-		//	return ss;
-		if(xor.ingroup().size()==0 || xor.outgroup().size() == 0 || par1.outgroup().size() == 0 || par2.outgroup().size() == 0){
-			System.out.println("would make "+ par1+" "+par2);
-			return ss;
-		}else{
-			System.out.println("would make "+ par1+" "+par2);
-			return ss;
-		}
-		/*
-		MutableCompactLongSet runningIn = new MutableCompactLongSet();
-		MutableCompactLongSet runningOut = new MutableCompactLongSet();
-		for(LongBipartition testBi: originalBiparts){
-			if(testBi.isCompatibleWith(ss) == false)
-				continue;
-			LongSet tin = LSintersection(testBi.ingroup(),ss.ingroup());
-			LongSet tou = LSintersection(testBi.outgroup(),ss.outgroup());
-			if(tin.size() > 0 && tou.size() > 0){
-				runningIn.addAll(tin);
-				runningOut.addAll(tou);
-				if(runningIn.size() == ss.ingroup().size() && runningOut.size() == ss.outgroup().size()){
-					System.out.println("would make "+ par1+" "+par2);
-					return ss;
-				}
-			}
-		}
-		System.out.println("wouldn't make "+ par1+" "+par2);
-		return null;*/
+            //	return ss;
+            if (xor.ingroup().size() == 0 || xor.outgroup().size() == 0 || par1.outgroup().size() == 0 || par2.outgroup().size() == 0) {
+                //System.out.println("would make " + ss);
+                return ss;
+            } else {
+                HashMap<Long,HashMap<Long,MutableCompactLongSet>> Q = new HashMap<Long,HashMap<Long,MutableCompactLongSet>>();
+                for(Long l: ss.ingroup()){
+                    Q.put(l, new HashMap<Long,MutableCompactLongSet>());
+                    for(Long l2: ss.ingroup()){
+                        if(l.equals(l2))
+                            continue;
+                        Q.get(l).put(l2, new MutableCompactLongSet());
+                    }
+                }for(Long l: ss.outgroup()){
+                    Q.put(l, new HashMap<Long,MutableCompactLongSet>());
+                    for(Long l2: ss.outgroup()){
+                        if(l.equals(l2))
+                            continue;
+                        Q.get(l).put(l2, new MutableCompactLongSet());
+                    }
+                }
+                //populate Q and reduce bipartition set
+                HashSet<LongBipartition> totest = new HashSet<LongBipartition>();
+                for (LongBipartition testBi : originalBiparts) {
+                	//TODO: make this a phylogenetic compatible comparison instead
+                    if (testBi.ingroup().containsAny(ss.outgroup()) && testBi.outgroup().containsAny(ss.ingroup())
+                    		&& testBi.ingroup().containsAny(ss.ingroup())) {
+                        continue;
+                    }else{
+                        //populate Q
+                        //intersection ingroup bipart with ss ingroup
+                        //intersection outgroup bipart with ss ingroup
+                        //for each ingroup intersection, add the others and add the outgroup intersection to the mutable set
+                        LongSet ing1 = LSintersection(testBi.ingroup(), ss.ingroup());
+                        LongSet ing2 = LSintersection(testBi.outgroup(), ss.ingroup());
+                        //System.out.println(testBi);
+                        //System.out.println(ss);
+                        //System.out.println(ing1+" "+ing2);
+                        for(Long l1: ing1){
+                            for(Long l2: ing1){
+                                if(l1==l2)
+                                    continue;
+                                Q.get(l1).get(l2).addAll(ing2);
+                            }
+                        }
+                        //outgroup
+                        LongSet out1 = LSintersection(testBi.ingroup(), ss.outgroup());
+                        LongSet out2 = LSintersection(testBi.outgroup(), ss.outgroup());
+                        for(Long l1: out1){
+                            for(Long l2: out1){
+                                if(l1==l2)
+                                    continue;
+                                Q.get(l1).get(l2).addAll(out2);
+                            }
+                        }
+
+                    }
+                }
+                //System.out.println(Q);
+                HashMap<Long,MutableCompactLongSet> R = new HashMap<Long,MutableCompactLongSet>();
+                for(Long l: ss.ingroup()){
+                    R.put(l, new MutableCompactLongSet());
+                }
+                for (LongBipartition testBi : originalBiparts) {
+                	if(testBi.isCompatibleWith(ss)==false)
+                		continue;
+                    LongSet ing = LSintersection(testBi.ingroup(), ss.ingroup());
+                    LongSet out = LSintersection(testBi.outgroup(), ss.outgroup());
+                    HashMap<Long,MutableCompactLongSet> outtoadd = new HashMap<Long,MutableCompactLongSet>();
+                    //TODO: do the outgroup
+                	for(Long l1: out){
+                		outtoadd.put(l1,new MutableCompactLongSet());
+                		outtoadd.get(l1).add(l1);
+                		for(Long l2: Q.get(l1).keySet()){
+                			if(testBi.outgroup().containsAny(Q.get(l1).get(l2))){
+                				outtoadd.get(l1).add(l2);
+                			}
+                		}
+                	}
+                    
+                    //TODO: change to a while and keep updating
+                    for(Long l1: ing){
+                        R.get(l1).addAll(out);
+                        for(Long o: outtoadd.keySet()){
+                        	R.get(l1).addAll(outtoadd.get(o));
+                        }
+                        for(Long l2: Q.get(l1).keySet()){
+                            if(testBi.ingroup().containsAny(Q.get(l1).get(l2))){
+                                R.get(l2).addAll(out);
+                                for(Long o: outtoadd.keySet()){
+                                	R.get(l2).addAll(outtoadd.get(o));
+                                }
+                            }
+                        }
+                    }
+                    
+                }
+                MutableCompactLongSet notincluded = new MutableCompactLongSet(ss.outgroup());
+                for(Long l: ss.ingroup()){
+                    if(R.get(l).size() != ss.outgroup().size()){
+                    	System.out.println("wouldn't make " + ss);
+                        System.exit(0);
+                        return null;
+                    }
+                }
+                System.out.println("would make " + ss);
+                //System.exit(0);
+                return ss;
+            }
+            //return null;
 	}
 	
 	private LongSet LSintersection(LongSet x,LongSet y){
 		MutableCompactLongSet in = new MutableCompactLongSet();
 		for(Long l1:x){
 			for(Long l2: y){
-				if (l1.equals(l2))
+				if (l1==l2)
 					in.add(l1);
 			}
 		}
