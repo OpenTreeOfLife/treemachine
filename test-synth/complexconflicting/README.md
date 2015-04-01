@@ -1,3 +1,3 @@
-# interleavingconflictingaugmenting synthesis test
+# complexconflicting synthesis test
 
-A more complex example where edges at multiple depths can augment an otherwise conflicting higher ranked tree.
+An example intended to be difficult and to not resolve well. The highest ranked tree has low sampling, so does not conflict with most low-level taxa. The lower ranked trees however, break the monophyly of many of those taxa, and contain few clades that are compatible with the highest ranked tree. So, the expected tree is mostly unresolved, and contains just a few clades from lower ranked trees, plus the taxonomy where it is congruent with tree 1.
