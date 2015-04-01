@@ -934,8 +934,9 @@ public class MainRunner {
 		if (taxaloaded.toLowerCase().equals("f")) {
 			tloaded = false;
 		}
-		if(args.length == 5)
+		if (args.length == 5) {
 			isSubset = true;
+		}
 		String graphname = args[2];
 		int treeCounter = 0;
 		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
@@ -952,7 +953,7 @@ public class MainRunner {
 			//assuming we either have the source in front of the newick or just plan newick
 			boolean sourceAvail = false;
 			String first = br.readLine();
-			if(first.split(" ").length > 1 && first.split(" ")[0].length() > 0){
+			if (first.split(" ").length > 1 && first.split(" ")[0].length() > 0) {
 				sourceAvail = true;
 				sourceForTrees = new HashMap<Tree,String>();
 			}
@@ -962,19 +963,19 @@ public class MainRunner {
 			while ((ts = br.readLine()) != null) {
 				if (ts.length() > 1) {
 					String source = null;
-					if(sourceAvail){
+					if (sourceAvail) {
 						String [] spls = ts.split(" ");
 						source= spls[0];
 						ts = spls[1];
 					}
 					Tree tt = jade.tree.TreeReader.readTree(ts);
-					if(tt.internalNodeCount() < 2){
+					if (tt.internalNodeCount() < 2) {
 						System.out.println("skipping "+tt);
 						continue;
 					}
 					//adding the information in the tree for subsetting
 					//check the root first
-					if(((String)tt.getRoot().getLabel()).contains("subset=")){
+					if (((String)tt.getRoot().getLabel()).contains("subset=")) {
 						if(subsetTipInfo == null)
 							subsetTipInfo = new HashMap<TreeNode,String>();
 						String [] spls = ((String)tt.getRoot().getLabel()).split("subset=");
@@ -983,10 +984,19 @@ public class MainRunner {
 						subsetTipInfo.put(tt.getRoot(), subset);
 					}
 					//now check all the tips
-					for(TreeNode jn : tt.externalNodes()){
-						if(((String)jn.getLabel()).contains("__subset=")){
-							if(subsetTipInfo == null)
+					// first, for compatibility with the test cases, prune prefix XXX_ott from XXX_ottNNN
+					for (TreeNode jn : tt.externalNodes()) {
+						if (((String)jn.getLabel()).contains("_ott")) {
+							String [] spls = ((String)jn.getLabel()).split("_ott");
+							String id = spls[1];
+							((jade.tree.JadeNode)jn).setName(id);
+						}
+					}
+					for (TreeNode jn : tt.externalNodes()){
+						if(((String)jn.getLabel()).contains("__subset=")) {
+							if (subsetTipInfo == null) {
 								subsetTipInfo = new HashMap<TreeNode,String>();
+							}
 							String [] spls = ((String)jn.getLabel()).split("__subset=");
 							String name = spls[0];
 							String subset = spls[1];
@@ -994,8 +1004,9 @@ public class MainRunner {
 							subsetTipInfo.put(jn, subset);
 						}
 					}
-					if(sourceAvail)
+					if (sourceAvail) {
 						sourceForTrees.put(tt, source);
+					}
 					//check the tips
 					jt.add(tt);
 					treeCounter++;
