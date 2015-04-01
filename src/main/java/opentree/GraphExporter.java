@@ -49,6 +49,8 @@ import org.neo4j.kernel.Traversal;
  */
 public class GraphExporter extends GraphBase {
 
+	public static final String[] GRAPHVIZ_COLORS = {"aliceblue","antiquewhite","antiquewhite1","antiquewhite2","antiquewhite3","antiquewhite4","aquamarine","aquamarine1","aquamarine2","aquamarine3","aquamarine4","azure","azure1","azure2","azure3","azure4","beige","bisque","bisque1","bisque2","bisque3","bisque4","black","blanchedalmond","blue","blue1","blue2","blue3","blue4","blueviolet","brown","brown1","brown2","brown3","brown4","burlywood","burlywood1","burlywood2","burlywood3","burlywood4","cadetblue","cadetblue1","cadetblue2","cadetblue3","cadetblue4","chartreuse","chartreuse1","chartreuse2","chartreuse3","chartreuse4","chocolate","chocolate1","chocolate2","chocolate3","chocolate4","coral","coral1","coral2","coral3","coral4","cornflowerblue","cornsilk","cornsilk1","cornsilk2","cornsilk3","cornsilk4","crimson","cyan","cyan1","cyan2","cyan3","cyan4","darkgoldenrod","darkgoldenrod1","darkgoldenrod2","darkgoldenrod3","darkgoldenrod4","darkgreen","darkkhaki","darkolivegreen","darkolivegreen1","darkolivegreen2","darkolivegreen3","darkolivegreen4","darkorange","darkorange1","darkorange2","darkorange3","darkorange4","darkorchid","darkorchid1","darkorchid2","darkorchid3","darkorchid4","darksalmon","darkseagreen","darkseagreen1","darkseagreen2","darkseagreen3","darkseagreen4","darkslateblue","darkslategray","darkslategray1","darkslategray2","darkslategray3","darkslategray4","darkslategrey","darkturquoise","darkviolet","deeppink","deeppink1","deeppink2","deeppink3","deeppink4","deepskyblue","deepskyblue1","deepskyblue2","deepskyblue3","deepskyblue4","dimgray","dimgrey","dodgerblue","dodgerblue1","dodgerblue2","dodgerblue3","dodgerblue4","firebrick","firebrick1","firebrick2","firebrick3","firebrick4","floralwhite","forestgreen","gainsboro","ghostwhite","gold","gold1","gold2","gold3","gold4","goldenrod","goldenrod1","goldenrod2","goldenrod3","goldenrod4"};
+	
 	private SpeciesEvaluator se;
 	private ChildNumberEvaluator cne;
 	private TaxaListEvaluator tle;
@@ -225,7 +227,6 @@ public class GraphExporter extends GraphBase {
 			retstring.append("  " + name + ";\n");
 		}
 		HashSet<Long> visitedRels = new HashSet<Long>();
-		String [] relColorArr = {"blue", "springgreen", "magenta", "darkorange", "lightblue", "goldenrod", "brown", "gray"};
 		HashMap<String, Integer> relSource2ColInd = new HashMap<String, Integer>();
 		TreeSet<String> relNames = new TreeSet<String>();
 		for (Node tnode: nodes) {
@@ -237,13 +238,14 @@ public class GraphExporter extends GraphBase {
 			}
 		}
 //		relSource2ColInd.put("taxonomy", relNames.size()+1);
+		int i = 0;
 		for (String relSource : relNames) {
-			Integer colorOffset = new Integer(relSource2ColInd.size());
-			if (colorOffset > relColorArr.length - 1) {
-				colorOffset = new Integer(relColorArr.length - 1);
-			}
+//			Integer colorOffset = new Integer(relSource2ColInd.size());
+//			if (colorOffset > relColorArr.length - 1) {
+//				colorOffset = new Integer(relColorArr.length - 1);
+//			}
 			assert ! relSource2ColInd.containsKey(relSource);
-			relSource2ColInd.put(relSource, colorOffset);
+			relSource2ColInd.put(relSource, i++ % GRAPHVIZ_COLORS.length);
 		}
 
 		for (Node tnode: nodes) {
@@ -259,7 +261,7 @@ public class GraphExporter extends GraphBase {
 
 					assert relSource2ColInd.containsKey(relSource);
 					Integer colorOffset = relSource2ColInd.get(relSource);
-					relcolor = relColorArr[colorOffset];
+					relcolor = GRAPHVIZ_COLORS[colorOffset];
 					String rname = "r" + relid + " s" + relSource + " e" + rel.getProperty(RelProperty.SOURCE_EDGE_ID.propertyName);
 					
 					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"" + relcolor + "\" color=\"" + relcolor + "\"];\n");
