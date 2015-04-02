@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import opentree.constants.RelType;
 
@@ -18,13 +19,18 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class TopologicalOrder implements Iterable<Node> {
 
+	Node root = null;
+	GraphDatabaseAgent G = null;
+	
 	private Set<Node> unmarked = new HashSet<Node>();
 	private Set<Node> temporaryMarked = new HashSet<Node>();
 	private List<Node> nodes = new LinkedList<Node>();
+	private Predicate<Node> validateNode = null;
 	private Set<Relationship> excludedRels;
 	
 	private final RelationshipType[] relTypes;
 
+	/*
 	public TopologicalOrder(Node root, Set<Relationship> excludedRels, RelationshipType... relTypes) {
 		this.excludedRels = excludedRels;
 		this.relTypes = relTypes;
@@ -35,8 +41,23 @@ public class TopologicalOrder implements Iterable<Node> {
 		this.excludedRels = excludedRels;
 		this.relTypes = relTypes;
 		sort(G.getAllNodes());
-	}
+	} */
 	
+	public TopologicalOrder(Node root, RelationshipType... relTypes) {
+		this.root = root;
+		this.relTypes = relTypes;
+	}
+
+	public TopologicalOrder(GraphDatabaseAgent G, RelationshipType... relTypes) {
+		this.G = G;
+		this.relTypes = relTypes;
+	}
+
+	public TopologicalOrder validateWith(Predicate<Node> validateNode) {
+		this.validateNode = validateNode;
+		return this;
+	}
+		
 	private Iterable<Node> breadthFirst(Node n) {
 		return new Iterable<Node> () {
 			public Iterator<Node> iterator() {
@@ -64,15 +85,19 @@ public class TopologicalOrder implements Iterable<Node> {
 			Node p = toVisit.pollFirst();
 			visited.add(p);
 			for (Relationship r : p.getRelationships(Direction.INCOMING, relTypes)) {
-				if (! visited.contains(r.getStartNode())) {
-					toVisit.addLast(r.getStartNode());
+				Node c = r.getStartNode();
+				if (! visited.contains(c) && validateNode != null && validateNode.test(c)) {
+					toVisit.addLast(c);
 				}
 			}
 			return p;
 		}
 	}
 
-	private void sort(Iterable<Node> nodes) {
+	private void sort() {
+		if (G == null && root == null) { throw new NullPointerException(); }
+
+		Iterable<Node> nodes = G == null ? breadthFirst(root) : G.getAllNodes();
 		for (Node n : nodes) {
 			if (n.hasRelationship(relTypes)) {
 				unmarked.add(n);
@@ -104,6 +129,7 @@ public class TopologicalOrder implements Iterable<Node> {
 	
 	@Override
 	public Iterator<Node> iterator() {
+		sort();
 		return nodes.iterator();
 	}
 	
@@ -112,7 +138,7 @@ public class TopologicalOrder implements Iterable<Node> {
 		GraphDatabaseAgent G = GraphGenerator.randomTree(10, 2, "test.db");
 		System.out.println("input graph: \n" + GraphGenerator.getSTREEAdjacencyList(G));
 
-		TopologicalOrder order = new TopologicalOrder(G, new HashSet<Relationship>(), RelType.STREECHILDOF);
+		TopologicalOrder order = new TopologicalOrder(G, RelType.STREECHILDOF);
 		System.out.println("nodes in topological order: \n");
 		for (Node n : order) {
 			System.out.println(n);

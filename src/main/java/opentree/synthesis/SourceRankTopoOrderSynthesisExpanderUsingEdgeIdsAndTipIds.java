@@ -308,7 +308,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				// technical errors in the procedure. but it could do weird things to make synth decisions based on
 				// information about source trees from rels that we're not actually including in the synthesis. so for
 				// now i am leaving this here.
-				if (excludedRels.contains(s)) { continue; } 
+//				if (excludedRels.contains(s)) { continue; } 
 
 				int rank = rank(s);
 				if (childIsTip(s)) {
@@ -687,7 +687,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			// check whether all the possible parents of this child have been visited
 			boolean allParentsCompleted = true;
 			for (Relationship t : child.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
-				if (excludedRels.contains(t)) { continue; }
+//				if (excludedRels.contains(t)) { continue; }
 				Node parent = t.getEndNode();
 				if (! finishedNodes.contains(parent)) {
 					allParentsCompleted = false;
@@ -978,10 +978,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		return false;
 	} */
 	
-	@Override
-	Set<Relationship> breakCycles() {
-		return new HashSet<Relationship>();
-	}
+//	@Override
+//	Set<Relationship> breakCycles() {
+//		return new HashSet<Relationship>();
+//	}
 
 	/**
 	 * Get the rank for this relationship relative to relationships from other trees.

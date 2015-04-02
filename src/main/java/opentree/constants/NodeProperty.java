@@ -17,6 +17,9 @@ public enum NodeProperty {
 	NESTED_MRCA ("nested_mrca", long[].class, "??"),
 	EXCLUSIVE_MRCA ("exclusive_mrca", long[].class, "An array containing the node ids of all *terminal* graph nodes that descend from all the graph nodes that descend from the *source tree* node that was mapped to the child node of this rel. Basically, the ingroup of the corresponding source tree node, but inclusive of all the terminal graph nodes in the case that the source tree node was mapped to a deeper taxon."),
 	EXCLUSIVE_OUTMRCA ("exclusive_outmrca", long[].class, "Analogous to EXCLUSIVE_MRCA but for the outgroup instead."),
+
+	// TODO: this will need to change to an array (preferably sorted to enable binary search) if we want to support multiple synthesis trees
+	SYNTHESIZED ("synthesized", boolean.class, "Whether or not synthesis has been finished for this node."),
 	
 	// ===== Taxonomy nodes
 	NAME ("name", String.class, "The taxonomic name of this node. Generally used only for taxonomy nodes..."),

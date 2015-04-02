@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
@@ -27,7 +28,7 @@ import org.opentree.graphdb.GraphDatabaseAgent;
  * A non-instantiable base class that is inherited by the topological ordered synthesis expander classes.<br><br>
  * 
  * IMPORTANT: All classes that extend this abstract class should call the <tt>synthesizeFrom()</tt> method immediately
- * upon construction. This will run the entire analysis and populate the <tt>Iterable\<Relationship\></tt> object
+ * upon construction. This will run the entire analysis and populate the <tt>Iterable&ltRelationship&gt</tt> object
  * that will be used to return the relationships afterward.
  * 
  * @author cody
@@ -41,7 +42,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	/** stores the rels to be included in the final synthetic tree, indexed by node id */
 	Map<Long, HashSet<Relationship>> childRels = new HashMap<Long, HashSet<Relationship>>();;
 	
-	Set<Relationship> excludedRels;
+//	Set<Relationship> excludedRels;
 	
 	/** the graph */
 	GraphDatabaseAgent G;
@@ -60,7 +61,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * throw an IllegalArgumentException on the first cycle it encounters.
 	 * @return 
 	 */
-	abstract Set<Relationship> breakCycles();
+//	abstract Set<Relationship> breakCycles();
 	
 	/**
 	 * This method must be implemented by each class extending the TopologicalOrderSynthesisExpander. It must accept a node, and
@@ -78,24 +79,45 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 */
 	void synthesizeFrom(Node root) {
 		G = new GraphDatabaseAgent(root.getGraphDatabase());
-		excludedRels = breakCycles(); // find and flag rels to be excluded from the topological order
 		if (VERBOSE) { print("will only visit those nodes in the subgraph below", root + ". collecting them now..."); }
-		topologicalOrder = new TopologicalOrder(root, excludedRels, RelType.STREECHILDOF, RelType.TAXCHILDOF);
+
+		// turned off excluded rels because subproblems + node validation seems like it should obviate the need
+//		excludedRels = breakCycles(); // find and flag rels to be excluded from the topological order
+//		topologicalOrder = new TopologicalOrder(root, excludedRels, RelType.STREECHILDOF, RelType.TAXCHILDOF);
+		
+		topologicalOrder = new TopologicalOrder(root, RelType.STREECHILDOF, RelType.TAXCHILDOF).validateWith(new Predicate<Node> () {
+			@Override
+			public boolean test(Node n) {
+				return synthesisCompleted(n);
+			}
+		});
 		
 		// now process all the nodes
 		for (Node n : topologicalOrder) {
-			recordRels(n, selectRelsForNode(n));
+			recordCompleted(n, selectRelsForNode(n));
 		}
 	}
 	
 	Iterable<Relationship> availableRelsForSynth(Node n, RelationshipType ... relTypes) {
 		List<Relationship> rels = new ArrayList<Relationship>();
 		for (Relationship r : n.getRelationships(Direction.INCOMING, relTypes)) {
-			if (! excludedRels.contains(r)) {
+//			if (! excludedRels.contains(r)) {
 				rels.add(r);
-			}
+//			}
 		}
 		return rels;
+	}
+	
+	/**
+	 * Whether or not the node has been completed. Currently this will just support a single synthesis tree. This would need
+	 * to change to use a String[] property on nodes that would contain ids for all the synthesis trees for which this node
+	 * has been completed. NOTE: the ids in the String[] array should be keep sorted so Arrays.binarySearch() can be used
+	 * to locate specific ids.
+	 * @param n
+	 * @return
+	 */
+	private static boolean synthesisCompleted(Node n) {
+		return n.hasProperty(NodeProperty.SYNTHESIZED.propertyName) && (boolean) n.getProperty(NodeProperty.SYNTHESIZED.propertyName);
 	}
 	
 	/**
@@ -120,85 +142,18 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * @param n
 	 * @param bestRelIds
 	 */
-	private void recordRels(Node n, Iterable<Relationship> bestRels) {
-/*		TLongBitArraySet descendants = new TLongBitArraySet();
-		TLongBitArraySet descendantTips = new TLongBitArraySet();
-		HashSet<Relationship> incomingRels = new HashSet<Relationship>();
-
-		print();
-		
-		for (Relationship r : bestRels) {
-			long childId = r.getStartNode().getId();
-			incomingRels.add(r);
-			descendants.add(childId);
-			descendants.addAll(nodeMrcaTipsAndInternal.get(childId));
-			descendantTips.addAll(nodeMrcaTips.get(childId));
-		}
-		
-		if (! n.hasRelationship(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
-			descendantTips.add(n.getId());
-		}
-
-		long nodeId = n.getId();
-		descendants.add(nodeId);
-		nodeMrcaTipsAndInternal.put(nodeId, descendants);
-		nodeMrcaTips.put(nodeId, descendantTips); */
+	private void recordCompleted(Node n, Iterable<Relationship> bestRels) {
 
 		HashSet<Relationship> incomingRels = new HashSet<Relationship>();
 		for (Relationship r : bestRels) { incomingRels.add(r); }
 
 		childRels.put(n.getId(), incomingRels);
 
-//		childRels.put(nodeId, incomingRels);
-//		if (VERBOSE) {
-//			print("nodeMrca["+n.getId()+"] = " + nodeMrcaTipsAndInternal.get(n.getId()));
-//			print("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
-//		};
+		// TODO: to support multiple synthesis trees, this would need to change to use String[] property
+		// that contains the ids of all synth trees for which this node has been completed. Best keep it sorted
+		// to enable binary search for completed trees.
+		n.setProperty(NodeProperty.SYNTHESIZED.propertyName, true);
 	}
-	
-	/*
-	 * Get *all* the graph nodes--tips as well as internal--that are descended from this node in synthesis.
-	 * @param rel
-	 * @return
-	 *
-	Set<Long> mrcaTipsAndInternal(Iterable<Node> nodes) {
-		HashSet<Long> included = new HashSet<Long>();
-		for (Node n : nodes) { included.addAll(mrcaTipsAndInternal(n)); }
-		return included;
-	} */
-	
-	/*
-	 * Get *all* the graph nodes--tips as well as internal--that are descended from this node in synthesis.
-	 * @param rel
-	 * @return
-	 *
-	Set<Long> mrcaTipsAndInternal(Iterable<Relationship> rels) {
-		HashSet<Long> included = new HashSet<Long>();
-		for (Relationship r : rels) { included.addAll(mrcaTipsAndInternal(r)); }
-		return included;
-	} */
-
-	/*
-	 * Get *all* the graph nodes--tips as well as internal--that are descended from the start node of the 
-	 * passed relId in the synthetic topology. <strong>Clarification:</strong> The argument should be a 
-	 * neo4j relationship id.
-	 * @param rel
-	 * @return
-	 *
-	TLongBitArraySet mrcaTipsAndInternal(Relationship r) {
-		return nodeMrcaTipsAndInternal.get(r.getStartNode().getId());
-	} */
-	
-	/*
-	 * Get *all* the graph nodes--tips as well as internal--that are descended from the start node of the 
-	 * passed relId in the synthetic topology. <strong>Clarification:</strong> The argument should be a 
-	 * neo4j relationship id.
-	 * @param rel
-	 * @return
-	 *
-	TLongBitArraySet mrcaTips(Node n) {
-		return nodeMrcaTips.get(n.getId());
-	} */
 	
 	/**
 	 * Just a very simple helper function to improve code clarity.

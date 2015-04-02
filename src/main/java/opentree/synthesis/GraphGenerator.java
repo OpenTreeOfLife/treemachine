@@ -151,7 +151,7 @@ public class GraphGenerator {
 		GraphDatabaseAgent G = emptyGraph(dbname);
 		createRandomNTree(G, nTips, maxChildren);
 		List<Node> all = new ArrayList<Node>();
-		for (Node n : new TopologicalOrder(G, new HashSet<Relationship>(), RelType.STREECHILDOF)) { if (n.getId() != 0) all.add(n); }
+		for (Node n : new TopologicalOrder(G, RelType.STREECHILDOF)) { if (n.getId() != 0) all.add(n); }
 		int N = all.size() - 1;
 		System.out.println(N);
 		System.out.println(N-nTips);
