@@ -1041,7 +1041,7 @@ public class MainRunner {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
 		System.out.println("started graph import");
-		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,sourceForTrees,subsetTipInfo,isSubset);
+		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,sourceForTrees,subsetTipInfo,isSubset,filename);
 		
 		gdb.shutdownDb();
 		return 0;

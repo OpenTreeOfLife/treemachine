@@ -64,71 +64,7 @@ public class ProcessSubproblems {
             }
         }
         System.out.println("files with trees:" + treenames.size());
-        /*
-         * read the taxonomy
-         */
-        /*
-         try {
-         BufferedReader br = new BufferedReader(new FileReader(taxonomyfile));
-         String str = null;
-         while ((str = br.readLine()) != null) {
-         StringTokenizer st = new StringTokenizer(str,"|");
-         String tid = null;
-         String pid = null;
-         String name = null;
-         String rank = null;
-         String srce = null;
-         String uniqname = null;
-         String flag = null; 
-				
-         try {
-         tid = st.nextToken().trim();
-         pid = st.nextToken().trim();
-         name = st.nextToken().trim();
-         rank = st.nextToken().trim();
-         srce = st.nextToken().trim();
-         uniqname = st.nextToken().trim();
-         flag = st.nextToken().trim(); //for dubious
-         } catch (NoSuchElementException ex) {
-         throw new NoSuchElementException("the taxonomy file appears to be missing some fields.");
-         }
-         tax_parents.put(tid, pid);
-         }
-         br.close();
-         } catch(IOException ioe) { ioe.printStackTrace(); }
-         */
-        /*
-         * read the shallow mapped trees to get the ids in the trees
-         */
-        /*
-         dir = new File(mappedShallowDir);
-         for (File fl: dir.listFiles()){
-         String fn = fl.getName();
-         if(fn.contains(".tre")==false)
-         continue;
-         mappedShallowIds.put(fn, new HashSet<String>());
-         try {
-         BufferedReader br = new BufferedReader(new FileReader(fl));
-         Tree tr = TreeReader.readTree(br.readLine());
-         for(TreeNode jn: tr.externalNodes()){
-         String ottid = (String)jn.getLabel();
-         mappedShallowIds.get(fn).add(ottid);
-         boolean going = true;
-         while(going){
-         if(tax_parents.containsKey(ottid)==false)
-         break;
-         ottid = tax_parents.get(ottid);
-         mappedShallowIds.get(fn).add(ottid);
-         }
-         }
-         br.close();
-         }catch (IOException | TreeParseException e) {
-         e.printStackTrace();
-         }
-         }*/
-        /*
-         * read the trees themselves
-         */
+
         dir = new File(subproblemdir);
         for (File fl : dir.listFiles()) {
             String fn = fl.getName();

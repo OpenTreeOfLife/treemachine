@@ -199,67 +199,84 @@ public class BipartOracle {
 	 * @param mapInternalNodesToTax
 	 * @throws Exception
 	 */
-	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy, 
-			Map<Tree, String> sources, Map<TreeNode,String> subsetInfo, boolean subset) throws Exception {
-		this.subset = subset;
-		this.gdb = gdb;
-		this.USING_TAXONOMY = useTaxonomy;
-		this.subsetTipInfo = subsetInfo;
-		this.sourceForTrees = sources;
-		
-		long w = new Date().getTime(); // for timing 
-		
-		validateTrees(trees);
-		
-		//just associate the rank with the treenodes
-		createTreeIdRankMap(trees);
+    public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy,
+            Map<Tree, String> sources, Map<TreeNode, String> subsetInfo, boolean subset, String subsetFileName) throws Exception {
+        this.subset = subset;
+        this.gdb = gdb;
+        this.USING_TAXONOMY = useTaxonomy;
+        this.subsetTipInfo = subsetInfo;
+        this.sourceForTrees = sources;
+
+        long w = new Date().getTime(); // for timing 
+
+        validateTrees(trees);
+
+        //just associate the rank with the treenodes
+        createTreeIdRankMap(trees);
 
 		// if we are using taxonomy then tree tip labels must correspond to taxon ids. for tips that are
-		// matched to *higher* (i.e. non-terminal) taxa, this will gather the taxon ids of all the terminal
-		// taxa contained by that higher taxon. these 'exploded' sets are used later during various steps.
-		if (USING_TAXONOMY) { 
-			explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb); 
-			reduceExplodedTipsHash();
-		}
-		
-		// first process the incoming trees and collect bipartitions
-		// populate class members: treeNode, original, treeNodeIds, nodeIdForName, nameForNodeId, bipartsByTree
-		gatherTreeData(trees);
-		if(USING_TAXONOMY){
-			mapTreeNodesToTaxa(trees);
-		}
-		
-		// need to get the relevant nodes from taxonomy in a set to be used for later analyses
-		if (USING_TAXONOMY) { populateTaxonomyGraphNodesMap(trees); }
-				
-		gatherBipartitions(trees); // populate class member: bipart
-		
-		// identify all the pairwise bipart nestings and find the valid hierarchical nestings (paths)
-		identifyNestedChildBiparts(trees); // populate class members: nestedChildren, nestedParents, nodeForBipart, bipartForNode
-		findAllPaths(); // populate class member: paths
-				
-		// revisit all the valid paths to:
-		// 1) identify new ingroup/outgroup composition for nested biparts and make corresponding nodes
-		// 2) record all bipart nesting information for generating MRCACHILDOF rels among nodes
-		createNodesUsingPaths();
-		
-		// connect all the appropriate nodes with MRCACHILDOF rels
-		// populate class members: graphNodesForTreeNode, hasMRCAChildOf
-		mapTreeRootNodes(trees); // creates new nodes if necessary
-		generateMRCAChildOfs();  // connect all nodes, must be done *after* all nodes are created!
+        // matched to *higher* (i.e. non-terminal) taxa, this will gather the taxon ids of all the terminal
+        // taxa contained by that higher taxon. these 'exploded' sets are used later during various steps.
+        if (USING_TAXONOMY) {
+            explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb);
+            reduceExplodedTipsHash();
+        }
 
-		// now we map the trees using the MRCACHILDOF rels to find suitable parents/children
-		mapNonRootNodes(trees);
-		
+		// first process the incoming trees and collect bipartitions
+        // populate class members: treeNode, original, treeNodeIds, nodeIdForName, nameForNodeId, bipartsByTree
+        gatherTreeData(trees);
+        if (USING_TAXONOMY) {
+            mapTreeNodesToTaxa(trees);
+        }
+
+        // need to get the relevant nodes from taxonomy in a set to be used for later analyses
+        if (USING_TAXONOMY) {
+            populateTaxonomyGraphNodesMap(trees);
+        }
+
+        gatherBipartitions(trees); // populate class member: bipart
+
+        // identify all the pairwise bipart nestings and find the valid hierarchical nestings (paths)
+        identifyNestedChildBiparts(trees); // populate class members: nestedChildren, nestedParents, nodeForBipart, bipartForNode
+        findAllPaths(); // populate class member: paths
+
+		// revisit all the valid paths to:
+        // 1) identify new ingroup/outgroup composition for nested biparts and make corresponding nodes
+        // 2) record all bipart nesting information for generating MRCACHILDOF rels among nodes
+        createNodesUsingPaths();
+
+		// connect all the appropriate nodes with MRCACHILDOF rels
+        // populate class members: graphNodesForTreeNode, hasMRCAChildOf
+        mapTreeRootNodes(trees); // creates new nodes if necessary
+        generateMRCAChildOfs();  // connect all nodes, must be done *after* all nodes are created!
+
+        // now we map the trees using the MRCACHILDOF rels to find suitable parents/children
+        mapNonRootNodes(trees);
+
 		// setting this for use eventually in the mapInternalNodes 
-		// because taxonomy is added above, this isn't necessary
-		//if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
-		
-		//clean up the nodes and rels that aren't used at all
-		removeUnusedNodesAndRels();
-		
-		System.out.println("loading is complete. total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
-	}
+        // because taxonomy is added above, this isn't necessary
+        //if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
+        //clean up the nodes and rels that aren't used at all
+        removeUnusedNodesAndRels();
+
+        //store the subset in the index
+        if (subset) {
+            Transaction tx = gdb.beginTx();
+            Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
+            String ottidFromSubset = null;
+            if (subsetFileName.contains("/"))
+                ottidFromSubset = subsetFileName.split("/")[1];
+            ottidFromSubset = ottidFromSubset.replace(".tre", "").replace("ott", "");
+            Node gn = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottidFromSubset).getSingle();
+            Index<Node> ottIdIndexss = gdb.getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
+            ottIdIndexss.add(gn, "subset", ottidFromSubset);
+            tx.success();
+
+            tx.finish();
+        }
+
+        System.out.println("loading is complete. total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
+    }
 	
 	private void removeUnusedNodesAndRels() {
 		System.out.println("cleaning the ununsed nodes and relationships");
@@ -1581,93 +1598,98 @@ public class BipartOracle {
 	 * preorder traversal.
 	 * @param trees
 	 */
-	private void mapTreeRootNodes(List<Tree> trees) {
-		for (Tree tree : trees) {
-			Transaction tx = gdb.beginTx();
+    private void mapTreeRootNodes(List<Tree> trees) {
+        for (Tree tree : trees) {
+            Transaction tx = gdb.beginTx();
 
-			TreeNode root = tree.getRoot();
-			LongBipartition rootBipart = getGraphBipartForTreeNode(root, tree);
+            TreeNode root = tree.getRoot();
+            LongBipartition rootBipart = getGraphBipartForTreeNode(root, tree);
 			//need to expand the rootBipart for the searching
-	
-			HashSet<Node> graphNodes = new HashSet<Node>();
-			if(subset == false){//subset assumes you are connecting the taxonomy because you subset at taxonomy
-				for(LongBipartition b : graphNodeForBipart.keySet()){
-					if(b.containsAll(rootBipart)){
-						System.out.println("mapping root to "+graphNodeForBipart.get(b));
-						graphNodes.add(graphNodeForBipart.get(b));
-					}
-				}
-			}
-			if(USING_TAXONOMY){
-				LongBipartition rootBipartExp = getExpandedTaxonomyBipart(rootBipart);
-				/* trying the more intelligent one below
-				 * for(Node b : taxonomyGraphNodesMap.keySet()){
-					if(taxonomyGraphNodesMap.get(b).containsAll(rootBipartExp)){ //had been rootBipart
-						graphNodes.add(b);
-					}
-				}*/
-				/*
-				 * for the sake of speed, lets remove all but the shallowest
-				 * can add those rels later
-				 */
-				Long ndid = rootBipartExp.ingroup().toArray()[0];
-				Node taxNode = gdb.getNodeById(ndid);
-				while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
-					taxNode = getParentTaxNode(taxNode);
-					if (taxonomyGraphNodesMap.keySet().contains(taxNode)){
-						LongBipartition taxbp = taxonomyGraphNodesMap.get(taxNode);
-						if (taxbp.ingroup().containsAll(rootBipartExp.ingroup())){
-							graphNodes.add(taxNode);
-							/*while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
-								taxNode = getParentTaxNode(taxNode);
-								graphNodes.add(taxNode);
-							}*/
-							break;
-						}
-					}
-				}
-				
-				
-				if (VERBOSE) { System.out.println(root.getNewick(false)+" "+graphNodes); }
-			}
-		
-			if (graphNodes.size() < 1) {
-				if (VERBOSE) { System.out.println("could not find a suitable node to map to the root, will make a new one\n\t"+rootBipart); }
-				Node rootNode = createNode(rootBipart);
-				graphNodes.add(rootNode);
-				
-				// create necessary MRCACHILDOF rels for newly created nodes
-				for (LongBipartition b : graphNodeForBipart.keySet()) {
-					if (rootBipart.isNestedPartitionOf(b)) { rootNode.createRelationshipTo(graphNodeForBipart.get(b), RelType.MRCACHILDOF); }
-					if (b.isNestedPartitionOf(rootBipart)) { graphNodeForBipart.get(b).createRelationshipTo(rootNode, RelType.MRCACHILDOF); }
-				}
-			}
-			/*
-			 * store the root nodes in the index
-			 * these can be used later for connectivity between subsets
-			 */
-			Index<Node> ottIdIndex = gdb.getNodeIndex("sourceTreeRoots", "type", "exact", "to_lower_case", "true");
-			Index<Node> ottIdIndexss = gdb.getNodeIndex("sourceTreeRootsSubsets", "type", "exact", "to_lower_case", "true");
 
-			for(Node gn: graphNodes){
-				ottIdIndex.add(gn, "source", String.valueOf(sourceForTreeNode.get(root)));
-				//add a property for the subset
-				if(subsetTipInfo != null){
-					if(subsetTipInfo.containsKey(root)){
-						String subset = subsetTipInfo.get(root);
-						ottIdIndexss.add(gn, "subset", String.valueOf(sourceForTreeNode.get(root)+subset));
-					}
-				}
-			}
-			
-			tx.success();
-			tx.finish();
-	
-			
-			
-			graphNodesForTreeNode.put(root, graphNodes);
-		}
-	}
+            HashSet<Node> graphNodes = new HashSet<Node>();
+            if (subset == false) {//subset assumes you are connecting the taxonomy because you subset at taxonomy
+                for (LongBipartition b : graphNodeForBipart.keySet()) {
+                    if (b.containsAll(rootBipart)) {
+                        System.out.println("mapping root to " + graphNodeForBipart.get(b));
+                        graphNodes.add(graphNodeForBipart.get(b));
+                    }
+                }
+            }
+            if (USING_TAXONOMY) {
+                LongBipartition rootBipartExp = getExpandedTaxonomyBipart(rootBipart);
+                /* trying the more intelligent one below
+                 * for(Node b : taxonomyGraphNodesMap.keySet()){
+                 if(taxonomyGraphNodesMap.get(b).containsAll(rootBipartExp)){ //had been rootBipart
+                 graphNodes.add(b);
+                 }
+                 }*/
+                /*
+                 * for the sake of speed, lets remove all but the shallowest
+                 * can add those rels later
+                 */
+                Long ndid = rootBipartExp.ingroup().toArray()[0];
+                Node taxNode = gdb.getNodeById(ndid);
+                while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+                    taxNode = getParentTaxNode(taxNode);
+                    if (taxonomyGraphNodesMap.keySet().contains(taxNode)) {
+                        LongBipartition taxbp = taxonomyGraphNodesMap.get(taxNode);
+                        if (taxbp.ingroup().containsAll(rootBipartExp.ingroup())) {
+                            graphNodes.add(taxNode);
+                            /*while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+                             taxNode = getParentTaxNode(taxNode);
+                             graphNodes.add(taxNode);
+                             }*/
+                            break;
+                        }
+                    }
+                }
+
+                if (VERBOSE) {
+                    System.out.println(root.getNewick(false) + " " + graphNodes);
+                }
+            }
+
+            if (graphNodes.size() < 1) {
+                if (VERBOSE) {
+                    System.out.println("could not find a suitable node to map to the root, will make a new one\n\t" + rootBipart);
+                }
+                Node rootNode = createNode(rootBipart);
+                graphNodes.add(rootNode);
+
+                // create necessary MRCACHILDOF rels for newly created nodes
+                for (LongBipartition b : graphNodeForBipart.keySet()) {
+                    if (rootBipart.isNestedPartitionOf(b)) {
+                        rootNode.createRelationshipTo(graphNodeForBipart.get(b), RelType.MRCACHILDOF);
+                    }
+                    if (b.isNestedPartitionOf(rootBipart)) {
+                        graphNodeForBipart.get(b).createRelationshipTo(rootNode, RelType.MRCACHILDOF);
+                    }
+                }
+            }
+            /*
+             * store the root nodes in the index
+             * these can be used later for connectivity between subsets
+             */
+            Index<Node> ottIdIndex = gdb.getNodeIndex("sourceTreeRoots", "type", "exact", "to_lower_case", "true");
+            Index<Node> ottIdIndexss = gdb.getNodeIndex("sourceTreeRootsSubsets", "type", "exact", "to_lower_case", "true");
+
+            for (Node gn : graphNodes) {
+                ottIdIndex.add(gn, "source", String.valueOf(sourceForTreeNode.get(root)));
+                //add a property for the subset
+                if (subsetTipInfo != null) {
+                    if (subsetTipInfo.containsKey(root)) {
+                        String subset = subsetTipInfo.get(root);
+                        ottIdIndexss.add(gn, "subset", String.valueOf(sourceForTreeNode.get(root) + subset));
+                    }
+                }
+            }
+
+            tx.success();
+            tx.finish();
+
+            graphNodesForTreeNode.put(root, graphNodes);
+        }
+    }
 	
 	/**
 	 * This is to get the expanded taxonomy bipartition after it has been reduced
@@ -2506,7 +2528,7 @@ public class BipartOracle {
 	
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb, false,null,null,false);
+		BipartOracle bi = new BipartOracle(t, gdb, false,null,null,false,null);
 
 	}
 	
@@ -2532,7 +2554,7 @@ public class BipartOracle {
 	
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb, true, null, null,false);
+		BipartOracle bi = new BipartOracle(t, gdb, true, null, null,false,null);
 
 	}
 	
@@ -2567,7 +2589,7 @@ public class BipartOracle {
 
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(dbname);
 
-		BipartOracle bi = new BipartOracle(t, gdb, true,null,null,false);
+		BipartOracle bi = new BipartOracle(t, gdb, true,null,null,false,null);
 
 	}
 	
@@ -2575,7 +2597,7 @@ public class BipartOracle {
 	private static void runSimpleTest(List<Tree> t, String dbname) throws Exception {
 
 		FileUtils.deleteDirectory(new File(dbname));
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), false,null,null,false);
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), false,null,null,false,null);
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.size(); i++) {
@@ -2598,7 +2620,7 @@ public class BipartOracle {
 	@SuppressWarnings("unused")
 	private static void runSimpleOTTTest(List<Tree> t, String dbname) throws Exception {
 
-		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), true,null,null,false);
+		BipartOracle bi = new BipartOracle(t, new GraphDatabaseAgent(new EmbeddedGraphDatabase(dbname)), true,null,null,false,null);
 
 		System.out.println("original bipartitions: ");
 		for (int i = 0; i < bi.bipart.size(); i++) {
