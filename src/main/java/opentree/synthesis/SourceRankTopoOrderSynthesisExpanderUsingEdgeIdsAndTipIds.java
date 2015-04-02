@@ -585,7 +585,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 			
 			// now attempt to augment the previous best rels set with rels from the edge sets for this rank
-//			bestSetForCurrentRank = bestSet;
 			while (overlappingSets.size() > 0) {
 
 				// first see if we can update the best set with any rels from edge sets that overlap with the best set
@@ -605,7 +604,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 					
 					if (! internallyDisjoint(proposed)) { combinations.prune(); continue; }
 
-//					if (VERBOSE) { print("\nbest set so far is:", bestSetForCurrentRank, ":", bestSetForCurrentRank.info(), "\nassessing proposed set", proposed, ":", proposed.info()); 
 					if (VERBOSE) { print("\nbest set so far is:", bestSet, ":", bestSet.info(), "\nassessing proposed set", proposed, ":", proposed.info()); }
 
 					// will return null if bestSet cannot be updated by proposed (because of partial overlap)
@@ -616,9 +614,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 					
 					// replace the previous best candidate if this one has more rels representing edges from the current ranked tree
 					// or if it has the same number of rels from the current ranked tree but contains more nodes
-//					if (VERBOSE) { print("\nfound a new viable set X to compare to previous best set Y. comparing:\nX =", candidate, "and\nY =", bestSetForCurrentRank); }
-//					if (candidate.info().improvesUpon(bestSetForCurrentRank.info(), currentRank)) {
-//						bestSetForCurrentRank = candidate;
 					if (VERBOSE) { print("\nfound a new viable set X to compare to previous best set Y. comparing:\nX =", candidate, "and\nY =", bestSet); }
 					if (candidate.info().improvesUpon(bestSet.info(), currentRank)) {
 						bestSet = candidate;
@@ -630,7 +625,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				Iterator<EdgeSet> nonOverlappingIter = nonOverlappingSets.iterator();
 				while (nonOverlappingIter.hasNext()) {
 					EdgeSet edgeSet = nonOverlappingIter.next();
-//					if (bestSetForCurrentRank.info().overlapsWith(edgeSet.info(), currentRank)) {
 					if (bestSet.info().overlapsWith(edgeSet.info(), currentRank)) {
 						overlappingSets.add(edgeSet);
 						nonOverlappingIter.remove();
@@ -640,11 +634,9 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				// for the edge sets that still don't overlap, find the best individual edge from each set to add to the best set
 				if (! nonOverlappingSets.isEmpty()) {
 					if (VERBOSE) { print("\nnow attempting to add remaining subtrees that don't overlap with those already selected"); }
-//					bestSetForCurrentRank = augmentFromNonOverlappingSets(bestSetForCurrentRank, nonOverlappingSets, currentRank);
 					bestSet = augmentFromNonOverlappingSets(bestSet, nonOverlappingSets, currentRank);
 				}
 				
-//				if (VERBOSE) { print("\nbest set so far is: ", bestSetForCurrentRank, ":", bestSetForCurrentRank.info()); }
 				if (VERBOSE) { print("\nbest set so far is: ", bestSet, ":", bestSet.info()); }
 
 				// for the edge sets that do overlap with the best set, repeat the procedure
@@ -653,7 +645,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			// in case there were no overlapping rels, find the best individual edge each edge set
 			if (! nonOverlappingSets.isEmpty()) {
 				if (VERBOSE) { print("\nno subtrees found that overlap with previously selected subtrees."); }
-//				bestSet = augmentFromNonOverlappingSets(bestSetForCurrentRank, nonOverlappingSets, currentRank);
 				bestSet = augmentFromNonOverlappingSets(bestSet, nonOverlappingSets, currentRank);
 			}
 		}

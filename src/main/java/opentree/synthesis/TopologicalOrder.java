@@ -48,7 +48,6 @@ public class TopologicalOrder implements Iterable<Node> {
 	private class BreadthFirstIterator implements Iterator<Node> {
 		
 		private LinkedList<Node> toVisit = new LinkedList<Node>();
-//		private MutableCompactLongSet visited = new MutableCompactLongSet();
 		private HashSet<Node> visited = new HashSet<Node>();
 		
 		public BreadthFirstIterator (Node root) {
@@ -63,10 +62,8 @@ public class TopologicalOrder implements Iterable<Node> {
 		@Override
 		public Node next() {
 			Node p = toVisit.pollFirst();
-//			visited.add(p.getId());
 			visited.add(p);
 			for (Relationship r : p.getRelationships(Direction.INCOMING, relTypes)) {
-//				if (! visited.contains(r.getStartNode().getId())) {
 				if (! visited.contains(r.getStartNode())) {
 					toVisit.addLast(r.getStartNode());
 				}
