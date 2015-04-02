@@ -9,6 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static org.opentree.utils.GeneralUtils.print;
 import static org.opentree.utils.GeneralUtils.getRelationshipsFromTo;
@@ -39,7 +41,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * a subtree of some other node (i.e. not all its potential parents have been visited). Does *not* get
 	 * reinitialized!
 	 */
-	Map<Node, SynthesisSubtreeInfo> availableSubtrees = new HashMap<Node, SynthesisSubtreeInfo>();
+	Map<Long, SynthesisSubtreeInfo> availableSubtrees = new TreeMap<Long, SynthesisSubtreeInfo>();
 	// TODO: could use a TreeMap to save memory (probably not a huge amount). Would need to create a ComparableNode
 	// class that implements the Comparable interface in order to do this; the straight neo4j Node class does not.
 	
@@ -48,7 +50,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * will never be seen again (i.e. when all their parents are finished), so we can free up space in the data structures.
 	 * Does *not* get reinitialized!
 	 */
-	Set<Node> finishedNodes = new HashSet<Node>();
+	Set<Long> finishedNodes = new TreeSet<Long>();
 
 	/**
 	 * Stores the accumulated information about the possible synthesis subtrees that could be included as
@@ -58,8 +60,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	
 	@Override
 	public void reset() {
-		finishedNodes = new HashSet<Node>();
-		availableSubtrees = new HashMap<Node, SynthesisSubtreeInfo>();
+		finishedNodes = new TreeSet<Long>();
+		availableSubtrees = new TreeMap<Long, SynthesisSubtreeInfo>();
 	}
 	
 	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds() {
@@ -673,7 +675,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * @return
 	 */
 	private SynthesisSubtreeInfo completedSubtree(Relationship r) {
-		return availableSubtrees.get(r.getStartNode());
+		return availableSubtrees.get(r.getStartNode().getId());
 	}
 	
 	/**
@@ -682,8 +684,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * @return
 	 */
 	private void updateCompletedSubtreeInfo(Node n, SynthesisSubtreeInfo s) {
-		availableSubtrees.put(n, bestSet.info());
-		finishedNodes.add(n);
+		availableSubtrees.put(n.getId(), bestSet.info());
+		finishedNodes.add(n.getId());
 		
 		// see if any of this node's children can be removed from the available subtrees map
 		for (Relationship r : n.getRelationships(Direction.INCOMING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
@@ -694,7 +696,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			for (Relationship t : child.getRelationships(Direction.OUTGOING, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
 //				if (excludedRels.contains(t)) { continue; }
 				Node parent = t.getEndNode();
-				if (! finishedNodes.contains(parent)) {
+				if (! finishedNodes.contains(parent.getId())) {
 					allParentsCompleted = false;
 					break;
 				}
@@ -702,7 +704,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 
 			// if there are no unvisited parents, then we will never see this node again, so we can free up space in the map
 			if (allParentsCompleted) {
-				availableSubtrees.remove(child);
+				availableSubtrees.remove(child.getId());
 			}
 		}
 	}
