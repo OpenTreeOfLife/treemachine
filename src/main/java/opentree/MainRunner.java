@@ -3119,15 +3119,15 @@ public class MainRunner {
 	/**
 	 * Constructs a newick tree file from a passed in taxonomy file
 	 * arguments are:
-	 * taxonomy_filename output_tree_filename
+	 * taxonomy_filename output_tree_filename uids_as_labels[T|F]
 	 * @param args
 	 * @return
 	 * @throws Exception
 	 */
 	// @returns 0 for success, 1 for poorly formed command
 	public int convertTaxonomy(String []args) {
-		if (args.length != 3) {
-			System.out.println("arguments should be: taxonomyfile treefile");
+		if (args.length != 3 & args.length != 4) {
+			System.out.println("arguments should be: taxonomyfile treefile (optional:labels=UIDs [T|F])");
 			return 1;
 		}
 		JadeTree tree = null;
@@ -3136,6 +3136,14 @@ public class MainRunner {
 		Boolean cellularHit = false;
 		String taxonomyRoot = "";
 		String taxonomyfile = args[1];
+		Boolean uidLabels = false;
+		if (args.length == 4) {
+			String uids = args[3];
+			if (uids.toLowerCase().equals("t")) {
+				uidLabels = true;
+			}
+		}
+		
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(taxonomyfile));
 			String str;
@@ -3179,8 +3187,11 @@ public class MainRunner {
 					}
 					id_childs.get(pid).add(tid);
 					JadeNode tnode = new JadeNode();
-//					tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
-					tnode.setName(GeneralUtils.scrubName(name).concat("_ott").concat(tid));
+					if (uidLabels) {
+						tnode.setName(("ott").concat(tid));
+					} else {
+						tnode.setName(GeneralUtils.scrubName(name).concat("_ott").concat(tid));
+					}
 					tnode.assocObject("id", tid);
 					id_node_map.put(tid, tnode);
 				}
