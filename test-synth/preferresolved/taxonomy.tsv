@@ -1,11 +1,11 @@
 uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|	
 805080	|		|	life	|	no rank	|		|		|		|	
-A1	|	805080	|	A1	|	no rank	|		|		|		|	
-A2	|	805080	|	A2	|	no rank	|		|		|		|	
-A3	|	805080	|	A3	|	no rank	|		|		|		|	
-A4	|	805080	|	A4	|	no rank	|		|		|		|	
-B1	|	805080	|	B1	|	no rank	|		|		|		|	
-B2	|	805080	|	B2	|	no rank	|		|		|		|	
-B3	|	805080	|	B3	|	no rank	|		|		|		|	
-B4	|	805080	|	B4	|	no rank	|		|		|		|	
-C	|	805080	|	C	|	no rank	|		|		|		|	
+1	|	805080	|	A1	|	no rank	|		|		|		|	
+2	|	805080	|	A2	|	no rank	|		|		|		|	
+3	|	805080	|	A3	|	no rank	|		|		|		|	
+4	|	805080	|	A4	|	no rank	|		|		|		|	
+5	|	805080	|	B1	|	no rank	|		|		|		|	
+6	|	805080	|	B2	|	no rank	|		|		|		|	
+7	|	805080	|	B3	|	no rank	|		|		|		|	
+8	|	805080	|	B4	|	no rank	|		|		|		|	
+9	|	805080	|	C	|	no rank	|		|		|		|	
