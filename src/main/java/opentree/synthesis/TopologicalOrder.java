@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 
 import opentree.constants.RelType;
@@ -26,7 +27,7 @@ public class TopologicalOrder implements Iterable<Node> {
 	private Set<Node> temporaryMarked = new HashSet<Node>();
 	private List<Node> nodes = new LinkedList<Node>();
 	private Predicate<Node> validateNode = null;
-	private Set<Relationship> excludedRels;
+//	private Set<Relationship> excludedRels;
 	
 	private final RelationshipType[] relTypes;
 
@@ -69,9 +70,10 @@ public class TopologicalOrder implements Iterable<Node> {
 	private class BreadthFirstIterator implements Iterator<Node> {
 		
 		private LinkedList<Node> toVisit = new LinkedList<Node>();
-		private HashSet<Node> visited = new HashSet<Node>();
+		private TreeSet<Long> visited = new TreeSet<Long>();
 		
 		public BreadthFirstIterator (Node root) {
+			if (! validate(root)) { throw new IllegalArgumentException("the root " + root + " does not pass the validation criteria specified by " + validateNode); }
 			toVisit.add(root);
 		}
 
@@ -83,15 +85,19 @@ public class TopologicalOrder implements Iterable<Node> {
 		@Override
 		public Node next() {
 			Node p = toVisit.pollFirst();
-			visited.add(p);
+			visited.add(p.getId());
 			for (Relationship r : p.getRelationships(Direction.INCOMING, relTypes)) {
 				Node c = r.getStartNode();
-				if (! visited.contains(c) && validateNode != null && validateNode.test(c)) {
+				if (! visited.contains(c.getId()) && validate(c)) {
 					toVisit.addLast(c);
 				}
 			}
 			return p;
 		}
+	}
+
+	private boolean validate(Node n) {
+		return validateNode == null ? true : validateNode.test(n);
 	}
 
 	private void sort() {
@@ -116,9 +122,9 @@ public class TopologicalOrder implements Iterable<Node> {
 		if (unmarked.contains(n)) {
 			temporaryMarked.add(n);
 			for (Relationship m : n.getRelationships(Direction.INCOMING, relTypes)) {
-				if (! excludedRels.contains(m)) {
+//				if (! excludedRels.contains(m)) {
 					visit(m.getStartNode());
-				}
+//				}
 			}
 			
 			unmarked.remove(n);

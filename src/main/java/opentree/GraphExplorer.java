@@ -41,6 +41,7 @@ import opentree.synthesis.SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTip
 import opentree.synthesis.SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas;
 import opentree.synthesis.SourceRankTopoOrderSynthesisExpanderUsingEdgeIds;
 import opentree.synthesis.RootwardSynthesisParentExpander;
+import opentree.synthesis.SubproblemSynthesisExpander;
 import opentree.synthesis.SynthesisExpander;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
 import opentree.synthesis.conflictresolution.RelationshipConflictResolver;
@@ -1501,20 +1502,27 @@ public class GraphExplorer extends GraphBase {
 		RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethod());//new RankResolutionMethodInferredPath());
 		draftSynthesisMethod.setConflictResolver(rcr);
 		
-		// ================================ TESTING =================================
-		// 
-//		draftSynthesisMethod = new NodeCountTopoOrderSynthesisExpander(startNode);
-//		draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas(startNode);
-//		draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
-		draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds(startNode);
-		//
-		// ================================ TESTING =================================
+		Transaction tx = graphDb.beginTx();
+		try {
+// ================================ TESTING =================================
+// 
+//			draftSynthesisMethod = new NodeCountTopoOrderSynthesisExpander(startNode);
+//			draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas(startNode);
+//			draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
+//			draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds().synthesizeFrom(startNode);
+			draftSynthesisMethod = new SubproblemSynthesisExpander(new SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds(), startNode);
+//
+// ================================ TESTING =================================
+			tx.success();
+		} finally {
+			tx.finish();
+		}
 		
 		// user feedback
 		System.out.println("\n" + draftSynthesisMethod.getDescription());
 		
 		//make the metadatanode
-		Transaction tx = graphDb.beginTx();
+		tx = graphDb.beginTx();
 		//String synthTreeName = DRAFTTREENAME; // needs to be changed to the name that gets passed
 		
 		String synthTreeName = tempSynthTreeName;

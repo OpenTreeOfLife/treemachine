@@ -56,9 +56,14 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 */
 	Map<Node, SynthesisSubtreeInfo> immediateSubtrees;
 	
-	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds(Node root) {
+	@Override
+	public void reset() {
+		finishedNodes = new HashSet<Node>();
+		availableSubtrees = new HashMap<Node, SynthesisSubtreeInfo>();
+	}
+	
+	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds() {
 		VERBOSE = true;
-		synthesizeFrom(root);
 		System.out.println("using edge ids *and* tip ids.");
 	}
 

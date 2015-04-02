@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import opentree.constants.NodeProperty;
@@ -40,7 +41,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	TopologicalOrder topologicalOrder;
 
 	/** stores the rels to be included in the final synthetic tree, indexed by node id */
-	Map<Long, HashSet<Relationship>> childRels = new HashMap<Long, HashSet<Relationship>>();;
+	Map<Long, Set<Relationship>> childRels = new TreeMap<Long, Set<Relationship>>();;
 	
 //	Set<Relationship> excludedRels;
 	
@@ -72,12 +73,20 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 */
 	abstract List<Relationship> selectRelsForNode(Node n);
 	
+	abstract void reset();
+	
+	public void clear() {
+		reset();
+		childRels = new TreeMap<Long, Set<Relationship>>();
+	}
+	
 	/**
 	 * Initialize the topological order and run the synthesis procedure. This should be called in the constructor of each class
 	 * that extends TopologicalOrderSynthesisExpander.
 	 * @param root
+	 * @return 
 	 */
-	void synthesizeFrom(Node root) {
+	public SynthesisExpander synthesizeFrom(Node root) {
 		G = new GraphDatabaseAgent(root.getGraphDatabase());
 		if (VERBOSE) { print("will only visit those nodes in the subgraph below", root + ". collecting them now..."); }
 
@@ -88,7 +97,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		topologicalOrder = new TopologicalOrder(root, RelType.STREECHILDOF, RelType.TAXCHILDOF).validateWith(new Predicate<Node> () {
 			@Override
 			public boolean test(Node n) {
-				return synthesisCompleted(n);
+				return ! synthesisCompleted(n);
 			}
 		});
 		
@@ -96,6 +105,8 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		for (Node n : topologicalOrder) {
 			recordCompleted(n, selectRelsForNode(n));
 		}
+		
+		return this;
 	}
 	
 	Iterable<Relationship> availableRelsForSynth(Node n, RelationshipType ... relTypes) {
@@ -120,22 +131,6 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 		return n.hasProperty(NodeProperty.SYNTHESIZED.propertyName) && (boolean) n.getProperty(NodeProperty.SYNTHESIZED.propertyName);
 	}
 	
-	/**
-	 * Return a list containing all the *graph tip nodes* (which will be terminal taxa if taxonomy is being used) that
-	 * are descended from the child node of this relationship. This should be used for assessing taxonomic overlap among
-	 * nodes.<br><br>
-	 * 
-	 * WARNING: this may not provide the expected results when taxonomy nodes are ancestors/descendants of a given
-	 * node: we don't update mrca properties to contain taxonomy so it is possible for a node x to have descendant tips
-	 * that are not in x.mrca!
-	 * 
-	 * @param rel
-	 * @return
-	 */
-	long[] getMrcaProperty(Relationship rel) {
-		return (long[]) rel.getStartNode().getProperty(NodeProperty.MRCA.propertyName);
-	}
-
 	/**
 	 * Record the specified rels as the selected set for the given node.
 	 * 
@@ -163,13 +158,13 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	long getStartNodeId(Long relId) {
 		return G.getRelationshipById(relId).getStartNode().getId();
 	}
-
+	
 	@Override
 	public Iterable<Relationship> expand(Path arg0, BranchState arg1) {
 
-		// testing
+/*		// testing
 		System.out.println("looking for rels starting at: " + arg0.endNode());
-		System.out.println(childRels.get(arg0.endNode().getId()));
+		System.out.println(childRels.get(arg0.endNode().getId())); */
 		
 		return childRels.get(arg0.endNode().getId());
 	}
