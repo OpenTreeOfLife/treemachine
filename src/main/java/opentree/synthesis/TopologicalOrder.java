@@ -17,7 +17,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.Traversal;
-import org.opentree.bitarray.MutableCompactLongSet;
+import org.neo4j.kernel.Uniqueness;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class TopologicalOrder implements Iterable<Node> {
@@ -70,13 +70,15 @@ public class TopologicalOrder implements Iterable<Node> {
 		};
 	}
 	
-	/*
-	private class BreadthFirstIterator implements Iterator<Node> {
+	/**
+	 * Personalized implementation
+	 */
+	private class ValidatingIterator implements Iterator<Node> {
 		
 		private LinkedList<Node> toVisit = new LinkedList<Node>();
-		private TreeSet<Long> visited = new TreeSet<Long>();
+		private Set<Long> visited = new HashSet<Long>();
 		
-		public BreadthFirstIterator (Node root) {
+		public ValidatingIterator (Node root) {
 			if (! validate(root)) { throw new IllegalArgumentException("the root " + root + " does not pass the validation criteria specified by " + validateNode); }
 			toVisit.add(root);
 		}
@@ -94,15 +96,20 @@ public class TopologicalOrder implements Iterable<Node> {
 				Node c = r.getStartNode();
 				if (! visited.contains(c.getId()) && validate(c)) {
 					
-					// TODO: can we exclude the tips here? I think we can, they should still be visited by the sort() procedure...
-					
-					toVisit.addLast(c);
+					// Can we exclude the tips here? I think we can, they should still be visited by the sort() procedure...
+					if (c.hasRelationship(Direction.INCOMING, relTypes)) {
+						toVisit.addLast(c);
+					}
 				}
 			}
 			return p;
 		}
-	} */
+	}
 
+	/*
+	/**
+	 * Standard neo4j implementation.
+	 *
 	private class ValidatingIterator implements Iterator<Node> {
 		
 		private Node nextValidNode = null;
@@ -111,7 +118,7 @@ public class TopologicalOrder implements Iterable<Node> {
 		public ValidatingIterator(Node root) {
 			if (! validate(root)) { throw new IllegalArgumentException("the root " + root + " does not pass the validation criteria specified by " + validateNode); }
 
-			TraversalDescription d = Traversal.description().depthFirst();
+			TraversalDescription d = Traversal.description().breadthFirst().uniqueness(Uniqueness.NONE);
 			for (int i = 0; i < relTypes.length; i++) {
 				d = d.relationships(relTypes[i], Direction.INCOMING);
 			}
@@ -122,7 +129,6 @@ public class TopologicalOrder implements Iterable<Node> {
 		private void loadNextValid() {
 			while (true) {
 				if (! nodes.hasNext()) { nextValidNode = null; break;}
-
 				Node n = nodes.next();
 				if (validate(n)) { nextValidNode = n; break; }
 			}
@@ -137,7 +143,7 @@ public class TopologicalOrder implements Iterable<Node> {
 			loadNextValid();
 			return n;
 		}
-	}
+	} */
 	
 	private boolean validate(Node n) {
 		return validateNode == null ? true : validateNode.test(n);

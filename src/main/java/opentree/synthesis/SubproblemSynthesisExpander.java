@@ -45,6 +45,10 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 				public boolean test(Node n) {
 					return isSubproblemRoot(n);
 				}
+				@Override
+				public String toString() {
+					return "validator: the node must be a taxon node recorded in the 'subproblemRoots' index (i.e. it is an uncontested taxon).";
+				}
 		});
 		
 		Map<Long, SynthesisSubtreeInfo> preservedSubtrees = new TreeMap<Long, SynthesisSubtreeInfo>();

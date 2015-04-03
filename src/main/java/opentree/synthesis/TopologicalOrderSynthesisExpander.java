@@ -102,6 +102,10 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 			public boolean test(Node n) {
 				return ! synthesisCompleted(n);
 			}
+			@Override
+			public String toString() {
+				return "validator: must not have already been visited during synthesis. If a node fails this check, there may be a problem with the subproblems, or with the topological sort of the subproblem roots.";
+			}
 		});
 		
 		// now process all the nodes
