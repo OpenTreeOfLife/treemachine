@@ -22,11 +22,14 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class TopologicalOrder implements Iterable<Node> {
 
-	Node root = null;
-	GraphDatabaseAgent G = null;
+	private final Node root;
+	private final GraphDatabaseAgent G;
+	private final boolean usingAllNodes;
 	
-	private Set<Node> unmarked = new HashSet<Node>();
-	private Set<Node> temporaryMarked = new HashSet<Node>();
+//	private Set<Node> unmarked = new HashSet<Node>();
+//	private Set<Node> temporaryMarked = new HashSet<Node>();
+	private Set<Long> unmarked = new TreeSet<Long>();
+	private Set<Long> temporaryMarked = new TreeSet<Long>();
 	private List<Node> nodes = new LinkedList<Node>();
 	private Predicate<Node> validateNode = null;
 //	private Set<Relationship> excludedRels;
@@ -48,11 +51,15 @@ public class TopologicalOrder implements Iterable<Node> {
 	
 	public TopologicalOrder(Node root, RelationshipType... relTypes) {
 		this.root = root;
+		this.G = new GraphDatabaseAgent(root.getGraphDatabase());
+		this.usingAllNodes = false;
 		this.relTypes = relTypes;
 	}
 
 	public TopologicalOrder(GraphDatabaseAgent G, RelationshipType... relTypes) {
+		this.root = null;
 		this.G = G;
+		this.usingAllNodes = true;
 		this.relTypes = relTypes;
 	}
 
@@ -95,11 +102,7 @@ public class TopologicalOrder implements Iterable<Node> {
 			for (Relationship r : p.getRelationships(Direction.INCOMING, relTypes)) {
 				Node c = r.getStartNode();
 				if (! visited.contains(c.getId()) && validate(c)) {
-					
-					// Can we exclude the tips here? I think we can, they should still be visited by the sort() procedure...
-					if (c.hasRelationship(Direction.INCOMING, relTypes)) {
-						toVisit.addLast(c);
-					}
+					toVisit.addLast(c);
 				}
 			}
 			return p;
@@ -150,35 +153,36 @@ public class TopologicalOrder implements Iterable<Node> {
 	}
 
 	private void sort() {
-		if (G == null && root == null) { throw new NullPointerException(); }
+		assert ! usingAllNodes && root == null;
 
-		Iterable<Node> nodes = G == null ? validDescendants(root) : G.getAllNodes();
+		Iterable<Node> toSort = usingAllNodes ? G.getAllNodes() : validDescendants(root);
 				
-		for (Node n : nodes) {
+		for (Node n : toSort) {
 			if (n.hasRelationship(relTypes)) {
-				unmarked.add(n);
+				unmarked.add(n.getId());
 			}
 		}
 		while (! unmarked.isEmpty()) {
-			visit(unmarked.iterator().next());
+			visit(G.getNodeById(unmarked.iterator().next()));
 		}
 	}
 	
 	private void visit(Node n) {
-		if (temporaryMarked.contains(n)) {
+		long nid = n.getId();
+		if (temporaryMarked.contains(nid)) {
 			throw new IllegalArgumentException("The graph contains a directed cycle that includes the node: " + n);
 		}
 
-		if (unmarked.contains(n)) {
-			temporaryMarked.add(n);
+		if (unmarked.contains(nid)) {
+			temporaryMarked.add(nid);
 			for (Relationship m : n.getRelationships(Direction.INCOMING, relTypes)) {
 //				if (! excludedRels.contains(m)) {
 					visit(m.getStartNode());
 //				}
 			}
 			
-			unmarked.remove(n);
-			temporaryMarked.remove(n);
+			unmarked.remove(nid);
+			temporaryMarked.remove(nid);
 			nodes.add(n);
 			
 			// testing
