@@ -3422,7 +3422,7 @@ public class MainRunner {
 		System.out.println("  nexson2newick <filename.nexson> (<filename.newick>) (construct newick tree file from a nexson file)");
 		System.out.println("  convertfigtree <filename.tre> <outfile.tre>");
 		System.out.println("  nexson2mrp <filename.nexson>");
-		System.out.println("  converttaxonomy <taxonomy_filename> <outfile.tre> (construct a newick tree from a TSV taxonomy file)\n");
+		System.out.println("  converttaxonomy <taxonomy_filename> <outfile.tre> (<labels=UIDs [T|F]>) (construct a newick tree from a TSV taxonomy file)\n");
 		
 		System.out.println("---synthesis functions---");
 		System.out.println("  synthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
