@@ -51,10 +51,10 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 		
 		for (Node s : subproblemRoots) {
 
-			System.err.println("about to begin subproblem " + s.getProperty(NodeProperty.NAME.propertyName) + ". press enter to continue");
-			System.in.read();
+//			System.err.println("about to begin subproblem " + s.getProperty(NodeProperty.NAME.propertyName) + ". press enter to continue");
+//			System.in.read();
 
-			if (VERBOSE) { print("\n***** starting subproblem", s.getProperty(NodeProperty.NAME.propertyName), ", ott id=" + s.getProperty(NodeProperty.TAX_UID.propertyName, "\n")); }
+			if (VERBOSE) { print("\n***** starting subproblem", s.getProperty(NodeProperty.NAME.propertyName) + ", ott id=" + s.getProperty(NodeProperty.TAX_UID.propertyName, "\n")); }
 			Transaction tx = G.beginTx();
 			try {
 				subExpander.synthesizeFrom(s);

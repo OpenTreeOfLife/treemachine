@@ -336,7 +336,6 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				}
 				
 				// gather information already stored for the completed subtree below this rel
-				if (VERBOSE) { print("attempting to get subtree info for child of rel", s); }
 				accumulate(completedSubtree(s));
 			}
 			

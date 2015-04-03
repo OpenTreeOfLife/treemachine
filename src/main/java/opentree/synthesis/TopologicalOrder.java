@@ -15,6 +15,8 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.kernel.Traversal;
 import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
@@ -59,14 +61,16 @@ public class TopologicalOrder implements Iterable<Node> {
 		return this;
 	}
 		
-	private Iterable<Node> breadthFirst(Node n) {
+	private Iterable<Node> validDescendants(Node n) {
 		return new Iterable<Node> () {
 			public Iterator<Node> iterator() {
-				return new BreadthFirstIterator(n);
+//				return new BreadthFirstIterator(n);
+				return new ValidatingIterator(n);
 			}
 		};
 	}
 	
+	/*
 	private class BreadthFirstIterator implements Iterator<Node> {
 		
 		private LinkedList<Node> toVisit = new LinkedList<Node>();
@@ -97,8 +101,44 @@ public class TopologicalOrder implements Iterable<Node> {
 			}
 			return p;
 		}
-	}
+	} */
 
+	private class ValidatingIterator implements Iterator<Node> {
+		
+		private Node nextValidNode = null;
+		private Iterator<Node> nodes;
+		
+		public ValidatingIterator(Node root) {
+			if (! validate(root)) { throw new IllegalArgumentException("the root " + root + " does not pass the validation criteria specified by " + validateNode); }
+
+			TraversalDescription d = Traversal.description().depthFirst();
+			for (int i = 0; i < relTypes.length; i++) {
+				d = d.relationships(relTypes[i], Direction.INCOMING);
+			}
+			nodes = d.traverse(root).nodes().iterator();
+			loadNextValid();
+		}
+		
+		private void loadNextValid() {
+			while (true) {
+				if (! nodes.hasNext()) { nextValidNode = null; break;}
+
+				Node n = nodes.next();
+				if (validate(n)) { nextValidNode = n; break; }
+			}
+		}
+		
+		public boolean hasNext() {
+			return nextValidNode != null;
+		}
+		
+		public Node next() {
+			Node n = nextValidNode;
+			loadNextValid();
+			return n;
+		}
+	}
+	
 	private boolean validate(Node n) {
 		return validateNode == null ? true : validateNode.test(n);
 	}
@@ -106,7 +146,8 @@ public class TopologicalOrder implements Iterable<Node> {
 	private void sort() {
 		if (G == null && root == null) { throw new NullPointerException(); }
 
-		Iterable<Node> nodes = G == null ? breadthFirst(root) : G.getAllNodes();
+		Iterable<Node> nodes = G == null ? validDescendants(root) : G.getAllNodes();
+				
 		for (Node n : nodes) {
 			if (n.hasRelationship(relTypes)) {
 				unmarked.add(n);
@@ -133,6 +174,9 @@ public class TopologicalOrder implements Iterable<Node> {
 			unmarked.remove(n);
 			temporaryMarked.remove(n);
 			nodes.add(n);
+			
+			// testing
+			System.out.println(nodes.size() + " nodes sorted.");
 		}
 	}
 	
