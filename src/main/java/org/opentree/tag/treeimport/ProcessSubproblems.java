@@ -14,18 +14,28 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
+import java.util.Map.Entry;
 
 public class ProcessSubproblems {
-
+/*
+    // SAS
     public String subproblemdir = "/home/smitty/Downloads/export-sub-temp";
     public String subproblemdirTN = "/home/smitty/Downloads/export-sub-temp";
     public String mappedShallowDir = "/home/smitty/Downloads/mappedShallowTrees";
     public String taxonomyfile = "/home/smitty/TEMP/ott/taxonomy.tsv";
     public String outdir = "/home/smitty/Downloads/processed_export/";
+*/
+    // JWB
+	public String subproblemdir = "/home/josephwb/Desktop/SubProblems/Subprobs_original-order";
+    public String subproblemdirTN = "/home/josephwb/Desktop/SubProblems/Subprobs_original-order";
+    public String mappedShallowDir = "/home/josephwb/Desktop/SubProblems/mappedShallowTrees";
+    public String taxonomyfile = "/home/josephwb/Desktop/SubProblems/Filtered_OTT_taxonomy.tsv";
+    public String outdir = "/home/josephwb/Desktop/SubProblems/processed_export_JWB/";
 
     //key will be the ottId and the value will be the source names
     HashMap<String, ArrayList<String>> treenames = new HashMap<String, ArrayList<String>>();
@@ -147,8 +157,96 @@ public class ProcessSubproblems {
             }
         }
     }
+    
+    /*
+      a file with only tree per line e.g.:
+        pg_2827_6577
+        pg_761_1415
+        pg_77_5878
+        pg_754_1392
+        pg_330_325
+      ...
+      possibly not exhaustive e.g. if only looking at a clade, BUT must contain all trees relevant to that clade
+    */
+    //public String rankList = "/home/josephwb/Desktop/SubProblems/TreeRanks.txt";
+    public String outrankeddir = "/home/josephwb/Desktop/SubProblems/Ranked_subprobs/";
+    HashMap<String, Integer> treeRanks = new HashMap<String, Integer>();
+    public String inprocessedtrees = "/home/josephwb/Desktop/SubProblems/processed_export_JWB/"; // input processed with above code
+    
+    public ProcessSubproblems (String rankList) {
+    	// gather ranks
+    	int counter = 10000; // don't want to worry about string comparison of 1 vs. 10
+    	try {
+            BufferedReader br = new BufferedReader(new FileReader(rankList));
+            String st = "";
+            while ((st = br.readLine()) != null) {
+            	st = st.replace(".tre", ""); // in case rank list is file names
+            	treeRanks.put(st.trim(), counter);
+            	counter++;
+            }
+            br.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    	System.out.println("Recorded " + treeRanks.size() + " tree ranks.");
+    	// test
+    	for (Entry<String, Integer> entry: treeRanks.entrySet()) {
+    		//System.out.println("Tree: " + entry.getKey() + "; Rank: " + entry.getValue());
+    	}
+    	// process files, re-ranking according to above
+    	// if a ottXXX.tre file is irrelavant (i.e. is not in the ranked list) it is not put into the res directory
+    	File dir = new File(inprocessedtrees);
+    	for (File fl : dir.listFiles()) {
+            String fn = fl.getName();
+            if (fn.contains(".tre") == false) {
+                continue;
+            }
+            try {
+                String ottID = fn.replace(".tre", ""); // not using at the moment
+                FileReader fr = new FileReader(fl);
+                BufferedReader br = new BufferedReader(fr);
+                FileWriter fw = null;
+                String str = null;
+                ArrayList<String> source_newick = new ArrayList<String>();
+                while ((str = br.readLine()) != null) {
+                	String tree = str.split("\\s+")[0].replace(".tre", "").trim();
+                	if (!treeRanks.containsKey(tree)) {
+                		continue;
+                	} else {
+                		source_newick.add(String.valueOf(treeRanks.get(tree)) + "|" + str);
+                	}
+                }
+                fr.close();
+                br.close();
+                if (!source_newick.isEmpty()) {
+                	Collections.sort(source_newick);
+                	fw = new FileWriter(outrankeddir + "/" + fn); // same filename as above
+                    try {
+                    	for (String i : source_newick) {
+                    		// get rid of rank prefix
+                    		String goodtogo = i.split("\\|")[1];
+                    		fw.write(goodtogo + "\n");
+                    	}
+                    } catch (Exception ie) {
+                        ie.printStackTrace();
+                        continue;
+                    }
+                    fw.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(0);
+            }
+        }
+    }
 
     public static void main(String[] args) {
-        ProcessSubproblems ps = new ProcessSubproblems();
+        // should only ever have to be run once per tree set
+    	//ProcessSubproblems ps = new ProcessSubproblems();
+    	
+    	// re-rank trees, using the processed files from above
+    	String rankList = "/home/josephwb/Desktop/SubProblems/Reversed_bird_list.txt";
+    	ProcessSubproblems ps = new ProcessSubproblems(rankList);
     }
 }
