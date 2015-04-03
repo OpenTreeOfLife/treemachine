@@ -41,7 +41,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * a subtree of some other node (i.e. not all its potential parents have been visited). Does *not* get
 	 * reinitialized!
 	 */
-	Map<Long, SynthesisSubtreeInfo> availableSubtrees = new TreeMap<Long, SynthesisSubtreeInfo>();
+	Map<Long, SynthesisSubtreeInfoUsingEdgeIds> availableSubtrees = new TreeMap<Long, SynthesisSubtreeInfoUsingEdgeIds>();
 	// TODO: could use a TreeMap to save memory (probably not a huge amount). Would need to create a ComparableNode
 	// class that implements the Comparable interface in order to do this; the straight neo4j Node class does not.
 	
@@ -51,17 +51,20 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * Does *not* get reinitialized!
 	 */
 	Set<Long> finishedNodes = new TreeSet<Long>();
+	
+	SynthesisSubtreeInfo completeRootInfo = null;
 
 	/**
 	 * Stores the accumulated information about the possible synthesis subtrees that could be included as
 	 * children of the node currently being examined for synth. This gets reinitialized for each node we visit.
 	 */
-	Map<Node, SynthesisSubtreeInfo> immediateSubtrees;
+	Map<Node, SynthesisSubtreeInfoUsingEdgeIds> immediateSubtrees;
 	
 	@Override
-	public void reset() {
+	public void reset(Object sustainedInfo) {
+		availableSubtrees = new TreeMap<Long, SynthesisSubtreeInfoUsingEdgeIds>((Map<Long,SynthesisSubtreeInfoUsingEdgeIds>) sustainedInfo);
+		completeRootInfo = null;
 		finishedNodes = new TreeSet<Long>();
-		availableSubtrees = new TreeMap<Long, SynthesisSubtreeInfo>();
 	}
 	
 	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds() {
@@ -69,6 +72,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		System.out.println("using edge ids *and* tip ids.");
 	}
 
+	@Override
+	public SynthesisSubtreeInfo completedRootInfo() {
+		if (completeRootInfo == null) { throw new NullPointerException(); }
+		return completeRootInfo;
+	}
+	
 	/**
 	 * Simple container class that binds SynthesisSubtreeInfo to a set of rels.
 	 * Implements the Set<Relationship> interface so we can use it with things like CartesianProduct.
@@ -77,10 +86,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 */
 	private abstract class RelSet implements Set<Relationship> {
 		
-		SynthesisSubtreeInfo info;
+		SynthesisSubtreeInfoUsingEdgeIds info;
 		Set<Relationship> rels;
 		
-		public SynthesisSubtreeInfo info() {
+		public SynthesisSubtreeInfoUsingEdgeIds info() {
 			return info;
 		}
 
@@ -123,7 +132,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		
 		public CandidateRelSet(Node n) {
 			rels = new HashSet<Relationship>();
-			info = new SynthesisSubtreeInfo(n);
+			info = new SynthesisSubtreeInfoUsingEdgeIds(n);
 			parent = n;
 		}
 		
@@ -133,7 +142,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			if (relIter.hasNext()) {
 				Relationship first = relIter.next();
 				parent = first.getEndNode();
-				info = new SynthesisSubtreeInfo(parent);
+				info = new SynthesisSubtreeInfoUsingEdgeIds(parent);
 				add(first);
 			} else {
 				throw new IllegalArgumentException();
@@ -177,7 +186,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			this.rank = rank;
 			this.edgeId = edgeId;
 			this.parent = parent;
-			info = new SynthesisSubtreeInfo(parent);
+			info = new SynthesisSubtreeInfoUsingEdgeIds(parent);
 			rels = new HashSet<Relationship>();
 		}
 
@@ -250,12 +259,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		}
 	}
 	
-	private class SynthesisSubtreeInfo {
+	private class SynthesisSubtreeInfoUsingEdgeIds implements SynthesisSubtreeInfo {
 		
 		private MutableCompactLongSet includedNodeIds = new MutableCompactLongSet();
 		private Map<Integer, Set<Long>> edgeIdsByRank = new HashMap<Integer, Set<Long>>();
 		private Map<Integer, Set<LongSet>> tipIdSetsByRank = new HashMap<Integer, Set<LongSet>>();
-		private boolean finalized = false;
+		private boolean completed = false;
 		
 		/**
 		 * The root of this synthesis subtree.<br><br>
@@ -264,16 +273,16 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 * tree info is extracted from the rels between the <tt>this.root<tt> and <tt>child</tt>. If the child
 		 * does not have a rel to the root, then an exception is thrown.<br><br>
 		 * 
-		 * If the finalize() method has been called on this synthesis subtree info object, then the root is
+		 * If the completed() method has been called on this synthesis subtree info object, then the root is
 		 * included in the information returned about the subtree.
 		 */
 		private Node root;
 		
-		public SynthesisSubtreeInfo(Node root) {
+		public SynthesisSubtreeInfoUsingEdgeIds(Node root) {
 			this.root = root;
 		}
 
-		public SynthesisSubtreeInfo(Node root, Node child) {
+		public SynthesisSubtreeInfoUsingEdgeIds(Node root, Node child) {
 			this.root = root;
 			include(child);
 		}
@@ -281,7 +290,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		/**
 		 * accumulate stree edge and tip id represented in the specified synth subtree info object
 		 */
-		private void accumulate(SynthesisSubtreeInfo s) {
+		private void accumulate(SynthesisSubtreeInfoUsingEdgeIds s) {
 			for (int rank : s.ranksForIncludedEdges()) {
 				updateSetMap(rank, edgeIdsByRank);
 				edgeIdsByRank.get(rank).addAll(s.edgeIdsForRank(rank));
@@ -301,7 +310,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 */
 		public void include(Node child) {
 			
-			if (finalized) { throw new UnsupportedOperationException(); }
+			if (completed) { throw new UnsupportedOperationException(); }
 			
 			boolean hasPath = false;
 			
@@ -327,6 +336,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				}
 				
 				// gather information already stored for the completed subtree below this rel
+				if (VERBOSE) { print("attempting to get subtree info for child of rel", s); }
 				accumulate(completedSubtree(s));
 			}
 			
@@ -342,7 +352,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 * @param workingRank
 		 * @return
 		 */
-		public boolean overlapsWith(SynthesisSubtreeInfo that, int workingRank) {
+		public boolean overlapsWith(SynthesisSubtreeInfoUsingEdgeIds that, int workingRank) {
 			return includedNodeIds.containsAny(that.includedNodeIds) ? true : containsAnyStreeElementsOf(that, workingRank); 
 		}
 		
@@ -353,7 +363,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 * @param workingRank
 		 * @return
 		 */
-		public boolean containsAnyStreeElementsOf(SynthesisSubtreeInfo that, int workingRank) {
+		public boolean containsAnyStreeElementsOf(SynthesisSubtreeInfoUsingEdgeIds that, int workingRank) {
 			boolean containsAny = false;
 			for (int rank : ranksForIncludedEdges()) {
 				if (rank < workingRank || ! that.edgeIdsByRank.containsKey(rank)) { continue; } // should this be <=? | 2015 03 28: no, i don't think so
@@ -398,7 +408,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 * @param testRank
 		 * @return
 		 */
-		public boolean improvesUpon(SynthesisSubtreeInfo that, int testRank) {
+		public boolean improvesUpon(SynthesisSubtreeInfoUsingEdgeIds that, int testRank) {
 			if (that == null) { throw new NullPointerException(); }
 
 			if (VERBOSE) { print("X =", this, "and\nY =", that); }
@@ -454,7 +464,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 * @param workingRank
 		 * @return
 		 */
-		public boolean containsAllStreeElementsOf(SynthesisSubtreeInfo that, int workingRank) {
+		public boolean containsAllStreeElementsOf(SynthesisSubtreeInfoUsingEdgeIds that, int workingRank) {
 			boolean containsAll = true;
 			for (int rank : that.ranksForIncludedEdges()) {
 				if (rank < workingRank) { continue; } // should this be <= ?
@@ -506,8 +516,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			return s.toString();
 		}
 		
-		public void finalize() {
-			finalized = true;
+		public void complete() {
+			completed= true;
 			includedNodeIds.add(root.getId());
 		}
 		
@@ -563,9 +573,9 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 		}
 		
-		for (Node child : children) { immediateSubtrees.put(child, new SynthesisSubtreeInfo(n, child)); }
+		for (Node child : children) { immediateSubtrees.put(child, new SynthesisSubtreeInfoUsingEdgeIds(n, child)); }
 
-		for (Node child : taxonomySingletonNodes) { immediateSubtrees.put(child, new SynthesisSubtreeInfo(n, child)); }
+		for (Node child : taxonomySingletonNodes) { immediateSubtrees.put(child, new SynthesisSubtreeInfoUsingEdgeIds(n, child)); }
 		
 		List<Integer> sortedRanks = new ArrayList<Integer>(observedRanks);
 		Collections.sort(sortedRanks);
@@ -662,9 +672,14 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 		}
 		
-		bestSet.info().finalize();
+		bestSet.info().complete();
 		print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info());
 		updateCompletedSubtreeInfo(n, bestSet.info());
+		
+		if (n.getId() == root.getId()) {
+			completeRootInfo = bestSet.info();
+		}
+
 		return new ArrayList<Relationship>(bestSet);
 	}
 	
@@ -674,7 +689,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * @param r
 	 * @return
 	 */
-	private SynthesisSubtreeInfo completedSubtree(Relationship r) {
+	SynthesisSubtreeInfoUsingEdgeIds completedSubtree(Relationship r) {
 		return availableSubtrees.get(r.getStartNode().getId());
 	}
 	
@@ -683,7 +698,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * @param r
 	 * @return
 	 */
-	private void updateCompletedSubtreeInfo(Node n, SynthesisSubtreeInfo s) {
+	private void updateCompletedSubtreeInfo(Node n, SynthesisSubtreeInfoUsingEdgeIds s) {
 		availableSubtrees.put(n.getId(), bestSet.info());
 		finishedNodes.add(n.getId());
 		
@@ -830,7 +845,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	}
 	
 	private void initialize(Node n) {
-		immediateSubtrees = new HashMap<Node, SynthesisSubtreeInfo>();
+		immediateSubtrees = new HashMap<Node, SynthesisSubtreeInfoUsingEdgeIds>();
 		edgeSetsByRankAndEdgeId = new HashMap<Integer, Map<Long, EdgeSet>>();
 		children = new HashSet<Node>();
 		observedRanks = new HashSet<Integer>();
@@ -874,7 +889,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		// find rels in the set to be updated that can be equally well represented (i.e. are contained) by the proposed set
 		for (Relationship s : toUpdate) {
 			
-			SynthesisSubtreeInfo subtreeInfoForSavedRel = new SynthesisSubtreeInfo(n, s.getStartNode());			
+			SynthesisSubtreeInfoUsingEdgeIds subtreeInfoForSavedRel = new SynthesisSubtreeInfoUsingEdgeIds(n, s.getStartNode());			
 			
 			if (VERBOSE) { print("checking for overlap with", s, ":", subtreeInfoForSavedRel); }
 

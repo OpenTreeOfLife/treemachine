@@ -1502,8 +1502,6 @@ public class GraphExplorer extends GraphBase {
 		RelationshipConflictResolver rcr = new RelationshipConflictResolver(new RankResolutionMethod());//new RankResolutionMethodInferredPath());
 		draftSynthesisMethod.setConflictResolver(rcr);
 		
-		Transaction tx = graphDb.beginTx();
-		try {
 // ================================ TESTING =================================
 // 
 //			draftSynthesisMethod = new NodeCountTopoOrderSynthesisExpander(startNode);
@@ -1513,16 +1511,12 @@ public class GraphExplorer extends GraphBase {
 			draftSynthesisMethod = new SubproblemSynthesisExpander(new SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds(), startNode);
 //
 // ================================ TESTING =================================
-			tx.success();
-		} finally {
-			tx.finish();
-		}
 		
 		// user feedback
 		System.out.println("\n" + draftSynthesisMethod.getDescription());
 		
 		//make the metadatanode
-		tx = graphDb.beginTx();
+		Transaction tx = graphDb.beginTx();
 		//String synthTreeName = DRAFTTREENAME; // needs to be changed to the name that gets passed
 		
 		String synthTreeName = tempSynthTreeName;

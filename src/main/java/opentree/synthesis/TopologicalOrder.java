@@ -89,6 +89,9 @@ public class TopologicalOrder implements Iterable<Node> {
 			for (Relationship r : p.getRelationships(Direction.INCOMING, relTypes)) {
 				Node c = r.getStartNode();
 				if (! visited.contains(c.getId()) && validate(c)) {
+					
+					// TODO: can we exclude the tips here? I think we can, they should still be visited by the sort() procedure...
+					
 					toVisit.addLast(c);
 				}
 			}

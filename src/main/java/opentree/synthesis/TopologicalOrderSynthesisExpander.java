@@ -73,12 +73,14 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 */
 	abstract List<Relationship> selectRelsForNode(Node n);
 	
-	abstract void reset();
+	/**
+	 * A bit hacky. Allows us to clear out the data for finished subproblems, but keep their root nodes so that we can attach
+	 * those where appropriate inside of higher order subproblems.
+	 * @param subtreesToKeep
+	 */
+	abstract void reset(Object subtreesToKeep);
 	
-	public void clear() {
-		reset();
-		childRels = new TreeMap<Long, Set<Relationship>>();
-	}
+	abstract SynthesisSubtreeInfo completedRootInfo();
 	
 	/**
 	 * Initialize the topological order and run the synthesis procedure. This should be called in the constructor of each class
@@ -87,6 +89,7 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 * @return 
 	 */
 	public SynthesisExpander synthesizeFrom(Node root) {
+		this.root = root;
 		G = new GraphDatabaseAgent(root.getGraphDatabase());
 		if (VERBOSE) { print("will only visit those nodes in the subgraph below", root + ". collecting them now..."); }
 
