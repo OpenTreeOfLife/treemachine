@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
@@ -26,10 +27,10 @@ public class TopologicalOrder implements Iterable<Node> {
 	private final GraphDatabaseAgent G;
 	private final boolean usingAllNodes;
 	
-//	private Set<Node> unmarked = new HashSet<Node>();
-//	private Set<Node> temporaryMarked = new HashSet<Node>();
-	private Set<Long> unmarked = new TreeSet<Long>();
-	private Set<Long> temporaryMarked = new TreeSet<Long>();
+	private Set<Node> unmarked = new HashSet<Node>();
+	private Set<Node> temporaryMarked = new HashSet<Node>();
+//	private Set<Long> unmarked = new TreeSet<Long>();
+//	private Set<Long> temporaryMarked = new TreeSet<Long>();
 	private List<Node> nodes = new LinkedList<Node>();
 	private Predicate<Node> validateNode = null;
 //	private Set<Relationship> excludedRels;
@@ -82,12 +83,15 @@ public class TopologicalOrder implements Iterable<Node> {
 	 */
 	private class ValidatingIterator implements Iterator<Node> {
 		
-		private LinkedList<Node> toVisit = new LinkedList<Node>();
-		private Set<Long> visited = new HashSet<Long>();
+//		private LinkedList<Node> toVisit = new LinkedList<Node>();
+		private Stack<Node> toVisit = new Stack<Node>();
+//		private Set<Long> visited = new HashSet<Long>();
+		private Set<Node> observed = new HashSet<Node>();
 		
 		public ValidatingIterator (Node root) {
 			if (! validate(root)) { throw new IllegalArgumentException("the root " + root + " does not pass the validation criteria specified by " + validateNode); }
-			toVisit.add(root);
+//			toVisit.add(root.getId());
+			queue(root);
 		}
 
 		@Override
@@ -97,15 +101,21 @@ public class TopologicalOrder implements Iterable<Node> {
 
 		@Override
 		public Node next() {
-			Node p = toVisit.pollFirst();
-			visited.add(p.getId());
+			Node p = toVisit.pop();
+//			visited.add(p.getId());
 			for (Relationship r : p.getRelationships(Direction.INCOMING, relTypes)) {
 				Node c = r.getStartNode();
-				if (! visited.contains(c.getId()) && validate(c)) {
-					toVisit.addLast(c);
+//				if (! visited.contains(c.getId()) && validate(c)) {
+				if (! observed.contains(c) && validate(c)) {
+					queue(c);
 				}
 			}
 			return p;
+		}
+		
+		private void queue(Node n) {
+			toVisit.add(n);
+			observed.add(n);
 		}
 	}
 
@@ -159,30 +169,30 @@ public class TopologicalOrder implements Iterable<Node> {
 				
 		for (Node n : toSort) {
 			if (n.hasRelationship(relTypes)) {
-				unmarked.add(n.getId());
+				unmarked.add(n);
 			}
 		}
 		while (! unmarked.isEmpty()) {
-			visit(G.getNodeById(unmarked.iterator().next()));
+			visit(unmarked.iterator().next());
 		}
 	}
 	
 	private void visit(Node n) {
-		long nid = n.getId();
-		if (temporaryMarked.contains(nid)) {
+//		long nid = n.getId();
+		if (temporaryMarked.contains(n)) {
 			throw new IllegalArgumentException("The graph contains a directed cycle that includes the node: " + n);
 		}
 
-		if (unmarked.contains(nid)) {
-			temporaryMarked.add(nid);
+		if (unmarked.contains(n)) {
+			temporaryMarked.add(n);
 			for (Relationship m : n.getRelationships(Direction.INCOMING, relTypes)) {
 //				if (! excludedRels.contains(m)) {
 					visit(m.getStartNode());
 //				}
 			}
 			
-			unmarked.remove(nid);
-			temporaryMarked.remove(nid);
+			unmarked.remove(n);
+			temporaryMarked.remove(n);
 			nodes.add(n);
 			
 			// testing
