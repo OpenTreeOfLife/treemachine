@@ -1,4 +1,4 @@
-package org.opentree.tag.treeimport;
+	package org.opentree.tag.treeimport;
 
 import jade.tree.JadeNode;
 import jade.tree.TreeBipartition;
@@ -206,7 +206,7 @@ public class BipartOracle {
         this.subset = subset;
         //store the subset in the index
         if (subset) {
-        	mapdeepest = false;
+        	//mapdeepest = false;
             Transaction tx = gdb.beginTx();
             Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
             
@@ -1840,18 +1840,46 @@ public class BipartOracle {
 					 * now we want to map to the "deepest" taxon node before the split and the 
 					 * 	nodes in between. so amborella,aster split will map to aster, asteraceae, asterales, etc.
 					 */
+					//TODO: this has an error in it when the clade is not monophyletic
 					if(mapdeepest == true){
+						LongBipartition nodeBipartExp = bipartForTreeNodeExploded.get(treeTip.getParent());
+						MutableCompactLongSet alsoExclude = new MutableCompactLongSet();
+						//need to make sure that this doesn't overlap with the sisters
+						for(TreeNode othertips: treeTip.getParent().getChildren()){
+							if(othertips.equals(treeTip))
+								continue;
+							if(othertips.isExternal()){
+								alsoExclude.add(nodeIdForLabel.get(treeTip.getLabel()));
+							}else{
+								alsoExclude.addAll(bipartForTreeNodeExploded.get(othertips).ingroup());
+							}
+						}
+						
 						Node startTip = tip;
+						//System.out.println("mappeddeepest: "+startTip);
 						boolean going = true;
 						while(going == true){
 							startTip = startTip.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+							//System.out.println("mappeddeepest next: "+startTip);
+
 							if(taxonomyGraphNodesMap.containsKey(startTip)){
+								//System.out.println("mappeddeepest contained: "+startTip);
+
 								LongBipartition pbip = null;
 								LongBipartition cbip = taxonomyGraphNodesMap.get(startTip);
+								//System.out.println("mappeddeepest cbip: "+cbip);
+
 								if(bipartForGraphNodeExploded.containsKey(parent)){
 									pbip = bipartForGraphNodeExploded.get(parent);
 								}else{
 									pbip = taxonomyGraphNodesMap.get(parent);
+								}
+								//System.out.println("mappeddeepest pbip: "+pbip);
+								//System.out.println("node parent bipart: "+nodeBipartExp);
+								if(cbip.ingroup().containsAny(nodeBipartExp.outgroup())){
+									break;
+								}if(cbip.ingroup().containsAny(alsoExclude)){
+									break;
 								}
 								if(pbip.ingroup().containsAny(cbip.ingroup())
 										&& cbip.ingroup().containsAny(pbip.outgroup()) == false
@@ -1861,6 +1889,7 @@ public class BipartOracle {
 											edgeId,lb,true);
 									if(startTip.equals(parent))
 										continue;
+									//System.out.println("mappeddeepest: yup "+startTip+" "+parent);
 									updateMRCAChildOf(startTip, parent);
 									updateSTREEChildOf(startTip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip), 
 											edgeId,lb,true);
