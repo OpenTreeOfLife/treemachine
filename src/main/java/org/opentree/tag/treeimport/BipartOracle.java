@@ -178,6 +178,7 @@ public class BipartOracle {
 	Map<Node,LongBipartition> taxonomyGraphNodesMap;
 	JadeNode taxonomyJadeRoot;
 	
+	
 	/** this is just a map of node and the RANK of the tree it came from in the list. higher is better--earlier in the list */
 	Map<TreeNode,Integer> rankForTreeNode;
 
@@ -191,7 +192,8 @@ public class BipartOracle {
 	Map<Tree, String> sourceForTrees;
 	
  	int nodeId = 0;
-
+ 	String ottidFromSubset = null;
+ 	Node taxnodeFromSubset = null;
 	/**
 	 * instantiation runs the entire analysis
 	 * @param trees
@@ -202,8 +204,25 @@ public class BipartOracle {
     public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy,
             Map<Tree, String> sources, Map<TreeNode, String> subsetInfo, boolean subset, String subsetFileName) throws Exception {
         this.subset = subset;
-        if(this.subset==true)
+        //store the subset in the index
+        if (subset) {
         	mapdeepest = false;
+            Transaction tx = gdb.beginTx();
+            Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
+            
+            if (subsetFileName.contains("/")) {
+                ottidFromSubset = subsetFileName.split("/")[1];
+            } else {
+            	ottidFromSubset = subsetFileName;
+            }
+            ottidFromSubset = ottidFromSubset.replace(".tre", "").replace("ott", "");
+            taxnodeFromSubset = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottidFromSubset).getSingle();
+            Index<Node> ottIdIndexss = gdb.getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
+            ottIdIndexss.add(taxnodeFromSubset, "subset", ottidFromSubset);
+            tx.success();
+
+            tx.finish();
+        }
         this.gdb = gdb;
         this.USING_TAXONOMY = useTaxonomy;
         this.subsetTipInfo = subsetInfo;
@@ -260,25 +279,6 @@ public class BipartOracle {
         //if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
         //clean up the nodes and rels that aren't used at all
         removeUnusedNodesAndRels();
-
-        //store the subset in the index
-        if (subset) {
-            Transaction tx = gdb.beginTx();
-            Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
-            String ottidFromSubset = null;
-            if (subsetFileName.contains("/")) {
-                ottidFromSubset = subsetFileName.split("/")[1];
-            } else {
-            	ottidFromSubset = subsetFileName;
-            }
-            ottidFromSubset = ottidFromSubset.replace(".tre", "").replace("ott", "");
-            Node gn = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottidFromSubset).getSingle();
-            Index<Node> ottIdIndexss = gdb.getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
-            ottIdIndexss.add(gn, "subset", ottidFromSubset);
-            tx.success();
-
-            tx.finish();
-        }
 
         System.out.println("loading is complete. total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
     }
