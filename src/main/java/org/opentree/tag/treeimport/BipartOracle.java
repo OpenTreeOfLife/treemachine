@@ -202,6 +202,8 @@ public class BipartOracle {
     public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy,
             Map<Tree, String> sources, Map<TreeNode, String> subsetInfo, boolean subset, String subsetFileName) throws Exception {
         this.subset = subset;
+        if(this.subset==true)
+        	mapdeepest = false;
         this.gdb = gdb;
         this.USING_TAXONOMY = useTaxonomy;
         this.subsetTipInfo = subsetInfo;
