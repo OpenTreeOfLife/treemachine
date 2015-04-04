@@ -451,6 +451,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				} else {
 					if (VERBOSE) { print("X and Y include the same number of graph nodes and the same number of tree edges for all trees. arbitrarily preferring Y."); }
 					result = false; // arbitrary! logically just as justifiable as true
+					
+					// TODO: if nodes are tied here, we may also want an additional check to see if the root of one of
+					// the nodes has a name (i.e. is a taxon), in which case we should prefer that one.
+					
 				}
 			}
 			return result;
