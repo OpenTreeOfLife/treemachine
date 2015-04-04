@@ -27,7 +27,7 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 public class SubproblemSynthesisExpander extends SynthesisExpander {
 	
 //	private final Index<Node> subproblemIndex;
-	private final Set<Long> subproblemIds;
+	private final Set<Comparable> subproblemIds;
 	private final TopologicalOrderSynthesisExpander subExpander;
 	private final Node root;
 	private final GraphDatabaseAgent G;
@@ -44,9 +44,9 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 		// first get all the subproblem ids from the index
 		// TODO: should put the node indexes into an enum to keep them consistent and easily tracked
 		Index<Node> subproblemIndex = new GraphDatabaseAgent(root.getGraphDatabase()).getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
-		subproblemIds = new TreeSet<Long>();
+		subproblemIds = new TreeSet<Comparable>();
 		for (Node n : subproblemIndex.query(new MatchAllDocsQuery())) {
-			subproblemIds.add(Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName)));
+			subproblemIds.add((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
 		}
 		if (VERBOSE) { print("found", subproblemIds.size(), "subproblems:", subproblemIds); }
 		
@@ -94,7 +94,7 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 /*			Object ottId = n.getProperty(NodeProperty.TAX_UID.propertyName, null);
 //			print("ott id = " + ottId);
 			passes = ottId == null ? false : subproblemIndex.get("subset", ottId).hasNext(); */
-			return subproblemIds.contains(Long.valueOf(((String) n.getProperty(NodeProperty.TAX_UID.propertyName, null))));
+			return subproblemIds.contains((String) n.getProperty(NodeProperty.TAX_UID.propertyName, null));
 		}
 //		print(passes ? "validated" + n : "did not validate!");
 		return passes;

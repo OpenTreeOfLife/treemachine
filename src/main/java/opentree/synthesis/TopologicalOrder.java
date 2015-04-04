@@ -171,7 +171,7 @@ public class TopologicalOrder implements Iterable<Node> {
 	}
 	
 	private Iterable<Node> getNodes() {
-		assert ! usingAllNodes && root == null;
+		assert ! (usingAllNodes == false && root == null);
 
 		Iterable<Node> nodes;
 		if (usingAllNodes) {

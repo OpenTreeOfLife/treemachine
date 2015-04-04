@@ -14,6 +14,7 @@ import java.util.TreeSet;
 
 import static org.opentree.utils.GeneralUtils.print;
 import static org.opentree.utils.GeneralUtils.getRelationshipsFromTo;
+import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.synthesis.CartesianProduct.PrunableCPSupersetIterator;
@@ -552,7 +553,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	@Override
 	List<Relationship> selectRelsForNode(Node n) {
 
-		if (VERBOSE) { print("\n==== visiting", n, "=================================================================================\n"); }
+		if (VERBOSE) {
+			String name = "(anonymous node)";
+			Object ottId = n.getProperty(NodeProperty.TAX_UID.propertyName, null);
+			if (ottId != null) { name = (String) n.getProperty(NodeProperty.NAME.propertyName) + ", ott id = " + ottId; }
+			print("\n==== visiting", n, "====", name, "========================================================================="); }
+		
 		initialize(n);
 		
 		// get all the incoming rels and group them by sourcerank and sourceedgeid
@@ -669,11 +675,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 		}
 
+		/*
 		for (Relationship t : taxonomySingletonRels) {
 			if (! bestSet.info().overlapsWith(completedSubtree(t), 0)) {
 				bestSet.add(t);
 			}
-		}
+		} */
 		
 		bestSet.info().complete();
 		print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info());
