@@ -68,7 +68,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	}
 	
 	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds() {
-		VERBOSE = true;
+		VERBOSE = false;
 		System.out.println("using edge ids *and* tip ids.");
 	}
 
