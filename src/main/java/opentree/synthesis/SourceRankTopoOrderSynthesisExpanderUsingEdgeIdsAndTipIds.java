@@ -772,10 +772,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 			
 			MutableCompactLongSet edgeSetIds = new MutableCompactLongSet(augmentingSetList.get(i).info().includedNodeIds());
-			if (VERBOSE) { print("looking for subtrees that overlap with", i); }
+			if (VERBOSE) { print("looking for subtrees that overlap with", i, "\ncumulative ids:", cumulativeIds,"\nthis set:", edgeSetIds); }
 
 			if (cumulativeIds.containsAny(edgeSetIds)) { // this edge set overlaps with at least one other
-				if (VERBOSE) { print(i, "overlaps with: "); }
+//				if (VERBOSE) { print(i, "overlaps with: "); }
 				
 				// find the (sets of) other edge sets that this one overlaps with and gather all their ids
 				List<Integer> setsToCombine = new ArrayList<Integer>();
@@ -785,9 +785,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 						setsToCombine.add(setId);
 						idsForCombinedSet.addAll(idsForOverlapping.get(setId));
 					}
-					if (VERBOSE) { print(setId + ": cumulative union=", idsForCombinedSet); }
+//					if (VERBOSE) { print(setId + ": cumulative union=", idsForCombinedSet); }
 				}
 				assert setsToCombine.size() > 0;
+				if (VERBOSE) { print(i, setsToCombine); }
 
 				// connect all the overlapping sets in the uf object
 				int newSetId = -1;

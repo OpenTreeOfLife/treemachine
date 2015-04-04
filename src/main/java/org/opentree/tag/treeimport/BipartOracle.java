@@ -264,8 +264,11 @@ public class BipartOracle {
             Transaction tx = gdb.beginTx();
             Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
             String ottidFromSubset = null;
-            if (subsetFileName.contains("/"))
+            if (subsetFileName.contains("/")) {
                 ottidFromSubset = subsetFileName.split("/")[1];
+            } else {
+            	ottidFromSubset = subsetFileName;
+            }
             ottidFromSubset = ottidFromSubset.replace(".tre", "").replace("ott", "");
             Node gn = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottidFromSubset).getSingle();
             Index<Node> ottIdIndexss = gdb.getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
