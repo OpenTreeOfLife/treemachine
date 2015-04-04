@@ -772,7 +772,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 			
 			MutableCompactLongSet edgeSetIds = new MutableCompactLongSet(augmentingSetList.get(i).info().includedNodeIds());
-			if (VERBOSE) { print("looking for subtrees that overlap with", i, "\ncumulative ids:", cumulativeIds,"\nthis set:", edgeSetIds); }
+			if (VERBOSE) { print("looking for subtrees that overlap with", i);} //, "\ncumulative ids:", cumulativeIds,"\nthis set:", edgeSetIds); }
 
 			if (cumulativeIds.containsAny(edgeSetIds)) { // this edge set overlaps with at least one other
 //				if (VERBOSE) { print(i, "overlaps with: "); }
