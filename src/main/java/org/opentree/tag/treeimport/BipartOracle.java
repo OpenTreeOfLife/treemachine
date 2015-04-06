@@ -2461,7 +2461,12 @@ public class BipartOracle {
 		Relationship rel = child.createRelationshipTo(parent, RelType.STREECHILDOF);
 		rel.setProperty("source", source);
 		rel.setProperty("sourcerank", sourcerank);
-		rel.setProperty(RelProperty.SOURCE_EDGE_ID.propertyName, edgeId);
+		if(this.subset){
+			rel.setProperty("subset", ottidFromSubset);
+			rel.setProperty(RelProperty.SOURCE_EDGE_ID.propertyName, source+"_"+ottidFromSubset+"_"+edgeId);
+		}else{
+			rel.setProperty(RelProperty.SOURCE_EDGE_ID.propertyName, source+"_"+edgeId);
+		}
 		if (istip) { rel.setProperty(RelProperty.CHILD_IS_TIP.propertyName, true); }
 		if (childBipart != null) {
 			rel.setProperty("exclusive_mrca", childBipart.ingroup().toArray());
