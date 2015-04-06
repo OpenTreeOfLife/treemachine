@@ -1913,7 +1913,9 @@ public class GraphExplorer extends GraphBase {
 			}
 			// find the mrca of the names in the tree
 			if (nodesInTree.size() > 1) {
-/*				Node mrca = null;
+				//* ===== alternative implementation 1: attach missing children to MRCA of all taxa descended
+				// 										 from parent that are present in synth tree
+				Node mrca = null;
 				mrca = getLICAForDraftTreeNodes(nodesInTree);
 				// TLongArrayList tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
 				//while (tmrca.containsAll(ttmrca) == false) {
@@ -1927,8 +1929,12 @@ public class GraphExplorer extends GraphBase {
 				
 				newRel.setProperty("name", DRAFTTREENAME);
 				newRel.setProperty("supporting_sources", supportingSources);
-				knownIdsInTree.add(taxNode.getId()); */
-				Node nextAncestorTaxInTree = ptaxNode;
+				knownIdsInTree.add(taxNode.getId());
+				// ===== end alt 1 */
+				
+				/* ===== alternative approach 2: attach missing children to next deepest ancestral taxon in
+				//								  synth tree. more conservative?
+ 				Node nextAncestorTaxInTree = ptaxNode;
 				while (! nextAncestorTaxInTree.hasRelationship(RelType.SYNTHCHILDOF)) {
 					nextAncestorTaxInTree = nextAncestorTaxInTree.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 				}
@@ -1939,6 +1945,7 @@ public class GraphExplorer extends GraphBase {
 				newRel.setProperty("name", DRAFTTREENAME);
 				newRel.setProperty("supporting_sources", supportingSources);
 				knownIdsInTree.add(taxNode.getId());
+				// ===== end alt 2 */
 			} else {
 				//	System.out.println("2) attempting to add child: " + taxNode.getProperty("name") + " " + taxNode);
 				Relationship newRel = taxNode.createRelationshipTo(ptaxNode, RelType.SYNTHCHILDOF);

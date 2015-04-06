@@ -686,7 +686,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 		}
 
-		/* ===== add singleton taxonomy rels
+		//* ===== add singleton taxonomy rels
 		System.out.println("attempting to add any remaining tips from taxonomy");
 		for (Relationship t : taxonomySingletonRels) {
 			if (! bestSet.info().overlapsWith(completedSubtree(t), 0)) {
