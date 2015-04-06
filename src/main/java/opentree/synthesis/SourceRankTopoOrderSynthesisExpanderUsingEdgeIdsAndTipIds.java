@@ -353,7 +353,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 * @return
 		 */
 		public boolean overlapsWith(SynthesisSubtreeInfoUsingEdgeIds that, int workingRank) {
-			return includedNodeIds.containsAny(that.includedNodeIds) ? true : containsAnyStreeElementsOf(that, workingRank); 
+			//testing
+			print("\n\nchecking:", this);
+			print("against:", that,"\n\n");
+			return this.includedNodeIds.containsAny(that.includedNodeIds) ? true : containsAnyStreeElementsOf(that, workingRank); 
 		}
 		
 		/**
@@ -675,12 +678,11 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 		}
 
-		/*
 		for (Relationship t : taxonomySingletonRels) {
 			if (! bestSet.info().overlapsWith(completedSubtree(t), 0)) {
 				bestSet.add(t);
 			}
-		} */
+		}
 		
 		bestSet.info().complete();
 		print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info());
