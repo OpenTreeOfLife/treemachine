@@ -1650,22 +1650,20 @@ public class GraphExplorer extends GraphBase {
 			tx.finish();
 		}
 
-		//* ============================== not currently adding missing children
-		//if (!test) {
-			tx = graphDb.beginTx();
-			try {
-				// uncommented for testing with new synth method
-				addMissingChildrenToDraftTreewhile (startNode,startNode);
-				
-				tx.success();
-			} catch (Exception ex) {
-				tx.failure();
-				ex.printStackTrace();
-			} finally {
-				tx.finish();
-			}
-		//}
-		// ============================== not currently adding missing children */
+		//* ============================== add missing children
+		tx = graphDb.beginTx();
+		try {
+			// uncommented for testing with new synth method
+			addMissingChildrenToDraftTreewhile (startNode,startNode);
+			
+			tx.success();
+		} catch (Exception ex) {
+			tx.failure();
+			ex.printStackTrace();
+		} finally {
+			tx.finish();
+		}
+		// ============================== end add missing children */
 
 		System.out.println("exiting the sythesis");
 		return true;
@@ -1914,7 +1912,7 @@ public class GraphExplorer extends GraphBase {
 			}
 			// find the mrca of the names in the tree
 			if (nodesInTree.size() > 1) {
-				Node mrca = null;
+/*				Node mrca = null;
 				mrca = getLICAForDraftTreeNodes(nodesInTree);
 				// TLongArrayList tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
 				//while (tmrca.containsAll(ttmrca) == false) {
@@ -1923,6 +1921,17 @@ public class GraphExplorer extends GraphBase {
 				//}
 				//	System.out.println("1) attempting to add child: " + taxNode.getProperty("name") + " " + taxNode);
 				Relationship newRel = taxNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
+				
+				synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
+				
+				newRel.setProperty("name", DRAFTTREENAME);
+				newRel.setProperty("supporting_sources", supportingSources);
+				knownIdsInTree.add(taxNode.getId()); */
+				Node nextAncestorTaxInTree = ptaxNode;
+				while (! nextAncestorTaxInTree.hasRelationship(RelType.SYNTHCHILDOF)) {
+					nextAncestorTaxInTree = nextAncestorTaxInTree.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
+				}
+				Relationship newRel = taxNode.createRelationshipTo(nextAncestorTaxInTree, RelType.SYNTHCHILDOF);
 				
 				synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
 				

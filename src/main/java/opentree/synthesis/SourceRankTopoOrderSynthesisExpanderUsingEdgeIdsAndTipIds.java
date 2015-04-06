@@ -31,7 +31,7 @@ import org.opentree.bitarray.MutableCompactLongSet;
 
 public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends TopologicalOrderSynthesisExpander {
 
-	Map<Integer, Map<Long, EdgeSet>> edgeSetsByRankAndEdgeId;
+	Map<Integer, Map<Object, EdgeSet>> edgeSetsByRankAndEdgeId;
 	Set<Node> children;
 	Set<Integer> observedRanks;
 	CandidateRelSet bestSet;
@@ -69,7 +69,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	}
 	
 	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds() {
-		VERBOSE = false;
+		VERBOSE = true;
 		System.out.println("using edge ids *and* tip ids.");
 	}
 
@@ -181,9 +181,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		
 		private final Node parent;
 		private final int rank;
-		private final long edgeId;
+		private final Object edgeId;
 		
-		public EdgeSet(Node parent, int rank, long edgeId) {
+		public EdgeSet(Node parent, int rank, Object edgeId) {
+			if (edgeId == null) { throw new IllegalArgumentException(); }
 			this.rank = rank;
 			this.edgeId = edgeId;
 			this.parent = parent;
@@ -215,7 +216,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		private void validate(Relationship r) {
 			assert r != null;
 			assert rank == SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds.rank(r);
-			assert edgeId == SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds.edgeId(r);
+			assert edgeId.equals(SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds.edgeId(r));
 			assert r.getEndNode().equals(parent);
 		}
 
@@ -238,7 +239,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 * The edge id of the original source tree branch represented by the rels in this set.
 		 * @return
 		 */
-		public long edgeId() {
+		public Object edgeId() {
 			return edgeId;
 		}
 		
@@ -263,7 +264,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	private class SynthesisSubtreeInfoUsingEdgeIds implements SynthesisSubtreeInfo {
 		
 		private MutableCompactLongSet includedNodeIds = new MutableCompactLongSet();
-		private Map<Integer, Set<Long>> edgeIdsByRank = new HashMap<Integer, Set<Long>>();
+		private Map<Integer, Set<Object>> edgeIdsByRank = new HashMap<Integer, Set<Object>>();
 		private Map<Integer, Set<LongSet>> tipIdSetsByRank = new HashMap<Integer, Set<LongSet>>();
 		private boolean completed = false;
 		
@@ -353,9 +354,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		 * @return
 		 */
 		public boolean overlapsWith(SynthesisSubtreeInfoUsingEdgeIds that, int workingRank) {
-			//testing
+			/*testing
 			print("\n\nchecking:", this);
-			print("against:", that,"\n\n");
+			print("against:", that);
+			boolean result = this.includedNodeIds.containsAny(that.includedNodeIds) ? true : containsAnyStreeElementsOf(that, workingRank); 
+			print(result,"\n\n");
+			return result; */
 			return this.includedNodeIds.containsAny(that.includedNodeIds) ? true : containsAnyStreeElementsOf(that, workingRank); 
 		}
 		
@@ -370,8 +374,12 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			boolean containsAny = false;
 			for (int rank : ranksForIncludedEdges()) {
 				if (rank < workingRank || ! that.edgeIdsByRank.containsKey(rank)) { continue; } // should this be <=? | 2015 03 28: no, i don't think so
-				for (long edgeId : that.edgeIdsForRank(rank)) {
+				for (Object edgeId : that.edgeIdsForRank(rank)) {
 					if (this.edgeIdsForRank(rank).contains(edgeId)) {
+						
+						// testing
+						print ("found overlap:", "rank =", rank, "edge id =", edgeId);
+						
 						containsAny = true;
 						break;
 					}
@@ -480,7 +488,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 					print("did not find rank " + rank + " in ranks for edge ids"); // testing
 					break;
 				}
-				for (long edgeId : that.edgeIdsForRank(rank)) {
+				for (Object edgeId : that.edgeIdsForRank(rank)) {
 					if (! this.edgeIdsForRank(rank).contains(edgeId)) {
 						containsAll = false;
 						print("did not find edge id " + edgeId + " for rank " + rank); // testing
@@ -544,7 +552,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			return tipIdSetsByRank.get(rank);
 		}
 		
-		public Set<Long> edgeIdsForRank(int rank) {
+		public Set<Object> edgeIdsForRank(int rank) {
 			return edgeIdsByRank.get(rank);
 		}
 	}
@@ -678,11 +686,14 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 			}
 		}
 
+		/* ===== add singleton taxonomy rels
+		System.out.println("attempting to add any remaining tips from taxonomy");
 		for (Relationship t : taxonomySingletonRels) {
 			if (! bestSet.info().overlapsWith(completedSubtree(t), 0)) {
 				bestSet.add(t);
 			}
 		}
+		// ===== end add singleton taxonomy rels */
 		
 		bestSet.info().complete();
 		print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info());
@@ -859,7 +870,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	
 	private void initialize(Node n) {
 		immediateSubtrees = new HashMap<Node, SynthesisSubtreeInfoUsingEdgeIds>();
-		edgeSetsByRankAndEdgeId = new HashMap<Integer, Map<Long, EdgeSet>>();
+		edgeSetsByRankAndEdgeId = new HashMap<Integer, Map<Object, EdgeSet>>();
 		children = new HashSet<Node>();
 		observedRanks = new HashSet<Integer>();
 	}
@@ -870,10 +881,10 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		int rank = rank(r); // collect the rank and create a map entry if necessary
 		observedRanks.add(rank);
 		if (! edgeSetsByRankAndEdgeId.containsKey(rank)) {
-			edgeSetsByRankAndEdgeId.put(rank, new HashMap<Long, EdgeSet>());
+			edgeSetsByRankAndEdgeId.put(rank, new HashMap<Object, EdgeSet>());
 		}
 
-		long edgeId = edgeId(r); // collect the edge id and create a map entry if necessary
+		Object edgeId = edgeId(r); // collect the edge id and create a map entry if necessary
 		if (! edgeSetsByRankAndEdgeId.get(rank).containsKey(edgeId)) {
 			edgeSetsByRankAndEdgeId.get(rank).put(edgeId, new EdgeSet(r.getEndNode(), rank, edgeId));
 		}
@@ -940,8 +951,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * @param v
 	 * @param m
 	 */
-	private void updateSetMap(int v, Map<Integer, Set<Long>> m) {
-		if (! m.containsKey(v)) { m.put(v, new HashSet<Long>()); }
+	private void updateSetMap(int v, Map<Integer, Set<Object>> m) {
+		if (! m.containsKey(v)) { m.put(v, new HashSet<Object>()); }
 	}
 
 	/**
@@ -1029,8 +1040,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 * Get the unique edge id for this relationship within its source tree. For taxonomy rels, we just use the
 	 * database id of the rel (which are unique) since each taxonomy rel is only represented once in the db.
 	 */
-	private static long edgeId(Relationship r) {
-		return isTaxonomyRel(r) ? r.getId() : (int) r.getProperty(RelProperty.SOURCE_EDGE_ID.propertyName);
+	private static Object edgeId(Relationship r) {
+		return isTaxonomyRel(r) ? r.getId() : r.getProperty(RelProperty.SOURCE_EDGE_ID.propertyName);
 	}
 
 	/**
