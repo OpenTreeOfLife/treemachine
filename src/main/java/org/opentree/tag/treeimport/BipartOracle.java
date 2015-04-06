@@ -55,7 +55,7 @@ public class BipartOracle {
 	
 	boolean subset = false;
 	
-	boolean mapdeepest = false;
+	boolean mapdeepest = true;
 	
 	// maps of tip names for higher taxon tips to sets of tip names for their included taxa
 
@@ -1845,13 +1845,14 @@ public class BipartOracle {
 						LongBipartition nodeBipartExp = bipartForTreeNodeExploded.get(treeTip.getParent());
 						MutableCompactLongSet alsoExclude = new MutableCompactLongSet();
 						//need to make sure that this doesn't overlap with the sisters
-						for(TreeNode othertips: treeTip.getParent().getChildren()){
-							if(othertips.equals(treeTip))
+						for(TreeNode othertip: treeTip.getParent().getChildren()){
+							//System.out.println(othertip+" "+treeTip+" "+othertip.equals(treeTip));
+							if(othertip.equals(treeTip))
 								continue;
-							if(othertips.isExternal()){
-								alsoExclude.add(nodeIdForLabel.get(treeTip.getLabel()));
+							if(othertip.isExternal()){
+								alsoExclude.add(nodeIdForLabel.get(othertip.getLabel()));
 							}else{
-								alsoExclude.addAll(bipartForTreeNodeExploded.get(othertips).ingroup());
+								alsoExclude.addAll(bipartForTreeNodeExploded.get(othertip).ingroup());
 							}
 						}
 						
@@ -1876,11 +1877,14 @@ public class BipartOracle {
 								}
 								//System.out.println("mappeddeepest pbip: "+pbip);
 								//System.out.println("node parent bipart: "+nodeBipartExp);
+								//System.out.println("cbip ingroup "+cbip.ingroup()+" "+alsoExclude);
+								//System.out.println("cbip ingroup "+cbip.ingroup().containsAll(alsoExclude));
 								if(cbip.ingroup().containsAny(nodeBipartExp.outgroup())){
 									break;
 								}if(cbip.ingroup().containsAny(alsoExclude)){
 									break;
 								}
+								
 								if(pbip.ingroup().containsAny(cbip.ingroup())
 										&& cbip.ingroup().containsAny(pbip.outgroup()) == false
 										&& cbip.ingroup().containsAll(pbip.ingroup()) == false){//it is compatible with the parent
