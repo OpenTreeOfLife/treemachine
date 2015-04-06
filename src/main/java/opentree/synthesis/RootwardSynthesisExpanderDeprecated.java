@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.opentree.bitarray.CompactLongSet;
+import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.bitarray.TLongBitArraySet;
 
 import opentree.constants.NodeProperty;
@@ -17,7 +17,6 @@ import opentree.constants.RelType;
 import opentree.synthesis.mwis.BaseWeightedIS;
 import opentree.synthesis.mwis.BruteWeightedIS;
 import opentree.synthesis.mwis.GreedyApproximateWeightedIS;
-import opentree.synthesis.mwis.TopologicalOrder;
 import opentree.synthesis.mwis.WeightedUndirectedGraph;
 
 import org.neo4j.graphdb.Direction;
@@ -32,24 +31,33 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 
 import scala.actors.threadpool.Arrays;
 
-public class RootwardSynthesisExpander extends SynthesisExpander implements PathExpander {
+/**
+ * This class attempted to include rootward synthesis techniques for ranked and nodecount based synthesis, but it
+ * has been deprecated in favor of separating these approaches into different classes. The new classes are:
+ * RootwardRankedSynthesisExpander and RootwardNodeCountSynthesisExpander.
+ * @author cody
+ *
+ */
+@Deprecated
+public class RootwardSynthesisExpanderDeprecated extends SynthesisExpander implements PathExpander {
 
 	private TopologicalOrder topologicalOrder;
 	private Map<Long, HashSet<Relationship>> childRels;
 	private Map<Long, TLongBitArraySet> nodeMrca;
 	private GraphDatabaseAgent gdb;
 
-	private boolean trivialTestCase = false;
-	
 	private boolean VERBOSE = true;
 
 	private boolean USING_RANKS = false;
 	
-	public RootwardSynthesisExpander(Node root) {
+	public RootwardSynthesisExpanderDeprecated(Node root) {
 
-		// could fail if we have MRCACHILDOF cycles. should probably use TAXCHILDOF and STREECHILDOF
-		// need to change constructor to accept a set of reltypes.
-		topologicalOrder = new TopologicalOrder(root, RelType.MRCACHILDOF);
+		// TODO: the topological order will die if we have cycles. 
+		// first we need to find strongly connected components (SCCs) and identify edges
+		// whose exclusion will remove the cycles. use TarjanSCC to find the SCCs.
+		
+		GraphDatabaseAgent G = new GraphDatabaseAgent(root.getGraphDatabase());
+		topologicalOrder = new TopologicalOrder(G, RelType.STREECHILDOF, RelType.TAXCHILDOF);
 
 		childRels = new HashMap<Long, HashSet<Relationship>>();
 
@@ -77,7 +85,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 					// lower ranked rel that includes a node that is a singleton on a higher ranked rel--then
 					// the singleton higher ranked rel will be excluded (bad). we should still never need to include
 					// taxonomic singletons though.
-					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons!?!?! THIS MIGHT BE WRONG.
+					if (mrcaTips(r).length == 1) { singletons.add(r); continue; } // skip STREE singletons? THIS MIGHT BE WRONG.
 					
 					updateBestRankedRel(bestRelForNode, r); // check other source tree rels to see which one to record
 				}
@@ -95,35 +103,44 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 				}
 			}
 			
-			// collect the set of non-redundant rels
-			List<Relationship> relsForMWIS = new ArrayList<Relationship>(bestRelForNode.values());
-
-			if (USING_RANKS) {
-				// augment the ranks of rels that fully include all the descendants of other rels by
-				// the degree of the rank of the fully included rel. the goal here is to try and make
-				// sure we use more inclusive rels even when they have lower rank as long as they are
-				// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
-				// is EXPERIMENTAL and may be incorrect!!!!
-				for (int i = 0; i < relsForMWIS.size(); i++) {
-					for (int j = 0; j < relsForMWIS.size(); j++) {
-						if (i != j) {
-							Relationship I = relsForMWIS.get(i);
-							Relationship J = relsForMWIS.get(j);
-							if (treeRelContainsOther(I,J)) {
-//								System.out.println(I + " contains " + J);
-								uprank(relsForMWIS.get(i), relsForMWIS.get(j));
-							}
-							else if (treeRelContainsOther(J,I)) {
-//								System.out.println(J + " contains " + I);
-								uprank(relsForMWIS.get(j), relsForMWIS.get(i));
+			List<Long> bestRelIds = new ArrayList<Long>();
+			if (!bestRelForNode.isEmpty()) {
+				
+				// collect the set of non-redundant rels
+				List<Relationship> relsForMWIS = new ArrayList<Relationship>(bestRelForNode.values());
+	
+				if (USING_RANKS) {
+					// augment the ranks of rels that fully include all the descendants of other rels by
+					// the degree of the rank of the fully included rel. the goal here is to try and make
+					// sure we use more inclusive rels even when they have lower rank as long as they are
+					// fully compatible with less inclusive (higher ranked) rels. WARNING: this approach
+					// is EXPERIMENTAL and may be incorrect!!!!
+					for (int i = 0; i < relsForMWIS.size(); i++) {
+						for (int j = 0; j < relsForMWIS.size(); j++) {
+							if (i != j) {
+								Relationship I = relsForMWIS.get(i);
+								Relationship J = relsForMWIS.get(j);
+								if (treeRelContainsOther(I,J)) {
+	//								System.out.println(I + " contains " + J);
+									uprank(relsForMWIS.get(i), relsForMWIS.get(j));
+								} else if (treeRelContainsOther(J,I)) {
+	//								System.out.println(J + " contains " + I);
+									uprank(relsForMWIS.get(j), relsForMWIS.get(i));
+								}
 							}
 						}
 					}
 				}
+				
+				// get all the best nontrivial rels and collect the ids of all descendant tips
+				bestRelIds = findBestNonOverlapping(relsForMWIS);
+			} else {
+				if (!singletons.isEmpty()) {
+					System.out.println("Only singletons found.");
+				} else {
+					System.out.println("This must be a tip.");
+				}
 			}
-			
-			// get all the best nontrivial rels and collect the ids of all descendant tips
-			List<Long> bestRelIds = findBestNonOverlapping(relsForMWIS);
 			TLongBitArraySet included = new TLongBitArraySet (mrcaTipsAndInternal(bestRelIds));
 			
 			if (VERBOSE) { for (Long b : bestRelIds) { Relationship r = gdb.getRelationshipById(b); System.out.println("selected source tree rel " + r + ": " + r.getStartNode() + " -> " + r.getEndNode()); }}
@@ -170,7 +187,7 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			
 			System.out.println("nodeMrca["+n.getId()+"] = " + nodeMrca.get(n.getId()));
 			
-			childRels.put(nodeId, incomingRels); 
+			childRels.put(nodeId, incomingRels);
 			System.out.println("childRels["+n.getId()+"] = " + childRels.get(n.getId()));
 		}
 	}
@@ -303,12 +320,43 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 		double[] weights = new double[rels.size()];
 		Long[] relIds = new Long[rels.size()];
 		
+		int numValid = 0;
+		// check if no conflict
+		int taxSum = 0;
+		HashSet<Long> uniqueTips = new HashSet<Long>();
+		
 		Iterator<Relationship> relsIter = rels.iterator();
 		for (int i = 0; relsIter.hasNext(); i++) {
 			Relationship rel = relsIter.next();
-			relIds[i] = rel.getId();
-			mrcaSetsForRels[i] = new TLongBitArraySet(mrcaTipsAndInternal(rel.getId()));
 
+			// avoid null pointer
+			TLongBitArraySet currDesc = mrcaTipsAndInternal(rel.getId());
+			//System.out.println("currDesc = " + currDesc);
+			
+			if (currDesc != null) {
+				relIds[numValid] = rel.getId();
+				mrcaSetsForRels[numValid] = currDesc;
+				
+				long [] currTips = mrcaTips(rel);
+				taxSum += currTips.length;
+				for (int j = 0; j < currTips.length; j++) {
+					uniqueTips.add(currTips[j]);
+				}
+				if (USING_RANKS) {
+					weights[numValid] = getScoreRanked(rel);
+				} else {
+					weights[numValid] = getScoreNodeCount(rel); // this is the only one that seems to produce sensible results right now
+				}
+
+				if (VERBOSE) {
+					System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + 
+						") = " + nodeMrca.get(rel.getStartNode().getId()) + ". score = " + weights[numValid]);
+				}
+				numValid++;
+			} else {
+				System.out.println("*** rel '" + rel + "' [ID = " + rel.getId() + "] (somehow) has no descendants! relType = " + rel.getType());
+				continue;
+			}
 //			weights[i] = getScoreNodeCount(rel); // this is the only one that seems to make sense
 
 			// ranked scoring is messy and screws things up in unpredictable ways
@@ -327,14 +375,36 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 			 * present ids. Of course, we will still want to prefer larger sets of rels as well. so that might get tricky since it will be
 			 * possible to add many rels to a set without increasing its score. but possibly doable...
 			 */
+		}
+		
+		// this is a sign things are not great i.e. children have not been visited before parents
+		// as a temporary hack, just skip them to allow things to proceed
+		if (numValid < 1) {
+			System.out.println("(no incoming rels have valid descendants)");
+			return new ArrayList<Long>();
+		}
+		
+		// dropped some rels. make new arrays. hacky for now to get it to work.
+		if (numValid != rels.size()) {
+			System.out.println("Only encountered " + numValid + " valid rels. Making new arrays.");
+			TLongBitArraySet[] mrcaSetsForRels2 = new TLongBitArraySet[numValid];
+			double[] weights2 = new double[numValid];
+			Long[] relIds2 = new Long[numValid];
 			
-			if (USING_RANKS) {
-				weights[i] = getScoreRanked(rel);
-			} else {
-				weights[i] = getScoreNodeCount(rel); // this is the only one that seems to produce sensible results right now
-			}
-
-			if (VERBOSE) { System.out.println(rel.getId() + ": nodeMrca(" + rel.getStartNode().getId() + ") = " + nodeMrca.get(rel.getStartNode().getId()) + ". score = " + weights[i]); }
+			System.arraycopy(mrcaSetsForRels, 0, mrcaSetsForRels2, 0, numValid);
+			System.arraycopy(weights, 0, weights2, 0, numValid);
+			System.arraycopy(relIds, 0, relIds2, 0, numValid);
+			
+			mrcaSetsForRels = mrcaSetsForRels2;
+			weights = weights2;
+			relIds = relIds2;
+		}
+		
+		// this seems to be a real timesaver: if there is no conflict, skip the set comparisons and just add everything
+		System.out.println("taxSum = " + taxSum + "; uniqueTips size = " + uniqueTips.size() + "; numValidRels = " + numValid);
+		if (taxSum == uniqueTips.size()) {
+			System.out.println("No conflict! Don't waste time doing " + ((int)(Math.pow(2, rels.size()) - 1)) + " comparisons! Just add all.");
+			return new ArrayList<Long>(Arrays.asList(relIds));
 		}
 		
 		if (USING_RANKS) {
@@ -421,6 +491,8 @@ public class RootwardSynthesisExpander extends SynthesisExpander implements Path
 	/* THIS SECTION IN STASIS. The plan is to use the WeightedDirectedGraph class with
 	 * an optimized exact solution to the MWIS. Not there yet though. **/
 	public Iterable<Long> findBestNonOverlappingGraph(Long[] relIds) {
+
+		boolean trivialTestCase = false;		
 
 		if (trivialTestCase) {
 			return Arrays.asList(relIds);

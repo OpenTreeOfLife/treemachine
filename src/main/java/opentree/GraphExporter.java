@@ -11,7 +11,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
@@ -20,6 +19,7 @@ import java.util.LinkedList;
 import java.util.Stack;
 
 import opentree.constants.NodeProperty;
+import opentree.constants.RelProperty;
 //import opentree.RelTypes;
 import opentree.constants.RelType;
 
@@ -49,6 +49,8 @@ import org.neo4j.kernel.Traversal;
  */
 public class GraphExporter extends GraphBase {
 
+	public static final String[] GRAPHVIZ_COLORS = {"orangered2","mediumorchid3","lightskyblue2","deeppink4","plum1","darkkhaki","olivedrab1","lightyellow4","lavender","ivory1","dodgerblue4","slateblue3","paleturquoise4","gold3","beige","mistyrose","forestgreen","indianred","purple","chartreuse","violetred2","hotpink1","mistyrose4","palevioletred","olivedrab4","maroon4","darkorchid2","mistyrose1","navy","snow3","salmon2","seashell2","maroon1","bisque1","lightskyblue4","dodgerblue","darkslategray4","darkslategray3","gold","dodgerblue3","ghostwhite","magenta1","cornsilk2","indianred4","seashell4","palegreen2","whitesmoke","rosybrown","slateblue","antiquewhite","cornsilk4","cyan","darkseagreen","mediumspringgreen","antiquewhite4","springgreen2","lightsteelblue3","thistle2","steelblue2","skyblue","paleturquoise3","seagreen3","skyblue2","ivory4","black","goldenrod1","slategray","khaki1","thistle1","powderblue","blueviolet","navyblue","red3","pink","ivory2","gold1","aliceblue","royalblue2","blue3","magenta4","mistyrose2","pink3","burlywood","moccasin","goldenrod2","sienna1","lightsalmon4","yellowgreen","white","none","peachpuff2","royalblue1","palevioletred4","transparent","coral4","mediumorchid2","plum","lightcyan4","deepskyblue3","hotpink3","darkorchid1","snow","palegreen1","lightblue3","lightblue2","chartreuse4","coral1","darkviolet","rosybrown1","darkseagreen4","steelblue1","coral2","darkslategrey","burlywood3","lightyellow1","lightsteelblue2","tan4","hotpink4","cadetblue4","slateblue4","darkorange3","plum4","rosybrown4","darkorange2","brown","pink2","navajowhite3","lightpink1","slategray4","deepskyblue2","lightgoldenrodyellow","navajowhite1","chocolate2","snow1","antiquewhite2","lightsteelblue4","gold4","lightsalmon","orange4","orange3","khaki4","darkslategray2","darkslategray1","cadetblue","skyblue3","khaki3","salmon1","aquamarine","maroon3","darkseagreen1","purple2","steelblue3","dodgerblue1","lemonchiffon2","azure2","gainsboro","cornsilk","darkseagreen3","plum2","darkolivegreen","crimson","seashell3","lightyellow3","bisque2","cadetblue2","darkgreen","papayawhip","seagreen1","floralwhite","darkolivegreen3","deeppink1","lightgoldenrod","slateblue2","deeppink2","royalblue3","lightslateblue","antiquewhite3","yellow","dodgerblue2","lightpink3","violet","deeppink","darkgoldenrod2","rosybrown3","mediumturquoise","lemonchiffon4","olivedrab","orangered4","linen","steelblue4","lightsalmon2","chartreuse2","seagreen","thistle3","royalblue","darkgoldenrod4","darksalmon","darkorchid4","lightsalmon1","violetred3","red","lightcyan2","seashell","orangered","darkgoldenrod1","lavenderblush","lightcoral","springgreen","orangered3","lightblue1","mintcream","aquamarine2","mediumblue","chocolate3","darkgoldenrod","lightsalmon3","tan1","indianred2","orchid4","saddlebrown","paleturquoise1","chocolate","bisque4","darkturquoise","tan2","slateblue1","chartreuse3","blue2","lightseagreen","coral3","lavenderblush4","slategray1","limegreen","wheat1","rosybrown2","springgreen4","salmon","azure3","ivory","wheat4","slategrey","darkgoldenrod3","lightskyblue1","lightyellow2","orchid3","blue4","aquamarine4","yellow1","thistle4","lightsteelblue","lightskyblue3","lightcyan","chocolate4","lightslategrey","lavenderblush2","darkolivegreen4","dimgray","wheat3","lightsteelblue1","snow4","cyan3","cyan4","springgreen3","magenta2","wheat2","orchid2","lightblue4","snow2","azure","orchid1","blue","lightslategray","seagreen2","red2","brown1","bisque3","palevioletred3","darkslategray","navajowhite4","lightgray","salmon3","gold2","violetred","orangered1","darkorange1","mediumpurple4","orchid","tomato2","peachpuff","burlywood1","pink1","dimgrey","mediumorchid4","mistyrose3","goldenrod","palegreen","darkorchid","lavenderblush3","sienna3","palegreen4","darkorchid3","darkolivegreen2","lightyellow","deepskyblue4","sandybrown","seagreen4","turquoise2","deepskyblue","paleturquoise2","palegoldenrod","peru","sienna2","lightpink4","navajowhite","violetred1","deepskyblue1","firebrick3","cyan2","burlywood2","lightpink","mediumorchid1","lightcyan3","burlywood4","olivedrab3","skyblue4","cornflowerblue","lemonchiffon1","palegreen3","lightcyan1","pink4","indianred3","slategray3","hotpink","sienna4","indianred1","skyblue1","lightgoldenrod3","chartreuse1","lawngreen","invis","turquoise1","azure4","turquoise3","thistle","darkseagreen2","tomato4","navajowhite2","peachpuff4","yellow3","magenta","lemonchiffon3","slategray2","springgreen1","mediumvioletred","deeppink3","darkolivegreen1","azure1","indigo","turquoise4","orange","peachpuff3","tomato1","firebrick1","lightgoldenrod4","hotpink2","seashell1","ivory3","lavenderblush1","palevioletred1","darkorange4","maroon","steelblue","coral","bisque","royalblue4","palevioletred2","mediumpurple2","maroon2","mediumpurple","mediumaquamarine","orange1","aquamarine1","lightgoldenrod2","turquoise","sienna","khaki2","lightblue","cadetblue3","antiquewhite1","midnightblue","mediumslateblue","violetred4","firebrick4","lightgoldenrod1","brown2","brown4","blanchedalmond","purple1","cadetblue1","red4","purple4","mediumpurple3","aquamarine3","blue1","tomato","plum3","magenta3","peachpuff1","lightgrey","orange2","cornsilk1","chocolate1","cornsilk3","yellow2","firebrick","tan3","yellow4","goldenrod3","darkslateblue","tan","lightpink2","brown3","mediumorchid","lightskyblue","red1","purple3","tomato3","goldenrod4","salmon4","oldlace","khaki","mediumseagreen","firebrick2","olivedrab2","lemonchiffon","mediumpurple1","darkorange","cyan1","paleturquoise","wheat"};
+	
 	private SpeciesEvaluator se;
 	private ChildNumberEvaluator cne;
 	private TaxaListEvaluator tle;
@@ -216,7 +218,7 @@ public class GraphExporter extends GraphBase {
 		for (Node tnode: nodes) {
 			String name;
 			Long nid = tnode.getId();
-			if (tnode.hasProperty("name")) {
+			if(tnode.hasProperty("name")){
 				name = "n" + nid + "_" + org.opentree.utils.GeneralUtils.scrubName(((String)tnode.getProperty("name")));
 			} else {
 				name = "n" + nid;
@@ -225,47 +227,44 @@ public class GraphExporter extends GraphBase {
 			retstring.append("  " + name + ";\n");
 		}
 		HashSet<Long> visitedRels = new HashSet<Long>();
-		
-		String [] relColorArr = {"blue", "springgreen", "magenta", "darkorange", "lightblue", "goldenrod", "brown", "gray"};
-		
-		// use 'subgraphs' to store source properties for easy referencing
-		HashMap<String, StringBuffer> subgraphs = new HashMap<String, StringBuffer>();
-		ArrayList<String> sourceNames = new ArrayList<String>();
-		
-		
+		HashMap<String, Integer> relSource2ColInd = new HashMap<String, Integer>();
+		TreeSet<String> relNames = new TreeSet<String>();
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 				String relSource = rel.getProperty("source").toString();
-				if (!sourceNames.contains(relSource)) {
-					sourceNames.add(relSource);
+				if (!relSource.equals("taxonomy")) {
+					relNames.add(relSource);
 				}
 			}
 		}
-		
-		// sort alphabetically for now. will keep sources the same colour across experiments
-		Collections.sort(sourceNames);
-		for (int i = 0; i < sourceNames.size(); i++) {
-			String source = sourceNames.get(i);
-			String newSubGraph = "  subgraph source_" + source + " {\n    edge [color=\"" + relColorArr[i] + 
-					"\" fontcolor=\"" + relColorArr[i] + "\"];\n";
-			subgraphs.put(source, new StringBuffer(newSubGraph));
+//		relSource2ColInd.put("taxonomy", relNames.size()+1);
+		int i = 0;
+		for (String relSource : relNames) {
+//			Integer colorOffset = new Integer(relSource2ColInd.size());
+//			if (colorOffset > relColorArr.length - 1) {
+//				colorOffset = new Integer(relColorArr.length - 1);
+//			}
+			assert ! relSource2ColInd.containsKey(relSource);
+			relSource2ColInd.put(relSource, i++ % GRAPHVIZ_COLORS.length);
 		}
-				
-		// add taxonomy manually. colour/style is hardcoded.
-		subgraphs.put("taxonomy", new StringBuffer("  subgraph taxonomy {\n    edge [color=\"brown4\" fontcolor=\"brown4\" style=\"dashed\"];\n"));
-		
+
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF)) {
 				Long relid = rel.getId();
 				if (!visitedRels.contains(relid)) {
-					String rname = "r" + relid + " s";
 					Long snid = rel.getStartNode().getId();
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
 					String relSource = rel.getProperty("source").toString();
-					rname += relSource;
-					subgraphs.put(relSource, subgraphs.get(relSource).append("    " + sns + " -> " + ens + " [label=\"" + rname + "\"];\n"));
+					String relcolor;
+
+					assert relSource2ColInd.containsKey(relSource);
+					Integer colorOffset = relSource2ColInd.get(relSource);
+					relcolor = GRAPHVIZ_COLORS[colorOffset];
+					String rname = "r" + relid + " s" + relSource + " e" + rel.getProperty(RelProperty.SOURCE_EDGE_ID.propertyName);
+					
+					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"" + relcolor + "\" color=\"" + relcolor + "\"];\n");
 					visitedRels.add(relid);
 				}
 			}
@@ -277,62 +276,27 @@ public class GraphExporter extends GraphBase {
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
-					subgraphs.put("taxonomy", subgraphs.get("taxonomy").append("    " + sns + " -> " + ens + " [label=\"" + rname + "\"];\n"));
+
+					retstring.append("    " + sns + " -> " + ens + " [label=\"" + rname + "\" fontcolor=\"brown4\" color=\"brown4\" style=\"dashed\"];\n");
 					visitedRels.add(relid);
 				}
 			}
 		}
-		
-		// synth relationships. could include different synth trees.
-		String [] synthColorArr = {"black", "red", "orange", "green", "gray", "pink", "blue"};
-		ArrayList<String> synthNames = new ArrayList<String>();
-		for (Node tnode: nodes) {
-			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
-				String relSource = rel.getProperty("name").toString();
-				if (!synthNames.contains(relSource)) {
-					synthNames.add(relSource);
-				}
-			}
-		}
-		
-		// sort alphabetically for now
-		Collections.sort(synthNames);
-		for (int i = 0; i < synthNames.size(); i++) {
-			String synthID = "S";
-			if (synthNames.size() > 1) {
-				synthID += i;
-			}
-			String newSubGraph = "  subgraph \"" + synthID + "=" + synthNames.get(i) + "\" {\n    edge [label=\"" + synthID + 
-					"\" style=\"bold\" color=\"" + synthColorArr[i] + "\" fontcolor=\"" + synthColorArr[i] + 
-					"\" arrowhead=\"onormal\"];\n";
-			subgraphs.put(synthNames.get(i), new StringBuffer(newSubGraph));
-		}
-		
 		for (Node tnode: nodes) {
 			for (Relationship rel : tnode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
 				Long relid = rel.getId();
-				if (!visitedRels.contains(relid)) {					
+				if (!visitedRels.contains(relid)) {
+					String rname = "r" + relid;
 					Long snid = rel.getStartNode().getId();
 					Long enid = rel.getEndNode().getId();
 					String sns = nd2Name.get(snid);
 					String ens = nd2Name.get(enid);
-					String relSource = rel.getProperty("name").toString();
-					String rname = "S";
-					if (synthNames.size() > 1) {
-						rname +=  + synthNames.indexOf(relSource);
-					}
-					subgraphs.put(relSource, subgraphs.get(relSource).append("    " + sns + " -> " + ens + ";\n"));
+					retstring.append("    " + sns + " -> " + ens + " [label=\"S\" style=\"bold\" color=\"black\"];\n");
 					visitedRels.add(relid);
 				}
 			}
 		}
-		
-		for (HashMap.Entry<String, StringBuffer> entry : subgraphs.entrySet()) {
-			retstring.append(entry.getValue().append("  }\n"));
-		}
-		retstring.append("}\n\n");
-		//System.out.println(retstring);
-		
+		retstring.append("}\n");
 		return retstring.toString();
 	}
 	
@@ -375,12 +339,12 @@ public class GraphExporter extends GraphBase {
 		retstring.append("<graph id=\"G\" edgedefault=\"directed\">\n");
 		// get the list of nodes
 		HashSet<Node> nodes = new HashSet<Node>();
-		if (depth > 0) {
-			for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
+		if(depth > 0){
+		for (Node tnode : Traversal.description().evaluator(Evaluators.toDepth(depth)).relationships(RelType.STREECHILDOF, Direction.INCOMING)
 				.traverse(startnode).nodes()) {
-				nodes.add(tnode);
-			}
-		} else {
+			nodes.add(tnode);
+		}
+		}else{
 			for (Node tnode : Traversal.description().relationships(RelType.STREECHILDOF, Direction.INCOMING)
 					.traverse(startnode).nodes()) {
 				nodes.add(tnode);

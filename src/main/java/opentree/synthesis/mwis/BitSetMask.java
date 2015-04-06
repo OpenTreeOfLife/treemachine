@@ -41,6 +41,14 @@ public class BitSetMask implements BitMask {
 		this.size = size;
 	}
 	
+	public BitSetMask(int size, boolean initVal) {
+		mask = new BitSet();
+		this.size = size;
+		for (int i = 0; i < size; i++) {
+			mask.set(i, initVal);
+		}
+	}
+	
 	public BitSetMask (BitSetMask original) {
 		mask = original.mask;
 		size = original.size;

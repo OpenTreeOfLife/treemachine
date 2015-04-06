@@ -29,6 +29,10 @@ function runsynthtest {
         rmdir "${tag}"/test.db/index/lucene/node/sourceRootNodes
         rm "${tag}"/test.db/index/lucene/node/synthMetaNodes/*
         rmdir "${tag}"/test.db/index/lucene/node/synthMetaNodes
+        rm "${tag}"/test.db/index/lucene/node/sourceTreeRoots/*
+        rmdir "${tag}"/test.db/index/lucene/node/sourceTreeRoots
+        rm "${tag}"/test.db/index/lucene/node/subproblemRoots/*
+        rmdir "${tag}"/test.db/index/lucene/node/subproblemRoots
         rmdir "${tag}"/test.db/index/lucene/node
 
         rm "${tag}"/test.db/index/lucene/relationship/sourceRels/*

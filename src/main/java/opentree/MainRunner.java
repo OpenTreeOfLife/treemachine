@@ -4,14 +4,19 @@ import gnu.trove.set.hash.TLongHashSet;
 import jade.deprecated.JSONMessageLogger;
 import jade.deprecated.MessageLogger;
 import jade.tree.Tree;
+import jade.tree.TreeNode;
+import jade.tree.TreeParseException;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
 import jade.tree.deprecated.TreeReader;
 import jade.tree.deprecated.JadeNode.NodeOrder;
 
+import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.tag.treeimport.BipartOracle;
+import org.opentree.tag.treeimport.SubsetTreesUtility;
+import org.opentree.tag.treeimport.TipExploder;
 import org.opentree.utils.GeneralUtils;
 
 import java.io.BufferedReader;
@@ -25,10 +30,12 @@ import java.io.PrintWriter;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -916,16 +923,19 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int loadTreeAnalysis(String [] args) throws Exception {
-		System.out.println(Runtime.getRuntime().availableProcessors());
-		if (args.length != 4) {
-			System.out.println("arguments should be: filename graphdbfolder (taxonomyalreadyloaded)T|F");
+		if (args.length < 4) {
+			System.out.println("arguments should be: filename graphdbfolder (taxonomyalreadyloaded)T|F (subset)");
 			return 1;
 		}
 		String filename = args[1];
 		String taxaloaded = args[3];
 		boolean tloaded = true;
+		boolean isSubset = false;
 		if (taxaloaded.toLowerCase().equals("f")) {
 			tloaded = false;
+		}
+		if (args.length == 5) {
+			isSubset = true;
 		}
 		String graphname = args[2];
 		int treeCounter = 0;
@@ -934,18 +944,76 @@ public class MainRunner {
 		String ts = "";
 		List<Tree> jt = new ArrayList<Tree>();
 		MessageLogger messageLogger = new MessageLogger("loadTreeAnalysis:");
+		Map<TreeNode, String> subsetTipInfo = null;
+		Map<Tree, String> sourceForTrees = null;
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(filename));
-			if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
-				System.out.println("Reading newick file...");
-				while ((ts = br.readLine()) != null) {
-					if (ts.length() > 1) {
-						Tree tt = jade.tree.TreeReader.readTree(ts);
-						jt.add(tt);
-						treeCounter++;
+			//if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
+			//assuming that it is newick not nexson
+			//assuming we either have the source in front of the newick or just plan newick
+			boolean sourceAvail = false;
+			String first = br.readLine();
+			if (first.split(" ").length > 1 && first.split(" ")[0].length() > 0) {
+				sourceAvail = true;
+				sourceForTrees = new HashMap<Tree,String>();
+			}
+			br.close();
+			br = new BufferedReader(new FileReader(filename));
+			System.out.println("Reading newick file with sourceAvail="+sourceAvail+"...");
+			while ((ts = br.readLine()) != null) {
+				if (ts.length() > 1) {
+					String source = null;
+					if (sourceAvail) {
+						String [] spls = ts.split(" ");
+						source= spls[0];
+						ts = spls[1];
 					}
+					Tree tt = jade.tree.TreeReader.readTree(ts);
+					if (tt.internalNodeCount() < 2) {
+						System.out.println("skipping "+tt);
+						continue;
+					}
+					//adding the information in the tree for subsetting
+					//check the root first
+					if (((String)tt.getRoot().getLabel()).contains("subset=")) {
+						if(subsetTipInfo == null)
+							subsetTipInfo = new HashMap<TreeNode,String>();
+						String [] spls = ((String)tt.getRoot().getLabel()).split("subset=");
+						String subset = spls[1];
+						((jade.tree.JadeNode)tt.getRoot()).setName("");
+						subsetTipInfo.put(tt.getRoot(), subset);
+					}
+					//now check all the tips
+					// first, for compatibility with the test cases, prune prefix XXX_ott from XXX_ottNNN
+					for (TreeNode jn : tt.externalNodes()) {
+						if (((String)jn.getLabel()).contains("_ott")) {
+							String [] spls = ((String)jn.getLabel()).split("_ott");
+							String id = spls[1];
+							((jade.tree.JadeNode)jn).setName(id);
+						}
+					}
+					for (TreeNode jn : tt.externalNodes()){
+						if(((String)jn.getLabel()).contains("__subset=")) {
+							if (subsetTipInfo == null) {
+								subsetTipInfo = new HashMap<TreeNode,String>();
+							}
+							String [] spls = ((String)jn.getLabel()).split("__subset=");
+							String name = spls[0];
+							String subset = spls[1];
+							((jade.tree.JadeNode)jn).setName(name);
+							subsetTipInfo.put(jn, subset);
+						}
+					}
+					if (sourceAvail) {
+						sourceForTrees.put(tt, source);
+					}
+					//check the tips
+					jt.add(tt);
+					treeCounter++;
 				}
-			} /*else { // nexson
+			}
+			
+			/*} else { // nexson
 				System.out.println("Reading nexson file...");
 				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
 					if (tree == null) {
@@ -973,7 +1041,7 @@ public class MainRunner {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
 		System.out.println("started graph import");
-		BipartOracle bo = new BipartOracle(jt, gdb, tloaded);
+		BipartOracle bo = new BipartOracle(jt, gdb, tloaded,sourceForTrees,subsetTipInfo,isSubset,filename);
 		
 		gdb.shutdownDb();
 		return 0;
@@ -1619,6 +1687,76 @@ public class MainRunner {
 		return 2;
 	}
 	
+	
+	/*
+	 * this is to run after joseph's synth to sink the lost clades
+	 */
+	private int sinkSynth(String [] args){
+		if(args.length != 3){
+			System.out.println("ottid db");
+			return 1;
+		}
+		Long startNodeId = Long.valueOf(args[1]);
+		String graphname = args[2];
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
+		SynthSinker ss = new SynthSinker(startNodeId,gdb);
+		ss.sinkSynth();
+		gdb.shutdownDb();
+		return 0;
+	}
+	
+	/**
+	 * this will check to make sure that we have all the branches in a tree supported
+	 * @param args
+	 * @return
+	 */
+	private int testsynth(String[] args) {
+		if (args.length != 4) {
+			System.out.println("synthtreefile sourcetreefilename db");
+			return 1;
+		}
+		//read treeset
+		String filename = args[2];
+		String ts = "";
+		String graphname = args[3];
+		ArrayList<jade.tree.Tree> jt = new ArrayList<jade.tree.Tree>();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while ((ts = br.readLine()) != null) {
+				if (ts.length() > 1)
+					jt.add(jade.tree.TreeReader.readTree(ts));
+			}
+			br.close();
+		} catch (IOException ioe) {} catch (TreeParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//read synth
+		filename = args[1];
+		Tree synth = null;
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			while ((ts = br.readLine()) != null) {
+				if (ts.length() > 1)
+					synth = jade.tree.TreeReader.readTree(ts.replaceAll("'", ""));
+			}
+			br.close();
+		} catch (IOException ioe) {} catch (TreeParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		for(TreeNode tn: synth.externalNodes()){
+			String [] spls = tn.getLabel().toString().split("_ott");
+			((jade.tree.JadeNode)tn).setName(spls[spls.length-1]);
+		}
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
+		SynthCheck sc = new SynthCheck(synth,jt,gdb);
+		sc.testSynth();
+		gdb.shutdownDb();
+		return 0;
+	}
 	
 	/**
 	 * this will just fill out the ncbi counts
@@ -2380,6 +2518,132 @@ public class MainRunner {
 	}
 	
 	
+	/*
+	 * Read in a nexson, export a newick where:
+	 * 1. duplicate taxa are pruned
+	 * 2. taxa are just represented by their ottIDs
+	 * 3. optionally taxa can be "mapped deeper"
+	 * Args are: nexson_filename, treeid, graph.db
+	 */
+	public int processtree(String [] args) throws Exception {
+		if (args.length != 4 & args.length != 5) {
+			System.out.println("the argument has to be: nexson_filename treeid graphdb (optional: <mapdeeper[T|F]>)");
+			return 0;
+		}
+		String filen = args[1];
+		File file = new File(filen);
+		System.err.println("file " + file);
+		String treeid = args[2];
+		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[3]);
+		boolean mapDeeper = false;
+		if (args.length == 5) {
+			String smapDeeper = args[4];			
+			if (smapDeeper.toLowerCase().equals("t")) {
+				mapDeeper = true;
+			}
+		}
+		
+		BufferedReader br = null;
+		MessageLogger messageLogger = new MessageLogger("processtree", " ");
+		
+		try {
+			br = new BufferedReader(new FileReader(file));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			graphDb.shutdownDb();
+			return -1;
+		}
+		
+		List<JadeTree> rawTreeList = null;
+		ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+		rawTreeList = NexsonReader.readNexson(br, false, messageLogger);
+		for (JadeTree j : rawTreeList) {
+			if (j == null) {
+				continue;
+			} else {
+				// kick out early if tree is already in graph
+				String sourcename = "";
+				if (j.getObject("ot:studyId") != null) { // use studyid (if present) as sourcename
+					sourcename = (String)j.getObject("ot:studyId");
+				}
+				String treeJId = (String)j.getObject("id");
+				if (treeJId != null) {
+					if (treeJId.compareTo(treeid) == 0) {
+						jt.add(j);
+						break;
+					}
+				}
+			}
+		}
+		br.close();
+		
+		if (jt.size() == 0) {
+			System.out.println("\nTree ID '" + treeid + "' not found!\n");
+			return 0;
+		}
+		try {
+			boolean good = PhylografterConnector.fixNamesFromTreesNOTNRS(jt, graphDb, true, messageLogger);
+			System.out.println("done fixing name");
+			if (good == false) {
+				System.err.println("failed to get the names from server fixNamesFromTrees 3");
+				return -1;
+			}
+		} catch (IOException ioe) {
+			System.err.println("exception to get the names from server fixNamesFromTrees 4");
+			throw ioe;
+		}
+		
+		for (JadeTree j : jt) {
+			GraphImporter gi = new GraphImporter(graphDb);
+			boolean doubname = false;
+			String treeJId = (String)j.getObject("id");
+			if (treeid != null) {
+				if (treeJId.equals(treeid) == false) {
+					System.out.println("skipping tree: " + treeJId);
+					continue;
+				}
+			}
+			HashSet<Long> ottols = new HashSet<Long>();
+			messageLogger.indentMessageStr(1, "Checking for uniqueness of OTT IDs", "tree id", treeJId);
+			for (int m = 0; m < j.getExternalNodeCount(); m++) {
+				// System.out.println(j.getExternalNode(m).getName() + " " + j.getExternalNode(m).getObject("ot:ottId"));
+				if (j.getExternalNode(m).getObject("ot:ottId") == null) {//use doubname as also 
+					messageLogger.indentMessageStr(2, "null OTT ID for node", "name", j.getExternalNode(m).getName());
+					doubname = true;
+					break;
+				}
+				String ottID = j.getExternalNode(m).getObject("ot:ottId").toString();
+				j.getExternalNode(m).setName(ottID);
+				if (ottols.contains(ottID) == true) {
+					System.out.println("Found a duplicate ottID: " + ottID + ". That's not good.");
+					doubname = true;
+					break;
+				} else {
+					ottols.add((Long)j.getExternalNode(m).getObject("ot:ottId"));
+				}
+			}
+			// check for any duplicate ottol:id. hmm, none should make it this far
+			if (doubname == true) {
+				messageLogger.indentMessageStr(1, "Null or duplicate names. Skipping tree", "tree id", treeJId);
+			}
+			if (mapDeeper) {
+				gi.setTree(j);
+				j = gi.relabelDeepest();
+			}
+			String studyn = filen.substring(filen.lastIndexOf('/') + 1);
+			String outfile = studyn + "_" + treeid + ".tre";
+			FileWriter fw;
+			try {
+				fw = new FileWriter(outfile);
+				fw.write(j.getRoot().getNewick(false) + ";");
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return 0;
+	}
+
 	public static int loadPhylografterStudy(GraphDatabaseAgent graphDb, 
 											BufferedReader nexsonContentBR, String treeid, String SHA,
 											MessageLogger messageLogger,
@@ -2694,6 +2958,95 @@ public class MainRunner {
 		return 0;
 	}
 	
+	/**
+	 * this takes a file with trees and loads them against the taxonomy
+	 * given an id, you will be informed, 
+	 * 1) if a tree does not find it monophyletic
+	 *     (in which case you may want to choose another id)
+	 * 2) you will be given the tree back if it is contained within
+	 * 3) you will be given the tree with the part contained within pruned
+	 * 4) you will be given the remaining tree with the pruned replaced by new taxonid
+	 * @param args
+	 * @return
+	 */
+	public int filterTreesForLoad(String[] args) throws Exception {
+		if (args.length != 4) {
+			System.out.println("arguments should be: filename subset[CSV] graphdbfolder");
+			return 1;
+		}
+		String filename = args[1];
+		String [] taxId = args[2].split(",");
+		String graphname = args[3];
+		
+		int treeCounter = 0;
+		// Run through all the trees and get the union of the taxa for a raw taxonomy graph
+		// read the tree from a file
+		String ts = "";
+		List<Tree> jt = new ArrayList<Tree>();
+		Map<Tree, String> sourceForTrees = null;
+		MessageLogger messageLogger = new MessageLogger("loadTreeAnalysis:");
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			boolean sourceAvail = false;
+			String first = br.readLine();
+			if(first.split(" ").length > 1 && first.split(" ")[0].length() > 0){
+				sourceAvail = true;
+				sourceForTrees = new HashMap<Tree,String>();
+			}
+			br.close();
+			br = new BufferedReader(new FileReader(filename));
+			System.out.println("Reading newick file with sourceAvail="+sourceAvail+"...");
+			//if (GeneralUtils.divineTreeFormat(br).compareTo("newick") == 0) { // newick
+				System.out.println("Reading newick file...");
+				while ((ts = br.readLine()) != null) {
+					if (ts.length() > 1) {
+						String source = null;
+						if(sourceAvail){
+							String [] spls = ts.split(" ");
+							source= spls[0];
+							ts = spls[1];
+						}
+						Tree tt = jade.tree.TreeReader.readTree(ts);
+						jt.add(tt);
+						treeCounter++;
+						if(sourceAvail)
+							sourceForTrees.put(tt, source);
+					}
+				}
+				/*} else { // nexson
+				System.out.println("Reading nexson file...");
+				for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
+					if (tree == null) {
+						messageLogger.indentMessage(1, "Skipping null tree.");
+					} else {
+						jt.add(tree);
+						treeCounter++;
+					}
+				}
+			}*/
+			br.close();
+		} catch (FileNotFoundException e) {
+			//e.printStackTrace();
+			System.err.println("Could not open the file \"" + args[1] + "\" Exiting...");
+			return -1;
+		} catch (IOException ioe) {
+			
+		}
+		
+		if (treeCounter == 0) {
+			System.err.println("No valid trees found in file \"" + args[1] + "\" Exiting...");
+			return -1;
+		}
+		System.out.println(treeCounter + " trees read.");
+		
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphname);
+		SubsetTreesUtility stu = new SubsetTreesUtility(gdb);
+		stu.subsetMultiple(jt, taxId,sourceForTrees);
+		//stu.subsetSingle(jt,taxId);
+		
+		return 0;
+	}
+	
 	
 	/**
 	 * arguments are:
@@ -2788,15 +3141,15 @@ public class MainRunner {
 	/**
 	 * Constructs a newick tree file from a passed in taxonomy file
 	 * arguments are:
-	 * taxonomy_filename output_tree_filename
+	 * taxonomy_filename output_tree_filename uids_as_labels[T|F]
 	 * @param args
 	 * @return
 	 * @throws Exception
 	 */
 	// @returns 0 for success, 1 for poorly formed command
 	public int convertTaxonomy(String []args) {
-		if (args.length != 3) {
-			System.out.println("arguments should be: taxonomyfile treefile");
+		if (args.length != 3 & args.length != 4) {
+			System.out.println("arguments should be: taxonomyfile treefile (optional:labels=UIDs [T|F])");
 			return 1;
 		}
 		JadeTree tree = null;
@@ -2805,6 +3158,14 @@ public class MainRunner {
 		Boolean cellularHit = false;
 		String taxonomyRoot = "";
 		String taxonomyfile = args[1];
+		Boolean uidLabels = false;
+		if (args.length == 4) {
+			String uids = args[3];
+			if (uids.toLowerCase().equals("t")) {
+				uidLabels = true;
+			}
+		}
+		
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(taxonomyfile));
 			String str;
@@ -2848,8 +3209,11 @@ public class MainRunner {
 					}
 					id_childs.get(pid).add(tid);
 					JadeNode tnode = new JadeNode();
-//					tnode.setName(GeneralUtils.cleanName(name).concat("_ott").concat(tid));
-					tnode.setName(GeneralUtils.scrubName(name).concat("_ott").concat(tid));
+					if (uidLabels) {
+						tnode.setName(("ott").concat(tid));
+					} else {
+						tnode.setName(GeneralUtils.scrubName(name).concat("_ott").concat(tid));
+					}
 					tnode.assocObject("id", tid);
 					id_node_map.put(tid, tnode);
 				}
@@ -3081,7 +3445,7 @@ public class MainRunner {
 		System.out.println("  nexson2newick <filename.nexson> (<filename.newick>) (construct newick tree file from a nexson file)");
 		System.out.println("  convertfigtree <filename.tre> <outfile.tre>");
 		System.out.println("  nexson2mrp <filename.nexson>");
-		System.out.println("  converttaxonomy <taxonomy_filename> <outfile.tre> (construct a newick tree from a TSV taxonomy file)\n");
+		System.out.println("  converttaxonomy <taxonomy_filename> <outfile.tre> (<labels=UIDs [T|F]>) (construct a newick tree from a TSV taxonomy file)\n");
 		
 		System.out.println("---synthesis functions---");
 		System.out.println("  synthesizedrafttreelist_ottid <rootNodeOttId> <list> <graphdbfolder> (perform default synthesis from the root node using source-preferenc tie breaking and store the synthesized rels with a list (csv))");
@@ -3249,11 +3613,19 @@ public class MainRunner {
 				cmdReturnCode = mr.loadOTT(args);
 			} else if (command.compareTo("nodestatus") == 0) {
 				cmdReturnCode = mr.getNodeStatus(args);
-			} else if (command.compareTo("treecomp") == 0){
+			} else if (command.compareTo("treecomp") == 0) {
 				cmdReturnCode = mr.treeCompare(args);
-			} else if (command.compareTo("taxcomp") == 0){
+			} else if (command.compareTo("taxcomp") == 0) {
 				cmdReturnCode = mr.taxCompare(args);
-			}else {
+			} else if (command.compareTo("filtertreesforload") == 0){
+				cmdReturnCode = mr.filterTreesForLoad(args);
+			} else if (command.compareTo("testsynth") == 0) {
+				cmdReturnCode = mr.testsynth(args);
+			} else if (command.compareTo("sinksynth") == 0) {
+				cmdReturnCode = mr.sinkSynth(args);
+			} else if (command.compareTo("processtree") == 0) {
+				cmdReturnCode = mr.processtree(args);
+			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
 			}
@@ -3272,4 +3644,5 @@ public class MainRunner {
 		}
 		System.exit(cmdReturnCode);
 	}
+
 }

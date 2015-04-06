@@ -6,7 +6,7 @@ import org.neo4j.graphdb.Relationship;
 
 public interface ResolutionMethod {
 	
-	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> candidateRels);
+	public Iterable<Relationship> resolveConflicts(Iterable<Relationship> candidateRels,boolean reinitialize);
 	public String getDescription();
 	TLongHashSet getDupMRCAS();
 	public String getReport();
