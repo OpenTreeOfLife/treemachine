@@ -69,7 +69,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	}
 	
 	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds() {
-		VERBOSE = true;
+		VERBOSE = false;
 		System.out.println("using edge ids *and* tip ids.");
 	}
 
@@ -696,7 +696,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		// ===== end add singleton taxonomy rels */
 		
 		bestSet.info().complete();
-		print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info());
+		if(VERBOSE)
+			print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info());
 		updateCompletedSubtreeInfo(n, bestSet.info());
 		
 		if (n.getId() == root.getId()) {
