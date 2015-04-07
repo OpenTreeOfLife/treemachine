@@ -220,7 +220,6 @@ public class BipartOracle {
             Index<Node> ottIdIndexss = gdb.getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
             ottIdIndexss.add(taxnodeFromSubset, "subset", ottidFromSubset);
             tx.success();
-
             tx.finish();
         }
         this.gdb = gdb;

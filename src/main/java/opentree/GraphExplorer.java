@@ -31,6 +31,7 @@ import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
 
+import org.opentree.bitarray.ImmutableCompactLongSet;
 import org.opentree.bitarray.TLongBitArray;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
@@ -1917,6 +1918,26 @@ public class GraphExplorer extends GraphBase {
 				// 										 from parent that are present in synth tree
 				Node mrca = null;
 				mrca = getLICAForDraftTreeNodes(nodesInTree);
+				Node taxmrca = null;
+				taxmrca = getTaxonomyMRCA(nodesInTree);
+				boolean going = true;
+				ImmutableCompactLongSet ints = new ImmutableCompactLongSet((long[])taxmrca.getProperty("mrca"));
+				while(going == true){
+					if(mrca.hasProperty("outmrca")){
+						ImmutableCompactLongSet outs  =  new ImmutableCompactLongSet((long[])mrca.getProperty("outmrca"));
+						if(outs.containsAny(ints)){
+							mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+						}else{
+							break;
+						}
+					}else{
+						ImmutableCompactLongSet ins  =  new ImmutableCompactLongSet((long[])mrca.getProperty("mrca"));
+						if(ins.containsAll(ints) == true)
+							break;
+						else
+							mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
+					}
+				}
 				// TLongArrayList tmrca = new TLongArrayList((long [])mrca.getProperty("mrca"));
 				//while (tmrca.containsAll(ttmrca) == false) {
 				//	mrca = mrca.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
