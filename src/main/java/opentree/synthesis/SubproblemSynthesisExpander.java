@@ -64,7 +64,6 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 		if (VERBOSE) { print("found", subproblemIds.size(), "subproblems:", subproblemIds); }
 		
 		collectSubproblemTree(root);
-		print(subproblemTree);
 		
 		// define the topological order that will sort the subproblems
 		TopologicalOrder orderedSubproblems = new TopologicalOrder(root, RelType.TAXCHILDOF)
@@ -72,7 +71,7 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 				@Override
 				public boolean test(Node n) {
 					return n.equals(SubproblemSynthesisExpander.this.root) ||
-						   subproblemIds.contains((String) n.getProperty(NodeProperty.TAX_UID.propertyName, null));
+						   subproblemIds.contains(n.getProperty(NodeProperty.TAX_UID.propertyName, null));
 				}
 				@Override
 				public String toString() {
@@ -90,7 +89,7 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 		// process the list until we finish all the subproblems
 		Set<Node> clearedProblems = Collections.synchronizedSet(new HashSet<Node>());
 		while (! subproblems.isEmpty()) {
-			subproblems.parallelStream().forEach(s -> {
+			subproblems.forEach(s -> {
 				
 				// only proceed with this subproblem if all its child subproblems have been finished
 				// otherwise we will try again on the next loop over the list
@@ -182,7 +181,6 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 						}
 					}})
 				.traverse(parent).nodes()) {
-			print(child);
 			subproblemTree.get(pid).add(child.getProperty(NodeProperty.TAX_UID.propertyName));
 			collectSubproblemTree(child);
 		}
