@@ -22,9 +22,9 @@ import org.neo4j.graphdb.Relationship;
 
 import scala.actors.threadpool.Arrays;
 
-public class NodeCountTopoOrderSynthesisExpander extends TopologicalOrderSynthesisExpanderOLD {
+public class NodeCountSynthesisExpander extends TopologicalOrderSynthesisExpanderOLD {
 	
-	public NodeCountTopoOrderSynthesisExpander(Node root) {
+	public NodeCountSynthesisExpander(Node root) {
 		VERBOSE = true;
 		synthesizeFrom(root);	
 	}

@@ -50,9 +50,6 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	
 	/** the root node for synthesis */
 	Node root;
-	
-	/** whether or not to print verbose error messages */
-	boolean VERBOSE;
 
 	/**
 	 * The topological sort will fail if there are cycles in the graph. Thus, cycles must be identified and broken before the

@@ -30,25 +30,24 @@ import org.neo4j.graphdb.traversal.BranchState;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.kernel.Traversal;
-import org.neo4j.kernel.Uniqueness;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
-public class SubproblemSynthesisExpander extends SynthesisExpander {
+public class RankedSynthesisSubproblemExpander extends SynthesisExpander {
 	
 	private final Set<Comparable<?>> subproblemIds;
 //	private final TopologicalOrderSynthesisExpander subExpander;
 	private final Node root;
 	private final GraphDatabaseAgent G;
 
-	// synchronized collections updated during concurrent/parallel subproblem processing
+	// synchronized collections used during concurrent/parallel subproblem processing
 	private final Map<Object, Set<Object>> subproblemTree = Collections.synchronizedMap(new HashMap<Object, Set<Object>>());
 	private final Map<Long, SynthesisSubtreeInfo> preservedSubtrees = Collections.synchronizedMap(new HashMap<Long, SynthesisSubtreeInfo>());
 	private final Set<Object> finishedSubproblemIds = Collections.synchronizedSet(new HashSet<Object>());
 	private final Map<Long, Set<Relationship>> childRels = Collections.synchronizedMap(new TreeMap<Long, Set<Relationship>>());
 	
-	private boolean VERBOSE = true;
+//	private boolean VERBOSE = true;
 	
-	public SubproblemSynthesisExpander(Node root) throws InstantiationException, IllegalAccessException, IOException {
+	public RankedSynthesisSubproblemExpander(Node root) throws InstantiationException, IllegalAccessException, IOException {
 		
 //		this.subExpander = subExpander;
 		this.root = root;
@@ -70,7 +69,7 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 			.validateWith(new Predicate<Node> () {
 				@Override
 				public boolean test(Node n) {
-					return n.equals(SubproblemSynthesisExpander.this.root) ||
+					return n.equals(RankedSynthesisSubproblemExpander.this.root) ||
 						   subproblemIds.contains(n.getProperty(NodeProperty.TAX_UID.propertyName, null));
 				}
 				@Override
@@ -92,14 +91,13 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 			subproblems.forEach(s -> {
 				
 				// only proceed with this subproblem if all its child subproblems have been finished
-				// otherwise we will try again on the next loop over the list
 				for (Object childId : childSubproblemIds(s)) {
 					if (! finishedSubproblemIds.contains(childId)) { return; }
 				}
 			
 				// do synthesis
 				if (VERBOSE) { print("\n***** starting subproblem", s.getProperty(NodeProperty.NAME.propertyName) + ", ott id=" + s.getProperty(NodeProperty.TAX_UID.propertyName), "\n"); System.out.print("child subproblem ott ids: "); boolean first = true; for (Object cid : childSubproblemIds(s)) { String l; if (first) {l=""; first=false;} else {l=", ";} System.out.print(l + cid); } print(); }
-				SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds subExpander = new SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds(preservedSubtrees);
+				RankedSynthesisExpander subExpander = (RankedSynthesisExpander) new RankedSynthesisExpander(preservedSubtrees).setVerbosity(MAX_VERBOSITY);
 				Transaction tx = G.beginTx();
 				try {
 					subExpander.synthesizeFrom(s);
@@ -115,7 +113,7 @@ public class SubproblemSynthesisExpander extends SynthesisExpander {
 				clearedProblems.add(s);
 			});
 			
-			// remove all the subproblems we just finished from the list
+			// remove all the subproblems we just finished from the to-do list
 			Iterator<Node> subproblemIter = subproblems.iterator();
 			while (subproblemIter.hasNext()) {
 				Node n = subproblemIter.next();

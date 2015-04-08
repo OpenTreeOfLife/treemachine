@@ -29,7 +29,7 @@ import org.opentree.bitarray.ImmutableCompactLongSet;
 import org.opentree.bitarray.LongSet;
 import org.opentree.bitarray.MutableCompactLongSet;
 
-public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends TopologicalOrderSynthesisExpander {
+public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 
 	Map<Integer, Map<Object, EdgeSet>> edgeSetsByRankAndEdgeId;
 	Set<Node> children;
@@ -68,15 +68,13 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		finishedNodes = new TreeSet<Long>();
 		return this;
 	} */
-	
-	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds() {
-		VERBOSE = false;
+		
+	public RankedSynthesisExpander() {
 		System.out.println("using edge ids *and* tip ids.");
 	}
 
-	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds(Map<Long, SynthesisSubtreeInfo> sustainedSubtrees) {
+	public RankedSynthesisExpander(Map<Long, SynthesisSubtreeInfo> sustainedSubtrees) {
 		availableSubtrees = (Map<Long, SynthesisSubtreeInfoUsingEdgeIds>) ((Map<?,?>) sustainedSubtrees);
-		VERBOSE = false;
 		System.out.println("using edge ids *and* tip ids.");
 	}
 
@@ -222,8 +220,8 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		
 		private void validate(Relationship r) {
 			assert r != null;
-			assert rank == SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds.rank(r);
-			assert edgeId.equals(SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds.edgeId(r));
+			assert rank == RankedSynthesisExpander.rank(r);
+			assert edgeId.equals(RankedSynthesisExpander.edgeId(r));
 			assert r.getEndNode().equals(parent);
 		}
 

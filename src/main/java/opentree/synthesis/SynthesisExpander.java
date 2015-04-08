@@ -70,6 +70,19 @@ public class SynthesisExpander implements PathExpander {
 		return dupMRCAS;
 	}
 
+	/** whether or not to print verbose error messages. could be extended to allow various verbosity levels. */
+	boolean VERBOSE = false;
+	public static final int MAX_VERBOSITY = 1;
+	
+	public SynthesisExpander setVerbosity(int v) {
+		if (v < 0 || v > MAX_VERBOSITY) {
+			throw new IllegalArgumentException();
+		} else if (v > 0) {
+			VERBOSE = true;
+		}
+		return this;
+	}
+	
 	/**
 	 * Set the conflict resolution method. The resolvers need some thought/work. Need to think about
 	 * how we would add multiple resolvers. E.g if there is no source preference, can there be branch and
