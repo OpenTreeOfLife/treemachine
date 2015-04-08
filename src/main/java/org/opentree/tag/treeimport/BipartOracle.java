@@ -204,6 +204,10 @@ public class BipartOracle {
     public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy,
             Map<Tree, String> sources, Map<TreeNode, String> subsetInfo, boolean subset, String subsetFileName) throws Exception {
         this.subset = subset;
+        this.gdb = gdb;
+        this.USING_TAXONOMY = useTaxonomy;
+        this.subsetTipInfo = subsetInfo;
+        this.sourceForTrees = sources;
         //store the subset in the index
         if (subset) {
         	//mapdeepest = false;
@@ -211,21 +215,24 @@ public class BipartOracle {
             Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
             
             if (subsetFileName.contains("/")) {
-                ottidFromSubset = subsetFileName.split("/")[1];
+            	String [] spls = subsetFileName.split("/");
+                ottidFromSubset = spls[spls.length-1];
             } else {
             	ottidFromSubset = subsetFileName;
             }
             ottidFromSubset = ottidFromSubset.replace(".tre", "").replace("ott", "");
+            System.out.println("ottidFromSubset: "+ottidFromSubset);
             taxnodeFromSubset = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottidFromSubset).getSingle();
+            if(taxnodeFromSubset == null){
+            	System.err.println("cannot find ottidFromSubset:"+subsetFileName+" "+ottidFromSubset);
+            	System.err.println("exiting");
+            	return;
+            }
             Index<Node> ottIdIndexss = gdb.getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
             ottIdIndexss.add(taxnodeFromSubset, "subset", ottidFromSubset);
             tx.success();
             tx.finish();
         }
-        this.gdb = gdb;
-        this.USING_TAXONOMY = useTaxonomy;
-        this.subsetTipInfo = subsetInfo;
-        this.sourceForTrees = sources;
 
         long w = new Date().getTime(); // for timing 
 
