@@ -72,14 +72,10 @@ public class SynthesisExpander implements PathExpander {
 
 	/** whether or not to print verbose error messages. could be extended to allow various verbosity levels. */
 	boolean VERBOSE = false;
-	public static final int MAX_VERBOSITY = 1;
+	public enum Verbosity { SILENT, EXTREME }
 	
-	public SynthesisExpander setVerbosity(int v) {
-		if (v < 0 || v > MAX_VERBOSITY) {
-			throw new IllegalArgumentException();
-		} else if (v > 0) {
-			VERBOSE = true;
-		}
+	public SynthesisExpander setVerbosity(Verbosity v) {
+		if (v != Verbosity.SILENT) { VERBOSE = true; }
 		return this;
 	}
 	

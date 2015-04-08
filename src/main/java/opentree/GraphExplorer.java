@@ -41,6 +41,7 @@ import opentree.synthesis.DraftTreePathExpander;
 import opentree.synthesis.RankedSynthesisExpander;
 import opentree.synthesis.RankedSynthesisSubproblemExpander;
 import opentree.synthesis.SynthesisExpander;
+import opentree.synthesis.SynthesisExpander.Verbosity;
 import opentree.synthesis.conflictresolution.RankResolutionMethod;
 import opentree.synthesis.conflictresolution.RelationshipConflictResolver;
 import opentree.synthesis.conflictresolution.TreeMakingBandB;
@@ -1506,7 +1507,7 @@ public class GraphExplorer extends GraphBase {
 //			draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas(startNode);
 //			draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 //			draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds().synthesizeFrom(startNode);
-			draftSynthesisMethod = new RankedSynthesisSubproblemExpander(startNode).setVerbosity(SynthesisExpander.MAX_VERBOSITY);
+			draftSynthesisMethod = new RankedSynthesisSubproblemExpander(startNode, Verbosity.EXTREME);
 //
 // ================================ TESTING =================================
 		

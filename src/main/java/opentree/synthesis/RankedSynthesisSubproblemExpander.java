@@ -35,7 +35,6 @@ import org.opentree.graphdb.GraphDatabaseAgent;
 public class RankedSynthesisSubproblemExpander extends SynthesisExpander {
 	
 	private final Set<Comparable<?>> subproblemIds;
-//	private final TopologicalOrderSynthesisExpander subExpander;
 	private final Node root;
 	private final GraphDatabaseAgent G;
 
@@ -45,13 +44,11 @@ public class RankedSynthesisSubproblemExpander extends SynthesisExpander {
 	private final Set<Object> finishedSubproblemIds = Collections.synchronizedSet(new HashSet<Object>());
 	private final Map<Long, Set<Relationship>> childRels = Collections.synchronizedMap(new TreeMap<Long, Set<Relationship>>());
 	
-//	private boolean VERBOSE = true;
-	
-	public RankedSynthesisSubproblemExpander(Node root) throws InstantiationException, IllegalAccessException, IOException {
+	public RankedSynthesisSubproblemExpander(Node root, Verbosity v) throws InstantiationException, IllegalAccessException, IOException {
 		
-//		this.subExpander = subExpander;
 		this.root = root;
 		this.G = new GraphDatabaseAgent(root.getGraphDatabase());
+		setVerbosity(v);
 
 		// first get all the subproblem ids from the index
 		// TODO: should put the node indexes into an enum to keep them consistent and easily tracked
@@ -88,7 +85,7 @@ public class RankedSynthesisSubproblemExpander extends SynthesisExpander {
 		// process the list until we finish all the subproblems
 		Set<Node> clearedProblems = Collections.synchronizedSet(new HashSet<Node>());
 		while (! subproblems.isEmpty()) {
-			subproblems.forEach(s -> {
+			subproblems.parallelStream().forEach(s -> {
 				
 				// only proceed with this subproblem if all its child subproblems have been finished
 				for (Object childId : childSubproblemIds(s)) {
@@ -97,7 +94,7 @@ public class RankedSynthesisSubproblemExpander extends SynthesisExpander {
 			
 				// do synthesis
 				if (VERBOSE) { print("\n***** starting subproblem", s.getProperty(NodeProperty.NAME.propertyName) + ", ott id=" + s.getProperty(NodeProperty.TAX_UID.propertyName), "\n"); System.out.print("child subproblem ott ids: "); boolean first = true; for (Object cid : childSubproblemIds(s)) { String l; if (first) {l=""; first=false;} else {l=", ";} System.out.print(l + cid); } print(); }
-				RankedSynthesisExpander subExpander = (RankedSynthesisExpander) new RankedSynthesisExpander(preservedSubtrees).setVerbosity(MAX_VERBOSITY);
+				RankedSynthesisExpander subExpander = (RankedSynthesisExpander) new RankedSynthesisExpander(preservedSubtrees).setVerbosity(v);
 				Transaction tx = G.beginTx();
 				try {
 					subExpander.synthesizeFrom(s);
