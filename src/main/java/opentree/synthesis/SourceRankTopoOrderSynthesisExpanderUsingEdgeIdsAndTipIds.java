@@ -61,14 +61,21 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 	 */
 	Map<Node, SynthesisSubtreeInfoUsingEdgeIds> immediateSubtrees;
 	
-	@Override
-	public void reset(Object sustainedInfo) {
-		availableSubtrees = new TreeMap<Long, SynthesisSubtreeInfoUsingEdgeIds>((Map<Long,SynthesisSubtreeInfoUsingEdgeIds>) sustainedInfo);
+/*	@Override
+	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds reset(Object sustainedInfo) {
+		availableSubtrees = new TreeMap<Long, SynthesisSubtreeInfoUsingEdgeIds>(() sustainedInfo);
 		completeRootInfo = null;
 		finishedNodes = new TreeSet<Long>();
-	}
+		return this;
+	} */
 	
 	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds() {
+		VERBOSE = false;
+		System.out.println("using edge ids *and* tip ids.");
+	}
+
+	public SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds(Map<Long, SynthesisSubtreeInfo> sustainedSubtrees) {
+		availableSubtrees = (Map<Long, SynthesisSubtreeInfoUsingEdgeIds>) ((Map<?,?>) sustainedSubtrees);
 		VERBOSE = false;
 		System.out.println("using edge ids *and* tip ids.");
 	}
@@ -378,7 +385,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 					if (this.edgeIdsForRank(rank).contains(edgeId)) {
 						
 						// testing
-						print ("found overlap:", "rank =", rank, "edge id =", edgeId);
+//						print ("found overlap:", "rank =", rank, "edge id =", edgeId);
 						
 						containsAny = true;
 						break;
@@ -485,13 +492,13 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 				if (rank < workingRank) { continue; } // should this be <= ?
 				if (! this.ranksForIncludedEdges().contains(rank)) {
 					containsAll = false;
-					print("did not find rank " + rank + " in ranks for edge ids"); // testing
+//					print("did not find rank " + rank + " in ranks for edge ids"); // testing
 					break;
 				}
 				for (Object edgeId : that.edgeIdsForRank(rank)) {
 					if (! this.edgeIdsForRank(rank).contains(edgeId)) {
 						containsAll = false;
-						print("did not find edge id " + edgeId + " for rank " + rank); // testing
+//						print("did not find edge id " + edgeId + " for rank " + rank); // testing
 						break;
 					}
 				}
@@ -510,7 +517,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 						// but this could be wrong... should it actually be containsAll?
 						if (! this.includedNodeIds.containsAny(thoseTips)) {
 							containsAll = false;
-							print("did not find any tip node ids in " + thoseTips + " for rank " + rank); // testing
+//							print("did not find any tip node ids in " + thoseTips + " for rank " + rank); // testing
 							break;
 						}
 					}
@@ -687,7 +694,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		}
 
 		//* ===== add singleton taxonomy rels
-		System.out.println("attempting to add any remaining tips from taxonomy");
+		if (VERBOSE) { print("attempting to add any remaining tips from taxonomy"); }
 		for (Relationship t : taxonomySingletonRels) {
 			if (! bestSet.info().overlapsWith(completedSubtree(t), 0)) {
 				bestSet.add(t);
@@ -696,8 +703,7 @@ public class SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds extends T
 		// ===== end add singleton taxonomy rels */
 		
 		bestSet.info().complete();
-		if(VERBOSE)
-			print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info());
+		if (VERBOSE) { print("\n" + n, "completed.\nrels to be stored are:", bestSet +"\nthe synthesized subtree below this node contains:\n" + bestSet.info()); }
 		updateCompletedSubtreeInfo(n, bestSet.info());
 		
 		if (n.getId() == root.getId()) {

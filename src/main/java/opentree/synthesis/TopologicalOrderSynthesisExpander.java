@@ -73,12 +73,13 @@ public abstract class TopologicalOrderSynthesisExpander extends SynthesisExpande
 	 */
 	abstract List<Relationship> selectRelsForNode(Node n);
 	
-	/**
+	/*
 	 * A bit hacky. Allows us to clear out the data for finished subproblems, but keep their root nodes so that we can attach
 	 * those where appropriate inside of higher order subproblems.
 	 * @param subtreesToKeep
-	 */
-	abstract void reset(Object subtreesToKeep);
+	 * @return 
+	 *
+	abstract TopologicalOrderSynthesisExpander reset(Object subtreesToKeep); */
 	
 	abstract SynthesisSubtreeInfo completedRootInfo();
 	
