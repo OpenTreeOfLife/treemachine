@@ -1507,7 +1507,7 @@ public class GraphExplorer extends GraphBase {
 //			draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas(startNode);
 //			draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 //			draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds().synthesizeFrom(startNode);
-			draftSynthesisMethod = new RankedSynthesisSubproblemExpander(startNode, Verbosity.EXTREME);
+			draftSynthesisMethod = new RankedSynthesisSubproblemExpander(startNode, Verbosity.SILENT);//changed from Verbosity.EXTREME
 //
 // ================================ TESTING =================================
 		
