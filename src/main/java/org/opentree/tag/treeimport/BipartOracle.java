@@ -223,7 +223,7 @@ public class BipartOracle {
             ottidFromSubset = ottidFromSubset.replace(".tre", "").replace("ott", "");
             System.out.println("ottidFromSubset: "+ottidFromSubset);
             taxnodeFromSubset = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottidFromSubset).getSingle();
-            if(taxnodeFromSubset == null){
+            if (taxnodeFromSubset == null) {
             	System.err.println("cannot find ottidFromSubset:"+subsetFileName+" "+ottidFromSubset);
             	System.err.println("exiting");
             	return;
@@ -288,7 +288,8 @@ public class BipartOracle {
 
         System.out.println("loading is complete. total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
     }
-	
+    
+    
 	private void removeUnusedNodesAndRels() {
 		System.out.println("cleaning the ununsed nodes and relationships");
 		int removedNs = 0;
@@ -325,7 +326,7 @@ public class BipartOracle {
 	 */
 	private boolean validateTrees(List<Tree> trees) {
 		for (Tree t : trees) {
-			if (t.internalNodeCount() < 2) { // we don't conside the root
+			if (t.internalNodeCount() < 2) { // we don't consider the root
 				throw new IllegalArgumentException("Trees must contain at least one internal node (i.e. not the tip nor the root). The tree " + t + " is not valid.");
 			}
 		}
@@ -377,7 +378,7 @@ public class BipartOracle {
 					if (treeNodesForBipart.get(b) == null) { treeNodesForBipart.put(b, new HashSet<TreeNode>()); }
 					treeNodesForBipart.get(b).add(node);
 					bipartForTreeNode.put(node, b);
-					if(USING_TAXONOMY){
+					if (USING_TAXONOMY) {
 						LongBipartition be = getExpandedTaxonomyBipart(b);
 						bipartForTreeNodeExploded.put(node, be);
 					}
@@ -871,17 +872,17 @@ public class BipartOracle {
 		for (Tree t: trees) {
 			for (TreeNode tn: t.internalNodes(NodeOrder.PREORDER)) {
 				rankForTreeNode.put(tn, curt); 
-				if(sourceForTrees == null){
+				if (sourceForTrees == null) {
 					sourceForTreeNode.put(tn, String.valueOf(cust));
-				}else{
+				} else {
 					sourceForTreeNode.put(tn,sourceForTrees.get(t));
 				}
 			}
 			for (TreeNode tn: t.externalNodes()) {
 				rankForTreeNode.put(tn, curt); 
-				if(sourceForTrees == null){
+				if (sourceForTrees == null) {
 					sourceForTreeNode.put(tn, String.valueOf(cust));
-				}else{
+				} else {
 					sourceForTreeNode.put(tn,sourceForTrees.get(t));
 				}
 			}
@@ -1697,11 +1698,103 @@ public class BipartOracle {
 
             tx.success();
             tx.finish();
-
+            
+            // add metadata node
+            addRootProperties(graphNodes, root);
             graphNodesForTreeNode.put(root, graphNodes);
         }
     }
 	
+    
+    
+    /**
+	 * Add metadata and create index entries for the root of the tree
+	 * @param graphNodes
+	 * @param root
+	 */
+	private void addRootProperties(HashSet<Node> graphNodes, TreeNode root) {
+		System.out.println("placing root in index");
+        
+        String sourceInfo = String.valueOf(sourceForTreeNode.get(root));
+        sourceInfo = sourceInfo.replace(".tre", ""); // will be "prefix_studyid_treeid_gitSHA"
+        String newickString = root.getNewick(true) + ";";
+        
+        Transaction tx = gdb.beginTx();
+        
+        Index<Node> sourceRootIndex = gdb.getNodeIndex("sourceRootNodes", "type", "exact", "to_lower_case", "true");
+        Index<Node> sourceMetaIndex = gdb.getNodeIndex("sourceMetaNodes", "type", "exact", "to_lower_case", "true");
+        
+        for (Node gNode : graphNodes) {
+             
+            sourceRootIndex.add(gNode, "rootnode", sourceInfo);
+             
+            // create metadata node
+            Node metadataNode = null;
+            metadataNode = gdb.createNode();
+            metadataNode.createRelationshipTo(gNode, RelType.METADATAFOR);
+
+            // set metadata from tree
+            metadataNode.setProperty("source", sourceInfo);
+            metadataNode.setProperty("newick", newickString);
+            //metadataNode.setProperty("original_taxa_map", graphNodeIdsForInputLeaves.toArray()); // node ids for the taxon mappings
+            //if (treeID != null) {
+            //    metadataNode.setProperty("treeID", treeID);
+            //}
+            sourceMetaIndex.add(metadataNode, "source", sourceInfo);
+        }
+        
+        tx.success();
+        tx.finish();
+
+		
+		/* Add metadata (if present) from jadetree coming from nexson.
+
+		   STUDY-wide fields used at present (2013 07 24):
+			ot:studyPublicationReference - string: ot:studyPublicationReference "long string"
+			ot:studyPublication - URI: ot:studyPublication <http://dx.doi.org/...>
+			ot:curatorName - string: ot:curatorName "Jane Doe"
+			ot:dataDeposit - string: ot:dataDeposit <http://purl.org/phylo/treebase/phylows/study/TB2:S1925>
+			ot:studyId - string / integer ot:studyId "123"
+			ot:ottId - integer: ot:ottId 783941
+
+		   TREE-wide fields used at present:
+			ot:branchLengthMode - string: ot:branchLengthMode "ot:substitutionCount"
+			ot:inGroupClade - string: ot:inGroupClade node208482 <- this might not be desired anymore */
+		
+//		// create metadata node
+//		Node metadataNode = null;
+//		metadataNode = graphDb.createNode();
+//		metadataNode.createRelationshipTo(currGoLNode, RelType.METADATAFOR); // TODO: doesn't account for multiple root nodes (I don't think this is true anymore)
+//		sourceMetaIndex.add(metadataNode, "source", sourceName);
+//        
+//		// set metadata from tree
+//		metadataNode.setProperty("source", sourceName);
+//		metadataNode.setProperty("newick", inputTreeNewick);
+//		metadataNode.setProperty("original_taxa_map", graphNodeIdsForInputLeaves.toArray()); // node ids for the taxon mappings
+//		if (treeID != null) {
+//			metadataNode.setProperty("treeID", treeID);
+//		}
+
+		// Set metadata from NEXSON -- not using at the moment
+//		HashMap<String,Object> assoc = inputTree.getAssoc();
+//		for (Entry<String, Object> entry : assoc.entrySet()) {
+//		    String key = entry.getKey();
+//		    System.out.println("Dealing with metadata property: " + key);
+//		    Object value = entry.getValue();
+//
+//		    if (key.startsWith("ot:")) {
+//		    	System.out.println("Adding property '" + key + "': " + value);
+//
+//		    	// Note: setProperty() throws IllegalArgumentException if value is of an unsupported type (including null)
+//				metadataNode.setProperty(key, value);
+//			}
+//		}
+	}
+    
+    
+    
+    
+    
 	/**
 	 * This is to get the expanded taxonomy bipartition after it has been reduced
 	 * This is used for creating nodes and for checking against taxonomy nodes
@@ -1836,9 +1929,10 @@ public class BipartOracle {
 				//this will map to terminal graph nodes directly from the tips
 				Node tip = gdb.getNodeById(nodeIdForLabel.get(treeTip.getLabel()));
 				LongBipartition lb = getExpandedTaxonomyBipart(getGraphBipartForTreeNode(treeTip,tree));
-				for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
-					if(tip.equals(parent))
+				for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())) {
+					if (tip.equals(parent)) {
 						continue;
+                    }
 					updateMRCAChildOf(tip, parent);
 					updateSTREEChildOf(tip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip), 
 							edgeId,lb,true);
@@ -1847,17 +1941,18 @@ public class BipartOracle {
 					 * 	nodes in between. so amborella,aster split will map to aster, asteraceae, asterales, etc.
 					 */
 					//TODO: this has an error in it when the clade is not monophyletic
-					if(mapdeepest == true){
+					if (mapdeepest == true) {
 						LongBipartition nodeBipartExp = bipartForTreeNodeExploded.get(treeTip.getParent());
 						MutableCompactLongSet alsoExclude = new MutableCompactLongSet();
 						//need to make sure that this doesn't overlap with the sisters
-						for(TreeNode othertip: treeTip.getParent().getChildren()){
+						for (TreeNode othertip: treeTip.getParent().getChildren()) {
 							//System.out.println(othertip+" "+treeTip+" "+othertip.equals(treeTip));
-							if(othertip.equals(treeTip))
+							if (othertip.equals(treeTip)) {
 								continue;
-							if(othertip.isExternal()){
+                            }
+							if (othertip.isExternal()) {
 								alsoExclude.add(nodeIdForLabel.get(othertip.getLabel()));
-							}else{
+							} else {
 								alsoExclude.addAll(bipartForTreeNodeExploded.get(othertip).ingroup());
 							}
 						}
@@ -1865,49 +1960,51 @@ public class BipartOracle {
 						Node startTip = tip;
 						//System.out.println("mappeddeepest: "+startTip);
 						boolean going = true;
-						while(going == true){
+						while (going == true) {
 							startTip = startTip.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 							//System.out.println("mappeddeepest next: "+startTip);
 
-							if(taxonomyGraphNodesMap.containsKey(startTip)){
+							if (taxonomyGraphNodesMap.containsKey(startTip)) {
 								//System.out.println("mappeddeepest contained: "+startTip);
 
 								LongBipartition pbip = null;
 								LongBipartition cbip = taxonomyGraphNodesMap.get(startTip);
 								//System.out.println("mappeddeepest cbip: "+cbip);
 
-								if(bipartForGraphNodeExploded.containsKey(parent)){
+								if (bipartForGraphNodeExploded.containsKey(parent)) {
 									pbip = bipartForGraphNodeExploded.get(parent);
-								}else{
+								} else {
 									pbip = taxonomyGraphNodesMap.get(parent);
 								}
 								//System.out.println("mappeddeepest pbip: "+pbip);
 								//System.out.println("node parent bipart: "+nodeBipartExp);
 								//System.out.println("cbip ingroup "+cbip.ingroup()+" "+alsoExclude);
 								//System.out.println("cbip ingroup "+cbip.ingroup().containsAll(alsoExclude));
-								if(cbip.ingroup().containsAny(nodeBipartExp.outgroup())){
+								if (cbip.ingroup().containsAny(nodeBipartExp.outgroup())) {
 									break;
-								}if(cbip.ingroup().containsAny(alsoExclude)){
+								}
+                                if (cbip.ingroup().containsAny(alsoExclude)) {
 									break;
 								}
 								
-								if(pbip.ingroup().containsAny(cbip.ingroup())
+								if (pbip.ingroup().containsAny(cbip.ingroup())
 										&& cbip.ingroup().containsAny(pbip.outgroup()) == false
-										&& cbip.ingroup().containsAll(pbip.ingroup()) == false){//it is compatible with the parent
+										&& cbip.ingroup().containsAll(pbip.ingroup()) == false) {//it is compatible with the parent
 									updateMRCAChildOf(tip, startTip);
 									updateSTREEChildOf(tip,startTip,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip), 
 											edgeId,lb,true);
-									if(startTip.equals(parent))
+									if (startTip.equals(parent)) {
 										continue;
+                                    }
 									//System.out.println("mappeddeepest: yup "+startTip+" "+parent);
 									updateMRCAChildOf(startTip, parent);
 									updateSTREEChildOf(startTip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip), 
 											edgeId,lb,true);
-								}else{
+								} else {
 									going = false;
 									break;
 								}
-							}else{
+							} else {
 								break;
 							}
 						}
@@ -1916,21 +2013,20 @@ public class BipartOracle {
 			}
 			/*
 			 * for nodes that are subset, we also connect to the roots of the nested sets
-			 * 	to those subset tips
+			 * to those subset tips
 			 * this information is stored in the tips as subset and in the ottIdIndexss
 			 */
-			if(subsetTipInfo != null){
-				for(TreeNode treeTip: tree.externalNodes()){
-
+			if (subsetTipInfo != null) {
+				for (TreeNode treeTip: tree.externalNodes()) {
 					int edgeId = edgeIdForTreeNode.get(treeTip);
-					
-					if(subsetTipInfo.containsKey(treeTip)){
+					if (subsetTipInfo.containsKey(treeTip)) {
 						Index<Node> ottIdIndexss = gdb.getNodeIndex("sourceTreeRootsSubsets", "type", "exact", "to_lower_case", "true");
 						IndexHits<Node> hitroots= ottIdIndexss.get("subset", sourceForTreeNode.get(treeTip)+subsetTipInfo.get(treeTip));
-						for(Node tip:hitroots){
-							for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())){
-								if(tip.equals(parent))
+						for (Node tip:hitroots) {
+							for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())) {
+								if(tip.equals(parent)) {
 									continue;
+                                }
 								updateMRCAChildOf(tip, parent);
 								updateSTREEChildOf(tip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip), edgeId,null,false);
 							}
