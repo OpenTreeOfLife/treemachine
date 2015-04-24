@@ -1397,12 +1397,20 @@ public class GraphExplorer extends GraphBase {
 	 */
 	public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds, boolean test) throws Exception {
 		
-		// build the list of ids, have to use generic objects
-		ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
-		for (String sourceId : preferredSourceIds) {
+		// build the list of ids, have to use generic objects. not used currently
+		//ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
+		//for (String sourceId : preferredSourceIds) {
+		//	sourceIdPriorityList.add(sourceId);
+		//}
+		
+        ArrayList<String> allSources = getSourceList();
+        System.out.println("Collected " + allSources.size() + " sources");
+        
+        ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
+		for (String sourceId : allSources) {
 			sourceIdPriorityList.add(sourceId);
 		}
-		
+        
 		// alternative way. not using now.
 		//String synthName = "";
 		
@@ -1410,7 +1418,8 @@ public class GraphExplorer extends GraphBase {
 		String [] sourceIdPriorityListString = new String [sourceIdPriorityList.size()];
 		int iii = 0;
 		ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
-		for (String sourceId : preferredSourceIds) {
+		//for (String sourceId : preferredSourceIds) {
+        for (String sourceId : allSources) {
 			if (sourceId.startsWith("pg")) {
 				justSourcePriorityList.add("pg_" + sourceId.split("_")[1]);
 			} else if (sourceId.startsWith("ot")) {
@@ -1418,21 +1427,10 @@ public class GraphExplorer extends GraphBase {
 			} else {
 				justSourcePriorityList.add(sourceId.split("_")[0]);
 			}
-			// build up synthesis name
-		/*
-			if (synthName == "") {
-				synthName = sourceId;
-			} else {
-				synthName += "_" + sourceId;
-			}
-		*/
 			sourceIdPriorityListString[iii] = sourceId;
 			iii++;
 		}
 		
-		//System.out.println("\nsynthName built up to: " + synthName + "\n");
-		
-		//boolean done = false;
 		String tempSynthTreeName = DRAFTTREENAME;
 	/*
 		int jj = 0;
@@ -1455,6 +1453,11 @@ public class GraphExplorer extends GraphBase {
 		// define the synthesis protocol
 		SynthesisExpander draftSynthesisMethod = new SynthesisExpander();
 		
+        
+        
+        // *** NOTE: filtering is not being used at the moment *** //
+        
+        
 		// set filtering criteria
 		//RelationshipFilter rf = new RelationshipFilter();
 		RelationshipFilter rf = new RelationshipFilter();
@@ -1485,6 +1488,9 @@ public class GraphExplorer extends GraphBase {
 			}
 			draftSynthesisMethod.setFilter(rf);
 		}
+        
+        
+        
 		//if (true == true)
 			//	return true;
 		// set ranking criteria
@@ -1531,6 +1537,7 @@ public class GraphExplorer extends GraphBase {
 			metadatanode.setProperty("date", date.toString());
 			//	metadatanode.setProperty("synthmethod", arg1);
 			//	metadatanode.setProperty("command", command);
+            
 			metadatanode.setProperty("sourcenames", sourceIdPriorityListString); // need to make sure that this list is processed correctly
 			// Adding 1) taxonomy version and 2) start node to the metadata node too, as it seems convenient to have everything together
 			if (getTaxonomyVersion() != null) {
