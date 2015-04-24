@@ -1520,6 +1520,9 @@ public class GraphExplorer extends GraphBase {
 		
 		String synthTreeName = tempSynthTreeName;
 		
+        
+        
+        // TODO: add all sources
 		try {
 			Node metadatanode = graphDb.createNode();
 			metadatanode.createRelationshipTo(startNode, RelType.SYNTHMETADATAFOR);
@@ -1566,7 +1569,6 @@ public class GraphExplorer extends GraphBase {
 					Relationship newRel = curNode.createRelationshipTo(parentNode, RelType.SYNTHCHILDOF);
 					newRel.setProperty("name", synthTreeName);
 					
-					
 					// add to synthesis index
 					//synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
 					synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
@@ -1578,6 +1580,11 @@ public class GraphExplorer extends GraphBase {
 							sources.add(String.valueOf(rel2.getProperty("source")));
 						}
 					}
+                    
+                    // include taxonomy as a source as well
+                    if (curNode.hasRelationship(RelType.TAXCHILDOF)) {
+                        sources.add("taxonomy");
+                    }
 					
 					// store the sources in a string array
 					String[] sourcesArray = new String[sources.size()];
@@ -2071,7 +2078,6 @@ public class GraphExplorer extends GraphBase {
 						System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
 						done = true;
 					}
-					
 				}
 				//if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")) {
 				//	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
