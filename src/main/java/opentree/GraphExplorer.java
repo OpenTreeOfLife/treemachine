@@ -3345,9 +3345,45 @@ public class GraphExplorer extends GraphBase {
 	 *		distance from the root. If maxDepth is negative, no threshold is applied
 	 */
 	private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
+		HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
+		
 		JadeNode root = new JadeNode();
 		decorateJadeNodeWithCoreProperties(root, rootnode);
-		root.assocObject("pathToRoot", getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID));
+		
+		List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
+		root.assocObject("pathToRoot", pathToRoot); // TODO: add supported by sources to this
+		
+		ArrayList<String> allSources = new ArrayList<String>(); // used in tree browser
+		for (Node nd : pathToRoot) {
+			ArrayList<String> curSources = getSynthesisSupportingSources(nd);
+			if (!curSources.isEmpty()) {
+				allSources.addAll(curSources);
+			}
+		}
+		
+		ArrayList<String> rootSynthSources = getSynthesisSupportingSources(rootnode);
+		String[] sources = rootSynthSources.stream().toArray(String[]::new); // java8
+		root.assocObject("supporting_sources", sources);
+		
+		allSources.addAll(rootSynthSources);
+		
+		// add source info
+		for (String s : allSources) {
+			if (!mentionedSources.containsKey(s)) {
+				IndexHits<Node> metanodes = null;
+				try {
+					metanodes = sourceMetaIndex.get("source", s);
+					Node m1 = null;
+					if (metanodes.hasNext()) {
+						m1 = metanodes.next();
+					}
+					mentionedSources.put(s, m1);
+				} finally {
+					metanodes.close();
+				}
+			}
+		}
+		
 		boolean printlengths = false;
 		HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
 		node2JadeNode.put(rootnode, root);
@@ -3360,7 +3396,7 @@ public class GraphExplorer extends GraphBase {
 		HashSet<Node> internalNodes = new HashSet<Node>();
 		ArrayList<Node> unnamedChildNodes = new ArrayList<Node>();
 		ArrayList<Node> namedChildNodes = new ArrayList<Node>();
-		HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
+		
 		for (Path path : synthEdgeTraversal.traverse(rootnode)) {
 			Relationship furshestRel = path.lastRelationship();
 			if (furshestRel != null && furshestRel.hasProperty("name")) {

@@ -5,9 +5,12 @@ import jade.tree.deprecated.JadeNode;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import opentree.constants.RelProperty;
+import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Node;
 import org.neo4j.helpers.collection.FirstItemIterable;
@@ -15,6 +18,7 @@ import org.neo4j.helpers.collection.IterableWrapper;
 import org.neo4j.server.rest.repr.GeneralizedMappingRepresentation;
 
 import opentree.constants.SourceProperty;
+import org.neo4j.graphdb.Relationship;
 import scala.actors.threadpool.Arrays;
 
 public class ArgusonRepresentationConverter extends MappingRepresentation {
@@ -88,9 +92,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 				
 				ArrayList<Representation> children = new ArrayList<Representation>();
 				for (int i = 0; i < inNode.getChildCount(); i++) {
-
 					children.add(ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(inNode.getChild(i)));
-					
 				}
 				
 				if (children.size() > 0) {
@@ -114,12 +116,13 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 					}
 				}
 				
+                // add in metadata for pathToRoot (requested by jimallman)
 				List<Node> pathToRoot = (List<Node>) inNode.getObject("pathToRoot");
 				if (pathToRoot != null) {
 					LinkedList<Representation> pathToRootRepresentation = new LinkedList<Representation>();
 
 					for (Node m : pathToRoot) {
-						pathToRootRepresentation.add(ArgusonRepresentationConverter.getNodeRepresentationSimple(m));
+						pathToRootRepresentation.add(ArgusonRepresentationConverter.getNodeRepresentationWithMetadata(m));
 					}
 					serializer.putList("pathToRoot", OTRepresentationConverter.getListRepresentation(pathToRootRepresentation));
 				}
@@ -162,8 +165,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 	 * @param nd
 	 * @returns node representation
 	 */
-	public static Representation getNodeRepresentationSimple(
-			final Node n) {
+	public static Representation getNodeRepresentationSimple(final Node n) {
 		
 		HashMap<String, Object> nodeInfoMap = new HashMap<String, Object>();
 		nodeInfoMap.put("nodeid", n.getId());
@@ -174,6 +176,49 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 		return GeneralizedMappingRepresentation.getMapRepresentation(nodeInfoMap);
 	}
 	
+	// same as above, but with more info returned
+	public static Representation getNodeRepresentationWithMetadata(final Node nd) {
+		
+		HashMap<String, Object> nodeInfoMap = new HashMap<String, Object>();
+		nodeInfoMap.put("nodeid", nd.getId());
+		if (nd.hasProperty("name")) {
+			nodeInfoMap.put("name", nd.getProperty("name"));
+		}
+		if (nd.hasProperty("uniqname")) {
+			nodeInfoMap.put("uniqname", nd.getProperty("uniqname"));
+		}
+		if (nd.hasProperty("tax_source")) {
+			nodeInfoMap.put("taxSource", nd.getProperty("tax_source"));
+		}
+		if (nd.hasProperty("tax_sourceid")) {
+			nodeInfoMap.put("taxSourceId", nd.getProperty("tax_sourceid"));
+		}
+		if (nd.hasProperty("tax_rank")) {
+			nodeInfoMap.put("taxRank", nd.getProperty("tax_rank"));
+		}
+		if (nd.hasProperty("tax_uid")) {
+			nodeInfoMap.put("ottId", nd.getProperty("tax_uid"));
+		}
+		
+		LinkedList<String> sourceList = new LinkedList<String>();
+		if (nd.hasRelationship(RelType.SYNTHCHILDOF)) {
+			for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF)) {
+				if (rel.hasProperty("supporting_sources")) {
+					String[] sources = (String[]) rel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
+					for (String s : sources) {
+						if (!sourceList.contains(s)) {
+							sourceList.add(s);
+						}
+					}
+				}
+			}
+		}
+		if (sourceList.size() != 0) {
+			nodeInfoMap.put("supporting_sources", sourceList);
+		}
+		
+		return GeneralizedMappingRepresentation.getMapRepresentation(nodeInfoMap);
+	}
 	
 	public static MappingRepresentation getSourceMetadataRepresentation(JadeNode inNode) {
 		
