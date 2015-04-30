@@ -5,21 +5,16 @@ import jade.tree.deprecated.JadeNode;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
-
+import org.opentree.utils.GeneralUtils;
+import org.opentree.graphdb.GraphDatabaseAgent;
 import org.neo4j.graphdb.Node;
-import org.neo4j.helpers.collection.FirstItemIterable;
-import org.neo4j.helpers.collection.IterableWrapper;
-import org.neo4j.server.rest.repr.GeneralizedMappingRepresentation;
-
 import opentree.constants.SourceProperty;
 import org.neo4j.graphdb.Relationship;
-import scala.actors.threadpool.Arrays;
 
 public class ArgusonRepresentationConverter extends MappingRepresentation {
 
@@ -116,7 +111,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 					}
 				}
 				
-                // add in metadata for pathToRoot (requested by jimallman)
+				// add in metadata for pathToRoot (requested by jimallman)
 				List<Node> pathToRoot = (List<Node>) inNode.getObject("pathToRoot");
 				if (pathToRoot != null) {
 					LinkedList<Representation> pathToRootRepresentation = new LinkedList<Representation>();
@@ -230,23 +225,36 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 			if (sourceName == null || sourceName.length() == 0) {
 				sourceName = "unnamedSource";
 			}
-
 			if (metadataNode == null) {
 				sourceMetadataMap.put(sourceName, null);
 
 			} else {
 				HashMap<String, Object> studyMetadata = new HashMap<String, Object>();
-								
+				Boolean taxonomySource = false;
 				for (SourceProperty p : SourceProperty.values()) {
 					if (metadataNode.hasProperty(p.propertyName)) {
-                        if (!p.propertyName.equals("newick"))
-                            studyMetadata.put(p.propertyName, p.type.cast(metadataNode.getProperty(p.propertyName)));
+						if (!p.propertyName.equals("newick")) {
+							if (p.propertyName.equals("source")) {
+								String sStudy = String.valueOf(metadataNode.getProperty(p.propertyName));
+								if (sStudy.compareTo("taxonomy") == 0) {
+									// get taxonomy version. stored at node 0
+									GraphDatabaseAgent gda = new GraphDatabaseAgent(metadataNode.getGraphDatabase());
+									String taxVersion = String.valueOf(gda.getGraphProperty("graphRootNodeTaxonomy"));
+									gda.shutdownDb();
+									studyMetadata.put("version", taxVersion);
+
+								} else {
+									HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(sStudy);
+									studyMetadata.putAll(indStudy);
+								}
+							} else { // allow the possibility of future metadata
+								studyMetadata.put(p.propertyName, p.type.cast(metadataNode.getProperty(p.propertyName)));
+							}
+						}
 					}
 				}
 				HashMap<String, Map<String, Object>> studyMetadataContainer = new HashMap<String, Map<String, Object>>();
-				studyMetadataContainer.put("study", studyMetadata);
-				sourceMetadataMap.put(sourceName, studyMetadataContainer);
-
+				sourceMetadataMap.put(sourceName, studyMetadata);
 			}
 		}
 
