@@ -38,8 +38,11 @@ public class tree_of_life extends ServerPlugin {
 			+ "about the list of source trees and the taxonomy used to build it.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation about (
+			
 			@Source GraphDatabaseService graphDb,
-			@Description("Return a list of source studies") @Parameter(name = "study_list", optional = true) Boolean study_list) throws TaxonNotFoundException, MultipleHitsException {
+			@Description("Return a list of source studies")
+			@Parameter(name = "study_list", optional = true)
+			Boolean study_list) throws TaxonNotFoundException, MultipleHitsException {
 		
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		GraphExplorer ge = new GraphExplorer(gdb);
@@ -52,7 +55,7 @@ public class tree_of_life extends ServerPlugin {
 		
 		// Most information will come from the synthesis metadata node
 		try {
-			Node meta = ge.getSynthesisMetaNode();
+			Node meta = ge.getMostRecentSynthesisMetaNode();
 			if (meta != null) {
 		//		String [] sourceList = (String []) meta.getProperty("sourcenames");
 				ArrayList<String> sourceList = ge.getSynthesisSourceList();
@@ -106,8 +109,14 @@ public class tree_of_life extends ServerPlugin {
 			+ "Returns any unmatched node ids / ott ids.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation mrca (@Source GraphDatabaseService graphDb,
-			@Description("A set of node ids") @Parameter(name = "node_ids", optional = true) long[] nodeIds,
-			@Description("A set of ott ids") @Parameter(name = "ott_ids", optional = true) long[] ottIds) throws MultipleHitsException {
+			
+			@Description("A set of node ids")
+			@Parameter(name = "node_ids", optional = true)
+			long[] nodeIds,
+			
+			@Description("A set of ott ids")
+			@Parameter(name = "ott_ids", optional = true)
+			long[] ottIds) throws MultipleHitsException {
 		
 		if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
 			throw new IllegalArgumentException("You must supply at least one node_id or ott_id.");
@@ -169,7 +178,6 @@ public class tree_of_life extends ServerPlugin {
 			HashMap<String, Object> vals = new HashMap<String, Object>();
 			//Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
 			Node mrca = ge.getDraftTreeMRCA(tips);
-			
 			Node mrta = mrca;
 			
 			while (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
@@ -209,6 +217,10 @@ public class tree_of_life extends ServerPlugin {
 			vals.put("invalid_ott_ids", invalidOttIds);
 			vals.put("node_ids_not_in_tree", nodeIdsNotInSynth);
 			vals.put("ott_ids_not_in_tree", ottIdsNotInSynth);
+			
+			// report treeID
+			Node meta = ge.getMostRecentSynthesisMetaNode();
+			vals.put("tree_id", meta.getProperty("name"));
 						
 			ge.shutdownDB();
 			return OTRepresentationConverter.convert(vals);
@@ -310,6 +322,10 @@ public class tree_of_life extends ServerPlugin {
 		vals.put("node_ids_not_in_tree", nodeIdsNotInSynth);
 		vals.put("ott_ids_not_in_tree", ottIdsNotInSynth);
 		
+		// report treeID
+		Node meta = ge.getMostRecentSynthesisMetaNode();
+		vals.put("tree_id", meta.getProperty("name"));
+		
 		if (tips.size() < 2) {
 			vals.put("error", "Not enough valid node or ott ids provided to construct a subtree (there must be at least two).");
 			return OTRepresentationConverter.convert(vals);
@@ -325,16 +341,22 @@ public class tree_of_life extends ServerPlugin {
 			+ "is not in the synthetic tree (or is entirely absent from the graph), an error will be returned.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation subtree (
+			
 			@Source GraphDatabaseService graphDb,
 			@Description("The identifier for the synthesis tree. We currently only support a single draft tree "
 					+ "in the db at a time, so this argument is superfluous and may be safely ignored.")
-			@Parameter(name = "tree_id", optional = true) String treeID,
+			@Parameter(name = "tree_id", optional = true)
+			String treeID,
+			
 			@Description("The node id of the node in the tree that should serve as the root of the tree returned. This "
 					+ "argument may not be used in combination with `ott_id`.")
-			@Parameter(name = "node_id", optional = true) Long subtreeNodeId,
+			@Parameter(name = "node_id", optional = true)
+			Long subtreeNodeId,
+			
 			@Description("The ott id of the node in the tree that should serve as the root of the tree returned. This "
 					+ "argument may not be used in combination with `node_id`.")
-			@Parameter(name = "ott_id", optional = true) Long subtreeOttId) throws TreeNotFoundException {
+			@Parameter(name = "ott_id", optional = true)
+			Long subtreeOttId) throws TreeNotFoundException {
 
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
@@ -342,7 +364,7 @@ public class tree_of_life extends ServerPlugin {
 		// set default param values
 		long startNodeID = -1;
 		Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
-		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
+		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value; // don't use this.
 		
 		// get start node
 		if (subtreeNodeId != null && subtreeOttId != null) {
@@ -399,9 +421,10 @@ public class tree_of_life extends ServerPlugin {
 			return OTRepresentationConverter.convert(responseMap);
 		}
 		
-		// synthetic tree identifier. we currently only support one in a graph at a time, so check against that.
+		// synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
 		if (treeID != null) {
-			if (synthTreeID.equalsIgnoreCase(treeID)) {
+			ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+			if (synthTreeIDs.contains(treeID)) {
 				synthTreeID = treeID;
 			} else {
 				responseMap.put("error", "Unrecognized \"tree_id\" argument. Leave blank to default to the current synthetic tree.");
@@ -412,7 +435,7 @@ public class tree_of_life extends ServerPlugin {
 		// get the subtree for export
 		JadeTree tree = null;
 		try {
-			tree = ge.extractDraftTree(n, synthTreeID);
+			tree = ge.extractDraftTreeByName(n, synthTreeID);
 		} finally {
 			ge.shutdownDB();
 		}
