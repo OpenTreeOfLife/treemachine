@@ -271,6 +271,7 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 		private MutableCompactLongSet includedNodeIds = new MutableCompactLongSet();
 		private Map<Integer, Set<Object>> edgeIdsByRank = new HashMap<Integer, Set<Object>>();
 		private Map<Integer, Set<LongSet>> tipIdSetsByRank = new HashMap<Integer, Set<LongSet>>();
+		private Set<Object> includedTaxonIds = new TreeSet<Object>();
 		private boolean completed = false;
 		
 		/**
@@ -307,6 +308,7 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 				tipIdSetsByRank.get(rank).addAll(s.tipIdSetsForRank(rank));
 			}
 			includedNodeIds.addAll(s.includedNodeIds());
+			includedTaxonIds.addAll(s.includedTaxonIds());
 		}
 
 		/**
@@ -325,14 +327,8 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 			for (Relationship s : getRelationshipsFromTo(child, root, RelType.STREECHILDOF, RelType.TAXCHILDOF)) {
 
 				hasPath = true;
-				
-				// avoid rels excluded by cycle removal? it's not clear whether we actually want to do avoid these here.
-				// visiting these rels here just records information about source tree edges, and should not introduce
-				// technical errors in the procedure. but it could do weird things to make synth decisions based on
-				// information about source trees from rels that we're not actually including in the synthesis. so for
-				// now i am leaving this here.
-//				if (excludedRels.contains(s)) { continue; } 
 
+				// add tree information for the edges between this node and the parent of this synth subtree
 				int rank = rank(s);
 				if (childIsTip(s)) {
 					updateLongSetMap(rank, tipIdSetsByRank);
@@ -341,6 +337,10 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 					updateSetMap(rank, edgeIdsByRank);
 					edgeIdsByRank.get(rank).add(edgeId(s));
 				}
+				
+				// add the taxon id of the node if it has one
+				Object ottId = ottId(child);
+				if (ottId != null) { includedTaxonIds.add(ottId); }
 				
 				// gather information already stored for the completed subtree below this rel
 				accumulate(completedSubtree(s));
@@ -381,10 +381,6 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 				if (rank < workingRank || ! that.edgeIdsByRank.containsKey(rank)) { continue; } // should this be <=? | 2015 03 28: no, i don't think so
 				for (Object edgeId : that.edgeIdsForRank(rank)) {
 					if (this.edgeIdsForRank(rank).contains(edgeId)) {
-						
-						// testing
-//						print ("found overlap:", "rank =", rank, "edge id =", edgeId);
-						
 						containsAny = true;
 						break;
 					}
@@ -416,64 +412,78 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 		}
 		
 		/**
-		 * Check if this SynthesisSubtreeInfo object describes a set of edges/nodes that would be more preferable than <tt>that</tt>.
-		 * The answer to this question is dependent on the rank at which we are making the decision (e.g. some subtree may contain more
-		 * edges of rank 2 than some other, but fewer edges of rank 3), so we must also provide the maximum rank to be used for making
-		 * decisions.
+		 * Check if the candidate (this SynthesisSubtreeInfo object) describes a subtree that contains larger set of highly ranked
+		 * edges/nodes than the incumbent (<tt>that</tt>), for all ranks up to and including <tt>cutoffRank</tt>. If the subtrees are
+		 * tied for the number of edges from all trees, then we check whether one object contains more overall graph nodes, and if
+		 * that quantity is also tied, then whether one object contains more taxon nodes. If all these quantities are equal, then we
+		 * will arbitrarily prefer the incumbent over this candidate.
 		 * @param that
-		 * @param testRank
+		 * @param cutoffRank
 		 * @return
 		 */
-		public boolean improvesUpon(SynthesisSubtreeInfoUsingEdgeIds that, int testRank) {
+		public boolean isMoreInclusiveThan(SynthesisSubtreeInfoUsingEdgeIds that, int cutoffRank) {
 			if (that == null) { throw new NullPointerException(); }
 
 			if (VERBOSE) { print("X =", this, "and\nY =", that); }
 
-			// until we have enough info to either accept or reject this candidate, or we run out of trees to use
+			// use an Boolean object instead of a primitive so we can leave
+			// it null until we decide to accept or reject the candidate
 			Boolean result = null;
-			while (result == null && testRank > 0) {
+			
+			while (result == null && cutoffRank > 0) {
 				
 				// testing
 //				print(testRank);
 //				print("this", this.edgeIdsByRank.containsKey(testRank) ? (this.edgeIdsForRank(testRank) + ", " + this.edgeIdsForRank(testRank).size()) : "contains no edges of specified rank");
 //				print("that", that.edgeIdsByRank.containsKey(testRank) ? (that.edgeIdsForRank(testRank) + ", " + that.edgeIdsForRank(testRank).size()) : "contains no edges of specified rank");
 
-				int candidateScore = this.edgeIdsByRank.containsKey(testRank) ? this.edgeIdsForRank(testRank).size() : 0;
-				int bestScore = that.edgeIdsByRank.containsKey(testRank) ? that.edgeIdsForRank(testRank).size() : 0;
-				if (VERBOSE) { print("for tree of rank", testRank + ", X includes", candidateScore, "edges; Y includes", bestScore, "edges."); }
+				int candidateScore = this.edgeIdsByRank.containsKey(cutoffRank) ? this.edgeIdsForRank(cutoffRank).size() : 0;
+				int incumbentScore = that.edgeIdsByRank.containsKey(cutoffRank) ? that.edgeIdsForRank(cutoffRank).size() : 0;
+				if (VERBOSE) { print("for tree of rank", cutoffRank + ", X includes", candidateScore, "edges; Y includes", incumbentScore, "edges."); }
 
-				if (candidateScore > bestScore) {
-					if (VERBOSE) { print("X contains more edges from tree of rank", testRank, "than Y. preferring X."); }
+				if (candidateScore > incumbentScore) {
+					if (VERBOSE) { print("X contains more edges from tree of rank", cutoffRank, "than Y. preferring X."); }
 					result = true;
-				} else if (candidateScore < bestScore) {
-					if (VERBOSE) { print("X contains fewer edges from tree of rank", testRank, "than Y. preferring Y."); }
+				} else if (candidateScore < incumbentScore) {
+					if (VERBOSE) { print("X contains fewer edges from tree of rank", cutoffRank, "than Y. preferring Y."); }
 					result = false;
-				} else if (candidateScore == bestScore) {
-					if (VERBOSE) { print("X and Y contain the same number of edges from tree of rank", testRank + "; moving on to next lowest rank..."); }
-					testRank--;
+				} else if (candidateScore == incumbentScore) {
+					if (VERBOSE) { print("X and Y contain the same number of edges from tree of rank", cutoffRank + "; moving on to next lowest rank..."); }
+					cutoffRank--;
 				}
 			}
 			
-			if (result == null) { // we ran out of trees without being able to break the tie; try to use candidate size
+			if (result == null) { // we ran out of trees without being able to break the tie; try using the number of included nodes
 				long candidateSize = this.includedNodeIds().size();
-				long bestSize = that.includedNodeIds().size();
-				if (VERBOSE) { print("all ranks have been checked. both and X and Y contain the same number of tree edges for all trees.\nin terms of total included graph nodes, X contains", candidateSize, "nodes; Y contains", bestSize, "nodes."); }
+				long incumbentSize = that.includedNodeIds().size();
+				if (VERBOSE) { print("all ranks have been checked. both and X and Y contain the same number of tree edges for all trees.\nin terms of total included graph nodes, X contains", candidateSize, "nodes; Y contains", incumbentSize, "nodes."); }
 
-				if (candidateSize > bestSize) {
+				if (candidateSize > incumbentSize) {
 					if (VERBOSE) { print("X includes more nodes than Y. preferring X."); }
 					result = true;
-				} else if (candidateSize < bestSize) {
+				} else if (candidateSize < incumbentSize) {
 					if (VERBOSE) { print("X includes fewer nodes than Y. preferring Y."); }
 					result = false;
-				} else {
-					if (VERBOSE) { print("X and Y include the same number of graph nodes and the same number of tree edges for all trees. arbitrarily preferring Y."); }
-					result = false; // arbitrary! logically just as justifiable as true
-					
-					// TODO: if nodes are tied here, we may also want an additional check to see if the root of one of
-					// the nodes has a name (i.e. is a taxon), in which case we should prefer that one.
-					
 				}
 			}
+			
+			if (result == null) { // can't break tie based on trees or number of tips, try checking the number of included taxon nodes
+				int candidateOttIdCount = this.includedTaxonIds().size();
+				int incumbentOttIdCount = that.includedTaxonIds().size();
+				if (VERBOSE) { print("\nin terms of total included taxon nodes, X includes ", candidateOttIdCount, "nodes; Y contains", incumbentOttIdCount, "nodes."); }
+
+				if (candidateOttIdCount > incumbentOttIdCount) {
+					if (VERBOSE) { print("X includes more taxon nodes than Y. preferring X."); }
+					result = true;
+				} else if (candidateOttIdCount < incumbentOttIdCount) {
+					if (VERBOSE) { print("X includes fewer taxon nodes than Y. preferring Y."); }
+					result = false;
+				} else {
+					if (VERBOSE) { print("X and Y include the same number of graph nodes, the same number of taxon nodes, and the same number of tree edges for all trees. arbitrarily preferring Y."); }
+					result = false; // arbitrary! logically just as justifiable as returning true
+				}
+			}
+			
 			return result;
 		}
 			
@@ -487,16 +497,14 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 		public boolean containsAllStreeElementsOf(SynthesisSubtreeInfoUsingEdgeIds that, int workingRank) {
 			boolean containsAll = true;
 			for (int rank : that.ranksForIncludedEdges()) {
-				if (rank < workingRank) { continue; } // should this be <= ?
+				if (rank < workingRank) { continue; } // should this be <= ? don't think so, it seems to be working.
 				if (! this.ranksForIncludedEdges().contains(rank)) {
 					containsAll = false;
-//					print("did not find rank " + rank + " in ranks for edge ids"); // testing
 					break;
 				}
 				for (Object edgeId : that.edgeIdsForRank(rank)) {
 					if (! this.edgeIdsForRank(rank).contains(edgeId)) {
 						containsAll = false;
-//						print("did not find edge id " + edgeId + " for rank " + rank); // testing
 						break;
 					}
 				}
@@ -505,17 +513,16 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 				for (int rank : that.ranksForIncludedTips()) {
 					if (rank < workingRank) { continue; } // should this be <= ? | 2015 03 28: no, i don't think so.
 					
-					// NOTE: I think this is as simple as verifying that includedNodeIds for the 
-					// proposed containing info object contains (at least one of) all the relevant tree
-					// tips from the proposed contained. I don't think we need to check the actual
-					// tipsByRank map itself for the proposed containing info object (this)
+					// NOTE: I think this is as simple as verifying that includedNodeIds (for the info 
+					// object proposed to contain the other) contains at least one of all the relevant
+					// tree tips from the object proposed to be contained. I don't think we need to check
+					// the actual tipsByRank map itself for the proposed containing info object (this)
 					
 					for (LongSet thoseTips : that.tipIdSetsForRank(rank)) {
 						// i think this is contains any, because any kind of overlap means the set can exemplify the same taxa
 						// but this could be wrong... should it actually be containsAll?
 						if (! this.includedNodeIds.containsAny(thoseTips)) {
 							containsAll = false;
-//							print("did not find any tip node ids in " + thoseTips + " for rank " + rank); // testing
 							break;
 						}
 					}
@@ -543,6 +550,10 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 		
 		public LongSet includedNodeIds() {
 			return includedNodeIds;
+		}
+		
+		public Set<Object> includedTaxonIds() {
+			return includedTaxonIds;
 		}
 		
 		public Set<Integer> ranksForIncludedEdges() {
@@ -657,7 +668,7 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 					// replace the previous best candidate if this one has more rels representing edges from the current ranked tree
 					// or if it has the same number of rels from the current ranked tree but contains more nodes
 					if (VERBOSE) { print("\nfound a new viable set X to compare to previous best set Y. comparing:\nX =", candidate, "and\nY =", bestSet); }
-					if (candidate.info().improvesUpon(bestSet.info(), currentRank)) {
+					if (candidate.info().isMoreInclusiveThan(bestSet.info(), currentRank)) {
 						bestSet = candidate;
 					}
 				}
@@ -856,7 +867,7 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 				if (! internallyDisjoint(candidate)) { combinations.prune(); continue; }
 
 				if (VERBOSE) { print("best candidate from this set so far is Y, new candidate is X. comparing:\nX =", candidate, "and\nY =", bestCandidate); }
-				if (bestCandidate == null || candidate.info().improvesUpon(bestCandidate.info(), workingRank)) {
+				if (bestCandidate == null || candidate.info().isMoreInclusiveThan(bestCandidate.info(), workingRank)) {
 					bestCandidate = candidate;
 				}
 			}
@@ -1065,6 +1076,15 @@ public class RankedSynthesisExpander extends TopologicalOrderSynthesisExpander {
 	 */
 	private static LongSet exclusiveMrca(Relationship r) {
 		return new ImmutableCompactLongSet((long[]) r.getProperty(RelProperty.EXCLUSIVE_MRCA.propertyName));
+	}
+	
+	/**
+	 * Access and return the ott id for the node, or null if the node does not have one.
+	 * @param n
+	 * @return
+	 */
+	private static Object ottId(Node n) {
+		return n.getProperty(NodeProperty.TAX_UID.propertyName, null);
 	}
 	
 	/**

@@ -1945,7 +1945,7 @@ public class GraphExplorer extends GraphBase {
 				} 
 			}
 			// find the mrca of the names in the tree
-			if (nodesInTree.size() > 1) {
+			if (nodesInTree.size() > 0) {
 				//* ===== alternative implementation 1: attach missing children to MRCA of all taxa descended
 				// 										 from parent that are present in synth tree
 				Node mrca = null;
