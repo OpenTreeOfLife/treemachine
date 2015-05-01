@@ -392,7 +392,7 @@ public abstract class GraphBase {
 		sourceRootIndex = graphDb.getNodeIndex("sourceRootNodes", "type", "exact", "to_lower_case", "true");
 		sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes", "type", "exact", "to_lower_case", "true");
 		graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
-		synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns", "type", "exact", "to_lower_case", "true");
+		synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns", "type", "exact", "to_lower_case", "true"); // same name as 'synNodeIndex'
 		
 		// synthetic tree indices
 		synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes", "type", "exact", "to_lower_case", "true");

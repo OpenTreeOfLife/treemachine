@@ -1397,12 +1397,20 @@ public class GraphExplorer extends GraphBase {
 	 */
 	public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds, boolean test) throws Exception {
 		
-		// build the list of ids, have to use generic objects
-		ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
-		for (String sourceId : preferredSourceIds) {
+		// build the list of ids, have to use generic objects. not used currently
+		//ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
+		//for (String sourceId : preferredSourceIds) {
+		//	sourceIdPriorityList.add(sourceId);
+		//}
+		
+        ArrayList<String> allSources = getSourceList();
+        System.out.println("Collected " + allSources.size() + " sources");
+        
+        ArrayList<Object> sourceIdPriorityList = new ArrayList<Object>();
+		for (String sourceId : allSources) {
 			sourceIdPriorityList.add(sourceId);
 		}
-		
+        
 		// alternative way. not using now.
 		//String synthName = "";
 		
@@ -1410,7 +1418,8 @@ public class GraphExplorer extends GraphBase {
 		String [] sourceIdPriorityListString = new String [sourceIdPriorityList.size()];
 		int iii = 0;
 		ArrayList<Object> justSourcePriorityList = new ArrayList<Object>();
-		for (String sourceId : preferredSourceIds) {
+		//for (String sourceId : preferredSourceIds) {
+        for (String sourceId : allSources) {
 			if (sourceId.startsWith("pg")) {
 				justSourcePriorityList.add("pg_" + sourceId.split("_")[1]);
 			} else if (sourceId.startsWith("ot")) {
@@ -1418,21 +1427,10 @@ public class GraphExplorer extends GraphBase {
 			} else {
 				justSourcePriorityList.add(sourceId.split("_")[0]);
 			}
-			// build up synthesis name
-		/*
-			if (synthName == "") {
-				synthName = sourceId;
-			} else {
-				synthName += "_" + sourceId;
-			}
-		*/
 			sourceIdPriorityListString[iii] = sourceId;
 			iii++;
 		}
 		
-		//System.out.println("\nsynthName built up to: " + synthName + "\n");
-		
-		//boolean done = false;
 		String tempSynthTreeName = DRAFTTREENAME;
 	/*
 		int jj = 0;
@@ -1455,6 +1453,11 @@ public class GraphExplorer extends GraphBase {
 		// define the synthesis protocol
 		SynthesisExpander draftSynthesisMethod = new SynthesisExpander();
 		
+        
+        
+        // *** NOTE: filtering is not being used at the moment *** //
+        
+        
 		// set filtering criteria
 		//RelationshipFilter rf = new RelationshipFilter();
 		RelationshipFilter rf = new RelationshipFilter();
@@ -1485,6 +1488,9 @@ public class GraphExplorer extends GraphBase {
 			}
 			draftSynthesisMethod.setFilter(rf);
 		}
+        
+        
+        
 		//if (true == true)
 			//	return true;
 		// set ranking criteria
@@ -1507,7 +1513,7 @@ public class GraphExplorer extends GraphBase {
 //			draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingExclusiveMrcas(startNode);
 //			draftSynthesisMethod = new RootwardSynthesisParentExpander(startNode);
 //			draftSynthesisMethod = new SourceRankTopoOrderSynthesisExpanderUsingEdgeIdsAndTipIds().synthesizeFrom(startNode);
-			draftSynthesisMethod = new RankedSynthesisSubproblemExpander(startNode, Verbosity.EXTREME);
+			draftSynthesisMethod = new RankedSynthesisSubproblemExpander(startNode, Verbosity.SILENT);//changed from Verbosity.EXTREME
 //
 // ================================ TESTING =================================
 		
@@ -1520,6 +1526,9 @@ public class GraphExplorer extends GraphBase {
 		
 		String synthTreeName = tempSynthTreeName;
 		
+        
+        
+        // TODO: add all sources
 		try {
 			Node metadatanode = graphDb.createNode();
 			metadatanode.createRelationshipTo(startNode, RelType.SYNTHMETADATAFOR);
@@ -1528,6 +1537,7 @@ public class GraphExplorer extends GraphBase {
 			metadatanode.setProperty("date", date.toString());
 			//	metadatanode.setProperty("synthmethod", arg1);
 			//	metadatanode.setProperty("command", command);
+            
 			metadatanode.setProperty("sourcenames", sourceIdPriorityListString); // need to make sure that this list is processed correctly
 			// Adding 1) taxonomy version and 2) start node to the metadata node too, as it seems convenient to have everything together
 			if (getTaxonomyVersion() != null) {
@@ -1566,7 +1576,6 @@ public class GraphExplorer extends GraphBase {
 					Relationship newRel = curNode.createRelationshipTo(parentNode, RelType.SYNTHCHILDOF);
 					newRel.setProperty("name", synthTreeName);
 					
-					
 					// add to synthesis index
 					//synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
 					synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
@@ -1578,6 +1587,11 @@ public class GraphExplorer extends GraphBase {
 							sources.add(String.valueOf(rel2.getProperty("source")));
 						}
 					}
+                    
+                    // include taxonomy as a source as well
+                    if (curNode.hasRelationship(RelType.TAXCHILDOF)) {
+                        sources.add("taxonomy");
+                    }
 					
 					// store the sources in a string array
 					String[] sourcesArray = new String[sources.size()];
@@ -2071,7 +2085,6 @@ public class GraphExplorer extends GraphBase {
 						System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
 						done = true;
 					}
-					
 				}
 				//if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")) {
 				//	curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
@@ -3332,9 +3345,45 @@ public class GraphExplorer extends GraphBase {
 	 *		distance from the root. If maxDepth is negative, no threshold is applied
 	 */
 	private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
+		HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
+		
 		JadeNode root = new JadeNode();
 		decorateJadeNodeWithCoreProperties(root, rootnode);
-		root.assocObject("pathToRoot", getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID));
+		
+		List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
+		root.assocObject("pathToRoot", pathToRoot); // TODO: add supported by sources to this
+		
+		ArrayList<String> allSources = new ArrayList<String>(); // used in tree browser
+		for (Node nd : pathToRoot) {
+			ArrayList<String> curSources = getSynthesisSupportingSources(nd);
+			if (!curSources.isEmpty()) {
+				allSources.addAll(curSources);
+			}
+		}
+		
+		ArrayList<String> rootSynthSources = getSynthesisSupportingSources(rootnode);
+		String[] sources = rootSynthSources.stream().toArray(String[]::new); // java8
+		root.assocObject("supporting_sources", sources);
+		
+		allSources.addAll(rootSynthSources);
+		
+		// add source info
+		for (String s : allSources) {
+			if (!mentionedSources.containsKey(s)) {
+				IndexHits<Node> metanodes = null;
+				try {
+					metanodes = sourceMetaIndex.get("source", s);
+					Node m1 = null;
+					if (metanodes.hasNext()) {
+						m1 = metanodes.next();
+					}
+					mentionedSources.put(s, m1);
+				} finally {
+					metanodes.close();
+				}
+			}
+		}
+		
 		boolean printlengths = false;
 		HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
 		node2JadeNode.put(rootnode, root);
@@ -3347,7 +3396,7 @@ public class GraphExplorer extends GraphBase {
 		HashSet<Node> internalNodes = new HashSet<Node>();
 		ArrayList<Node> unnamedChildNodes = new ArrayList<Node>();
 		ArrayList<Node> namedChildNodes = new ArrayList<Node>();
-		HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
+		
 		for (Path path : synthEdgeTraversal.traverse(rootnode)) {
 			Relationship furshestRel = path.lastRelationship();
 			if (furshestRel != null && furshestRel.hasProperty("name")) {
