@@ -2019,6 +2019,7 @@ public class GraphExplorer extends GraphBase {
 				Node attachHere = toReplace.getEndNode();
 				String[] sources = (String[]) toReplace.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
 				synthRelIndex.remove(toReplace, "draftTreeID", DRAFTTREENAME);
+				toReplace.delete();
 				
 				// replacement relationship: attach parent taxon to original placement
 				Relationship replaceOriginalRel = ptaxNode.createRelationshipTo(attachHere, RelType.SYNTHCHILDOF);
