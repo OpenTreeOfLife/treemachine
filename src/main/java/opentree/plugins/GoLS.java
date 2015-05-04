@@ -604,7 +604,8 @@ public class GoLS extends ServerPlugin {
 			Node meta = ge.getSynthesisMetaNodeByName(treeID);
 			ge.shutdownDB();
 			if (meta == null) {
-				throw new IllegalArgumentException("Unrecognized \"treeID\" argument. Leave blank to default to the current synthetic tree.");
+				responseMap.put("error", "Unrecognized \"treeID\" argument. Leave blank to default to the current synthetic tree.");
+				return OTRepresentationConverter.convert(responseMap);
 			} else {
 				synthTreeID = treeID;
 			}
@@ -626,7 +627,8 @@ public class GoLS extends ServerPlugin {
 		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
 			emitNewick = true;
 		} else if (!format.equalsIgnoreCase("arguson")) {
-			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
+			responseMap.put("error", "Expecting either \"newick\" or \"arguson\" as the format.");
+			return OTRepresentationConverter.convert(responseMap);
 		}
 
 		// get the subtree for export
