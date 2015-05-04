@@ -601,7 +601,9 @@ public class GoLS extends ServerPlugin {
 		
 		// synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
 		if (treeID != null) {
+			GraphExplorer ge = new GraphExplorer(graphDb);
 			ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+			ge.shutdownDB();
 			if (synthTreeIDs.contains(treeID)) {
 				synthTreeID = treeID;
 			} else {
