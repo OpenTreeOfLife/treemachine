@@ -597,6 +597,18 @@ public class GoLS extends ServerPlugin {
 		long subtreeNodeID = 0;
 		boolean emitNewick = false;
 		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
+		
+		// synthetic tree identifier
+		if (treeID != null) {
+			GraphExplorer ge = new GraphExplorer(graphDb);
+			Node meta = ge.getSynthesisMetaNodeByName(treeID);
+			ge.shutdownDB();
+			if (meta == null) {
+				throw new IllegalArgumentException("Unrecognized \"treeID\" argument. Leave blank to default to the current synthetic tree.");
+			} else {
+				synthTreeID = treeID;
+			}
+		}
 
 		// override defaults if user-specified
 		if (maxDepthArg != null) {
@@ -615,11 +627,6 @@ public class GoLS extends ServerPlugin {
 			emitNewick = true;
 		} else if (!format.equalsIgnoreCase("arguson")) {
 			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
-		}
-		
-		// synthetic tree identifier
-		if (treeID != null) {
-			synthTreeID = treeID;
 		}
 
 		// get the subtree for export
