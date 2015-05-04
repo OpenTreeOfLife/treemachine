@@ -611,6 +611,14 @@ public class GoLS extends ServerPlugin {
 				synthTreeID = treeID;
 			}
 		}
+		
+		// determine output format
+		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
+			emitNewick = true;
+		} else if (!format.equalsIgnoreCase("arguson")) {
+			responseMap.put("error", "Expecting either \"newick\" or \"arguson\" as the format.");
+			return OTRepresentationConverter.convert(responseMap);
+		}
 
 		// override defaults if user-specified
 		if (maxDepthArg != null) {
@@ -622,14 +630,6 @@ public class GoLS extends ServerPlugin {
 			subtreeNodeID = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
 		} else {
 			subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
-		}
-
-		// determine output format
-		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
-			emitNewick = true;
-		} else if (!format.equalsIgnoreCase("arguson")) {
-			responseMap.put("error", "Expecting either \"newick\" or \"arguson\" as the format.");
-			return OTRepresentationConverter.convert(responseMap);
 		}
 
 		// get the subtree for export
