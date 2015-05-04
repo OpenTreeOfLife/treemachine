@@ -583,7 +583,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSyntheticTree(
 			@Source GraphDatabaseService graphDb,
-			@Description("The identifier for the synthesis (e.g. \"otol.draft.22\") (default is most current synthetic tree)")
+			@Description("The identifier for the synthesic tree (e.g. \"opentree3.0\") (default is most current synthetic tree)")
 			@Parameter(name = "treeID", optional = true) String treeID,
 			@Description("The name of the return format (default is newick)")
 			@Parameter(name = "format", optional = true) String format,
