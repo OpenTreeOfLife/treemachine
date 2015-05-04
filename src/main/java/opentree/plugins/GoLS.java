@@ -599,16 +599,14 @@ public class GoLS extends ServerPlugin {
 		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
 		
-		// synthetic tree identifier
+		// synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
 		if (treeID != null) {
-			GraphExplorer ge = new GraphExplorer(graphDb);
-			Node meta = ge.getSynthesisMetaNodeByName(treeID);
-			ge.shutdownDB();
-			if (meta == null) {
-				responseMap.put("error", "Unrecognized \"treeID\" argument. Leave blank to default to the current synthetic tree.");
-				return OTRepresentationConverter.convert(responseMap);
-			} else {
+			ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+			if (synthTreeIDs.contains(treeID)) {
 				synthTreeID = treeID;
+			} else {
+				responseMap.put("error", "Unrecognized \"tree_id\" argument. Leave blank to default to the current synthetic tree.");
+				return OTRepresentationConverter.convert(responseMap);
 			}
 		}
 		

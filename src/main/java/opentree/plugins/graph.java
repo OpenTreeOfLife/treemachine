@@ -236,6 +236,9 @@ public class graph extends ServerPlugin {
 			}
 			nodeIfo.put("draft_tree_lineage", lineage);
 		}
+		// report treeID
+		Node meta = ge.getMostRecentSynthesisMetaNode();
+		nodeIfo.put("tree_id", meta.getProperty("name"));
 
 		ge.shutdownDB();
 
