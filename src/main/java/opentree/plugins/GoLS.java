@@ -597,6 +597,7 @@ public class GoLS extends ServerPlugin {
 		long subtreeNodeID = 0;
 		boolean emitNewick = false;
 		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
 		
 		// synthetic tree identifier
 		if (treeID != null) {
@@ -641,7 +642,6 @@ public class GoLS extends ServerPlugin {
 		}
 
 		if (emitNewick) {
-			HashMap<String, Object> responseMap = new HashMap<String, Object>();
 //			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths())); // commented because it seems to be failing with newer versions of the jade code
 			responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
 			responseMap.put("treeID", synthTreeID);
