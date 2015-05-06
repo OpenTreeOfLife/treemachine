@@ -855,11 +855,8 @@ public class BipartOracle {
 
 	private LongSet LSintersection(LongSet x,LongSet y){
 		MutableCompactLongSet in = new MutableCompactLongSet();
-		for(Long l1:x){
-			for(Long l2: y){
-				if (l1==l2)
-					in.add(l1);
-			}
+		for (Long q: x) {
+			if (y.contains(q)) { in.add(q); }
 		}
 		return in;
 	}
