@@ -71,6 +71,9 @@ public final class TipExploder {
 	} */
 	
 	/**
+	 * maps TreeNode -> HashSet<String> of labels for the terminal taxa associated with that node
+	 * The keys are the set of leaves for the trees.
+	 *
 	 * Returns a map whose keys X are the taxon ids {x1,x2,...xN} of each unique taxon name applied to a tip in the set of incoming trees
 	 * and whose values are the list of taxon ids for all the terminal taxa contained by each xi in X.
 	 * @param identifier

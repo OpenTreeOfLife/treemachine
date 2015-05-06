@@ -1,5 +1,4 @@
 	package org.opentree.tag.treeimport;
-
 import jade.tree.JadeNode;
 import jade.tree.TreeBipartition;
 import jade.tree.TreeNode;
@@ -7,7 +6,6 @@ import jade.tree.NodeOrder;
 import jade.tree.Tree;
 import jade.tree.TreeParseException;
 import jade.tree.TreeReader;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -24,7 +22,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Predicate;
-
 import opentree.GraphExplorer;
 import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
@@ -32,7 +29,6 @@ import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.synthesis.TarjanSCC;
 import opentree.synthesis.TopologicalOrder;
-
 import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -45,21 +41,14 @@ import org.opentree.bitarray.ImmutableCompactLongSet;
 import org.opentree.bitarray.LongSet;
 import org.opentree.bitarray.MutableCompactLongSet;
 import org.opentree.graphdb.GraphDatabaseAgent;
-
 public class BipartOracle {
-
 	private final GraphDatabaseAgent gdb;
 	// maps of tip names for higher taxon tips to sets of tip names for their included taxa
-
-	/** key is id for tip, value is hashset of ids that are exploded with this id */
-	Map<Object, Collection<Object>> explodedTipsHash;
 	/** key is id for tip, value is hashset of ids that are exploded with this id */
 	Map<Object, Collection<Object>> explodedTipsHashReduced;
 	/** this will have the key as the id used in the shrunk set and the collection as the full set*/
 	Map<Object, Collection<Object>> shrunkSet;
-	
 	// tree nodes and bipartitions
-	
 	/**
 	 * A mapping of tree nodes directly onto their original bipartitions stored in the bipart array (so no futzing with
 	 * ids should be required. The bipart array should not contain any duplicates, so the many tree nodes may map to the
@@ -67,20 +56,17 @@ public class BipartOracle {
 	 */
 	Map<TreeNode, LongBipartition> bipartForTreeNode = new HashMap<TreeNode, LongBipartition>();
 	Map<TreeNode, LongBipartition> bipartForTreeNodeExploded = new HashMap<TreeNode, LongBipartition>();
-
 	/**
 	 * A mapping of the biparts in the bipart array that correspond exactly to original tree nodes, onto those tree nodes.
 	 * The bipart array should not contain any duplicates, so the many tree nodes may map to the same bipart.
 	 */
 	Map<LongBipartition, Set<TreeNode>> treeNodesForBipart = new HashMap<LongBipartition, Set<TreeNode>>();
-	
 	/**
 	 * Sets of bipartitions extracted from each input tree and grouped according to the tree from which they were drawn.
 	 * This is used for the bipart set sum operation. These groups should contain no duplicates -- only the group for the
 	 * first tree in which a bipart is observed will contain that bipart.
 	 */
 	List<Collection<LongBipartition>> bipartsByTreeNoDuplicates = new ArrayList<Collection<LongBipartition>>();
-
 	/**
 	 * Just a list of the indices for the sum-result biparts so we can easily access them independently of originals. This
 	 * list is used (and reused) for stream operations confined to the sum-results.
@@ -89,7 +75,6 @@ public class BipartOracle {
 	 */
 	List<Integer> summedBipartIds = new ArrayList<Integer>();
 	Map<Integer,ArrayList<Integer>> summedBipartSourceBiparts = new HashMap<Integer,ArrayList<Integer>>();
-
 	/**
 	 * Just a list of the indices for the biparts generated during the path traversal procedure (i.e. not original tree biparts
 	 * nor sum-result biparts). Currently we don't use this for anything.
@@ -97,95 +82,68 @@ public class BipartOracle {
 	 * <tt>generatedBipartIds[i] == bipart[i]</tt>
 	 */
 	List<Integer> generatedBipartIds = new ArrayList<Integer>();
-
 	/**
 	 * The list of *all* biparts: originals, sums, and those generated from paths. We append to this list as we find new
 	 * bipartitions. Indices in this list essentially function as bipart ids and we use them in other data structures such
 	 * as <tt>nestedChildren</tt>, <tt>nestedParents</tt>, <tt>paths</tt>, <tt>summedBipartIds</tt>, and <tt>generatedBipartIds</tt>.
 	 */
 	List<LongBipartition> bipart = new ArrayList<LongBipartition>(); 
-
 	/** Just a set containing all the known biparts for fast lookups. */
 	Map<LongBipartition, Integer> bipartId = new HashMap<LongBipartition, Integer>();
-	
 	/** This map associates new biparts created during path traversal with the preexisting biparts that were used to generate them.
 	 * The new biparts are more restrictive, because their ingroups/outgroups are augmented by the path traversal procedure, but they
 	 * may still be compatible parents/children of the parents/children of the preexisting biparts that gave rise to them, so we
 	 * keep track of them here (associated with the preexisting biparts that were used to generate them) so that we can check whether
 	 * or not we need to make the appropriate MRCACHILDOF rels. */
 	List<Set<Integer>> analogousBiparts;
-
 	/** The *valid* paths found during the findPaths procedure, each of which represents a linear sequence
 	 * of a nested child bipartitions to a parent, which is a nested child of another parent, and so on. */
 	Set<Path> paths;
-	
 	/** <tt>nestedChildren[i]</tt> contains the ids of all the biparts that are nested within <tt>bipart[i]</tt> */
 	List<Set<Integer>> nestedChildren;
-	
 	/** <tt>nestedParents[i]</tt> contains the ids of all the biparts that <tt>bipart[i]</tt> *is* a nested child of */
 	List<Set<Integer>> nestedParents;
-	
 	List<Set<Integer>> compatibleBiparts;
-
-
 	/** <tt>nestedAugmentingParents[i]</tt> contains the ids of all the biparts that are nested within <tt>bipart[i]</tt> AND which
 	 * have a different taxonomic composition from <tt>bipart[i]</tt>, i.e. for all b in <tt>nestedChildren[i]</tt>, (ingroup(b)
 	 * ∪ outgroup(b)) ≠ (ingroup(<tt>bipart[i]</tt>) ∪ outgroup(<tt>bipart[i]</tt>)). This difference in taxonomic composition is
 	 * a requirement for bipartitions to augment one another's ingroups and outgroups during path traversals. Thus, by not adding
 	 * bipartitions with identical taxonomic composition to this list, we can avoid unnecessary path traversals. */
 	List<Set<Integer>> nestedAugmentingParents;
-
 	// these associate input labels with node ids
-	
 	/** The neo4j node id for the node corresponding to each unique tip label from the set of input trees. */
 	Map<Object, Long> nodeIdForLabel = new HashMap<Object, Long>();
-
 	/** The unique tip label from the set of input trees for each neo4j node that represents a tip node from the trees. */
 	Map<Long, Object> labelForNodeId = new HashMap<Long, Object>();
-
 	// maps of graph nodes to various things
-
 	/** neo4j node for bipartition */
 	private Map<LongBipartition, Node> graphNodeForBipart = new HashMap<LongBipartition, Node>();
-	
 	/** bipartition for neo4j node */
 	private Map<Node, LongBipartition> bipartForGraphNode = new HashMap<Node, LongBipartition>();
 	private Map<Node, LongBipartition> bipartForGraphNodeExploded = new HashMap<Node, LongBipartition>();
-	
-	
 	/** all the graph nodes that have been mapped to the tree node */
 	private Map<TreeNode, HashSet<Node>> graphNodesForTreeNode = new HashMap<TreeNode, HashSet<Node>>(); 
-	
 	/** these are the graph nodes that actually are used. this way we can remove the nodes and rels that aren't */
 	private HashSet<Long> nodesWithSTREERels = new HashSet<Long>();
-	
 	/** Just a simple container to keep track of rels we know we've made so we can cut down on database queries to find out of they exist. */
 	private Map<Long, HashSet<Long>> hasMRCAChildOf = new HashMap<Long, HashSet<Long>>();
 	private Map<Long, HashMap<Long,HashSet<String>>> hasSTREEChildOf = new HashMap<Long, HashMap<Long,HashSet<String>>>();
 	private Map<Long, HashSet<Long>> notValidSTREEChildOf = new HashMap<Long, HashSet<Long>>();
 	private Map<Long, HashSet<Long>> testedSTREEChildOf = new HashMap<Long, HashSet<Long>>();
-
-	
 	/** map for the list of relevant taxonomy nodes */
 	Map<Node,LongBipartition> taxonomyGraphNodesMap;
 	JadeNode taxonomyJadeRoot;
-	
-	
 	/** this is just a map of node and the RANK of the tree it came from in the list. higher is better--earlier in the list */
 	Map<TreeNode,Integer> rankForTreeNode;
-
 	/** this is just a map of node and the ORDER (higher is later in the list) of the tree it came from in the list */
 	Map<TreeNode,String> sourceForTreeNode;
-	
 	//these are subset tips and roots to be connected to other tips
 	Map<TreeNode, String> subsetTipInfo;
-	
 	//these are the source labels
 	Map<Tree, String> sourceForTrees;
-	
- 	int nodeId = 0;
- 	String ottidFromSubset = null;
- 	Node taxnodeFromSubset = null;
+	int nodeId = 0;
+	String ottidFromSubset = null;
+	Node taxnodeFromSubset = null;
 	/**
 	 * instantiation runs the entire analysis
 	 * @param trees
@@ -193,85 +151,65 @@ public class BipartOracle {
 	 * @param mapInternalNodesToTax
 	 * @throws Exception
 	 */
-    public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy,
-            Map<Tree, String> sources, Map<TreeNode, String> subsetInfo, String subsetFileName) throws Exception {
-        this.gdb = gdb;
-        this.USING_TAXONOMY = useTaxonomy; // MTH - TRUE
-        this.subsetTipInfo = subsetInfo;
-        this.sourceForTrees = sources;
-        //store the subset in the index
-    	Transaction tx = gdb.beginTx();
-        Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
-        
-        if (subsetFileName.contains("/")) {
-        	String [] spls = subsetFileName.split("/");
-            ottidFromSubset = spls[spls.length-1];
-        } else {
-        	ottidFromSubset = subsetFileName;
-        }
-        ottidFromSubset = ottidFromSubset.replace(".tre", "").replace("ott", "");
-        System.out.println("ottidFromSubset: "+ottidFromSubset);
-        taxnodeFromSubset = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottidFromSubset).getSingle();
-        if (taxnodeFromSubset == null) {
-        	System.err.println("cannot find ottidFromSubset:"+subsetFileName+" "+ottidFromSubset);
-        	System.err.println("exiting");
-        	return;
-        }
-        Index<Node> ottIdIndexss = gdb.getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
-        ottIdIndexss.add(taxnodeFromSubset, "subset", ottidFromSubset);
-        tx.success();
-        tx.finish();
-
-        long w = new Date().getTime(); // for timing 
-
-        validateTrees(trees); // throws exception for trees w/o informative groups
-
-        //just associate the rank with the treenodes
-        createTreeIdRankMap(trees);
-
+	public BipartOracle(List<Tree> trees, GraphDatabaseAgent gdb, boolean useTaxonomy,
+			Map<Tree, String> sources, Map<TreeNode, String> subsetInfo, String subsetFileName) throws Exception {
+		this.gdb = gdb;
+		this.USING_TAXONOMY = useTaxonomy; // MTH - TRUE
+		this.subsetTipInfo = subsetInfo;
+		this.sourceForTrees = sources;
+		//store the subset in the index
+		Transaction tx = gdb.beginTx();
+		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
+		if (subsetFileName.contains("/")) {
+			String [] spls = subsetFileName.split("/");
+			ottidFromSubset = spls[spls.length-1];
+		} else {
+			ottidFromSubset = subsetFileName;
+		}
+		ottidFromSubset = ottidFromSubset.replace(".tre", "").replace("ott", "");
+		System.out.println("ottidFromSubset: "+ottidFromSubset);
+		taxnodeFromSubset = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, ottidFromSubset).getSingle();
+		if (taxnodeFromSubset == null) {
+			System.err.println("cannot find ottidFromSubset:"+subsetFileName+" "+ottidFromSubset);
+			System.err.println("exiting");
+			return;
+		}
+		Index<Node> ottIdIndexss = gdb.getNodeIndex("subproblemRoots", "type", "exact", "to_lower_case", "true");
+		ottIdIndexss.add(taxnodeFromSubset, "subset", ottidFromSubset);
+		tx.success();
+		tx.finish();
+		long w = new Date().getTime(); // for timing 
+		validateTrees(trees); // throws exception for trees w/o informative groups
+		//just associate the rank with the treenodes
+		createTreeIdRankMap(trees);
 		// if we are using taxonomy then tree tip labels must correspond to taxon ids. for tips that are
-        // matched to *higher* (i.e. non-terminal) taxa, this will gather the taxon ids of all the terminal
-        // taxa contained by that higher taxon. these 'exploded' sets are used later during various steps.
-        explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb);
-        reduceExplodedTipsHash();
-        
+		// matched to *higher* (i.e. non-terminal) taxa, this will gather the taxon ids of all the terminal
+		// taxa contained by that higher taxon. these 'exploded' sets are used later during various steps.
+		reduceExplodedTipsHash();
 		// first process the incoming trees and collect bipartitions
-        // populate class members: treeNode, original, treeNodeIds, nodeIdForName, nameForNodeId, bipartsByTree
-        gatherTreeData(trees);
-        mapTreeNodesToTaxa(trees);
-        
-        // need to get the relevant nodes from taxonomy in a set to be used for later analyses
-        populateTaxonomyGraphNodesMap(trees);
-        
-        gatherBipartitions(trees); // populate class member: bipart
-
-        // identify all the pairwise bipart nestings and find the valid hierarchical nestings (paths)
-        identifyNestedChildBiparts(trees); // populate class members: nestedChildren, nestedParents, nodeForBipart, bipartForNode
-        findAllPaths(); // populate class member: paths
-
+		// populate class members: treeNode, original, treeNodeIds, nodeIdForName, nameForNodeId, bipartsByTree
+		gatherTreeData(trees);
+		mapTreeNodesToTaxa(trees);
+		// need to get the relevant nodes from taxonomy in a set to be used for later analyses
+		populateTaxonomyGraphNodesMap(trees);
+		gatherBipartitions(trees); // populate class member: bipart
+		// identify all the pairwise bipart nestings and find the valid hierarchical nestings (paths)
+		identifyNestedChildBiparts(trees); // populate class members: nestedChildren, nestedParents, nodeForBipart, bipartForNode
+		findAllPaths(); // populate class member: paths
 		// revisit all the valid paths to:
-        // 1) identify new ingroup/outgroup composition for nested biparts and make corresponding nodes
-        // 2) record all bipart nesting information for generating MRCACHILDOF rels among nodes
-        createNodesUsingPaths();
-
+		// 1) identify new ingroup/outgroup composition for nested biparts and make corresponding nodes
+		// 2) record all bipart nesting information for generating MRCACHILDOF rels among nodes
+		createNodesUsingPaths();
 		// connect all the appropriate nodes with MRCACHILDOF rels
-        // populate class members: graphNodesForTreeNode, hasMRCAChildOf
-        mapTreeRootNodes(trees); // creates new nodes if necessary
-        generateMRCAChildOfs();  // connect all nodes, must be done *after* all nodes are created!
-
-        // now we map the trees using the MRCACHILDOF rels to find suitable parents/children
-        mapNonRootNodes(trees);
-
-		// setting this for use eventually in the mapInternalNodes 
-        // because taxonomy is added above, this isn't necessary
-        //if (USING_TAXONOMY) { mapInternalNodesToTaxonomy(trees); }
-        //clean up the nodes and rels that aren't used at all
-        removeUnusedNodesAndRels();
-
-        System.out.println("loading is complete. total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
-    }
-    
-    
+		// populate class members: graphNodesForTreeNode, hasMRCAChildOf
+		mapTreeRootNodes(trees); // creates new nodes if necessary
+		generateMRCAChildOfs();  // connect all nodes, must be done *after* all nodes are created!
+		// now we map the trees using the MRCACHILDOF rels to find suitable parents/children
+		mapNonRootNodes(trees);
+		//clean up the nodes and rels that aren't used at all
+		removeUnusedNodesAndRels();
+		System.out.println("loading is complete. total time: " + (new Date().getTime() - w) / 1000 + " seconds.");
+	}
 	private void removeUnusedNodesAndRels() {
 		System.out.println("cleaning the ununsed nodes and relationships");
 		int removedNs = 0;
@@ -300,7 +238,6 @@ public class BipartOracle {
 		tx.finish();
 		System.out.println("done cleaning "+removedNs+" nodes and "+removedRs+" relationships");
 	}
-
 	/**
 	 * check if the trees are appropriate. throws exceptions if errors are found.
 	 * @param trees
@@ -314,7 +251,6 @@ public class BipartOracle {
 		}
 		return true;
 	}
-	
 	/**
 	 * Collect information from trees, including tip labels, nodes that are mapped to those tip labels,
 	 * original bipartitions from trees, and their original internal nodes. Objects and associated information
@@ -349,10 +285,8 @@ public class BipartOracle {
 			bipartsByTreeNoDuplicates.add(treeBiparts);
 			count += 1;
 		}
-		
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 	}
-
 	/**
 	 * Create a node in the database for each unique tip label that occurs in at least one tree.
 	 * @param trees
@@ -373,20 +307,24 @@ public class BipartOracle {
 		tx.success();
 		tx.finish(); 
 	}
-
 	/**
 	 * If we are using taxonomy, then all incoming tip labels must correspond to a taxon.
 	 * This will just find them and store their node ids.
 	 * @param trees
 	 */
 	private void mapTipsToTaxa(List<Tree> trees) {
-	
 		Index<Node> ottIdIndex = gdb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
 		for (Tree t : trees) {
 			for (TreeNode l : t.externalNodes()) {
 				try {
-					for (Object label: explodedTipsHash.get(l)) {
-						collectTaxonNodeForTipLabel(label, ottIdIndex);
+					if (l in shrunkSet ) {
+						for (Object label: shrunkSet.get(l)) {
+							collectTaxonNodeForTipLabel(label, ottIdIndex);
+						}
+					} else {
+						for (Object label: explodedTipsHashReduced.get(l)) {
+							collectTaxonNodeForTipLabel(label, ottIdIndex);
+						}
 					}
 					// doing this for the actual tip name as well if it isn't already in the database
 					// might be the case if there are exploded tips... is this to cover tips that weren't exploded?
@@ -399,7 +337,6 @@ public class BipartOracle {
 			}
 		}
 	}
-	
 	/**
 	 * 
 	 * @param label
@@ -445,8 +382,6 @@ public class BipartOracle {
 			}
 		}
 	}
-	
-	
 	private void collectTaxonNodeForTipLabel(Object label, Index<Node> ottIdIndex) {
 		if (! nodeIdForLabel.containsKey(label)) {
 			Node tip = ottIdIndex.get(NodeProperty.TAX_UID.propertyName, label).getSingle();
@@ -455,7 +390,6 @@ public class BipartOracle {
 			labelForNodeId.put(tip.getId(), label);
 		}
 	}
-	
 	/**
 	 * Get pairwise sums of all tree biparts and put all biparts into a single array for future use.
 	 */
@@ -535,7 +469,6 @@ public class BipartOracle {
 			}
 		}
 	}
-	
 	/**
 	 * This differs from sum in that it doesn't not return a bipart if it is equal
 	 * and it requires overlap with the ingroups not ingroups or outgroups. No guarantee is made about the type of the
@@ -546,166 +479,157 @@ public class BipartOracle {
 	 * @return
 	 */
 	public LongBipartition strictSumPhylo(LongBipartition t1, LongBipartition t2) {
-
 		if (! t1.isCompatibleWith(t2))
 			return null;
-		
 		if (! t1.ingroup().containsAny(t2.ingroup()))
 			return null;
-
 		if (t1.equals(t2))
 			return null;
-		
 		MutableCompactLongSet sumIn = new MutableCompactLongSet();
 		sumIn.addAll(t1.ingroup());
 		sumIn.addAll(t2.ingroup());
-
 		MutableCompactLongSet sumOut = new MutableCompactLongSet();
 		sumOut.addAll(LSintersection(t1.outgroup(),t2.outgroup()));
 		if(sumOut.size()==0)
 			return null;
-
 		return new ImmutableLongBipartition(sumIn, sumOut);
 	}
-	
-    private LongBipartition testSum(LongBipartition par1, LongBipartition par2, Set<LongBipartition> originalBiparts) {
-        LongBipartition xor = par1.xor(par2);
-        LongBipartition ss = par1.strictSum(par2);
-        //System.out.println(ss);
-        if (ss == null) {
-            return null;
-        }
-        // System.out.println(par1+" "+par2);
-        //else
-        //	return ss;
-        if (xor.ingroup().size() == 0 || xor.outgroup().size() == 0 || par1.outgroup().size() == 0 || par2.outgroup().size() == 0) {
-            //System.out.println("would make " + ss);
-            return ss;
-        } else {
-            HashMap<Long, HashMap<Long, MutableCompactLongSet>> Q = new HashMap<Long, HashMap<Long, MutableCompactLongSet>>();
-            for (Long l : ss.ingroup()) {
-                Q.put(l, new HashMap<>());
-                for (Long l2 : ss.ingroup()) {
-                    if (l == l2) {
-                        continue;
-                    }
-                    Q.get(l).put(l2, new MutableCompactLongSet());
-                }
-            }
-            for (Long l : ss.outgroup()) {
-                Q.put(l, new HashMap<>());
-                for (Long l2 : ss.outgroup()) {
-                    if (l == l2) {
-                        continue;
-                    }
-                    Q.get(l).put(l2, new MutableCompactLongSet());
-                }
-            }
-            //populate Q and reduce bipartition set
-            HashSet<LongBipartition> totest = new HashSet<LongBipartition>();
-            for (LongBipartition testBi : originalBiparts) {
-                //System.out.println(testBi);
-                //TODO: make this a phylogenetic compatible comparison instead
-                if (testBi.ingroup().containsAny(ss.outgroup()) && testBi.outgroup().containsAny(ss.ingroup())
-                        && testBi.ingroup().containsAny(ss.ingroup())) {
-                } else {
-                        //populate Q
-                    //intersection ingroup bipart with ss ingroup
-                    //intersection outgroup bipart with ss ingroup
-                    //for each ingroup intersection, add the others and add the outgroup intersection to the mutable set
-                    LongSet ing1 = LSintersection(testBi.ingroup(), ss.ingroup());
-                    LongSet ing2 = LSintersection(testBi.outgroup(), ss.ingroup());
-                    //System.out.println(testBi);
-                    //System.out.println("i: "+ing1+" "+ing2);
-                    for (Long l1 : ing1) {
-                        for (Long l2 : ing1) {
-                            if (l1 == l2) {
-                                continue;
-                            }
-                            Q.get(l1).get(l2).addAll(ing2);
-                        }
-                    }
-                    //outgroup
-                    LongSet out1 = LSintersection(testBi.ingroup(), ss.outgroup());
-                    LongSet out2 = LSintersection(testBi.outgroup(), ss.outgroup());
-                    //System.out.println("o: "+out1+" "+out2);
-                    for (Long l1 : out1) {
-                        for (Long l2 : out1) {
-                            if (l1 == l2) {
-                                continue;
-                            }
-                            Q.get(l1).get(l2).addAll(out2);
-                        }
-                    }
-                    if(out1.size()>0 && ing1.size() > 0){
-                        for (Long l1 : out1) {
-                            for (Long l2 : ing1) {
-                                if(Q.get(l1).containsKey(l2)==false)
-                                    Q.get(l1).put(l2, new MutableCompactLongSet());
-                                Q.get(l1).get(l2).addAll(out2);
-                            }
-                        }
-                    }
-                    //System.out.println(Q);
-                    //System.out.println("=======");
-                }
-            }
-            //System.out.println(Q);
-            HashMap<Long, MutableCompactLongSet> R = new HashMap<Long, MutableCompactLongSet>();
-            for (Long l : ss.ingroup()) {
-                R.put(l, new MutableCompactLongSet());
-            }
-            for (LongBipartition testBi : originalBiparts) {
-                if (testBi.isCompatibleWith(ss) == false) {
-                    continue;
-                }
-                LongSet ing = LSintersection(testBi.ingroup(), ss.ingroup());
-                LongSet out = LSintersection(testBi.outgroup(), ss.outgroup());
-                HashMap<Long, MutableCompactLongSet> outtoadd = new HashMap<Long, MutableCompactLongSet>();
-                //TODO: do the outgroup
-                for (Long l1 : out) {
-                    outtoadd.put(l1, new MutableCompactLongSet());
-                    outtoadd.get(l1).add(l1);
-                    for (Long l2 : Q.get(l1).keySet()) {
-                        if (ss.ingroup().contains(l2)==false && testBi.outgroup().containsAny(Q.get(l1).get(l2))) {
-                            outtoadd.get(l1).add(l2);
-                        }if (ss.ingroup().contains(l2) && testBi.ingroup().contains(l2)) {
-                            outtoadd.get(l1).addAll(Q.get(l1).get(l2));
-                        }
-                    }
-                }
-
-                //TODO: change to a while and keep updating
-                for (Long l1 : ing) {
-                    R.get(l1).addAll(out);
-                    for (Long o : outtoadd.keySet()) {
-                        R.get(l1).addAll(outtoadd.get(o));
-                    }
-                    for (Long l2 : Q.get(l1).keySet()) {
-                        if (testBi.ingroup().containsAny(Q.get(l1).get(l2))) {
-                            R.get(l2).addAll(out);
-                            for (Long o : outtoadd.keySet()) {
-                                R.get(l2).addAll(outtoadd.get(o));
-                            }
-                        }
-                    }
-                }
-            }
-            //System.out.println(R);
-            for (Long l : ss.ingroup()) {
-                if (R.get(l).size() != ss.outgroup().size()) {
-                    System.out.println("wouldn't make " + ss);
-                    //System.exit(0);
-                    return null;
-                }
-            }
-            System.out.println("would make " + ss);
-            //System.exit(0);
-            return ss;
-        }
-        //return null;
-    }
-
+	private LongBipartition testSum(LongBipartition par1, LongBipartition par2, Set<LongBipartition> originalBiparts) {
+		LongBipartition xor = par1.xor(par2);
+		LongBipartition ss = par1.strictSum(par2);
+		//System.out.println(ss);
+		if (ss == null) {
+			return null;
+		}
+		// System.out.println(par1+" "+par2);
+		//else
+		//	return ss;
+		if (xor.ingroup().size() == 0 || xor.outgroup().size() == 0 || par1.outgroup().size() == 0 || par2.outgroup().size() == 0) {
+			//System.out.println("would make " + ss);
+			return ss;
+		} else {
+			HashMap<Long, HashMap<Long, MutableCompactLongSet>> Q = new HashMap<Long, HashMap<Long, MutableCompactLongSet>>();
+			for (Long l : ss.ingroup()) {
+				Q.put(l, new HashMap<>());
+				for (Long l2 : ss.ingroup()) {
+					if (l == l2) {
+						continue;
+					}
+					Q.get(l).put(l2, new MutableCompactLongSet());
+				}
+			}
+			for (Long l : ss.outgroup()) {
+				Q.put(l, new HashMap<>());
+				for (Long l2 : ss.outgroup()) {
+					if (l == l2) {
+						continue;
+					}
+					Q.get(l).put(l2, new MutableCompactLongSet());
+				}
+			}
+			//populate Q and reduce bipartition set
+			HashSet<LongBipartition> totest = new HashSet<LongBipartition>();
+			for (LongBipartition testBi : originalBiparts) {
+				//System.out.println(testBi);
+				//TODO: make this a phylogenetic compatible comparison instead
+				if (testBi.ingroup().containsAny(ss.outgroup()) && testBi.outgroup().containsAny(ss.ingroup())
+						&& testBi.ingroup().containsAny(ss.ingroup())) {
+				} else {
+						//populate Q
+					//intersection ingroup bipart with ss ingroup
+					//intersection outgroup bipart with ss ingroup
+					//for each ingroup intersection, add the others and add the outgroup intersection to the mutable set
+					LongSet ing1 = LSintersection(testBi.ingroup(), ss.ingroup());
+					LongSet ing2 = LSintersection(testBi.outgroup(), ss.ingroup());
+					//System.out.println(testBi);
+					//System.out.println("i: "+ing1+" "+ing2);
+					for (Long l1 : ing1) {
+						for (Long l2 : ing1) {
+							if (l1 == l2) {
+								continue;
+							}
+							Q.get(l1).get(l2).addAll(ing2);
+						}
+					}
+					//outgroup
+					LongSet out1 = LSintersection(testBi.ingroup(), ss.outgroup());
+					LongSet out2 = LSintersection(testBi.outgroup(), ss.outgroup());
+					//System.out.println("o: "+out1+" "+out2);
+					for (Long l1 : out1) {
+						for (Long l2 : out1) {
+							if (l1 == l2) {
+								continue;
+							}
+							Q.get(l1).get(l2).addAll(out2);
+						}
+					}
+					if(out1.size()>0 && ing1.size() > 0){
+						for (Long l1 : out1) {
+							for (Long l2 : ing1) {
+								if(Q.get(l1).containsKey(l2)==false)
+									Q.get(l1).put(l2, new MutableCompactLongSet());
+								Q.get(l1).get(l2).addAll(out2);
+							}
+						}
+					}
+					//System.out.println(Q);
+					//System.out.println("=======");
+				}
+			}
+			//System.out.println(Q);
+			HashMap<Long, MutableCompactLongSet> R = new HashMap<Long, MutableCompactLongSet>();
+			for (Long l : ss.ingroup()) {
+				R.put(l, new MutableCompactLongSet());
+			}
+			for (LongBipartition testBi : originalBiparts) {
+				if (testBi.isCompatibleWith(ss) == false) {
+					continue;
+				}
+				LongSet ing = LSintersection(testBi.ingroup(), ss.ingroup());
+				LongSet out = LSintersection(testBi.outgroup(), ss.outgroup());
+				HashMap<Long, MutableCompactLongSet> outtoadd = new HashMap<Long, MutableCompactLongSet>();
+				//TODO: do the outgroup
+				for (Long l1 : out) {
+					outtoadd.put(l1, new MutableCompactLongSet());
+					outtoadd.get(l1).add(l1);
+					for (Long l2 : Q.get(l1).keySet()) {
+						if (ss.ingroup().contains(l2)==false && testBi.outgroup().containsAny(Q.get(l1).get(l2))) {
+							outtoadd.get(l1).add(l2);
+						}if (ss.ingroup().contains(l2) && testBi.ingroup().contains(l2)) {
+							outtoadd.get(l1).addAll(Q.get(l1).get(l2));
+						}
+					}
+				}
+				//TODO: change to a while and keep updating
+				for (Long l1 : ing) {
+					R.get(l1).addAll(out);
+					for (Long o : outtoadd.keySet()) {
+						R.get(l1).addAll(outtoadd.get(o));
+					}
+					for (Long l2 : Q.get(l1).keySet()) {
+						if (testBi.ingroup().containsAny(Q.get(l1).get(l2))) {
+							R.get(l2).addAll(out);
+							for (Long o : outtoadd.keySet()) {
+								R.get(l2).addAll(outtoadd.get(o));
+							}
+						}
+					}
+				}
+			}
+			//System.out.println(R);
+			for (Long l : ss.ingroup()) {
+				if (R.get(l).size() != ss.outgroup().size()) {
+					System.out.println("wouldn't make " + ss);
+					//System.exit(0);
+					return null;
+				}
+			}
+			System.out.println("would make " + ss);
+			//System.exit(0);
+			return ss;
+		}
+		//return null;
+	}
 	private LongSet LSintersection(LongSet x,LongSet y){
 		MutableCompactLongSet in = new MutableCompactLongSet();
 		for(Long l1:x){
@@ -716,7 +640,6 @@ public class BipartOracle {
 		}
 		return in;
 	}
-	
 	private void createTreeIdRankMap(List<Tree> trees){
 		rankForTreeNode = new HashMap<TreeNode,Integer>();
 		sourceForTreeNode = new HashMap<TreeNode,String>();
@@ -743,9 +666,8 @@ public class BipartOracle {
 			cust++;
 		}
 	}
-	
 	private void reduceExplodedTipsHash(){
-		//explodedTipsHashReduced = explodedTipsHash;
+		HashMap<Object, Collection<Object>> explodedTipsHash = TipExploder.explodeTipsReturnHash(trees, gdb);
 		explodedTipsHashReduced = new HashMap<Object, Collection<Object>>();
 		shrunkSet = new HashMap<Object,Collection<Object>>();
 		HashSet<Object> totallist = new HashSet<Object>();
@@ -755,7 +677,7 @@ public class BipartOracle {
 				totallist.addAll(tlist);
 			}
 		}
-		//System.out.println(totallist);
+		// totallist is now fixed as the HashSet of all terminal taxa that are tips in the trees.
 		for(Object tip: explodedTipsHash.keySet()){
 			HashSet<Object> tlist = (HashSet<Object>) explodedTipsHash.get(tip);
 			HashSet<Object> newlist= new HashSet<Object>();
@@ -774,6 +696,9 @@ public class BipartOracle {
 				explodedTipsHashReduced.put(tip, newlist);
 			}
 		}
+		// explodedTipsHashReduced will now have the same key set as explodedTipsHash. but the expanded tips will only
+		//	 have labels of other tips in this subproblems (labels that are found in other, descendant subproblems will)
+		//	be culled. shrunkSet retains the original list
 		//checking for overlap to add things
 		for(Object tip: explodedTipsHashReduced.keySet()){
 			if(shrunkSet.containsKey(((TreeNode)tip).getLabel())== false)
@@ -793,7 +718,6 @@ public class BipartOracle {
 			}	
 		}
 	}
-	
 	/**
 	 * Trivial convenience function just made for clarity.
 	 * @param n
@@ -802,19 +726,16 @@ public class BipartOracle {
 	private Node getParentTaxNode(Node n) {
 		return n.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
 	}
-	
 	private int getInternalNodeCount(List<Tree> trees) {
 		int i = 0;
 		for (Tree t : trees) { i += t.internalNodeCount() - 1; } // don't count the root
 		return i;
 	}
-	
 	private List<Set<Integer>> newSynchronizedIntegerSetList(int size) {
 		List<Set<Integer>> list = Collections.synchronizedList(new ArrayList<Set<Integer>>());
 		for (int i = 0; i < size; i++) { list.add(Collections.synchronizedSet(new HashSet<Integer>())); }
 		return list;
 	}
-	
 	/**
 	 * This is a pairwise allxall comparison of the nodes of the input trees and also the summed biparts,
 	 * to find all nested-bipartition relationships among them. The procedure uses the structure of the input
@@ -828,30 +749,22 @@ public class BipartOracle {
 	 * bipartition-nesting information that we record for findPaths is limited to those biparts with
 	 * non-identical taxonomic composition--no ingroup/outgroup augmentation is possible for the rest.
 	 */
-	
 	@SuppressWarnings("unchecked")
 	private void identifyNestedChildBiparts(List<Tree> trees) {
-		
 		// these will *not* be used by the findPaths procedure (but will be used to make MRCACHILDOFs)
 		nestedParents = newSynchronizedIntegerSetList(bipart.size());
 		nestedChildren = newSynchronizedIntegerSetList(bipart.size());
 		compatibleBiparts = newSynchronizedIntegerSetList(bipart.size());
-
 		// these will *only* be used by the findPaths procedure
 		nestedAugmentingParents = newSynchronizedIntegerSetList(bipart.size());
-
 		// this won't be used until the generateNodesFromBiparts procedure but we make it now for consistency
 		analogousBiparts = newSynchronizedIntegerSetList(bipart.size());
-		
 		System.out.println("beginning allxall treewise bipart comparison to identify nested biparts for paths...");
 		long z = new Date().getTime();
-
 		List<Integer> treeIds = new ArrayList<Integer>();
 		for (int i = 0; i < trees.size(); i++) { treeIds.add(i); }
-
 		// parallel implementation for *synchronized* lists
 		treeIds.parallelStream().forEach(i -> processBipartsForTree(i, trees));
-		
 		//doing the rest of the sums but taking advantage of the work from the processBiparts
 		//TODO: can reduce this by half because you don't have to do 1 and 2 and 2 and 1
 		HashMap<Integer,HashSet<Integer>> sdone = new HashMap<Integer,HashSet<Integer>> ();
@@ -891,7 +804,6 @@ public class BipartOracle {
 				}
 			}
 		}sdone = null;//observedOriginals = null;compatibleBiparts=null; //garbage collection
-		
 		// parallel implementation for *synchronized* lists
 		treeIds.parallelStream().forEach(i -> processSummedBipartsForTree(i, trees));
 		System.out.println(" done with allxall treewise bipart comparison. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
@@ -927,7 +839,6 @@ public class BipartOracle {
 		}
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 	}
-	
 	/**
 	 * This will walk through the implied graph of bipart nestings (i.e. the pairwise nestedChildOf relationships)
 	 * and accumulates ingroup/outgroup taxa of child/parent nodes from trees with different taxon sets. Only nestedChildOf
@@ -945,19 +856,14 @@ public class BipartOracle {
 	 * There are probably more efficient ways to do this.
 	 */
 	private void findAllPaths() {
-				
 		paths = Collections.synchronizedSet(new HashSet<Path>());
 		System.out.print("traversing potential paths through the graph to determine node ingroup/outgroup composition...");
 		long z = new Date().getTime();
-
 		Set<LongBipartition> nodesWithoutPaths = Collections.synchronizedSet(new HashSet<LongBipartition>());
-		
 		// just make a list of bipart ids to iterate through
 		List<Integer> bipartIds = new ArrayList<Integer>();
 		for (int i = 0; i < bipart.size(); i++) { bipartIds.add(i); }
-		
 		bipartIds.parallelStream().forEach(i -> {
-			
 			System.out.println("paths: "+i+" / "+bipart.size()+" "+paths.size());
 			if (bipart.get(i).outgroup().size() > 0) {
 				MutableCompactLongSet pathResult = findPaths(i, new MutableCompactLongSet(), new ArrayList<Integer>(), 0,i);
@@ -977,7 +883,6 @@ public class BipartOracle {
 		tx.success();
 		tx.finish();
 	}
-
 	/**
 	 * Walk back over all the valid paths that we found in the previous step, but this time create graph nodes at each
 	 * position in the path.
@@ -1022,9 +927,7 @@ public class BipartOracle {
 			}
 		}
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
-
 	}
-
 	/**
 	 * A parallel method to find nestedChildOf rels across input trees, so that many can be processed
 	 * concurrently. The idea here is that we just process each tree independently, comparing it to all
@@ -1052,18 +955,15 @@ public class BipartOracle {
 				nestedChildren.get(pid).add(cid); // add child c of parent p
 			}
 		}
-
 		Tree P = trees.get(i);
 		List<TreeNode> pRootChildren = P.getRoot().getChildren(); // skip the root
 		//make sure that we dont' have a tip as the child of the root
 		pRootChildren.removeIf(isTip());
-
 		// do the treewise comparisons between this tree and all other trees. here we just consider
 		// whether this tree's nodes could be *parents* (not children) of other tree nodes. we'll 
 		// visit each tree once, so the rels where this tree's nodes could be children we'll find later
 		for (int j = 0; j < trees.size(); j++) {
 			if (i == j) { continue; } // don't attempt to compare a tree to itself
-							
 			List<TreeNode> qRootChildren = trees.get(j).getRoot().getChildren(); // skip the root
 			//make sure that we dont' have a tip as the child of the root
 			qRootChildren.removeIf(isTip());
@@ -1072,7 +972,6 @@ public class BipartOracle {
 			LinkedList<TreeNode> pStack = new LinkedList<TreeNode>();
 			HashSet<TreeNode> pvisited = new HashSet<TreeNode>();
 			for (pStack.addAll(pRootChildren); ! pStack.isEmpty(); ) {
-				
 				TreeNode p = pStack.pop();
 				if (p.isExternal()) { continue; } // don't process tips
 				if(pvisited.contains(p)) { continue;}else{pvisited.add(p);}
@@ -1081,20 +980,15 @@ public class BipartOracle {
 				ImmutableCompactLongSet pdeep = deepestNodeTaxa.get(p);
 				//get the parent bipart for compatibel checking
 				LongBipartition bpParent = bipart.get(bipartId.get(bipartForTreeNode.get(p.getParent())));
-
-
 				LinkedList<TreeNode> qStack = new LinkedList<TreeNode>();
 				HashSet<TreeNode> qvisited = new HashSet<TreeNode>();
-
 				for (qStack.addAll(qRootChildren); ! qStack.isEmpty(); ) {
-					
 					TreeNode q = qStack.pop();
 					if (q.isExternal()) { continue; } // don't process tips
 					if(qvisited.contains(q)) { continue;}else{qvisited.add(q);}
 					int qid = bipartId.get(bipartForTreeNode.get(q));
 					LongBipartition bq = bipart.get(qid);
 					ImmutableCompactLongSet qshallow = shallowestNodeTaxa.get(p);
-					
 					//TODO: this needs to be tested or checked / meant to remove cycles but may not be succesful
 					if (bq.isNestedPartitionOf(bp) && (qshallow.containsAll(pdeep) && qshallow.size() > pdeep.size())==false) {
 						// record this nestedchildof relationship
@@ -1105,12 +999,10 @@ public class BipartOracle {
 						}
 					}
 					LongBipartition bqParent = bipart.get(bipartId.get(bipartForTreeNode.get(q.getParent())));
-
 					if(bq.isCompatibleWith(bp) && (bq.isCompatibleWith(bpParent) == false)
 							&& (bp.isCompatibleWith(bqParent) == false)){
 						compatibleBiparts.get(qid).add(pid);
 					}
-					
 					if (bq.ingroup().containsAny(bp.ingroup())) {
 						// if bq's children may be nested partitions of p
 						for (TreeNode qc : q.getChildren()) { qStack.push(qc); }
@@ -1137,7 +1029,6 @@ public class BipartOracle {
 		// we have now found all the nestedParents 
 		System.out.println("finished tree biparts " + i);
 	}
-	
 	private void processSummedBipartsForTree(int i, List<Tree> trees) {
 		Tree P = trees.get(i);
 		// now do the all-by-all of this tree's nodes against the biparts from the bipart set sum
@@ -1146,7 +1037,6 @@ public class BipartOracle {
 			if (node.isTheRoot()) { continue; }
 			int originalId = bipartId.get(bipartForTreeNode.get(node));
 			LongBipartition nodeBipart = bipart.get(originalId);
-			
 			// here we have to check in both directions, since we'll compare this tree to the summed biparts again
 			//TODO: make sure that we don't need augmented
 			for (Integer sid : summedBipartIds) {
@@ -1167,7 +1057,6 @@ public class BipartOracle {
 	private static Predicate<TreeNode > isTip(){
 		return p -> p.getChildCount() == 0;
 	}
-	
 	/**
 	 * This creates all the MRCACHILDOF rels among all graph nodes. It uses an all by all pairwise
 	 * comparison, which has quadratic order of growth. We do this because it makes tree loading trivial:
@@ -1176,13 +1065,11 @@ public class BipartOracle {
 	 * parent/child tree nodes.
 	 */
 	private void generateMRCAChildOfs(){
-
 		// gather information about which rels to create. this is the full n^2 comparisons among all nodes (i.e. biparts)
 		// TODO: this has the same name as a class member variable. if it is the same thing, it should not be declared here
 		// if it isn't the same thing, then it should have a different name. this whole section might go away so i am not
 		// going to bother trying to figure this out right now.
 		//[SNIP]
-		
 		// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
 		System.out.println("identifying MRCACHILDOF rels (biparts: " +bipart.size()+","+ " nested children: " + nestedChildren.size() + ") to be created in the db...");
 		long z = new Date().getTime();
@@ -1207,17 +1094,14 @@ public class BipartOracle {
 				 */
 				if (child == null || parent == null) { continue; }
 				if (child.equals(parent)) { continue; }
-
 				relsToCreate.get(parent).add(child);
 			}
 		});
-		
 		int n = 0;
 		for (Node parent : relsToCreate.keySet()) {
 			n += relsToCreate.get(parent).size();
 		}
 		System.out.println("done. Identified " + n + " MRCACHILDOF rels to be created. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
-		
 		// now actually make the rels
 		System.out.print("recording " + n + " rels in the db...");
 		z = new Date().getTime();
@@ -1230,7 +1114,6 @@ public class BipartOracle {
 		tx.success();
 		tx.finish();
 		System.out.println(" done recording MRCACHILDOF rels. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
-		
 		System.out.print("Also recording MRCACHILDOF rels for taxonomy["+taxonomyGraphNodesMap.keySet().size()+","+graphNodeForBipart.keySet().size()+"])...");
 		//sequential for debugging right now
 		// now create the rels. not trying to do this in parallel because concurrent db ops seem unwise. but we could try.
@@ -1277,7 +1160,6 @@ public class BipartOracle {
 							&& taxbp.ingroup().containsAny(ndbpExp.outgroup())==false && 
 							taxbp.ingroup().containsAll(ndbpExp.ingroup()) == false ){//check as child;
 						updateMRCAChildOf(taxNode, graphNodeForBipart.get(ndbp));
-						
 					}
 				}
 			}
@@ -1286,7 +1168,6 @@ public class BipartOracle {
 		tx.finish();
 		System.out.println(" done. elapsed time: " + (new Date().getTime() - z) / (float) 1000 + " seconds");
 	}
-	
 	/**
 	 * 
 	 */
@@ -1327,113 +1208,99 @@ public class BipartOracle {
 		taxonomyJadeRoot = root;
 		System.out.println("gathered "+taxonomyGraphNodesMap.size()+" taxonomy nodes for additional mapping");
 	}
-	
 	/**
 	 * Map all the tree root nodes into the graph. This will create new nodes in the graph for any root nodes
 	 * that cannot be mapped to preexisting nodes. This *must* be done before loading trees--tree loading uses a
 	 * preorder traversal.
 	 * @param trees
 	 */
-    private void mapTreeRootNodes(List<Tree> trees) {
-        for (Tree tree : trees) {
-            Transaction tx = gdb.beginTx();
-
-            TreeNode root = tree.getRoot();
-            LongBipartition rootBipart = getGraphBipartForTreeNode(root, tree);
+	private void mapTreeRootNodes(List<Tree> trees) {
+		for (Tree tree : trees) {
+			Transaction tx = gdb.beginTx();
+			TreeNode root = tree.getRoot();
+			LongBipartition rootBipart = getGraphBipartForTreeNode(root, tree);
 			//need to expand the rootBipart for the searching
-
-            HashSet<Node> graphNodes = new HashSet<Node>();
-            LongBipartition rootBipartExp = getExpandedTaxonomyBipart(rootBipart);
-            /* trying the more intelligent one below
-             * for the sake of speed, lets remove all but the shallowest
-             * can add those rels later
-             */
-            Long ndid = rootBipartExp.ingroup().toArray()[0];
-            Node taxNode = gdb.getNodeById(ndid);
-            while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
-                taxNode = getParentTaxNode(taxNode);
-                if (taxonomyGraphNodesMap.keySet().contains(taxNode)) {
-                    LongBipartition taxbp = taxonomyGraphNodesMap.get(taxNode);
-                    if (taxbp.ingroup().containsAll(rootBipartExp.ingroup())) {
-                        graphNodes.add(taxNode);
-                        break;
-                    }
-                }
-            }
-
-            if (graphNodes.size() < 1) {
-                Node rootNode = createNode(rootBipart);
-                graphNodes.add(rootNode);
-                // create necessary MRCACHILDOF rels for newly created nodes
-                for (LongBipartition b : graphNodeForBipart.keySet()) {
-                    if (rootBipart.isNestedPartitionOf(b)) {
-                        rootNode.createRelationshipTo(graphNodeForBipart.get(b), RelType.MRCACHILDOF);
-                    }
-                    if (b.isNestedPartitionOf(rootBipart)) {
-                        graphNodeForBipart.get(b).createRelationshipTo(rootNode, RelType.MRCACHILDOF);
-                    }
-                }
-            }
-            /*
-             * store the root nodes in the index
-             * these can be used later for connectivity between subsets
-             */
-            Index<Node> ottIdIndex = gdb.getNodeIndex("sourceTreeRoots", "type", "exact", "to_lower_case", "true");
-            Index<Node> ottIdIndexss = gdb.getNodeIndex("sourceTreeRootsSubsets", "type", "exact", "to_lower_case", "true");
-            for (Node gn : graphNodes) {
-                ottIdIndex.add(gn, "source", String.valueOf(sourceForTreeNode.get(root)));
-                //add a property for the subset
-                if (subsetTipInfo != null) {
-                    if (subsetTipInfo.containsKey(root)) {
-                        String subset = subsetTipInfo.get(root);
-                        ottIdIndexss.add(gn, "subset", String.valueOf(sourceForTreeNode.get(root) + subset));
-                    }
-                }
-            }
-            tx.success();
-            tx.finish();
-            // add metadata node
-            addRootProperties(graphNodes, root);
-            graphNodesForTreeNode.put(root, graphNodes);
-        }
-    }
-	
-    
-    
-    /**
+			HashSet<Node> graphNodes = new HashSet<Node>();
+			LongBipartition rootBipartExp = getExpandedTaxonomyBipart(rootBipart);
+			/* trying the more intelligent one below
+			 * for the sake of speed, lets remove all but the shallowest
+			 * can add those rels later
+			 */
+			Long ndid = rootBipartExp.ingroup().toArray()[0];
+			Node taxNode = gdb.getNodeById(ndid);
+			while (taxNode.hasRelationship(Direction.OUTGOING, RelType.TAXCHILDOF)) {
+				taxNode = getParentTaxNode(taxNode);
+				if (taxonomyGraphNodesMap.keySet().contains(taxNode)) {
+					LongBipartition taxbp = taxonomyGraphNodesMap.get(taxNode);
+					if (taxbp.ingroup().containsAll(rootBipartExp.ingroup())) {
+						graphNodes.add(taxNode);
+						break;
+					}
+				}
+			}
+			if (graphNodes.size() < 1) {
+				Node rootNode = createNode(rootBipart);
+				graphNodes.add(rootNode);
+				// create necessary MRCACHILDOF rels for newly created nodes
+				for (LongBipartition b : graphNodeForBipart.keySet()) {
+					if (rootBipart.isNestedPartitionOf(b)) {
+						rootNode.createRelationshipTo(graphNodeForBipart.get(b), RelType.MRCACHILDOF);
+					}
+					if (b.isNestedPartitionOf(rootBipart)) {
+						graphNodeForBipart.get(b).createRelationshipTo(rootNode, RelType.MRCACHILDOF);
+					}
+				}
+			}
+			/*
+			 * store the root nodes in the index
+			 * these can be used later for connectivity between subsets
+			 */
+			Index<Node> ottIdIndex = gdb.getNodeIndex("sourceTreeRoots", "type", "exact", "to_lower_case", "true");
+			Index<Node> ottIdIndexss = gdb.getNodeIndex("sourceTreeRootsSubsets", "type", "exact", "to_lower_case", "true");
+			for (Node gn : graphNodes) {
+				ottIdIndex.add(gn, "source", String.valueOf(sourceForTreeNode.get(root)));
+				//add a property for the subset
+				if (subsetTipInfo != null) {
+					if (subsetTipInfo.containsKey(root)) {
+						String subset = subsetTipInfo.get(root);
+						ottIdIndexss.add(gn, "subset", String.valueOf(sourceForTreeNode.get(root) + subset));
+					}
+				}
+			}
+			tx.success();
+			tx.finish();
+			// add metadata node
+			addRootProperties(graphNodes, root);
+			graphNodesForTreeNode.put(root, graphNodes);
+		}
+	}
+	/**
 	 * Add metadata and create index entries for the root of the tree
 	 * @param graphNodes
 	 * @param root
 	 */
 	private void addRootProperties(HashSet<Node> graphNodes, TreeNode root) {
 		System.out.println("placing root in index");
-        
-        String sourceInfo = String.valueOf(sourceForTreeNode.get(root));
-        sourceInfo = sourceInfo.replace(".tre", ""); // will be "prefix_studyid_treeid_gitSHA"
-        String newickString = root.getNewick(true) + ";";
-        
-        Transaction tx = gdb.beginTx();
-        
-        Index<Node> sourceRootIndex = gdb.getNodeIndex("sourceRootNodes", "type", "exact", "to_lower_case", "true");
-        Index<Node> sourceMetaIndex = gdb.getNodeIndex("sourceMetaNodes", "type", "exact", "to_lower_case", "true");
-        
-        for (Node gNode : graphNodes) {
-             
-            sourceRootIndex.add(gNode, "rootnode", sourceInfo);
-             
-            // create metadata node
-            Node metadataNode = null;
-            metadataNode = gdb.createNode();
-            metadataNode.createRelationshipTo(gNode, RelType.METADATAFOR);
-            // set metadata from tree
-            metadataNode.setProperty("source", sourceInfo);
-            metadataNode.setProperty("newick", newickString);
-            sourceMetaIndex.add(metadataNode, "source", sourceInfo);
-        }
-        
-        tx.success();
-        tx.finish();
-    }
+		String sourceInfo = String.valueOf(sourceForTreeNode.get(root));
+		sourceInfo = sourceInfo.replace(".tre", ""); // will be "prefix_studyid_treeid_gitSHA"
+		String newickString = root.getNewick(true) + ";";
+		Transaction tx = gdb.beginTx();
+		Index<Node> sourceRootIndex = gdb.getNodeIndex("sourceRootNodes", "type", "exact", "to_lower_case", "true");
+		Index<Node> sourceMetaIndex = gdb.getNodeIndex("sourceMetaNodes", "type", "exact", "to_lower_case", "true");
+		for (Node gNode : graphNodes) {
+			sourceRootIndex.add(gNode, "rootnode", sourceInfo);
+			// create metadata node
+			Node metadataNode = null;
+			metadataNode = gdb.createNode();
+			metadataNode.createRelationshipTo(gNode, RelType.METADATAFOR);
+			// set metadata from tree
+			metadataNode.setProperty("source", sourceInfo);
+			metadataNode.setProperty("newick", newickString);
+			sourceMetaIndex.add(metadataNode, "source", sourceInfo);
+		}
+		tx.success();
+		tx.finish();
+	}
 	/**
 	 * This is to get the expanded taxonomy bipartition after it has been reduced
 	 * This is used for creating nodes and for checking against taxonomy nodes
@@ -1443,7 +1310,6 @@ public class BipartOracle {
 	private LongBipartition getExpandedTaxonomyBipart(LongBipartition inbipart){
 		MutableCompactLongSet fullsetin = new MutableCompactLongSet();
 		MutableCompactLongSet fullsetout = new MutableCompactLongSet();
-
 		HashMap<Object,MutableCompactLongSet> toexpandingroup = new HashMap<Object,MutableCompactLongSet>();
 		HashMap<Object,MutableCompactLongSet> toexpandoutgroup = new HashMap<Object,MutableCompactLongSet>();
 		for(Long s: inbipart.ingroup()){
@@ -1490,28 +1356,20 @@ public class BipartOracle {
 		LongBipartition retBipart = new ImmutableLongBipartition(fullsetin,fullsetout); // made immutable
 		return retBipart;
 	}
-	
-
 	private void mapNonRootNodes(List<Tree> trees) {
-		
 		for (int k = 0; k < trees.size(); k++) {
 			Tree tree = trees.get(k);
-
 			System.out.print("mapping tree " + k + " (recording rels in the db)...");
 			long z = new Date().getTime();
-
 			Transaction tx = gdb.beginTx(); // one transaction to rule the tree
 			Map<TreeNode, Integer> edgeIdForTreeNode = new HashMap<TreeNode, Integer>();
-
 			// now map the internal nodes other than the root
 			int i = 0;
 			for (TreeNode treeNode : tree.internalNodes(NodeOrder.PREORDER)) {
 				if (! treeNode.isTheRoot()) {
-					
 					// give each node (its parent edge actually) a unique id, which is used for synth
 					int edgeId = ++i;
 					edgeIdForTreeNode.put(treeNode, edgeId);
-					
 					Set<Node> graphNodes = mapGraphNodes(treeNode, tree, edgeId, false);
 					if (graphNodes.size() == 0) { // every internal node must map to at least one node in the graph.
 						System.out.println("could not map node: " + treeNode.getNewick(false)+ ".\ngraphNodes: " + graphNodes);
@@ -1520,14 +1378,11 @@ public class BipartOracle {
 					graphNodesForTreeNode.put(treeNode, (HashSet<Node>) graphNodes);
 				}
 			}
-
 			// now connect all the tips to their parent nodes
 			for (TreeNode treeTip : tree.externalNodes()) {
-				
 				// give each node (its parent edge actually) a unique id, which is used for synth
 				int edgeId = ++i;
 				edgeIdForTreeNode.put(treeTip, edgeId);
-
 				//this will map to compatible "internal" graph nodes
 				mapGraphNodes(treeTip, tree, edgeIdForTreeNode.get(treeTip), true);
 				//this will map to terminal graph nodes directly from the tips
@@ -1536,7 +1391,7 @@ public class BipartOracle {
 				for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())) {
 					if (tip.equals(parent)) {
 						continue;
-                    }
+					}
 					updateMRCAChildOf(tip, parent);
 					updateSTREEChildOf(tip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip), 
 							edgeId,lb,true);
@@ -1552,7 +1407,7 @@ public class BipartOracle {
 						//System.out.println(othertip+" "+treeTip+" "+othertip.equals(treeTip));
 						if (othertip.equals(treeTip)) {
 							continue;
-                        }
+						}
 						if (othertip.isExternal()) {
 							alsoExclude.add(nodeIdForLabel.get(othertip.getLabel()));
 						} else {
@@ -1563,12 +1418,9 @@ public class BipartOracle {
 					boolean going = true;
 					while (going == true) {
 						startTip = startTip.getSingleRelationship(RelType.TAXCHILDOF, Direction.OUTGOING).getEndNode();
-						
 						if (taxonomyGraphNodesMap.containsKey(startTip)) {
-						
 							LongBipartition pbip = null;
 							LongBipartition cbip = taxonomyGraphNodesMap.get(startTip);
-						
 							if (bipartForGraphNodeExploded.containsKey(parent)) {
 								pbip = bipartForGraphNodeExploded.get(parent);
 							} else {
@@ -1580,7 +1432,6 @@ public class BipartOracle {
 							if (cbip.ingroup().containsAny(alsoExclude)) {
 								break;
 							}
-							
 							if (pbip.ingroup().containsAny(cbip.ingroup())
 									&& cbip.ingroup().containsAny(pbip.outgroup()) == false
 									&& cbip.ingroup().containsAll(pbip.ingroup()) == false) {//it is compatible with the parent
@@ -1589,7 +1440,7 @@ public class BipartOracle {
 										edgeId,lb,true);
 								if (startTip.equals(parent)) {
 									continue;
-                                }
+								}
 								//System.out.println("mappeddeepest: yup "+startTip+" "+parent);
 								updateMRCAChildOf(startTip, parent);
 								updateSTREEChildOf(startTip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip), 
@@ -1619,7 +1470,7 @@ public class BipartOracle {
 							for (Node parent : graphNodesForTreeNode.get(treeTip.getParent())) {
 								if(tip.equals(parent)) {
 									continue;
-                                }
+								}
 								updateMRCAChildOf(tip, parent);
 								updateSTREEChildOf(tip,parent,sourceForTreeNode.get(treeTip),rankForTreeNode.get(treeTip), edgeId,null,false);
 							}
@@ -1634,15 +1485,12 @@ public class BipartOracle {
 		}
 		System.out.println("all trees have been mapped.");
 	}
-
 	private Set<Node> mapGraphNodes(TreeNode treeNode, Tree tree, int edgeId, boolean external) {
 		// get the graph nodes that match this node's parent
 		HashSet<Node> graphNodesForParent = graphNodesForTreeNode.get(treeNode.getParent());
-		
 		// get the graph nodes that match this node
 		LongBipartition nodeBipart;
 		LongBipartition nodeBipartExp=null;
-		
 		if (external == false) { 
 			nodeBipart = bipartForTreeNode.get(treeNode);
 			int bpid = bipartId.get(nodeBipart);
@@ -1653,7 +1501,6 @@ public class BipartOracle {
 		}
 		HashSet<Node> graphNodes = new HashSet<Node>();
 		HashSet<Node> taxNodesMatched = new HashSet<Node>();
-		
 		// if you create the mrcachildofs before, then you can do this
 		for (Node parent : graphNodesForParent){
 			for (Relationship r: parent.getRelationships(Direction.INCOMING, RelType.MRCACHILDOF)){
@@ -1663,7 +1510,6 @@ public class BipartOracle {
 				LongBipartition nodeParent = bipartForTreeNode.get(treeNode.getParent());
 				LongBipartition nodeParentExp = null;
 				nodeParentExp = bipartForTreeNodeExploded.get(treeNode.getParent());
-
 				if(taxonomyGraphNodesMap.containsKey(potentialChild)==false){
 					childBipart = bipartForGraphNode.get(potentialChild);
 				}else{
@@ -1782,10 +1628,8 @@ public class BipartOracle {
 				}
 			}
 		}
-		
 		return graphNodes;
 	}
-	
 	private static String indent(int level) {
 		StringBuffer s = new StringBuffer();
 		for (int i = 0; i < level; i++) {
@@ -1793,7 +1637,6 @@ public class BipartOracle {
 		}
 		return s.toString();
 	}
-	
 	/** 
 	 * Starting at each bipartition B, follow all paths to all bipartitions for which this B could be a nested child.
 	 * At each level on the recursion down this tree, record the union I of all the ingroups of all bipartitions "above"
@@ -1813,27 +1656,21 @@ public class BipartOracle {
 	 * @return
 	 */
 	private MutableCompactLongSet findPaths(int parentId, MutableCompactLongSet cumulativeIngroup, ArrayList<Integer> path, int level, int originalParentId) {
-
 		LongBipartition parent = bipart.get(parentId);
-		
 		// three cases where we exit without defining a node:
 		if (/*hasNoParentBiparts(parentId) || 					// found a dead end path */
 			cumulativeIngroup.containsAny(parent.outgroup()) || // conflict between potential node and its parent
 			cumulativeIngroup.containsAll(parent.ingroup())) { 	// child that already contains entire parent
-        	return null;
+			return null;
 		}
-		
 		// otherwise prepare to define a new bipart
 		path.add(parentId);
-
-
 		// collect the ingroup from all downstream (child) biparts' ingroups'
 		cumulativeIngroup.addAll(parent.ingroup());
-
 		// collect the outgroup from all upstream (parent) biparts' outgroups
 		MutableCompactLongSet cumulativeOutgroup = new MutableCompactLongSet(parent.outgroup());
-	    boolean newline = false;
-	    for (int nextParentId : nestedAugmentingParents.get(parentId)) {
+		boolean newline = false;
+		for (int nextParentId : nestedAugmentingParents.get(parentId)) {
 			if (path.contains(nextParentId)) { continue; }
 			//TODO: CHECK THESE TWO BITS. THEY WORK IN PYTHON BUT STILL NEED MORE TESTING
 			//		DELETE IF THERE ARE PROBLEMS
@@ -1847,16 +1684,14 @@ public class BipartOracle {
 			if(nestedAugmentingParents.get(originalParentId).contains(nextParentId)==false){continue;}
 			MutableCompactLongSet outgroupsToAdd = findPaths(nextParentId, new MutableCompactLongSet(cumulativeIngroup), path, level+1, originalParentId);
 			if (outgroupsToAdd != null) { // did not encounter a dead end path
-		    	newline = true;
+				newline = true;
 				cumulativeOutgroup.addAll(outgroupsToAdd);
 			}
 		}
 		assert ! cumulativeIngroup.containsAny(cumulativeOutgroup);
-
 		paths.add(new Path(path));
 		return cumulativeOutgroup;
 	}
-	
 	/**
 	 * Process the paths generated by findPaths and create the nodes in the database that are defined by these paths. 
 	 * @param position
@@ -1865,30 +1700,24 @@ public class BipartOracle {
 	 * @return
 	 */
 	private Object[] generateNodesFromPaths(int position, MutableCompactLongSet cumulativeIngroup, int[] path) {
-
 		int parentId = path[position];
 		LongBipartition parent = bipart.get(parentId);
-
 		// three cases where we exit without making a node:
 		if (/*hasNoParentBiparts(parentId) || 					// found a dead end path*/
 			cumulativeIngroup.containsAny(parent.outgroup()) || // conflict between potential node and its parent
 			cumulativeIngroup.containsAll(parent.ingroup())) { 	// child that already contains entire parent
-        	return null;
+			return null;
 		}
-
 		// otherwise prepare to define a new node
-
 		// collect the ingroup from all downstream (child) biparts' ingroups'
 		cumulativeIngroup.addAll(parent.ingroup());
-
-	    // collect the outgroup this node
+		// collect the outgroup this node
 		MutableCompactLongSet cumulativeOutgroup = new MutableCompactLongSet(parent.outgroup());
-
-	    // perform the recursion down all the childen, returning each child node (once it has been created) along
-	    // with its outgroups. using an Object[] as a return value to provide two object in the return is weird.
-	    // Should update this to use a private class container for the return value or figure out something else.
-	    boolean newline = false;
-	    List<Integer> ancestorsOnPath = new ArrayList<Integer>();
+		// perform the recursion down all the childen, returning each child node (once it has been created) along
+		// with its outgroups. using an Object[] as a return value to provide two object in the return is weird.
+		// Should update this to use a private class container for the return value or figure out something else.
+		boolean newline = false;
+		List<Integer> ancestorsOnPath = new ArrayList<Integer>();
 		if (position < path.length - 1) {
 			Object[] result = generateNodesFromPaths(position+1, new MutableCompactLongSet(cumulativeIngroup), path);
 			if (result != null) {
@@ -1899,15 +1728,12 @@ public class BipartOracle {
 			}
 		}
 		assert ! cumulativeIngroup.containsAny(cumulativeOutgroup);
-
 		LongBipartition newBipart = new ImmutableLongBipartition(cumulativeIngroup, cumulativeOutgroup); // made immutable
-
 		// TODO we should probably not be creating nodes yet. we should really just record which nodes need to be created 
 		// (which we could do in parallel) and then do batch processing to create them all afterward. and then make the rels.
 		if (! graphNodeForBipart.containsKey(newBipart)) {
 			createNode(new ImmutableLongBipartition(cumulativeIngroup, cumulativeOutgroup)); // made immutable
 		}
-
 		int newBipartId;
 		if (bipartId.containsKey(newBipart)) {
 			newBipartId = bipartId.get(newBipart);
@@ -1924,21 +1750,16 @@ public class BipartOracle {
 			assert newBipartId == nestedChildren.size() - 1;
 			assert newBipartId == nestedParents.size() - 1;
 		}
-		
-		
 		for (int pid : ancestorsOnPath) {
 			// don't need to check for nested status here, we know the new bipart is
 			// nested in all ancestors we've generated along this path
 			nestedParents.get(newBipartId).add(pid);
 			nestedChildren.get(pid).add(newBipartId);
-
 			// also add each newly generated ancestor as a parent of the path node itself
 			nestedParents.get(parentId).add(pid);
 			nestedChildren.get(pid).add(parentId);
 		}
-		
 		//wondering if we can do all this after because it is really slow here. 
-		
 		// associate the new node with appropriate parents of the current path node
 		for (int pid : nestedParents.get(parentId)) {
 			if(nestedParents.get(newBipartId).contains(pid) == false){
@@ -1948,7 +1769,6 @@ public class BipartOracle {
 				}
 			}
 		}
-
 		// associate the new node with appropriate children of the current path node
 		for (int cid : nestedChildren.get(parentId)) {
 			if(nestedChildren.get(newBipartId).contains(cid) == false){
@@ -1958,7 +1778,6 @@ public class BipartOracle {
 				}
 			}
 		}
-		
 		// now check related nodes to make sure we connect the new bipartition to all the appropriate parents/children
 		// CHANGED THIS TO BE after the generate nodes step for less redundancy
 		// TODO: more testing to make sure this is good
@@ -1968,15 +1787,10 @@ public class BipartOracle {
 		// we make another analogous node we will check these ones for parent/children
 		analogousBiparts.get(newBipartId).add(parentId);
 		analogousBiparts.get(parentId).add(newBipartId);
-
 		// remember the new node so we can add it as a parent of all descendant nodes on this path
 		ancestorsOnPath.add(newBipartId);
- 		
 		return new Object[] { ancestorsOnPath, cumulativeOutgroup };
 	}
-	
-	
-	
 	private Node createNode(LongBipartition b) {
 		Node node = gdb.createNode();
 		//this is all here because of the exploded reduced
@@ -1990,10 +1804,8 @@ public class BipartOracle {
 		node.setProperty(NodeProperty.OUTMRCA.propertyName, tlb.outgroup().toArray());
 		graphNodeForBipart.put(b, node);
 		bipartForGraphNode.put(node, b);
-		
 		return node;
 	}
-
 	/**
 	 * This will check to see if an MRCACHILDOF rel already exists between the child and the
 	 * parent, and if not it will make one.
@@ -2011,22 +1823,18 @@ public class BipartOracle {
 		child.createRelationshipTo(parent, RelType.MRCACHILDOF);
 		hasMRCAChildOf.get(child.getId()).add(parent.getId());
 	}
-	
 	private boolean testChildOf(Node child,Node parent){
 		ImmutableCompactLongSet cin = new ImmutableCompactLongSet((long[])child.getProperty("mrca"));
 		ImmutableCompactLongSet cout = null;
 		if(child.hasProperty("outmrca"))
 			cout = new ImmutableCompactLongSet((long[])child.getProperty("outmrca"));
-
 		ImmutableCompactLongSet pin = new ImmutableCompactLongSet((long[])parent.getProperty("mrca"));
 		ImmutableCompactLongSet pout = null;
 		if(parent.hasProperty("outmrca"))
 			pout = new ImmutableCompactLongSet((long[])parent.getProperty("outmrca"));
-		
 		//TODO: put the test here
 		return true;
 	}
-	
 	/**
 	 * This will check to see if an STREECHILDOF rel already exists for that source between the child and the
 	 * parent, and if not it will make one.
@@ -2070,65 +1878,58 @@ public class BipartOracle {
 		hasSTREEChildOf.get(child.getId()).get(parent.getId()).add(source);
 		nodesWithSTREERels.add(child.getId()); nodesWithSTREERels.add(parent.getId());
 	}
-	
+
 	private LongBipartition getGraphBipartForTreeNode(TreeNode p, Tree t) {
 		MutableCompactLongSet ingroup = new MutableCompactLongSet();
 		MutableCompactLongSet outgroup = new MutableCompactLongSet();
 		TreeBipartition b = t.getBipartition(p);
-
 		for (TreeNode n : b.ingroup())  {
-			for	(Object s: explodedTipsHashReduced.get(n)) { ingroup.add(nodeIdForLabel.get(s)); }
+			for	(Object s: explodedTipsHashReduced.get(n)) {
+				ingroup.add(nodeIdForLabel.get(s)); 
+			}
 		}
 		for (TreeNode n : b.outgroup()) {
-			for	(Object s: explodedTipsHashReduced.get(n)) { outgroup.add(nodeIdForLabel.get(s)); }
+			for	(Object s: explodedTipsHashReduced.get(n)) {
+				outgroup.add(nodeIdForLabel.get(s));
 			}
+		}
 		return new ImmutableLongBipartition(ingroup, outgroup); // made immutable
 	}
-	
 	/**
 	 * Paths are just integer arrays. This private micro class ensures that they
 	 * are compared properly and well behaved in hash maps.
 	 * @author cody
 	 */
 	private class Path {
-		
 		private final int[] path;
-
 		public Path (List<Integer> path) {
 			this.path = new int[path.size()];
 			for (int i = 0; i < path.size(); i++) {
 				this.path[i] = path.get(i);
 			}
 		}
-
 		@Override
 		public boolean equals(Object other) {
 			if (other == null || ! (other instanceof Path)) { return false; }
-
 			int[] o = ((Path) other).path;
 			if (path.length != o.length) { return false; }
-
 			for (int i = 0; i < path.length; i++) {
 				if (path[i] != o[i]) { return false; }
 			}
 			return true;
 		}
-		
 		@Override 
 		public int hashCode() {
 			int h = 1;
 			for (int i : path) { h = h * (i + 31) + i; }
 			return h;
 		}
-		
 		@Override
 		public String toString() {
 			return Arrays.toString(path);
 		}
-		
 		public int[] toArray() {
 			return path;
 		}
 	}
-
 }
