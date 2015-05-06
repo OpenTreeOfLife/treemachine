@@ -66,7 +66,7 @@ public class ImmutableLongBipartition implements LongBipartition {
 	 */
 	public LongBipartition sum(LongBipartition that) {
 
-		if (!this.isCompatibleWith(that) || !this.overlapsWith(that)) {
+		if (!this.isMergeCompatibleWith(that) || !this.overlapsWith(that)) {
 			return null;
 		}
 
@@ -87,16 +87,11 @@ public class ImmutableLongBipartition implements LongBipartition {
 	
 	/**
 	 * This differs from sum in that it doesn't not return a bipart if it is equal
-	 * and it requires overlap with the ingroups not ingroups or outgroups. No guarantee is made about the type of the
-	 * returned bipartition--it may be mutable or not. To ensure it is the correct type, pass it to a constructor for
-	 * the desired object type.
-	 * 
-	 * @param that
-	 * @return
+	 * and it requires overlap with the ingroups not ingroups or outgroups.
 	 */
-	public LongBipartition strictSum(LongBipartition that) {
+	public LongBipartition makeMergerBipartIfMergeCompatOverlappingIngroupAndUnequal(LongBipartition that) {
 
-		if (! this.isCompatibleWith(that))
+		if (! this.isMergeCompatibleWith(that))
 			return null;
 		
 		if (! this.ingroup().containsAny(that.ingroup()))
@@ -117,8 +112,10 @@ public class ImmutableLongBipartition implements LongBipartition {
 	}
 	
 	/**
-	 * Returns true if there is no conflict between these bipartitions. More formally, let A be the bipartition on which
-	 * the method is called and B the bipartition passed to the method. Then, we return true if and only if (1) the
+	 * Returns true if there is no conflict between these bipartitions.
+	 * More formally, let A be the bipartition on which
+	 * the method is called and B the bipartition passed to the method. 
+	 * Then, we return true if and only if (1) the
 	 * intersection of A's ingroup and B's outgroup is null, and (2) the intersection of B's ingroup and A's outgroup is
 	 * null.<br/><br/>
 	 * 
@@ -127,7 +124,7 @@ public class ImmutableLongBipartition implements LongBipartition {
 	 * @param that
 	 * @return
 	 */
-	public boolean isCompatibleWith(LongBipartition that) {
+	public boolean isMergeCompatibleWith(LongBipartition that) {
 		return ! (this.ingroup().containsAny(that.outgroup()) || this.outgroup().containsAny(that.ingroup()));
 	}
 

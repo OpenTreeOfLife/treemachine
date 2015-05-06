@@ -10,8 +10,8 @@ public abstract interface LongBipartition {
 	public LongSet ingroup();
 	public LongSet outgroup();
 	public LongBipartition sum(LongBipartition that);
-	public LongBipartition strictSum(LongBipartition that);
-	public boolean isCompatibleWith(LongBipartition that);
+	public LongBipartition makeMergerBipartIfMergeCompatOverlappingIngroupAndUnequal(LongBipartition that);
+	public boolean isMergeCompatibleWith(LongBipartition that);
 	public boolean containsAll(LongBipartition that);
 	public boolean isNestedPartitionOf(LongBipartition A);
 	public boolean overlapsWith(LongBipartition that);
