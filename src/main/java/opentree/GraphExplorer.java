@@ -81,10 +81,20 @@ public class GraphExplorer extends GraphBase {
 	private boolean sinkLostChildren;
 	private HashSet<Long> knownIdsInTree;
 	public boolean verbose = true; // used for controlling logging for plugins
+	public boolean newickLabelsAreIDs = false;
+	public boolean newickLabelInternalNodes = true;
 	
 	// turn off System.out calls, as they get logged in plugin calls
 	public void setQuiet() {
 		verbose = false;
+	}
+	
+	public void setNewickLabelsToIDs() {
+		newickLabelsAreIDs = true;
+	}
+	
+	public void turnOffInternalNewickLabels() {
+		newickLabelInternalNodes = false;
 	}
 	
 	public GraphExplorer(String graphname) {
@@ -129,9 +139,9 @@ public class GraphExplorer extends GraphBase {
 	public String getOttName (Node curNode) {
 		String name;
 	
-		try{
+		try {
 		 name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
-		}catch(Exception e){
+		} catch(Exception e) {
 			name = String.valueOf(curNode.getProperty("name"));
 		}
 		// make name newick-valid
@@ -2267,7 +2277,22 @@ public class GraphExplorer extends GraphBase {
 		
 		// set the names for the newick string
 		if (curGraphNode.hasProperty("name")) {
-			curNode.setName(getOttName(curGraphNode));
+			if (nodeIsTerminal(curGraphNode)) {
+				if (newickLabelsAreIDs) {
+					curNode.setName(("ott").concat(String.valueOf(curGraphNode.getProperty("tax_uid"))));
+				} else {
+					curNode.setName(getOttName(curGraphNode));
+				}
+			} else {
+				if (newickLabelInternalNodes) {
+					if (newickLabelsAreIDs) {
+						curNode.setName(("ott").concat(String.valueOf(curGraphNode.getProperty("tax_uid"))));
+					} else {
+						curNode.setName(getOttName(curGraphNode));
+					}
+				}
+			}
+			
 		}
 		curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
 		
@@ -3789,6 +3814,14 @@ public class GraphExplorer extends GraphBase {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public boolean nodeIsTerminal(Node n) {
+		boolean terminal = false;
+		if (!n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
+			terminal = true;
+		}
+		return terminal;
 	}
 	
 	public int getNumberSynthesisTips(Node startNode) {

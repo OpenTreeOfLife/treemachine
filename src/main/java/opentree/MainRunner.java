@@ -1187,7 +1187,7 @@ public class MainRunner {
 	
 	
 	/// @returns 0 for success, 1 for poorly formed command
-		public int listSynthTrees(String [] args) {
+	public int listSynthTrees(String [] args) {
 			boolean listIDs = false;
 			String graphname;
 			if (args.length != 2) {
@@ -2073,8 +2073,8 @@ public class MainRunner {
 	// gets graph nodeid from ottid
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForOttId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
-		if (args.length != 4) {
-			System.out.println("arguments should be rootNodeOttId outfilename graphdbfolder");
+		if (args.length != 4 & args.length != 5 & args.length != 6) {
+			System.out.println("arguments should be rootNodeOttId outfilename graphdbfolder (optional:labels=UIDs [T|F]) (optional:labelinternal=T [T|F])");
 			return 1;
 		}
 		// open the graph
@@ -2200,14 +2200,29 @@ public class MainRunner {
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForNodeId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
-		if (args.length != 4) {
-			System.out.println("arguments should be rootottId outFileName graphdbfolder");
+		if (args.length != 4 & args.length != 5 & args.length != 6) {
+			System.out.println("arguments should be rootottId outFileName graphdbfolder (optional:labels=UIDs [T|F]) (optional:labelinternal=T [T|F])");
 			return 1;
 		}
 		Long startNodeId = Long.valueOf(args[1]);
 		String outFileName = args[2];
 		String graphname = args[3];
 		GraphExplorer ge = new GraphExplorer(graphname);
+		
+		if (args.length > 4) {
+			String uids = args[4];
+			if (uids.toLowerCase().equals("t")) {
+				ge.setNewickLabelsToIDs();
+				System.out.println("Setting newick labels to OTTIDs.");
+			}
+		}
+		if (args.length == 6) {
+			String intLabels = args[5];
+			if (intLabels.toLowerCase().equals("f")) {
+				ge.turnOffInternalNewickLabels();
+				System.out.println("Turning off internal labels.");
+			}
+		}
 		
 		// find the start node
 		Node firstNode = ge.graphDb.getNodeById(startNodeId);
