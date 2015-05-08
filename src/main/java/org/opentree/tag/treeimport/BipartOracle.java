@@ -694,7 +694,7 @@ public class BipartOracle {
 	 */
 	public LongBipartition strictSumPhylo(LongBipartition t1, LongBipartition t2) {
 
-		if (! t1.isCompatibleWith(t2))
+		if (! t1.isMergeableWith(t2))
 			return null;
 		
 		if (! t1.ingroup().containsAny(t2.ingroup()))
@@ -715,142 +715,208 @@ public class BipartOracle {
 		return new ImmutableLongBipartition(sumIn, sumOut);
 	}
 	
-    private LongBipartition testSum(LongBipartition par1, LongBipartition par2, Set<LongBipartition> originalBiparts) {
-        LongBipartition xor = par1.xor(par2);
-        LongBipartition ss = par1.strictSum(par2);
-        //System.out.println(ss);
-        if (ss == null) {
-            return null;
-        }
-        // System.out.println(par1+" "+par2);
-        //else
-        //	return ss;
-        if (xor.ingroup().size() == 0 || xor.outgroup().size() == 0 || par1.outgroup().size() == 0 || par2.outgroup().size() == 0) {
-            //System.out.println("would make " + ss);
-            return ss;
-        } else {
-            HashMap<Long, HashMap<Long, MutableCompactLongSet>> Q = new HashMap<Long, HashMap<Long, MutableCompactLongSet>>();
-            for (Long l : ss.ingroup()) {
-                Q.put(l, new HashMap<>());
-                for (Long l2 : ss.ingroup()) {
-                    if (l == l2) {
-                        continue;
-                    }
-                    Q.get(l).put(l2, new MutableCompactLongSet());
-                }
-            }
-            for (Long l : ss.outgroup()) {
-                Q.put(l, new HashMap<>());
-                for (Long l2 : ss.outgroup()) {
-                    if (l == l2) {
-                        continue;
-                    }
-                    Q.get(l).put(l2, new MutableCompactLongSet());
-                }
-            }
-            //populate Q and reduce bipartition set
-            HashSet<LongBipartition> totest = new HashSet<LongBipartition>();
-            for (LongBipartition testBi : originalBiparts) {
-                //System.out.println(testBi);
-                //TODO: make this a phylogenetic compatible comparison instead
-                if (testBi.ingroup().containsAny(ss.outgroup()) && testBi.outgroup().containsAny(ss.ingroup())
-                        && testBi.ingroup().containsAny(ss.ingroup())) {
-                } else {
-                        //populate Q
-                    //intersection ingroup bipart with ss ingroup
-                    //intersection outgroup bipart with ss ingroup
-                    //for each ingroup intersection, add the others and add the outgroup intersection to the mutable set
-                    LongSet ing1 = LSintersection(testBi.ingroup(), ss.ingroup());
-                    LongSet ing2 = LSintersection(testBi.outgroup(), ss.ingroup());
-                    //System.out.println(testBi);
-                    //System.out.println("i: "+ing1+" "+ing2);
-                    for (Long l1 : ing1) {
-                        for (Long l2 : ing1) {
-                            if (l1 == l2) {
-                                continue;
-                            }
-                            Q.get(l1).get(l2).addAll(ing2);
-                        }
-                    }
-                    //outgroup
-                    LongSet out1 = LSintersection(testBi.ingroup(), ss.outgroup());
-                    LongSet out2 = LSintersection(testBi.outgroup(), ss.outgroup());
-                    //System.out.println("o: "+out1+" "+out2);
-                    for (Long l1 : out1) {
-                        for (Long l2 : out1) {
-                            if (l1 == l2) {
-                                continue;
-                            }
-                            Q.get(l1).get(l2).addAll(out2);
-                        }
-                    }
-                    if(out1.size()>0 && ing1.size() > 0){
-                        for (Long l1 : out1) {
-                            for (Long l2 : ing1) {
-                                if(Q.get(l1).containsKey(l2)==false)
-                                    Q.get(l1).put(l2, new MutableCompactLongSet());
-                                Q.get(l1).get(l2).addAll(out2);
-                            }
-                        }
-                    }
-                    //System.out.println(Q);
-                    //System.out.println("=======");
-                }
-            }
-            //System.out.println(Q);
-            HashMap<Long, MutableCompactLongSet> R = new HashMap<Long, MutableCompactLongSet>();
-            for (Long l : ss.ingroup()) {
-                R.put(l, new MutableCompactLongSet());
-            }
-            for (LongBipartition testBi : originalBiparts) {
-                if (testBi.isCompatibleWith(ss) == false) {
-                    continue;
-                }
-                LongSet ing = LSintersection(testBi.ingroup(), ss.ingroup());
-                LongSet out = LSintersection(testBi.outgroup(), ss.outgroup());
-                HashMap<Long, MutableCompactLongSet> outtoadd = new HashMap<Long, MutableCompactLongSet>();
-                //TODO: do the outgroup
-                for (Long l1 : out) {
-                    outtoadd.put(l1, new MutableCompactLongSet());
-                    outtoadd.get(l1).add(l1);
-                    for (Long l2 : Q.get(l1).keySet()) {
-                        if (ss.ingroup().contains(l2)==false && testBi.outgroup().containsAny(Q.get(l1).get(l2))) {
-                            outtoadd.get(l1).add(l2);
-                        }if (ss.ingroup().contains(l2) && testBi.ingroup().contains(l2)) {
-                            outtoadd.get(l1).addAll(Q.get(l1).get(l2));
-                        }
-                    }
-                }
+	/**
+	 * A procedure to check whether the summed clade resulting from par1 and par2 would be a clade that is supported by the set of
+	 * clades in <tt>supportingBiparts</tt>. In practice, currently we always supply the full set of original clades from input
+	 * trees as the supporting biparts.
+	 * <br><br>
+	 * The idea here is that we want to check to make sure that there is information in the trees to support the separation of everything
+	 * in the ingroup of the putative sum from everything in its outgroup. The input nodes par1 and par2 themselves are sufficient to
+	 * support the separation of their own ingroup/outgroup taxa, but it is possible for there to be taxa in the ingroup of one input node
+	 * that cannot be separated from some of the taxa in the outgroup of the other. The procedure checks the <tt>supportingBiparts</tt> for
+	 * any information (i.e. taxonomic splits in other nodes) that could be used to separate any taxa from the ingroup/outgroup of the sum
+	 * that cannot be separated simply on the basis of the input nodes themselves. If we find any sets of ingroup/outgroup taxa that cannot
+	 * be separated, then the sum node is unsupported and we return null to indicate that. Otherwise (there are no unsupported
+	 * ingroup/outgroup splits), then we return the summed node.
+	 * 
+	 * @param par1
+	 * @param par2
+	 * @param supportingBiparts
+	 * @return
+	 */
+    private LongBipartition testSum(LongBipartition par1, LongBipartition par2, Set<LongBipartition> supportingBiparts) {
 
-                //TODO: change to a while and keep updating
-                for (Long l1 : ing) {
-                    R.get(l1).addAll(out);
-                    for (Long o : outtoadd.keySet()) {
-                        R.get(l1).addAll(outtoadd.get(o));
+    	// if we fail the strict sum test then we can't make a sum so we don't need to continue
+    	// note, this requires that the ingroups have at least one taxon in common
+    	LongBipartition S = par1.strictSum(par2);
+    	if (S == null) { return null; }
+
+    	// find the taxa in the ingroup/outgroup of the sum that are not shared by both input biparts -- these are the
+    	// ones for which we will need to find other nodes to support their separation
+    	LongBipartition xor = par1.xor(par2);
+        
+        // if the xor of the ingroups or the outgroups of the input nodes empty, then the input nodes
+    	// already support the separation of all the taxa on that side from all taxa on the other.
+        if (xor.ingroup().size() == 0 || xor.outgroup().size() == 0) {
+            return S;
+        }
+
+        // Q is an important container that holds information about taxonomic divisions supported by the clade hypotheses in
+        // supportingNodes. Q is a map, whose keys are *pairs* of taxa (e.g. Q.get(x).get(y) for pair (x,y)), and the values of
+        // the map are sets of taxa that are supported as being separate from the pair of taxa used as the key. The interpretation
+        // of an entry in this data structure is similar to a clade statement--e.g. consider Q(A,B) == {C,D,E}: the natural language
+        // interpretation would be something like "there is support for the statement that A and B are more closely related to 
+        // one another than either of them are to C, D, or E." If there is another entry Q(B,C) == {F,G,H}, then we say that there
+        // is support for the statement that B and C are more closely to one another than F, G, and H. Considering both of these
+        // statements together, we can say that there is support for the statement that A, B *and* C are all more closely related to
+        // one another than any of them are to D, E, F, G, or H. In other words, the clade {A,B,C} | {D,E,F,G,H} is supported.
+        // 
+        // Later in the procedure, we use the information in Q to whittle down the sets of xor taxa from the input nodes in a
+        // process of elimination that will eventually tell us if there are any taxonomic divisions between the ingroup/outgroup
+        // of the putative sum that are *not* supported. First, we have to build Q using the information in supportingNodes.
+        HashMap<Long, HashMap<Long, MutableCompactLongSet>> Q = new HashMap<Long, HashMap<Long, MutableCompactLongSet>>();
+
+        // first, for every pair of nodes in the ingroup of the putative sum, create an entry in the map
+        for (Long l : S.ingroup()) {
+            Q.put(l, new HashMap<>());
+            for (Long l2 : S.ingroup()) {
+                if (l == l2) { continue; }
+                Q.get(l).put(l2, new MutableCompactLongSet());
+            }
+        }
+
+        // also create an entry for every pair of nodes in the *outgroup* of the putative sum
+        for (Long l : S.outgroup()) {
+            Q.put(l, new HashMap<>());
+            for (Long l2 : S.outgroup()) {
+                if (l == l2) { continue; }
+                Q.get(l).put(l2, new MutableCompactLongSet());
+            }
+        }
+        
+        // now we populate Q with relevant phylogenetic information contained in the nodes in supportingBiparts
+        // and reduce bipartition set (?)
+        for (LongBipartition B : supportingBiparts) {
+        	
+        	// skip nodes that are not phylogenetically compatible with the putative sum, they cannot be used for support
+            if (! B.isCompatibleWith(S)) { continue; }
+            
+            // now we will add entries to Q that say that the taxa in B's ingroup are more closely related to one another
+            // than they are to the taxa in B's outgroup. but, we only care about the taxa in B that are also in the sum.
+            // first we look for taxa in B that are in the sum ingroup, then we look for taxa in B that are in the sum outgroup.
+
+            // find the set of taxa in B that are in the *ingroup* of the sum
+            LongSet inS_inB = S.ingroup().intersection(B.ingroup());
+            LongSet inS_outB = S.ingroup().intersection(B.outgroup());
+            
+            // now collect the phylogenetic information from B as it relates to taxa in the outgroup of the sum
+            // i.e. add info to Q stating that taxa in B's ingroup are more closely related to one another than they
+            // are to taxa in B's outgroup
+            for (Long x : inS_inB) {
+                for (Long y : inS_inB) {
+                    if (x != y) {
+                    	Q.get(x).get(y).addAll(inS_outB);
                     }
-                    for (Long l2 : Q.get(l1).keySet()) {
-                        if (testBi.ingroup().containsAny(Q.get(l1).get(l2))) {
-                            R.get(l2).addAll(out);
-                            for (Long o : outtoadd.keySet()) {
-                                R.get(l2).addAll(outtoadd.get(o));
-                            }
+                }
+            }
+
+            // e.g. (for above code)
+            // B = C D | E F
+            // S = C D E F | G H I
+            // inS_inB  = {C, D}
+            // inS_outB = {E, F}
+            // Q (C, D) = {E, F}
+            // Q (D, C) = {E, F}
+            // i.e. B supports the statement that C and D are more closely related to one another than either is to E or F
+
+            // find the set of taxa in B that are in the *outgroup* of the sum
+            LongSet outS_inB = S.outgroup().intersection(B.ingroup());
+            LongSet outS_outB = S.outgroup().intersection(B.outgroup());
+
+            // now collect analogous information from B as it relates to taxa in the outgroup of the sum
+            for (Long x : outS_inB) {
+                for (Long y : outS_inB) {
+                    if (x != y) {
+                    	Q.get(x).get(y).addAll(outS_outB);
+                    }
+                }
+            }
+            
+            // if the ingroup of B contains taxa from *both* the ingroup and the outgroup of the sum, then
+            // say that *all the taxa* from B's ingroup (regardless of whether they are from the ingroup or 
+            // the outgroup of the sum) are supported as being more closely related to one another than any
+            // of them are to anything that is in *both* the outgroup of B and the outgroup of the sum
+            if (outS_inB.size() > 0 && inS_inB.size() > 0) {
+                for (Long x : outS_inB) { // taxa from sum outgroup
+                    for (Long y : inS_inB) { // sum from sum ingroup
+                    	
+                    	// make sure there is an entry
+                        if (! Q.get(x).containsKey(y)) { Q.get(x).put(y, new MutableCompactLongSet()); }
+                        
+                        // say that x and y are more closely related than either are to anything that is in
+                        // both the sum outgroup that and also B's outgroup
+                        Q.get(x).get(y).addAll(outS_outB);
+                    }
+                }
+            }
+        }
+        
+        // so now we are done populating Q, and it contains all the supporting phylogenetic information that
+        // we could collect from the nodes in the supportingNodes object. the next step is to attempt to find
+        // any taxonomic splits within the proposed sum S that are not supported by some combination of statements
+        // in the supportingNodes.
+
+        // now we will look through Q to try and find information that supports the existence of the sum S. we will
+        // use a container R to keep track of the information we find during this search. R is a map that contains
+        // an entry for every node in the sum ingroup (the map keys). the values of the map are sets. for each taxon 
+        // L in the ingroup of the sum (i.e. for each key in R), we are going to scan Q to see if we can find support
+        // for the separation of L from *all* the taxa in the outgroup of the sum. at the end of the procedure, if
+        // we have found information that allows us to separate all the sum's outgroup taxa from all its ingroup
+        // taxa, then we say that the sum S is supported. otherwise it is not.  
+        
+        // here we just create R and populate the entries with empty sets
+        HashMap<Long, MutableCompactLongSet> R = new HashMap<Long, MutableCompactLongSet>();
+        for (Long l : S.ingroup()) { R.put(l, new MutableCompactLongSet()); }
+        
+        // the search for supporting info involves an iteration over the potential supporting nodes
+        for (LongBipartition B : supportingBiparts) {
+            if (! B.isMergeableWith(S)) { continue; } // ???
+            
+            LongSet inS_inB = S.ingroup().intersection(B.ingroup());
+            LongSet outS_outB = S.outgroup().intersection(B.outgroup());
+            HashMap<Long, MutableCompactLongSet> outtoadd = new HashMap<Long, MutableCompactLongSet>();
+            //TODO: do the outgroup
+            for (Long x : outS_outB) {
+                outtoadd.put(x, new MutableCompactLongSet());
+                outtoadd.get(x).add(x);
+                for (Long y : Q.get(x).keySet()) {
+                    if (! S.ingroup().contains(y) && B.outgroup().containsAny(Q.get(x).get(y))) {
+                        outtoadd.get(x).add(y);
+                    }
+                    if (S.ingroup().contains(y) && B.ingroup().contains(y)) {
+                        outtoadd.get(x).addAll(Q.get(x).get(y));
+                    }
+                }
+            }
+
+            //TODO: change to a while and keep updating
+            for (Long l1 : inS_inB) {
+                R.get(l1).addAll(outS_outB);
+                for (Long o : outtoadd.keySet()) {
+                    R.get(l1).addAll(outtoadd.get(o));
+                }
+                for (Long l2 : Q.get(l1).keySet()) {
+                    if (B.ingroup().containsAny(Q.get(l1).get(l2))) {
+                        R.get(l2).addAll(outS_outB);
+                        for (Long o : outtoadd.keySet()) {
+                            R.get(l2).addAll(outtoadd.get(o));
                         }
                     }
                 }
             }
-            //System.out.println(R);
-            for (Long l : ss.ingroup()) {
-                if (R.get(l).size() != ss.outgroup().size()) {
-                    System.out.println("wouldn't make " + ss);
-                    //System.exit(0);
-                    return null;
-                }
-            }
-            System.out.println("would make " + ss);
-            //System.exit(0);
-            return ss;
         }
-        //return null;
+        //System.out.println(R);
+        for (Long l : S.ingroup()) {
+            if (R.get(l).size() != S.outgroup().size()) {
+                System.out.println("wouldn't make " + S);
+                //System.exit(0);
+                return null;
+            }
+        }
+        System.out.println("would make " + S);
+        //System.exit(0);
+        return S;
+
     }
 
 	private LongSet LSintersection(LongSet x,LongSet y){
@@ -1301,8 +1367,8 @@ public class BipartOracle {
 					}
 					LongBipartition bqParent = bipart.get(bipartId.get(bipartForTreeNode.get(q.getParent())));
 
-					if(bq.isCompatibleWith(bp) && (bq.isCompatibleWith(bpParent) == false)
-							&& (bp.isCompatibleWith(bqParent) == false)){
+					if(bq.isMergeableWith(bp) && (bq.isMergeableWith(bpParent) == false)
+							&& (bp.isMergeableWith(bqParent) == false)){
 						compatibleBiparts.get(qid).add(pid);
 					}
 					

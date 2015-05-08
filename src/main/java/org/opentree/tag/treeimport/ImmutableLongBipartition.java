@@ -66,7 +66,7 @@ public class ImmutableLongBipartition implements LongBipartition {
 	 */
 	public LongBipartition sum(LongBipartition that) {
 
-		if (!this.isCompatibleWith(that) || !this.overlapsWith(that)) {
+		if (!this.isMergeableWith(that) || !this.overlapsWith(that)) {
 			return null;
 		}
 
@@ -86,17 +86,17 @@ public class ImmutableLongBipartition implements LongBipartition {
 	}
 	
 	/**
-	 * This differs from sum in that it doesn't not return a bipart if it is equal
-	 * and it requires overlap with the ingroups not ingroups or outgroups. No guarantee is made about the type of the
-	 * returned bipartition--it may be mutable or not. To ensure it is the correct type, pass it to a constructor for
-	 * the desired object type.
+	 * This differs from sum in that it doesn't return a bipart if both input biparts are identical, and it requires overlap
+	 * with the ingroups (instead of requiring overlap with either the ingroups or the outgroups). No guarantee is made about
+	 * the type of the returned bipartition--it may be mutable or not. To ensure it is the correct type, pass it to a constructor
+	 * for the desired object type.
 	 * 
 	 * @param that
 	 * @return
 	 */
 	public LongBipartition strictSum(LongBipartition that) {
 
-		if (! this.isCompatibleWith(that))
+		if (! this.isMergeableWith(that))
 			return null;
 		
 		if (! this.ingroup().containsAny(that.ingroup()))
@@ -127,10 +127,21 @@ public class ImmutableLongBipartition implements LongBipartition {
 	 * @param that
 	 * @return
 	 */
-	public boolean isCompatibleWith(LongBipartition that) {
+	public boolean isMergeableWith(LongBipartition that) {
 		return ! (this.ingroup().containsAny(that.outgroup()) || this.outgroup().containsAny(that.ingroup()));
 	}
 
+	/**
+	 * Can these two nodes be displayed in the same tree?
+	 * @param that
+	 * @return
+	 */
+	public boolean isCompatibleWith(LongBipartition that) {
+		return ! (this.ingroup().containsAny(that.outgroup()) &&
+				  this.outgroup().containsAny(that.ingroup()) &&
+				  this.ingroup().containsAny(that.ingroup()));
+	}
+	
 	/**
 	 * Returns true if the ingroups is completely contained within the ingroup and the outgroup is contained completely 
 	 * within the outgroup (a potential lica). 
@@ -288,6 +299,11 @@ public class ImmutableLongBipartition implements LongBipartition {
 	}
 
 	@Override
+	/**
+	 * Return a bipart whose ingroup and outgroup contains only those taxa that are in the ingroup and
+	 * outgroup (respectively) of either this bipart or <tt>that</tt> (bipart), but does <em>not</em> include
+	 * any taxa in the ingroup/outgroup of both.
+	 */
 	public LongBipartition xor(LongBipartition that) {
 		MutableCompactLongSet retBipartIn= new MutableCompactLongSet();
 		MutableCompactLongSet retBipartOut = new MutableCompactLongSet();

@@ -11,6 +11,7 @@ public abstract interface LongBipartition {
 	public LongSet outgroup();
 	public LongBipartition sum(LongBipartition that);
 	public LongBipartition strictSum(LongBipartition that);
+	public boolean isMergeableWith(LongBipartition that);
 	public boolean isCompatibleWith(LongBipartition that);
 	public boolean containsAll(LongBipartition that);
 	public boolean isNestedPartitionOf(LongBipartition A);
