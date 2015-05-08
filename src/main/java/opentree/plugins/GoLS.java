@@ -12,20 +12,21 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 
-import jade.tree.JadeTree;
-import jade.JSONMessageLogger;
+import jade.deprecated.JSONMessageLogger;
+import jade.tree.deprecated.JadeTree;
 import opentree.GraphBase;
-import opentree.GraphDatabaseAgent;
 import opentree.GraphExplorer;
 import opentree.MainRunner;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
-import opentree.exceptions.TreeIngestException;
-import org.opentree.exceptions.TreeNotFoundException;
 
+import opentree.exceptions.TreeIngestException;
+
+import org.opentree.exceptions.TreeNotFoundException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -39,6 +40,7 @@ import org.neo4j.server.rest.repr.ArgusonRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
 import org.opentree.properties.OTVocabularyPredicate;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
@@ -581,7 +583,7 @@ public class GoLS extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getSyntheticTree(
 			@Source GraphDatabaseService graphDb,
-			@Description("The identifier for the synthesis (e.g. \"otol.draft.22\") (default is most current synthetic tree)")
+			@Description("The identifier for the synthesic tree (e.g. \"opentree3.0\") (default is most current synthetic tree)")
 			@Parameter(name = "treeID", optional = true) String treeID,
 			@Description("The name of the return format (default is newick)")
 			@Parameter(name = "format", optional = true) String format,
@@ -595,6 +597,28 @@ public class GoLS extends ServerPlugin {
 		long subtreeNodeID = 0;
 		boolean emitNewick = false;
 		String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value;
+		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+		
+		// synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
+		if (treeID != null) {
+			GraphExplorer ge = new GraphExplorer(graphDb);
+			ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+			ge.shutdownDB();
+			if (synthTreeIDs.contains(treeID)) {
+				synthTreeID = treeID;
+			} else {
+				responseMap.put("error", "Unrecognized \"tree_id\" argument. Leave blank to default to the current synthetic tree.");
+				return OTRepresentationConverter.convert(responseMap);
+			}
+		}
+		
+		// determine output format
+		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
+			emitNewick = true;
+		} else if (!format.equalsIgnoreCase("arguson")) {
+			responseMap.put("error", "Expecting either \"newick\" or \"arguson\" as the format.");
+			return OTRepresentationConverter.convert(responseMap);
+		}
 
 		// override defaults if user-specified
 		if (maxDepthArg != null) {
@@ -608,18 +632,6 @@ public class GoLS extends ServerPlugin {
 			subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
 		}
 
-		// determine output format
-		if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
-			emitNewick = true;
-		} else if (!format.equalsIgnoreCase("arguson")) {
-			throw new IllegalArgumentException("Expecting either \"newick\" or \"arguson\" as the format.");
-		}
-		
-		// synthetic tree identifier
-		if (treeID != null) {
-			synthTreeID = treeID;
-		}
-
 		// get the subtree for export
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		JadeTree tree = null;
@@ -630,7 +642,6 @@ public class GoLS extends ServerPlugin {
 		}
 
 		if (emitNewick) {
-			HashMap<String, Object> responseMap = new HashMap<String, Object>();
 //			responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths())); // commented because it seems to be failing with newer versions of the jade code
 			responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
 			responseMap.put("treeID", synthTreeID);

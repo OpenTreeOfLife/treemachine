@@ -1,0 +1,839 @@
+uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|	
+805080	|		|	life	|	no rank	|		|		|		|	
+659705	|	805080	|	Dipsacales	|	order	|	ncbi:4199,gbif:946,irmng:12505	|		|	sibling_lower	|	
+919165	|	659705	|	Valerianaceae	|	family	|	ncbi:19944,gbif:2508,irmng:119583	|		|	edited	|	
+5327643	|	919165	|	Distegia	|	genus	|	irmng:1332053	|	Distegia (genus in family Valerianaceae)	|		|	
+5513022	|	5327643	|	Distegia involucrata	|	species	|	irmng:11172755	|	Distegia involucrata (species in family Valerianaceae)	|		|	
+757494	|	659705	|	Adoxaceae	|	family	|	ncbi:4206,gbif:2510,irmng:111833	|		|		|	
+1042137	|	757494	|	Sambucus	|	genus	|	ncbi:4201,gbif:2888721,irmng:1302038	|		|		|	
+5513021	|	1042137	|	Sambucus simpsonii	|	species	|	irmng:10212267	|	Sambucus simpsonii (species irmng:10212267 in family Adoxaceae)	|		|	
+5513020	|	1042137	|	Sambucus laciniata	|	species	|	irmng:10516340	|	Sambucus laciniata (species irmng:10516340 in family Adoxaceae)	|		|	
+5513019	|	1042137	|	Sambucus orbiculata	|	species	|	irmng:11270135	|	Sambucus orbiculata (species irmng:11270135 in family Adoxaceae)	|		|	
+5513018	|	1042137	|	Sambucus velutina	|	species	|	irmng:10987898	|	Sambucus velutina (species irmng:10987898 in family Adoxaceae)	|		|	
+5513017	|	1042137	|	Sambucus neomexicana	|	species	|	irmng:10419552	|	Sambucus neomexicana (species irmng:10419552 in family Adoxaceae)	|		|	
+3892257	|	1042137	|	Sambucus celtifolia	|	species	|	gbif:4924417,irmng:10254698	|		|		|	
+3892258	|	1042137	|	Sambucus hybr	|	species	|	gbif:6709488	|		|		|	
+3892256	|	1042137	|	Sambucus coerulea	|	species	|	gbif:7272650	|		|		|	
+664394	|	1042137	|	Sambucus maderensis	|	species	|	ncbi:57010	|		|		|	
+113609	|	1042137	|	Sambucus tigranii	|	species	|	ncbi:386292	|		|		|	
+142033	|	1042137	|	Sambucus australis	|	species	|	ncbi:57005	|		|		|	
+142026	|	1042137	|	Sambucus canadensis	|	species	|	ncbi:57008,irmng:11083806	|	Sambucus canadensis (species ncbi:57008 in family Adoxaceae)	|		|	
+142039	|	1042137	|	Sambucus callicarpa	|	species	|	ncbi:57007,irmng:11431568	|	Sambucus callicarpa (species ncbi:57007 in family Adoxaceae)	|		|	
+664388	|	1042137	|	Sambucus peruviana	|	species	|	ncbi:57012	|		|		|	
+142024	|	1042137	|	Sambucus javanica	|	species	|	ncbi:57009	|		|		|	
+1046930	|	1042137	|	Sambucus glauca	|	species	|	ncbi:1053964,irmng:10206164	|	Sambucus glauca (species ncbi:1053964 in family Adoxaceae)	|		|	
+357616	|	1042137	|	Sambucus buergeriana	|	species	|	ncbi:1053963	|		|		|	
+664386	|	1042137	|	Sambucus wightiana	|	species	|	ncbi:57014	|		|		|	
+1069702	|	1042137	|	Sambucus chinensis	|	species	|	ncbi:1045114	|		|		|	
+589181	|	1042137	|	Sambucus williamsii	|	species	|	ncbi:180062	|		|		|	
+1011336	|	1042137	|	Sambucus sp. SH2010	|	species	|	ncbi:883680	|		|		|	
+357618	|	1042137	|	Sambucus microbotrys	|	species	|	ncbi:1053967,irmng:11230304	|	Sambucus microbotrys (species ncbi:1053967 in family Adoxaceae)	|		|	
+1042130	|	1042137	|	Sambucus nigra	|	species	|	ncbi:4202,gbif:2888728,irmng:11104802	|		|		|	
+142041	|	1042137	|	Sambucus cerulea	|	species	|	ncbi:57006,irmng:11094858	|	Sambucus cerulea (species ncbi:57006 in family Adoxaceae)	|		|	
+1046932	|	1042137	|	Sambucus sachalinensis	|	species	|	ncbi:1053969	|		|		|	
+1042133	|	1042137	|	Sambucus racemosa	|	species	|	ncbi:4203,gbif:2888723,irmng:10590072	|		|		|	
+113605	|	1042133	|	Sambucus racemosa subsp. kamtschatica	|	subspecies	|	ncbi:386291	|		|	infraspecific	|	
+428102	|	1042133	|	Sambucus racemosa subsp. sieboldiana	|	subspecies	|	ncbi:45463	|		|	infraspecific	|	
+664390	|	1042133	|	Sambucus racemosa subsp. pubens	|	subspecies	|	ncbi:57013	|		|	infraspecific	|	
+664396	|	664390	|	Sambucus racemosa var. melanocarpa	|	varietas	|	ncbi:57011	|		|	infraspecific	|	
+953291	|	1042137	|	Sambucus palmensis	|	species	|	ncbi:1053968,gbif:3857544	|		|		|	
+183996	|	1042137	|	Sambucus adnata	|	species	|	ncbi:57203	|		|		|	
+22350	|	1042137	|	Sambucus ebulus	|	species	|	ncbi:28503,gbif:2888722,irmng:11260278	|		|		|	
+142035	|	22350	|	Sambucus ebulus subsp. africana	|	subspecies	|	ncbi:57004,gbif:3857479	|		|	infraspecific	|	
+831320	|	1042137	|	Sambucus gaudichaudiana	|	species	|	ncbi:44584	|		|		|	
+357619	|	1042137	|	Sambucus mexicana	|	species	|	ncbi:1053966,irmng:10762684	|	Sambucus mexicana (species ncbi:1053966 in family Adoxaceae)	|		|	
+831318	|	1042137	|	Sambucus australasica	|	species	|	ncbi:44583	|		|		|	
+5334223	|	1042137	|	Sambucus sibirica	|	species	|	ncbi:1233970	|		|		|	
+953216	|	1042137	|	Sambucus manshurica	|	species	|	ncbi:1053965	|		|		|	
+724393	|	757494	|	Sinadoxa	|	genus	|	ncbi:122249,irmng:1030148	|		|		|	
+1093062	|	724393	|	Sinadoxa corydalifolia	|	species	|	ncbi:122250	|		|		|	
+757497	|	757494	|	Adoxa	|	genus	|	ncbi:4207,gbif:2888793,irmng:1364863	|		|		|	
+1060656	|	757497	|	Adoxa orientalis	|	species	|	ncbi:331268	|		|		|	
+1042115	|	757497	|	Adoxa moschatellina	|	species	|	ncbi:4208,gbif:2888794,irmng:10197760	|		|		|	
+757503	|	757494	|	Viburnum	|	genus	|	ncbi:4204,gbif:2888580,irmng:1073907	|		|		|	
+5513016	|	757503	|	Viburnum affine	|	species	|	irmng:10323661	|	Viburnum affine (species irmng:10323661 in family Adoxaceae)	|		|	
+5513015	|	757503	|	Viburnum carolinianum	|	species	|	irmng:10022030	|	Viburnum carolinianum (species irmng:10022030 in family Adoxaceae)	|		|	
+5513014	|	757503	|	Viburnum nitidum	|	species	|	irmng:11253378	|	Viburnum nitidum (species irmng:11253378 in family Adoxaceae)	|		|	
+5513013	|	757503	|	Viburnum roseum	|	species	|	irmng:11166175	|	Viburnum roseum (species irmng:11166175 in family Adoxaceae)	|		|	
+5513012	|	757503	|	Viburnum venosum	|	species	|	irmng:10331080	|	Viburnum venosum (species irmng:10331080 in family Adoxaceae)	|		|	
+5513011	|	757503	|	Viburnum pubescens	|	species	|	irmng:11138533	|	Viburnum pubescens (species irmng:11138533 in family Adoxaceae)	|		|	
+5513010	|	757503	|	Viburnum semitomentosum	|	species	|	irmng:10543669	|	Viburnum semitomentosum (species irmng:10543669 in family Adoxaceae)	|		|	
+5513009	|	757503	|	Viburnum indianense	|	species	|	irmng:10001440	|	Viburnum indianense (species irmng:10001440 in family Adoxaceae)	|		|	
+5513008	|	757503	|	Viburnum crenatum	|	species	|	irmng:11194379	|	Viburnum crenatum (species irmng:11194379 in family Adoxaceae)	|		|	
+5513007	|	757503	|	Viburnum semitomentosa	|	species	|	irmng:10958657	|		|		|	
+3892276	|	757503	|	Viburnum arboricolum	|	species	|	gbif:5733693	|		|		|	
+3892271	|	757503	|	Viburnum ravenscragensis	|	species	|	gbif:4983775	|		|		|	
+3892274	|	757503	|	Viburnum burkwoodii	|	species	|	gbif:3857337	|		|		|	
+3892275	|	757503	|	Viburnum obovatum	|	species	|	gbif:2888620,irmng:11220280	|		|		|	
+3892267	|	757503	|	Viburnum carlcephalum	|	species	|	gbif:4930165	|		|		|	
+3892273	|	757503	|	Viburnum rhytidophylloides	|	species	|	gbif:2888588,irmng:11193859	|		|		|	
+3892268	|	757503	|	Viburnum juncundum	|	species	|	gbif:7272633	|		|		|	
+3892277	|	757503	|	Viburnum antiquum	|	species	|	gbif:4940636	|		|		|	
+3892270	|	757503	|	Viburnum hybr	|	species	|	gbif:6709508	|		|		|	
+3892259	|	757503	|	Viburnum variabilis	|	species	|	gbif:4983673	|		|		|	
+3892261	|	757503	|	Viburnum jackii	|	species	|	gbif:2888583,irmng:10200184	|		|		|	
+3892272	|	757503	|	Viburnum recognitum	|	species	|	gbif:6369733,irmng:11187439	|	Viburnum recognitum (species gbif:6369733 in family Adoxaceae)	|		|	
+3892265	|	757503	|	Viburnum rhytidocarpum	|	species	|	gbif:4930180	|		|		|	
+5513006	|	757503	|	Viburnum disjunctum	|	species	|	ncbi:1444318	|		|		|	
+1069938	|	757503	|	Viburnum parvifolium	|	species	|	ncbi:1190441	|		|		|	
+205167	|	757503	|	Viburnum farreri	|	species	|	ncbi:237939,gbif:6369599	|		|		|	
+572538	|	757503	|	Viburnum hartwegii	|	species	|	ncbi:237941	|		|		|	
+313462	|	757503	|	Viburnum bracteatum	|	species	|	ncbi:1127638,gbif:2888598,irmng:10200182	|		|		|	
+938735	|	757503	|	Viburnum subalpinum	|	species	|	ncbi:1127661	|		|		|	
+124082	|	757503	|	Viburnum elatum	|	species	|	ncbi:237935	|		|		|	
+938733	|	757503	|	Viburnum schensianum	|	species	|	ncbi:1127660,gbif:6369670	|		|		|	
+288576	|	757503	|	Viburnum glomeratum	|	species	|	ncbi:1190434	|		|		|	
+624780	|	757503	|	Viburnum urceolatum	|	species	|	ncbi:237962	|		|		|	
+990121	|	757503	|	Viburnum flavescens	|	species	|	ncbi:1127647	|		|		|	
+296902	|	757503	|	Viburnum orientale	|	species	|	ncbi:432678	|		|		|	
+5513005	|	757503	|	Viburnum foetens	|	species	|	ncbi:1444319	|		|		|	
+22572	|	757503	|	Viburnum ayavacense	|	species	|	ncbi:1190424	|		|		|	
+463631	|	757503	|	Viburnum jamesonii	|	species	|	ncbi:1127652	|		|		|	
+51715	|	757503	|	Viburnum prunifolium	|	species	|	ncbi:237954,gbif:2888608,irmng:11182506	|		|		|	
+51729	|	757503	|	Viburnum odoratissimum	|	species	|	ncbi:237951,gbif:2888626,irmng:11165931	|		|		|	
+990117	|	757503	|	Viburnum corymbiflorum	|	species	|	ncbi:1127645	|		|		|	
+5513004	|	757503	|	Viburnum sambucinum	|	species	|	ncbi:1444324	|		|		|	
+90825	|	757503	|	Viburnum awabuki	|	species	|	ncbi:453244	|		|		|	
+789406	|	757503	|	Viburnum treleasei	|	species	|	ncbi:449240	|		|		|	
+463629	|	757503	|	Viburnum lautum	|	species	|	ncbi:1127653	|		|		|	
+5513003	|	757503	|	Viburnum vernicosum	|	species	|	ncbi:1444327	|		|		|	
+205164	|	757503	|	Viburnum erubescens	|	species	|	ncbi:237938	|		|		|	
+538288	|	205164	|	Viburnum erubescens var. prattii	|	varietas	|	ncbi:1045192	|		|	infraspecific	|	
+990115	|	757503	|	Viburnum coriaceum	|	species	|	ncbi:1127644	|		|		|	
+929058	|	757503	|	Viburnum villosum	|	species	|	ncbi:1190449	|		|		|	
+938731	|	757503	|	Viburnum ternatum	|	species	|	ncbi:1127663	|		|		|	
+205155	|	757503	|	Viburnum dilatatum	|	species	|	ncbi:237933,gbif:2888584,irmng:10665310	|		|		|	
+5513002	|	757503	|	Viburnum tashiroi	|	species	|	ncbi:1444326	|		|		|	
+5513001	|	757503	|	Viburnum beccarii	|	species	|	ncbi:1444317	|		|		|	
+51724	|	757503	|	Viburnum stenocalyx	|	species	|	ncbi:237957	|		|		|	
+296904	|	757503	|	Viburnum propinquum	|	species	|	ncbi:432679	|		|		|	
+595373	|	757503	|	Viburnum formosanum	|	species	|	ncbi:1190433	|		|		|	
+1069949	|	757503	|	Viburnum undulatum	|	species	|	ncbi:1190447	|		|		|	
+50896	|	757503	|	Viburnum mongolicum	|	species	|	ncbi:432677	|		|		|	
+1069936	|	757503	|	Viburnum obtusatum	|	species	|	ncbi:1190440	|		|		|	
+1069944	|	757503	|	Viburnum seemanii	|	species	|	ncbi:1190444	|		|		|	
+963564	|	757503	|	Viburnum foetidum	|	species	|	ncbi:436500	|		|		|	
+804606	|	963564	|	Viburnum foetidum var. ceanothoides	|	varietas	|	ncbi:1045193	|		|	infraspecific	|	
+5518966	|	963564	|	Viburnum foetidum var. rectangulatum	|	varietas	|	ncbi:1445453	|		|	infraspecific	|	
+990119	|	757503	|	Viburnum discolor	|	species	|	ncbi:1127646	|		|		|	
+22576	|	757503	|	Viburnum antioquiense	|	species	|	ncbi:1190422	|		|		|	
+50892	|	757503	|	Viburnum koreanum	|	species	|	ncbi:432675	|		|		|	
+963566	|	757503	|	Viburnum setigerum	|	species	|	ncbi:436501,gbif:2888604,irmng:10977923	|		|		|	
+592219	|	757503	|	Viburnum ichangense	|	species	|	ncbi:1127650	|		|		|	
+463633	|	757503	|	Viburnum inopinatum	|	species	|	ncbi:1127651	|		|		|	
+5513000	|	757503	|	Viburnum grandiflorum	|	species	|	ncbi:1444320	|		|		|	
+614385	|	757503	|	Viburnum luzonicum	|	species	|	ncbi:1127658	|		|		|	
+313456	|	757503	|	Viburnum amplificatum	|	species	|	ncbi:1127633	|		|		|	
+1064635	|	757503	|	Viburnum plicatum	|	species	|	ncbi:179996,gbif:2888622,irmng:10588714	|		|		|	
+51737	|	1064635	|	Viburnum plicatum var. tomentosum	|	varietas	|	ncbi:237953	|		|	infraspecific	|	
+22574	|	757503	|	Viburnum brevipes	|	species	|	ncbi:1190425	|		|		|	
+22581	|	757503	|	Viburnum acutifolium	|	species	|	ncbi:1190421	|		|		|	
+929056	|	757503	|	Viburnum venustum	|	species	|	ncbi:1190448	|		|		|	
+849001	|	757503	|	Viburnum sympodiale	|	species	|	ncbi:432680	|		|		|	
+572536	|	757503	|	Viburnum japonicum	|	species	|	ncbi:237942,gbif:3856771	|		|		|	
+5512999	|	757503	|	Viburnum henryi	|	species	|	ncbi:1444321	|		|		|	
+572551	|	757503	|	Viburnum kansuense	|	species	|	ncbi:237944	|		|		|	
+572547	|	757503	|	Viburnum lantana	|	species	|	ncbi:237945,gbif:2888615,irmng:11442620	|		|		|	
+990125	|	757503	|	Viburnum chingii	|	species	|	ncbi:1127642	|		|		|	
+51717	|	757503	|	Viburnum rafinesquianum	|	species	|	ncbi:237955,gbif:4925723,irmng:10205227	|		|		|	
+1003380	|	51717	|	Viburnum rafinesquianum var. affine	|	varietas	|	ncbi:1220048	|		|	infraspecific	|	
+1069947	|	757503	|	Viburnum sp. WLC2012b	|	species	|	ncbi:1190445	|		|		|	
+572556	|	757503	|	Viburnum melanocarpum	|	species	|	ncbi:237948	|		|		|	
+951684	|	757503	|	Viburnum costaricanum	|	species	|	ncbi:1130863	|		|		|	
+22570	|	757503	|	Viburnum burejaeticum	|	species	|	ncbi:1190427,gbif:3857358	|		|		|	
+624778	|	757503	|	Viburnum utile	|	species	|	ncbi:237963	|		|		|	
+938727	|	757503	|	Viburnum veitchii	|	species	|	ncbi:1127665,gbif:4930163	|		|		|	
+595365	|	757503	|	Viburnum sp. WLC2012a	|	species	|	ncbi:1190439	|		|		|	
+22591	|	757503	|	Viburnum ciliatum	|	species	|	ncbi:1190428	|		|		|	
+595375	|	757503	|	Viburnum divaricatum	|	species	|	ncbi:1190432	|		|		|	
+5512998	|	757503	|	Viburnum hispidulum	|	species	|	ncbi:1444322	|		|		|	
+572534	|	757503	|	Viburnum jucundum	|	species	|	ncbi:237943	|		|		|	
+313449	|	757503	|	Viburnum atrocyaneum	|	species	|	ncbi:1127634	|		|		|	
+383302	|	757503	|	Viburnum sieboldii	|	species	|	ncbi:61591,gbif:2888597,irmng:10697904	|		|		|	
+572553	|	757503	|	Viburnum molle	|	species	|	ncbi:237949,gbif:2888618,irmng:10588713	|		|		|	
+205162	|	757503	|	Viburnum cylindricum	|	species	|	ncbi:237931	|		|		|	
+51726	|	757503	|	Viburnum nudum	|	species	|	ncbi:237950,gbif:2888627,irmng:10204960	|		|		|	
+592237	|	757503	|	Viburnum oliganthum	|	species	|	ncbi:1127659	|		|		|	
+22567	|	757503	|	Viburnum buddleifolium	|	species	|	ncbi:1190426,gbif:2888617,irmng:10701564	|		|		|	
+938729	|	757503	|	Viburnum sulcatum	|	species	|	ncbi:1127662	|		|		|	
+205158	|	757503	|	Viburnum nervosum	|	species	|	ncbi:237930	|		|		|	
+51739	|	757503	|	Viburnum suspensum	|	species	|	ncbi:237958,gbif:2888582,irmng:10941228	|		|		|	
+990127	|	757503	|	Viburnum colebrookeanum	|	species	|	ncbi:1127643	|		|		|	
+441201	|	757503	|	Viburnum sp. SH2010	|	species	|	ncbi:883713	|		|		|	
+938725	|	757503	|	Viburnum toronis	|	species	|	ncbi:1127664	|		|		|	
+51742	|	757503	|	Viburnum tinus	|	species	|	ncbi:237959,gbif:2888585,irmng:10590724	|		|		|	
+63298	|	51742	|	Viburnum tinus subsp. tinus	|	subspecies	|	ncbi:1211625	|		|	infraspecific	|	
+628859	|	757503	|	Viburnum betulifolium	|	species	|	ncbi:224736	|		|		|	
+5512997	|	757503	|	Viburnum corylifolium	|	species	|	ncbi:1220046	|		|		|	
+572545	|	757503	|	Viburnum lantanoides	|	species	|	ncbi:237946,gbif:2888601,irmng:11357033	|		|		|	
+50889	|	757503	|	Viburnum brachybotryum	|	species	|	ncbi:432674	|		|		|	
+857961	|	757503	|	Viburnum wrightii	|	species	|	ncbi:349481	|		|		|	
+313451	|	757503	|	Viburnum brachyandrum	|	species	|	ncbi:1127636	|		|		|	
+572543	|	757503	|	Viburnum lobophyllum	|	species	|	ncbi:237947	|		|		|	
+1069942	|	757503	|	Viburnum scabrellum	|	species	|	ncbi:1190443,irmng:10023985	|	Viburnum scabrellum (species ncbi:1190443 in family Adoxaceae)	|		|	
+627848	|	757503	|	Viburnum cotinifolium	|	species	|	ncbi:446156	|		|		|	
+990123	|	757503	|	Viburnum caudatum	|	species	|	ncbi:1127641	|		|		|	
+595367	|	757503	|	Viburnum microcarpum	|	species	|	ncbi:1190438	|		|		|	
+1000625	|	757503	|	Viburnum taitoense	|	species	|	ncbi:1190446	|		|		|	
+383298	|	757503	|	Viburnum lentago	|	species	|	ncbi:61590,gbif:2888586,irmng:11282600	|		|		|	
+857959	|	757503	|	Viburnum phlebotrichum	|	species	|	ncbi:349480	|		|		|	
+804619	|	757503	|	Viburnum fordiae	|	species	|	ncbi:1045194	|		|		|	
+967922	|	757503	|	Viburnum cassinoides	|	species	|	ncbi:1127640,irmng:10499983	|	Viburnum cassinoides (species ncbi:1127640 in family Adoxaceae)	|		|	
+728496	|	757503	|	Viburnum cinnamomifolium	|	species	|	ncbi:237928	|		|		|	
+288580	|	757503	|	Viburnum lancifolium	|	species	|	ncbi:1190437	|		|		|	
+5512996	|	757503	|	Viburnum stellatotomentosum	|	species	|	ncbi:1444325	|		|		|	
+728493	|	757503	|	Viburnum clemensae	|	species	|	ncbi:237929	|		|		|	
+313460	|	757503	|	Viburnum calvum	|	species	|	ncbi:1127639	|		|		|	
+136756	|	757503	|	Viburnum australe	|	species	|	ncbi:1190423,gbif:3855520,irmng:11166177	|	Viburnum australe (species ncbi:1190423 in family Adoxaceae)	|		|	
+288585	|	757503	|	Viburnum integrifolium	|	species	|	ncbi:1190436	|		|		|	
+5512995	|	757503	|	Viburnum annamensis	|	species	|	ncbi:1444316	|		|		|	
+313447	|	757503	|	Viburnum blandum	|	species	|	ncbi:1127635	|		|		|	
+728485	|	757503	|	Viburnum carlesii	|	species	|	ncbi:237927,gbif:3857225	|		|		|	
+313458	|	757503	|	Viburnum adenophorum	|	species	|	ncbi:1127632	|		|		|	
+510374	|	757503	|	Viburnum rigidum	|	species	|	ncbi:1031695	|		|		|	
+979456	|	757503	|	Viburnum rhytidophyllum	|	species	|	ncbi:47689,gbif:2888625,irmng:11011920	|		|		|	
+592186	|	757503	|	Viburnum lutescens	|	species	|	ncbi:1127657	|		|		|	
+541716	|	757503	|	Viburnum cf. corylifolium 10399A	|	species	|	ncbi:1220045	|		|		|	
+205142	|	757503	|	Viburnum ellipticum	|	species	|	ncbi:237936,gbif:2888599,irmng:10200183	|		|		|	
+5512994	|	757503	|	Viburnum mullaha	|	species	|	ncbi:1444323	|		|		|	
+117453	|	757503	|	Viburnum opulus	|	species	|	ncbi:85293,gbif:2888605,irmng:10204965	|		|		|	
+51731	|	117453	|	Viburnum opulus var. sargentii	|	varietas	|	ncbi:237952,irmng:10205242	|		|	infraspecific	|	
+553463	|	117453	|	Viburnum opulus var. americanum	|	varietas	|	ncbi:237960	|		|	infraspecific	|	
+717639	|	757503	|	Viburnum bitchiuense	|	species	|	ncbi:1220044	|		|		|	
+990131	|	757503	|	Viburnum hupehense	|	species	|	ncbi:1127649,gbif:3856989	|		|		|	
+124089	|	757503	|	Viburnum davidii	|	species	|	ncbi:237932,gbif:4930155	|		|		|	
+624775	|	757503	|	Viburnum triphyllum	|	species	|	ncbi:237961	|		|		|	
+373608	|	757503	|	Viburnum macrocephalum	|	species	|	ncbi:432676	|		|		|	
+990685	|	757503	|	Viburnum sempervirens	|	species	|	ncbi:1008939	|		|		|	
+413765	|	990685	|	Viburnum sempervirens var. trichophorum	|	varietas	|	ncbi:1008940	|		|	infraspecific	|	
+592195	|	757503	|	Viburnum loeseneri	|	species	|	ncbi:1127656	|		|		|	
+572541	|	757503	|	Viburnum furcatum	|	species	|	ncbi:237940	|		|		|	
+205146	|	757503	|	Viburnum edule	|	species	|	ncbi:237934,gbif:2888613,irmng:10907928	|		|		|	
+136502	|	757503	|	Viburnum sp. Qiu 95083	|	species	|	ncbi:180956	|		|		|	
+463627	|	757503	|	Viburnum punctatum	|	species	|	ncbi:1127654	|		|		|	
+463623	|	463627	|	Viburnum punctatum var. lepidotulum	|	varietas	|	ncbi:1127655	|		|	infraspecific	|	
+959514	|	757503	|	Viburnum dentatum	|	species	|	ncbi:61589,gbif:2888594,irmng:10852216	|		|		|	
+595369	|	959514	|	Viburnum dentatum var. venosum	|	varietas	|	ncbi:1190431	|		|	infraspecific	|	
+595371	|	959514	|	Viburnum dentatum var. lucidum	|	varietas	|	ncbi:1190430	|		|	infraspecific	|	
+22593	|	959514	|	Viburnum dentatum var. indianense	|	varietas	|	ncbi:1190429	|		|	infraspecific	|	
+1003403	|	959514	|	Viburnum dentatum var. dentatum	|	varietas	|	ncbi:1220047	|		|	infraspecific	|	
+124077	|	757503	|	Viburnum erosum	|	species	|	ncbi:237937	|		|		|	
+1042145	|	757503	|	Viburnum acerifolium	|	species	|	ncbi:4205,gbif:2888596,irmng:10204961	|		|		|	
+51719	|	757503	|	Viburnum rufidulum	|	species	|	ncbi:237956,gbif:2888590,irmng:11034777	|		|		|	
+1069940	|	757503	|	Viburnum pichinchense	|	species	|	ncbi:1190442,gbif:7272658	|		|		|	
+848999	|	757503	|	Viburnum taiwanianum	|	species	|	ncbi:432681	|		|		|	
+990129	|	757503	|	Viburnum hebanthum	|	species	|	ncbi:1127648	|		|		|	
+1042722	|	757503	|	Viburnum hallii	|	species	|	ncbi:1190435	|		|		|	
+330645	|	757494	|	Tetradoxa	|	genus	|	ncbi:179090,irmng:1298257	|		|		|	
+330647	|	330645	|	Tetradoxa omeiensis	|	species	|	ncbi:179091	|		|		|	
+1042135	|	659705	|	Caprifoliaceae	|	family	|	ncbi:4200,gbif:6710	|	Caprifoliaceae (family ncbi:4200 in order Dipsacales)	|		|	
+994161	|	1042135	|	Pseudoscabiosa	|	genus	|	ncbi:183565,irmng:1060850	|		|	sibling_lower	|	
+994159	|	994161	|	Pseudoscabiosa limonifolia	|	species	|	ncbi:183566	|		|		|	
+1026985	|	994161	|	Pseudoscabiosa saxatilis	|	species	|	ncbi:596807	|		|		|	
+1065582	|	994161	|	Pseudoscabiosa grosii	|	species	|	ncbi:398313	|		|		|	
+225985	|	1042135	|	Leycesteria	|	genus	|	ncbi:52834,gbif:2888578,irmng:1017409	|		|	sibling_lower	|	
+91708	|	225985	|	Leycesteria sp. Boufford et al. 44597	|	species	|	ncbi:318446	|		|		|	
+888790	|	225985	|	Leycesteria crocothyrsos	|	species	|	ncbi:134519	|		|		|	
+225983	|	225985	|	Leycesteria formosa	|	species	|	ncbi:52835,gbif:2888579,irmng:10208008	|		|		|	
+589180	|	225983	|	Leycesteria formosa var. stenosepala	|	varietas	|	ncbi:180063	|		|	infraspecific	|	
+258042	|	225985	|	Leycesteria sp. DGH2009	|	species	|	ncbi:644878	|		|		|	
+459096	|	1042135	|	Valerianella	|	genus	|	ncbi:59165,gbif:2888767,irmng:1047779	|		|	sibling_lower	|	
+3892242	|	459096	|	Valerianella longiflora	|	species	|	gbif:2888790,irmng:11081158	|		|		|	
+3892244	|	459096	|	Valerianella chenopodiifolia	|	species	|	gbif:2888768,irmng:11348660	|		|		|	
+3892243	|	459096	|	Valerianella nuttallii	|	species	|	gbif:2888771,irmng:10953642	|		|		|	
+3892241	|	459096	|	Valerianella palmeri	|	species	|	gbif:2888791,irmng:11195482	|		|		|	
+3892240	|	459096	|	Valerianella ozarkana	|	species	|	gbif:2888780,irmng:11439832	|		|		|	
+981578	|	459096	|	Valerianella carinata	|	species	|	ncbi:368322,gbif:2888769,irmng:10587557	|		|		|	
+981576	|	459096	|	Valerianella amarella	|	species	|	ncbi:368321,gbif:2888788,irmng:10669653	|		|		|	
+445620	|	459096	|	Valerianella coronata	|	species	|	ncbi:183956	|		|		|	
+920295	|	459096	|	Valerianella multidentata	|	species	|	ncbi:1027242	|		|		|	
+476270	|	459096	|	Valerianella vesicaria	|	species	|	ncbi:300939	|		|		|	
+981584	|	459096	|	Valerianella texana	|	species	|	ncbi:368329,gbif:2888772,irmng:10198033	|		|		|	
+24105	|	459096	|	Valerianella rimosa	|	species	|	ncbi:768053	|		|		|	
+981566	|	459096	|	Valerianella florifera	|	species	|	ncbi:368324,gbif:2888770,irmng:10198031	|		|		|	
+139314	|	459096	|	Valerianella eriocarpa	|	species	|	ncbi:245824,gbif:2888773,irmng:10589834	|		|		|	
+459098	|	459096	|	Valerianella locusta	|	species	|	ncbi:59166,gbif:2888778,irmng:10198032	|		|		|	
+981580	|	459096	|	Valerianella discoidea	|	species	|	ncbi:368323	|		|		|	
+981570	|	459096	|	Valerianella muricata	|	species	|	ncbi:368326	|		|		|	
+405280	|	459096	|	Valerianella umbilicata	|	species	|	ncbi:368330,gbif:2888774,irmng:10593225	|		|		|	
+981572	|	459096	|	Valerianella radiata	|	species	|	ncbi:368327,gbif:2888782,irmng:10421794	|		|		|	
+476255	|	459096	|	Valerianella dentata	|	species	|	ncbi:300936,gbif:2888789,irmng:11204419	|		|		|	
+476272	|	459096	|	Valerianella pumila	|	species	|	ncbi:300938	|		|		|	
+920293	|	459096	|	Valerianella turgida	|	species	|	ncbi:1027243	|		|		|	
+981582	|	459096	|	Valerianella stenocarpa	|	species	|	ncbi:368328,gbif:2888792,irmng:10991725	|		|		|	
+981568	|	459096	|	Valerianella microcarpa	|	species	|	ncbi:368325	|		|		|	
+459087	|	1042135	|	Nardostachys	|	genus	|	ncbi:59169,irmng:1029785	|		|	sibling_lower	|	
+502672	|	459087	|	Nardostachys chinensis	|	species	|	ncbi:179860	|		|		|	
+24101	|	459087	|	Nardostachys grandiflora	|	species	|	ncbi:768052	|		|		|	
+649885	|	1042135	|	Lonicera	|	genus	|	ncbi:49606,gbif:2888645,irmng:1263010	|	Lonicera (genus in order Dipsacales)	|	sibling_lower	|	
+5512993	|	649885	|	Xylosteum involucratum	|	species	|	irmng:10210843	|	Xylosteum involucratum (species irmng:10210843 in order Dipsacales)	|		|	
+5512992	|	649885	|	Lonicera cauriana	|	species	|	irmng:10680759	|	Lonicera cauriana (species irmng:10680759 in order Dipsacales)	|		|	
+5512991	|	649885	|	Lonicera alba	|	species	|	irmng:10676754	|	Lonicera alba (species in order Dipsacales)	|		|	
+5512990	|	649885	|	Lonicera johnstonii	|	species	|	irmng:10800329	|	Lonicera johnstonii (species irmng:10800329 in order Dipsacales)	|		|	
+3892204	|	649885	|	Lonicera tatarinovii	|	species	|	gbif:5930281	|		|		|	
+3892209	|	649885	|	Lonicera heterophylla	|	species	|	gbif:5599222	|		|		|	
+3892211	|	649885	|	Lonicera saccata	|	species	|	gbif:6369677	|		|		|	
+3892200	|	649885	|	Lonicera xylosteoides	|	species	|	gbif:5334276,irmng:10907406	|		|		|	
+3892215	|	649885	|	Lonicera lindernifolia	|	species	|	gbif:7272580	|		|		|	
+3892220	|	649885	|	Lonicera heckrottii	|	species	|	gbif:5334243,irmng:10910431	|		|		|	
+3892218	|	649885	|	Lonicera conjugialis	|	species	|	gbif:5334245,irmng:10205501	|		|		|	
+3892205	|	649885	|	Lonicera villosa	|	species	|	gbif:5334235,irmng:10893461	|		|		|	
+3892203	|	649885	|	Lonicera notha	|	species	|	gbif:5334233,irmng:10205681	|		|		|	
+3892202	|	649885	|	Lonicera brownei	|	species	|	gbif:7272521	|		|		|	
+3892222	|	649885	|	Lonicera tatsienensis	|	species	|	gbif:5599146	|		|		|	
+3892221	|	649885	|	Lonicera hybr	|	species	|	gbif:6711957	|		|		|	
+3892217	|	649885	|	Lonicera nummularifolia	|	species	|	gbif:7272760	|		|		|	
+3892208	|	649885	|	Lonicera salicifolia	|	species	|	gbif:5598715	|		|		|	
+3892207	|	649885	|	Lonicera minutiflora	|	species	|	gbif:5334251,irmng:11086458	|		|		|	
+3892210	|	649885	|	Lonicera utahensis	|	species	|	gbif:5334226,irmng:10590070	|		|		|	
+3892206	|	649885	|	Lonicera denudata	|	species	|	gbif:7272640	|		|		|	
+3892213	|	649885	|	Lonicera praeflorens	|	species	|	gbif:6369770	|		|		|	
+700008	|	649885	|	Lonicera serreana	|	species	|	ncbi:566154	|		|		|	
+920854	|	649885	|	Lonicera gracilipes	|	species	|	ncbi:486668,gbif:5598552	|		|		|	
+692217	|	649885	|	Lonicera oblongifolia	|	species	|	ncbi:566149,gbif:5334236,irmng:10590068	|		|		|	
+2125	|	649885	|	Lonicera japonica	|	species	|	ncbi:105884,gbif:5334240,irmng:11069269	|		|		|	
+687262	|	2125	|	Lonicera japonica var. chinensis	|	varietas	|	ncbi:936050	|		|	infraspecific	|	
+980077	|	649885	|	Lonicera prostrata	|	species	|	ncbi:447672	|		|		|	
+1044168	|	649885	|	Lonicera stabiana	|	species	|	ncbi:706492	|		|		|	
+345666	|	649885	|	Lonicera koehneana	|	species	|	ncbi:486676	|		|		|	
+811893	|	649885	|	Lonicera periclymenum	|	species	|	ncbi:213829,gbif:5334277,irmng:10205248	|		|		|	
+3892214	|	811893	|	Lonicera periclymenum periclymenum	|	subvariety	|	gbif:7272508	|		|	infraspecific	|	
+657568	|	649885	|	Lonicera sp. HD2010	|	species	|	ncbi:885927	|		|		|	
+235196	|	649885	|	Lonicera hypoglauca	|	species	|	ncbi:638626	|		|		|	
+124277	|	649885	|	Lonicera canadensis	|	species	|	ncbi:350584,gbif:5334256,irmng:11304130	|		|		|	
+692201	|	649885	|	Lonicera flava	|	species	|	ncbi:566140,gbif:5334229,irmng:10205503	|		|		|	
+700006	|	649885	|	Lonicera setifera	|	species	|	ncbi:566155	|		|		|	
+1086595	|	649885	|	Lonicera involucrata	|	species	|	ncbi:134521,gbif:5334253,irmng:10762683	|		|		|	
+702429	|	649885	|	Lonicera vesicaria	|	species	|	ncbi:486690	|		|		|	
+692190	|	649885	|	Lonicera interrupta	|	species	|	ncbi:566144,gbif:5334270,irmng:10590067	|		|		|	
+980073	|	649885	|	Lonicera hispida	|	species	|	ncbi:447670	|		|		|	
+920868	|	649885	|	Lonicera alpigena	|	species	|	ncbi:486660,gbif:6369729	|		|		|	
+179059	|	649885	|	Lonicera spinosa	|	species	|	ncbi:486685	|		|		|	
+118025	|	649885	|	Lonicera quinquelocularis	|	species	|	ncbi:566153	|		|		|	
+980079	|	649885	|	Lonicera rupicola	|	species	|	ncbi:447673	|		|		|	
+419862	|	649885	|	Lonicera sp. Palmer 679	|	species	|	ncbi:181011	|		|		|	
+960338	|	649885	|	Lonicera similis	|	species	|	ncbi:112523	|		|		|	
+920866	|	649885	|	Lonicera giraldii	|	species	|	ncbi:486667	|		|		|	
+5144235	|	649885	|	Lonicera x brownii	|	species	|	ncbi:447667	|		|	hybrid	|	
+920862	|	649885	|	Lonicera dioica	|	species	|	ncbi:486665,gbif:5334261,irmng:10205502	|		|		|	
+352788	|	649885	|	Lonicera sp. Qiu 05010	|	species	|	ncbi:764919	|		|		|	
+118049	|	649885	|	Lonicera subspicata	|	species	|	ncbi:566158,gbif:5334257,irmng:11431044	|		|		|	
+140546	|	649885	|	Lonicera altmannii	|	species	|	ncbi:432246	|		|		|	
+692192	|	649885	|	Lonicera korolkowii	|	species	|	ncbi:566145,gbif:5334228,irmng:10212664	|		|		|	
+345662	|	649885	|	Lonicera gynochlamydea	|	species	|	ncbi:486670	|		|		|	
+345656	|	649885	|	Lonicera modesta	|	species	|	ncbi:486678	|		|		|	
+692203	|	649885	|	Lonicera floribunda	|	species	|	ncbi:566141,gbif:5598721	|		|		|	
+355135	|	649885	|	Lonicera vidalii	|	species	|	ncbi:589847	|		|		|	
+960340	|	649885	|	Lonicera dasystyla	|	species	|	ncbi:112522	|		|		|	
+920870	|	649885	|	Lonicera calcarata	|	species	|	ncbi:486661	|		|		|	
+971478	|	649885	|	Lonicera henryi	|	species	|	ncbi:486672	|	Lonicera henryi (species ncbi:486672 in order Dipsacales)	|		|	
+271197	|	649885	|	Lonicera demissa	|	species	|	ncbi:566139,gbif:5598941	|		|		|	
+971476	|	649885	|	Lonicera hispidula	|	species	|	ncbi:486673,gbif:5334232,irmng:10205505	|		|		|	
+403955	|	649885	|	Lonicera ferdinandi	|	species	|	ncbi:447669,gbif:5598772	|		|		|	
+660961	|	649885	|	Lonicera maackii	|	species	|	ncbi:51255,gbif:5334234,irmng:10453227	|		|		|	
+527576	|	649885	|	Lonicera graebneri	|	species	|	ncbi:486669	|		|		|	
+980075	|	649885	|	Lonicera microphylla	|	species	|	ncbi:447671	|		|		|	
+118047	|	649885	|	Lonicera tomentella	|	species	|	ncbi:566159	|		|		|	
+920858	|	649885	|	Lonicera deflexicalyx	|	species	|	ncbi:486664	|		|		|	
+699989	|	649885	|	Lonicera pilosa	|	species	|	ncbi:566152	|		|		|	
+971481	|	649885	|	Lonicera inconspicua	|	species	|	ncbi:486675	|		|		|	
+179056	|	649885	|	Lonicera subsessilis	|	species	|	ncbi:486687	|		|		|	
+699991	|	649885	|	Lonicera oresbia	|	species	|	ncbi:566151	|		|		|	
+345664	|	649885	|	Lonicera maximowiczii	|	species	|	ncbi:486677,gbif:6369647	|		|		|	
+1063154	|	649885	|	Lonicera sovetkinae	|	species	|	ncbi:486684	|		|		|	
+980069	|	649885	|	Lonicera tatarica	|	species	|	ncbi:447676,gbif:5334242,irmng:10205249	|		|		|	
+980071	|	980069	|	Lonicera tatarica var. micrantha	|	varietas	|	ncbi:447677	|		|	infraspecific	|	
+179063	|	649885	|	Lonicera pyrenaica	|	species	|	ncbi:486683	|		|		|	
+1086606	|	649885	|	Lonicera caerulea	|	species	|	ncbi:134520,gbif:5334269,irmng:10205680	|		|		|	
+959411	|	1086606	|	Lonicera caerulea var. kamtschatica	|	varietas	|	ncbi:760126	|		|	sibling_higher,infraspecific	|	
+5335615	|	1086606	|	Lonicera caerulea var. emphyllocalyx	|	varietas	|	ncbi:1412445	|		|	sibling_higher,infraspecific	|	
+142926	|	1086606	|	Lonicera caerulea var. dependens	|	varietas	|	ncbi:134535	|		|	sibling_higher,infraspecific	|	
+589189	|	1086606	|	Lonicera caerulea var. edulis	|	varietas	|	ncbi:180064	|		|	sibling_higher,infraspecific	|	
+5335614	|	1086606	|	Lonicera caerulea var. pallasii	|	varietas	|	ncbi:1412447	|		|	sibling_higher,infraspecific	|	
+403958	|	1086606	|	Lonicera caerulea var. altaica	|	varietas	|	ncbi:447668	|		|	sibling_higher,infraspecific	|	
+959417	|	1086606	|	Lonicera caerulea subsp. stenantha	|	subspecies	|	ncbi:760125	|		|	sibling_lower,infraspecific	|	
+271189	|	649885	|	Lonicera albiflora	|	species	|	ncbi:566135,gbif:5334223,irmng:10856853	|		|		|	
+692216	|	649885	|	Lonicera myrtilloides	|	species	|	ncbi:566148	|		|		|	
+517302	|	649885	|	Lonicera reticulata	|	species	|	ncbi:180182,gbif:5334271,irmng:10208574	|		|		|	
+594829	|	649885	|	Lonicera confusa	|	species	|	ncbi:370638	|		|		|	
+692195	|	649885	|	Lonicera lanceolata	|	species	|	ncbi:566146	|		|		|	
+692197	|	649885	|	Lonicera ledebourii	|	species	|	ncbi:566147,irmng:10680040	|	Lonicera ledebourii (species ncbi:566147 in order Dipsacales)	|		|	
+179075	|	649885	|	Lonicera tangutica	|	species	|	ncbi:486688	|		|		|	
+920874	|	649885	|	Lonicera chrysantha	|	species	|	ncbi:486663,gbif:5334246,irmng:10456962	|		|		|	
+980067	|	649885	|	Lonicera ruprechtiana	|	species	|	ncbi:447675,gbif:5334254,irmng:10459982	|		|		|	
+650610	|	649885	|	Lonicera fulvotomentosa	|	species	|	ncbi:643838	|		|		|	
+271195	|	649885	|	Lonicera arizonica	|	species	|	ncbi:566136,gbif:5334258,irmng:10205244	|		|		|	
+271193	|	649885	|	Lonicera ciliosa	|	species	|	ncbi:566137,gbif:5334260,irmng:10205500	|		|		|	
+5512989	|	649885	|	Lonicera ferruginea	|	species	|	ncbi:1341717	|		|		|	
+945867	|	649885	|	Lonicera nervosa	|	species	|	ncbi:180558,gbif:5598535	|		|		|	
+139320	|	649885	|	Lonicera etrusca	|	species	|	ncbi:245821,gbif:5334247,irmng:10590066	|		|		|	
+179054	|	649885	|	Lonicera standishii	|	species	|	ncbi:486686,gbif:5334222,irmng:11407426	|		|		|	
+5334224	|	649885	|	Lonicera boczkarnikovae	|	species	|	ncbi:1412448	|		|		|	
+235194	|	649885	|	Lonicera macranthoides	|	species	|	ncbi:638627	|		|		|	
+920872	|	649885	|	Lonicera carnosifolia	|	species	|	ncbi:486662	|		|		|	
+118033	|	649885	|	Lonicera steveniana	|	species	|	ncbi:566157	|		|		|	
+1007025	|	649885	|	Lonicera tragophylla	|	species	|	ncbi:486689	|		|		|	
+271191	|	649885	|	Lonicera acuminata	|	species	|	ncbi:566134,gbif:5598598	|		|		|	
+271199	|	649885	|	Lonicera cyanocarpa	|	species	|	ncbi:566138	|		|		|	
+729085	|	649885	|	Lonicera sp. Oxelman 2331	|	species	|	ncbi:233041	|		|		|	
+439134	|	649885	|	Lonicera sp. Bergthorsson 0301	|	species	|	ncbi:232617	|		|		|	
+345654	|	649885	|	Lonicera myrtillus	|	species	|	ncbi:486679	|		|		|	
+345660	|	649885	|	Lonicera hemsleyana	|	species	|	ncbi:486671	|		|		|	
+91709	|	649885	|	Lonicera heteroloba	|	species	|	ncbi:318447	|		|		|	
+5334225	|	649885	|	Lonicera venulosa	|	species	|	ncbi:1412446	|		|		|	
+218830	|	649885	|	Lonicera xylosteum	|	species	|	ncbi:439142,gbif:5334259,irmng:10205250	|		|		|	
+179061	|	649885	|	Lonicera pileata	|	species	|	ncbi:486682,gbif:5598915	|		|		|	
+649888	|	649885	|	Lonicera orientalis	|	species	|	ncbi:49607	|		|		|	
+218832	|	649885	|	Lonicera caprifolium	|	species	|	ncbi:439141,gbif:5334227,irmng:10205499	|		|		|	
+980063	|	649885	|	Lonicera syringantha	|	species	|	ncbi:447674	|		|		|	
+345668	|	649885	|	Lonicera iberica	|	species	|	ncbi:486674	|		|		|	
+699999	|	649885	|	Lonicera obovata	|	species	|	ncbi:566150	|		|		|	
+692207	|	649885	|	Lonicera implexa	|	species	|	ncbi:566143	|		|		|	
+121298	|	649885	|	Lonicera webbiana	|	species	|	ncbi:1043444	|		|		|	
+743593	|	649885	|	Lonicera trichosantha	|	species	|	ncbi:566160	|		|		|	
+121280	|	743593	|	Lonicera trichosantha var. trichosantha	|	varietas	|	ncbi:1043443	|		|	infraspecific	|	
+692205	|	649885	|	Lonicera hirsuta	|	species	|	ncbi:566142,gbif:5334248,irmng:10205504	|		|		|	
+484242	|	649885	|	Lonicera morrowii	|	species	|	ncbi:255350,gbif:5334275,irmng:11112546	|		|		|	
+3892219	|	649885	|	Lonicera x bella	|	species	|	ncbi:1037010,gbif:5334244,irmng:10205498	|		|		|	
+364078	|	649885	|	Lonicera sempervirens	|	species	|	ncbi:134522,gbif:5334239,irmng:10590069	|		|		|	
+920864	|	649885	|	Lonicera fragrantissima	|	species	|	ncbi:486666,gbif:5334268,irmng:11240099	|		|		|	
+179067	|	649885	|	Lonicera nitida	|	species	|	ncbi:486681,gbif:5599249	|		|		|	
+179065	|	649885	|	Lonicera nigra	|	species	|	ncbi:486680	|		|		|	
+401787	|	1042135	|	Bassecoia	|	genus	|	ncbi:596788,irmng:1263038	|		|	sibling_lower	|	
+401785	|	401787	|	Bassecoia bretschneideri	|	species	|	ncbi:596789	|		|		|	
+977929	|	401787	|	Bassecoia siamensis	|	species	|	ncbi:596790	|		|		|	
+485369	|	401787	|	Bassecoia sp. SEC2009	|	species	|	ncbi:626364	|		|		|	
+243305	|	1042135	|	Diervilla	|	genus	|	ncbi:19933,gbif:2888707,irmng:1096378	|		|	sibling_lower	|	
+3892239	|	243305	|	Diervilla hybr	|	species	|	gbif:6711919	|		|		|	
+30691	|	243305	|	Diervilla rivularis	|	species	|	ncbi:79607,gbif:2888708,irmng:11422992	|		|		|	
+30692	|	243305	|	Diervilla lonicera	|	species	|	ncbi:79606,gbif:2888711,irmng:10891592	|		|		|	
+30740	|	243305	|	Diervilla sessilifolia	|	species	|	ncbi:79608,gbif:2888710,irmng:11435451	|		|		|	
+344166	|	1042135	|	Acanthocalyx	|	genus	|	ncbi:179857,irmng:1313259	|	Acanthocalyx (genus in order Dipsacales)	|	sibling_lower	|	
+344191	|	344166	|	Acanthocalyx albus	|	species	|	ncbi:179859	|		|		|	
+344189	|	344166	|	Acanthocalyx nepalensis	|	species	|	ncbi:179858	|		|		|	
+857628	|	344166	|	Acanthocalyx delavayi	|	species	|	ncbi:242168	|		|		|	
+759046	|	1042135	|	Centranthus	|	genus	|	ncbi:42331,gbif:2888739,irmng:1035463	|		|	sibling_lower	|	
+971859	|	759046	|	Centranthus lecoqii	|	species	|	ncbi:183941	|		|		|	
+971866	|	759046	|	Centranthus trinervis	|	species	|	ncbi:183942	|		|		|	
+971862	|	759046	|	Centranthus calcitrapae	|	species	|	ncbi:183940	|		|		|	
+231861	|	759046	|	Centranthus macrosiphon	|	species	|	ncbi:300885	|		|		|	
+661601	|	759046	|	Centranthus angustifolius	|	species	|	ncbi:245818	|		|		|	
+270523	|	759046	|	Centranthus longifolius	|	species	|	ncbi:947100	|		|		|	
+759056	|	759046	|	Centranthus ruber	|	species	|	ncbi:42332,gbif:2888740,irmng:11431122	|		|		|	
+175836	|	759046	|	Centranthus nevadensis	|	species	|	ncbi:1027239	|		|		|	
+455636	|	759046	|	Centranthus sieberi	|	species	|	ncbi:368318	|		|		|	
+394312	|	759046	|	Centranthus cf. calcitrapae Romo & Soriano 13128	|	species	|	ncbi:1027238	|		|		|	
+819326	|	1042135	|	Knautia	|	genus	|	ncbi:59182,gbif:2888807,irmng:1352101	|		|	sibling_lower	|	
+3892247	|	819326	|	Knautia lancifolia	|	species	|	gbif:7301016	|		|		|	
+5512988	|	819326	|	Knautia basaltica	|	species	|	ncbi:1443353	|		|		|	
+819328	|	819326	|	Knautia intermedia	|	species	|	ncbi:59183	|		|		|	
+977919	|	819326	|	Knautia calycina	|	species	|	ncbi:596797	|		|		|	
+5512987	|	819326	|	Knautia slovaca	|	species	|	ncbi:1443369	|		|		|	
+5512986	|	819326	|	Knautia purpurea	|	species	|	ncbi:1443368	|		|		|	
+5512985	|	819326	|	Knautia longifolia	|	species	|	ncbi:467600	|		|		|	
+5512984	|	819326	|	Knautia integrifolia	|	species	|	ncbi:1443360	|		|		|	
+977912	|	819326	|	Knautia dinarica	|	species	|	ncbi:596798	|		|		|	
+5512983	|	819326	|	Knautia velebitica	|	species	|	ncbi:1443373	|		|		|	
+5512982	|	819326	|	Knautia illyrica	|	species	|	ncbi:1443359	|		|		|	
+1026978	|	819326	|	Knautia drymeia	|	species	|	ncbi:596800,gbif:7301052	|		|		|	
+5512981	|	819326	|	Knautia subscaposa	|	species	|	ncbi:1443371	|		|		|	
+1026981	|	819326	|	Knautia midzorensis	|	species	|	ncbi:596801	|		|		|	
+5512980	|	819326	|	Knautia involucrata	|	species	|	ncbi:1443361	|		|		|	
+5512979	|	819326	|	Knautia travnicensis	|	species	|	ncbi:1443372	|		|		|	
+5512978	|	819326	|	Knautia pectinata	|	species	|	ncbi:1443367	|		|		|	
+389093	|	819326	|	Knautia arvensis	|	species	|	ncbi:105271,gbif:2888808,irmng:10587558	|		|		|	
+3892246	|	389093	|	Knautia arvensis arvensis	|	subvariety	|	gbif:7301126	|		|	infraspecific	|	
+1026974	|	819326	|	Knautia orientalis	|	species	|	ncbi:596802	|		|		|	
+5512977	|	819326	|	Knautia mollis	|	species	|	ncbi:1443364	|		|		|	
+5512976	|	819326	|	Knautia pancicii	|	species	|	ncbi:1443366	|		|		|	
+5512975	|	819326	|	Knautia lebrunii	|	species	|	ncbi:1443362	|		|		|	
+5512974	|	819326	|	Knautia godetii	|	species	|	ncbi:1443358	|		|		|	
+21465	|	819326	|	Knautia macedonica	|	species	|	ncbi:243111	|		|		|	
+5512973	|	819326	|	Knautia degenii	|	species	|	ncbi:1475015	|		|		|	
+5512972	|	819326	|	Knautia collina	|	species	|	ncbi:1443356	|		|		|	
+5512971	|	819326	|	Knautia csikii	|	species	|	ncbi:1443357	|		|		|	
+5512970	|	819326	|	Knautia carinthiaca	|	species	|	ncbi:1443355	|		|		|	
+5512969	|	819326	|	Knautia montana	|	species	|	ncbi:1443365	|		|		|	
+5512968	|	819326	|	Knautia byzantina	|	species	|	ncbi:1443354	|		|		|	
+5512967	|	819326	|	Knautia lucana	|	species	|	ncbi:1443363	|		|		|	
+5512966	|	819326	|	Knautia visiani	|	species	|	ncbi:1443374	|		|		|	
+5512965	|	819326	|	Knautia velutina	|	species	|	ncbi:1475016	|		|		|	
+5512964	|	819326	|	Knautia ambigua	|	species	|	ncbi:1443352	|		|		|	
+5512963	|	819326	|	Knautia subcanescens	|	species	|	ncbi:1443370	|		|		|	
+5512962	|	819326	|	Knautia albanica	|	species	|	ncbi:1443351	|		|		|	
+977914	|	819326	|	Knautia dipsacifolia	|	species	|	ncbi:596799	|		|		|	
+994146	|	1042135	|	Lomelosia	|	genus	|	ncbi:183562,gbif:7139039,irmng:1354673	|		|	sibling_lower	|	
+5342598	|	994146	|	Lomelosia palaestina	|	species	|	gbif:4934473,irmng:11032789	|		|		|	
+1065580	|	994146	|	Lomelosia simplex	|	species	|	ncbi:398312	|		|		|	
+994144	|	994146	|	Lomelosia argentea	|	species	|	ncbi:183563	|		|		|	
+1026989	|	994146	|	Lomelosia songarica	|	species	|	ncbi:596805	|		|		|	
+994163	|	994146	|	Lomelosia caucasica	|	species	|	ncbi:183564,gbif:4103351,irmng:11134609	|		|		|	
+1065584	|	994146	|	Lomelosia cretica	|	species	|	ncbi:398310	|		|		|	
+1026987	|	994146	|	Lomelosia graminifolia	|	species	|	ncbi:596804	|		|		|	
+489140	|	994146	|	Lomelosia brachiata	|	species	|	ncbi:398309	|		|		|	
+1026983	|	994146	|	Lomelosia stellata	|	species	|	ncbi:596806,gbif:4102909,irmng:10198036	|		|		|	
+1065588	|	994146	|	Lomelosia palestina	|	species	|	ncbi:398311	|		|		|	
+797069	|	994146	|	Lomelosia crenata	|	species	|	ncbi:1113483	|		|		|	
+1026976	|	994146	|	Lomelosia calocephala	|	species	|	ncbi:596803	|		|		|	
+467745	|	1042135	|	Sixalix	|	genus	|	ncbi:183575,irmng:1043786	|		|	sibling_lower	|	
+467747	|	467745	|	Sixalix atropurpurea	|	species	|	ncbi:183576	|		|		|	
+277502	|	467747	|	Sixalix atropurpurea subsp. maritima	|	subspecies	|	ncbi:398551	|		|	infraspecific	|	
+450640	|	467745	|	Sixalix eremophila	|	species	|	ncbi:596819	|		|		|	
+467749	|	467745	|	Sixalix farinosa	|	species	|	ncbi:183577	|		|		|	
+994157	|	1042135	|	Pterocephalidium	|	genus	|	ncbi:183567,irmng:1094840	|		|	sibling_lower	|	
+994138	|	994157	|	Pterocephalidium diandrum	|	species	|	ncbi:183568	|		|		|	
+717595	|	1042135	|	Symphoricarpos	|	genus	|	ncbi:13701,gbif:2888628,irmng:1021881	|		|	sibling_lower	|	
+5512961	|	717595	|	Symphoricarpos rivularis	|	species	|	irmng:10968110	|	Symphoricarpos rivularis (species irmng:10968110 in order Dipsacales)	|		|	
+5512960	|	717595	|	Symphoricarpos tetonensis	|	species	|	irmng:10023841	|	Symphoricarpos tetonensis (species irmng:10023841 in order Dipsacales)	|		|	
+5512959	|	717595	|	Symphoricarpos racemosus	|	species	|	irmng:11048269	|	Symphoricarpos racemosus (species irmng:11048269 in order Dipsacales)	|		|	
+5512958	|	717595	|	Symphoricarpos parishii	|	species	|	irmng:10253945	|	Symphoricarpos parishii (species irmng:10253945 in order Dipsacales)	|		|	
+5512957	|	717595	|	Symphoricarpos utahensis	|	species	|	irmng:11211101	|	Symphoricarpos utahensis (species irmng:11211101 in order Dipsacales)	|		|	
+5512956	|	717595	|	Symphoricarpos vaccinioides	|	species	|	irmng:11294541	|	Symphoricarpos vaccinioides (species irmng:11294541 in order Dipsacales)	|		|	
+5512955	|	717595	|	Symphoricarpos pauciflorus	|	species	|	irmng:10996838	|	Symphoricarpos pauciflorus (species irmng:10996838 in order Dipsacales)	|		|	
+3892249	|	717595	|	Symphoricarpos doorenbosii	|	species	|	gbif:4937746	|		|		|	
+3892252	|	717595	|	Symphoricarpos chenaultii	|	species	|	gbif:3855595	|		|		|	
+3892251	|	717595	|	Symphoricarpos acutus	|	species	|	gbif:2888630,irmng:10698154	|		|		|	
+3892248	|	717595	|	Symphoricarpos guadalupensis	|	species	|	gbif:2888641,irmng:10205254	|		|		|	
+3892250	|	717595	|	Symphoricarpos alubs	|	species	|	gbif:7272483	|		|		|	
+494307	|	717595	|	Symphoricarpos mollis	|	species	|	ncbi:709978,gbif:2888642,irmng:10856854	|		|		|	
+494301	|	717595	|	Symphoricarpos microphyllus	|	species	|	ncbi:709977,gbif:2888629,irmng:10965036	|		|		|	
+494311	|	717595	|	Symphoricarpos oreophilus	|	species	|	ncbi:709979,gbif:2888644,irmng:10926031	|		|		|	
+2128	|	717595	|	Symphoricarpos orbiculatus	|	species	|	ncbi:105885,gbif:2888636,irmng:10205255	|		|		|	
+702427	|	717595	|	Symphoricarpos hesperius	|	species	|	ncbi:486691,gbif:2888639,irmng:10593760	|		|		|	
+916995	|	717595	|	Symphoricarpos sp. Donoghue & Winkworth 28	|	species	|	ncbi:433484	|		|		|	
+589187	|	717595	|	Symphoricarpos sinensis	|	species	|	ncbi:180065	|		|		|	
+717590	|	717595	|	Symphoricarpos albus	|	species	|	ncbi:13702,gbif:2888634,irmng:10996274	|		|		|	
+620102	|	717595	|	Symphoricarpos rotundifolius	|	species	|	ncbi:548155,gbif:2888638,irmng:10710125	|		|		|	
+91705	|	717595	|	Symphoricarpos occidentalis	|	species	|	ncbi:318448,gbif:2888632,irmng:11250855	|		|		|	
+494298	|	717595	|	Symphoricarpos longiflorus	|	species	|	ncbi:709976,gbif:2888635,irmng:10590073	|		|		|	
+969816	|	717595	|	Symphoricarpos palmeri	|	species	|	ncbi:709980,gbif:2888633,irmng:10739734	|		|		|	
+275395	|	1042135	|	Dipelta	|	genus	|	ncbi:105265,irmng:1361506	|		|	sibling_lower	|	
+275390	|	275395	|	Dipelta ventricosa	|	species	|	ncbi:105266	|		|		|	
+896791	|	275395	|	Dipelta floribunda	|	species	|	ncbi:179998	|		|		|	
+5512954	|	275395	|	Dipelta elegans	|	species	|	ncbi:1345077	|		|		|	
+589177	|	275395	|	Dipelta yunnanensis	|	species	|	ncbi:180069	|		|		|	
+1014066	|	1042135	|	Abelia	|	genus	|	ncbi:86866,gbif:2888733,irmng:1324811	|	Abelia (genus in order Dipsacales)	|	sibling_lower	|	
+3892278	|	1014066	|	Abelia graebnerana	|	species	|	gbif:7272744	|		|		|	
+3892279	|	1014066	|	Abelia taihyonii	|	species	|	gbif:5929637	|		|		|	
+3892281	|	1014066	|	Abelia x grandiflora	|	species	|	ncbi:105883,gbif:5334278,irmng:10697262	|		|		|	
+1002200	|	1014066	|	Abelia engleriana	|	species	|	ncbi:761853	|		|		|	
+1002203	|	1014066	|	Abelia graebneriana	|	species	|	ncbi:761855	|		|		|	
+1002194	|	1014066	|	Abelia schumannii	|	species	|	ncbi:761858	|		|		|	
+317309	|	1014066	|	Abelia parvifolia	|	species	|	ncbi:620776	|		|		|	
+18211	|	1014066	|	Abelia uniflora	|	species	|	ncbi:1112097	|		|		|	
+1002205	|	1014066	|	Abelia floribunda	|	species	|	ncbi:761854	|		|		|	
+589178	|	1014066	|	Abelia chinensis	|	species	|	ncbi:180068	|		|		|	
+1002211	|	1014066	|	Abelia mexicana	|	species	|	ncbi:761856	|		|		|	
+1002209	|	1014066	|	Abelia occidentalis	|	species	|	ncbi:761857	|		|		|	
+576351	|	1014066	|	Abelia serrata	|	species	|	ncbi:1112099	|		|		|	
+716012	|	576351	|	Abelia serrata var. tomentosa	|	varietas	|	ncbi:1112107	|		|	infraspecific	|	
+1002192	|	1014066	|	Abelia spathulata	|	species	|	ncbi:761859	|		|		|	
+702435	|	1042135	|	Zabelia	|	genus	|	ncbi:486692,irmng:1342726	|		|	sibling_lower	|	
+425469	|	702435	|	Zabelia mosanensis	|	species	|	ncbi:761860	|		|		|	
+716015	|	702435	|	Zabelia integrifolia	|	species	|	ncbi:1112106	|		|		|	
+425474	|	702435	|	Zabelia tyaihyoni	|	species	|	ncbi:761861	|		|		|	
+55031	|	702435	|	Zabelia corymbosa	|	species	|	ncbi:863425	|		|		|	
+716021	|	702435	|	Zabelia coreana	|	species	|	ncbi:1112104	|		|		|	
+425481	|	702435	|	Zabelia umbellata	|	species	|	ncbi:761863	|		|		|	
+702431	|	702435	|	Zabelia biflora	|	species	|	ncbi:486693	|		|		|	
+1014062	|	702435	|	Zabelia triflora	|	species	|	ncbi:86867	|		|		|	
+716019	|	702435	|	Zabelia dielsii	|	species	|	ncbi:1112105	|		|		|	
+459103	|	1042135	|	Morina	|	genus	|	ncbi:59167,gbif:3234630,irmng:1289602	|	Morina (genus in order Dipsacales)	|	sibling_lower	|	
+326553	|	459103	|	Morina persica	|	species	|	ncbi:242164,gbif:5569005	|		|		|	
+470594	|	459103	|	Morina longifolia	|	species	|	ncbi:180562,gbif:5569012	|		|		|	
+459085	|	459103	|	Morina coulteriana	|	species	|	ncbi:59168,gbif:5569029	|		|		|	
+393345	|	1042135	|	Valeriana	|	genus	|	ncbi:19952,gbif:2888741,irmng:1031295	|		|	sibling_lower	|	
+5512953	|	393345	|	Valeriana septentrionalis	|	species	|	irmng:11357667	|	Valeriana septentrionalis (species irmng:11357667 in order Dipsacales)	|		|	
+5512952	|	393345	|	Valeriana uliginosa	|	species	|	irmng:10207714	|		|		|	
+5512951	|	393345	|	Valeriana sylvatica	|	species	|	irmng:10209741	|	Valeriana sylvatica (species irmng:10209741 in order Dipsacales)	|		|	
+5512950	|	393345	|	Valeriana puberulenta	|	species	|	irmng:10209740	|	Valeriana puberulenta (species irmng:10209740 in order Dipsacales)	|		|	
+5512949	|	393345	|	Valeriana ciliata	|	species	|	irmng:11426789	|	Valeriana ciliata (species irmng:11426789 in order Dipsacales)	|		|	
+5512948	|	393345	|	Valeriana pubicarpa	|	species	|	irmng:10854063	|	Valeriana pubicarpa (species irmng:10854063 in order Dipsacales)	|		|	
+3892233	|	393345	|	Valeriana jaeschkei	|	species	|	gbif:7298811	|		|		|	
+3892234	|	393345	|	Valeriana columbiana	|	species	|	gbif:2888752,irmng:10197763	|		|		|	
+270537	|	393345	|	Valeriana decussata	|	species	|	ncbi:947108	|		|		|	
+5232	|	393345	|	Valeriana flaccidissima	|	species	|	ncbi:300905	|		|		|	
+981574	|	393345	|	Valeriana tuberosa	|	species	|	ncbi:368320	|		|		|	
+219454	|	393345	|	Valeriana polystachya	|	species	|	ncbi:947126	|		|		|	
+794125	|	393345	|	Valeriana vaga	|	species	|	ncbi:947132	|		|		|	
+977254	|	393345	|	Valeriana naidae	|	species	|	ncbi:300910	|		|		|	
+5234	|	393345	|	Valeriana coarctata	|	species	|	ncbi:300902	|		|		|	
+1026690	|	393345	|	Valeriana stricta	|	species	|	ncbi:947130	|		|		|	
+5237	|	393345	|	Valeriana connata	|	species	|	ncbi:300903	|		|		|	
+526659	|	393345	|	Valeriana polemonioides	|	species	|	ncbi:300917	|		|		|	
+1052832	|	393345	|	Valeriana pyramidalis	|	species	|	ncbi:300920	|		|		|	
+646607	|	393345	|	Valeriana henrici	|	species	|	ncbi:243121	|		|		|	
+219438	|	393345	|	Valeriana retrorsa	|	species	|	ncbi:947128	|		|		|	
+844983	|	393345	|	Valeriana laxiflora	|	species	|	ncbi:947117	|		|		|	
+245959	|	393345	|	Valeriana amurensis	|	species	|	ncbi:323660	|		|		|	
+219447	|	393345	|	Valeriana papilla	|	species	|	ncbi:947122	|		|		|	
+219445	|	393345	|	Valeriana philippiana	|	species	|	ncbi:947123	|		|		|	
+445633	|	393345	|	Valeriana phyliciodes	|	species	|	ncbi:183951	|		|		|	
+844978	|	393345	|	Valeriana gracilipes	|	species	|	ncbi:947111	|		|		|	
+5241	|	393345	|	Valeriana clematitis	|	species	|	ncbi:300901	|		|		|	
+844991	|	393345	|	Valeriana leucocarpa	|	species	|	ncbi:947119	|		|		|	
+219458	|	393345	|	Valeriana pilosiuscula	|	species	|	ncbi:947124	|		|		|	
+245963	|	393345	|	Valeriana pseudofficinalis	|	species	|	ncbi:323661	|		|		|	
+844975	|	393345	|	Valeriana fonckii	|	species	|	ncbi:947110,gbif:7298929	|		|		|	
+360261	|	393345	|	Valeriana verticillata	|	species	|	ncbi:947133	|		|		|	
+21453	|	393345	|	Valeriana microphylla	|	species	|	ncbi:243116	|		|		|	
+21455	|	393345	|	Valeriana celtica	|	species	|	ncbi:243115	|		|		|	
+1052834	|	393345	|	Valeriana robertianifolia	|	species	|	ncbi:300921	|		|		|	
+794114	|	393345	|	Valeriana virescens	|	species	|	ncbi:947134	|		|		|	
+5228	|	393345	|	Valeriana interrupta	|	species	|	ncbi:300907	|		|		|	
+445627	|	393345	|	Valeriana pilosa	|	species	|	ncbi:183952	|		|		|	
+219452	|	393345	|	Valeriana radicalis	|	species	|	ncbi:947127	|		|		|	
+510627	|	393345	|	Valeriana bridgesii	|	species	|	ncbi:947103	|		|		|	
+526670	|	393345	|	Valeriana occidentalis	|	species	|	ncbi:300912,gbif:2888753,irmng:10197764	|		|		|	
+526657	|	393345	|	Valeriana pauciflora	|	species	|	ncbi:300914,gbif:2888747,irmng:11351568	|		|		|	
+844971	|	393345	|	Valeriana grandifolia	|	species	|	ncbi:947112	|		|		|	
+1052824	|	393345	|	Valeriana stenophylla	|	species	|	ncbi:300928	|		|		|	
+445629	|	393345	|	Valeriana rosaliana	|	species	|	ncbi:183953	|		|		|	
+135852	|	393345	|	Valeriana capensis	|	species	|	ncbi:379308	|		|		|	
+1052838	|	393345	|	Valeriana rzedowskiorum	|	species	|	ncbi:300923	|		|		|	
+5222	|	393345	|	Valeriana kawakamii	|	species	|	ncbi:300908	|		|		|	
+805949	|	393345	|	Valeriana adscendens	|	species	|	ncbi:300891	|		|		|	
+1052846	|	393345	|	Valeriana secunda	|	species	|	ncbi:300925	|		|		|	
+971851	|	393345	|	Valeriana dioica	|	species	|	ncbi:183948,gbif:2888762,irmng:11134392	|		|		|	
+805962	|	393345	|	Valeriana bulbosa	|	species	|	ncbi:300898	|		|		|	
+805955	|	393345	|	Valeriana arizonica	|	species	|	ncbi:300894,gbif:2888759,irmng:10197761	|		|		|	
+844989	|	393345	|	Valeriana lepidota	|	species	|	ncbi:947118	|		|		|	
+805951	|	393345	|	Valeriana apiifolia	|	species	|	ncbi:300892	|		|		|	
+646594	|	393345	|	Valeriana pyrenaica	|	species	|	ncbi:243124	|		|		|	
+945856	|	393345	|	Valeriana minutiflora	|	species	|	ncbi:180557	|		|		|	
+219449	|	393345	|	Valeriana moyanoi	|	species	|	ncbi:947121	|		|		|	
+139324	|	393345	|	Valeriana hardwickii	|	species	|	ncbi:245823	|		|		|	
+21474	|	393345	|	Valeriana montana	|	species	|	ncbi:243118	|		|		|	
+139322	|	393345	|	Valeriana tachirensis	|	species	|	ncbi:245820	|		|		|	
+445623	|	393345	|	Valeriana sorbifolia	|	species	|	ncbi:183954,gbif:2888750,irmng:11290610	|		|		|	
+844981	|	393345	|	Valeriana lapathifolia	|	species	|	ncbi:947116	|		|		|	
+139318	|	393345	|	Valeriana saliunca	|	species	|	ncbi:245826	|		|		|	
+5224	|	393345	|	Valeriana mexicana	|	species	|	ncbi:300909	|		|		|	
+209345	|	393345	|	Valeriana lobata	|	species	|	ncbi:947120	|		|		|	
+476261	|	393345	|	Valeriana trichostoma	|	species	|	ncbi:300932	|		|		|	
+21451	|	393345	|	Valeriana supina	|	species	|	ncbi:243117	|		|		|	
+393341	|	393345	|	Valeriana officinalis	|	species	|	ncbi:19953,gbif:2888763,irmng:10197765	|		|		|	
+430699	|	393341	|	Valeriana officinalis subsp. officinalis	|	subspecies	|	ncbi:323658	|		|	infraspecific	|	
+430697	|	430699	|	Valeriana officinalis var. latifolia	|	varietas	|	ncbi:323659	|		|	infraspecific	|	
+445622	|	393341	|	Valeriana officinalis subsp. tenuifolia	|	subspecies	|	ncbi:183957	|		|	infraspecific	|	
+510635	|	393345	|	Valeriana chilensis	|	species	|	ncbi:947105	|		|		|	
+526665	|	393345	|	Valeriana nivalis	|	species	|	ncbi:300911	|		|		|	
+526655	|	393345	|	Valeriana pinnatifida	|	species	|	ncbi:300915	|		|		|	
+661604	|	393345	|	Valeriana scandens	|	species	|	ncbi:245819,gbif:2888764,irmng:10198029	|		|		|	
+270535	|	393345	|	Valeriana effusa	|	species	|	ncbi:947109	|		|		|	
+746281	|	393345	|	Valeriana capitata	|	species	|	ncbi:669860,gbif:2888742,irmng:11336608	|		|		|	
+805957	|	393345	|	Valeriana barbareifolia	|	species	|	ncbi:300895	|		|		|	
+900957	|	393345	|	Valeriana urticifolia	|	species	|	ncbi:242171	|		|		|	
+805960	|	393345	|	Valeriana bryophila	|	species	|	ncbi:300897	|		|		|	
+1052840	|	393345	|	Valeriana hookeri	|	species	|	ncbi:300924,irmng:11304333	|		|		|	
+526663	|	393345	|	Valeriana plantaginea	|	species	|	ncbi:300916	|		|		|	
+1035981	|	393345	|	Valeriana jatamansi	|	species	|	ncbi:59170	|		|		|	
+526651	|	393345	|	Valeriana procera	|	species	|	ncbi:300919	|		|		|	
+510644	|	393345	|	Valeriana crispa	|	species	|	ncbi:947107	|		|		|	
+21459	|	393345	|	Valeriana sitchensis	|	species	|	ncbi:243113,gbif:2888754,irmng:11087832	|		|		|	
+21470	|	393345	|	Valeriana chaerophylloides	|	species	|	ncbi:243119	|		|		|	
+476259	|	393345	|	Valeriana triphylla	|	species	|	ncbi:300933	|		|		|	
+5230	|	393345	|	Valeriana densiflora	|	species	|	ncbi:300904	|		|		|	
+805964	|	393345	|	Valeriana candolleana	|	species	|	ncbi:300899	|		|		|	
+646604	|	393345	|	Valeriana edulis	|	species	|	ncbi:243120,gbif:2888746,irmng:11111727	|		|		|	
+646598	|	393345	|	Valeriana niphobia	|	species	|	ncbi:243122	|		|		|	
+844985	|	393345	|	Valeriana hornschuchiana	|	species	|	ncbi:947114	|		|		|	
+21463	|	393345	|	Valeriana arborea	|	species	|	ncbi:243112	|		|		|	
+21457	|	393345	|	Valeriana californica	|	species	|	ncbi:243114,gbif:2888743,irmng:10197762	|		|		|	
+920297	|	393345	|	Valeriana rotundifolia	|	species	|	ncbi:1027241	|		|		|	
+971849	|	393345	|	Valeriana laurifolia	|	species	|	ncbi:183949	|		|		|	
+805953	|	393345	|	Valeriana aretioides	|	species	|	ncbi:300893	|		|		|	
+805947	|	393345	|	Valeriana acutiloba	|	species	|	ncbi:300890,gbif:2888751,irmng:11134393	|		|		|	
+360249	|	393345	|	Valeriana subincisa	|	species	|	ncbi:947131	|		|		|	
+445631	|	393345	|	Valeriana parviflora	|	species	|	ncbi:183950	|		|		|	
+476265	|	393345	|	Valeriana texana	|	species	|	ncbi:300930,gbif:2888756,irmng:10204618	|		|		|	
+270520	|	393345	|	Valeriana boelckei	|	species	|	ncbi:947101	|		|		|	
+219456	|	393345	|	Valeriana polemoniifolia	|	species	|	ncbi:947125	|		|		|	
+455634	|	393345	|	Valeriana asarifolia	|	species	|	ncbi:368319	|		|		|	
+920299	|	393345	|	Valeriana cf. tripteris Hidalgo 218	|	species	|	ncbi:1027240	|		|		|	
+526668	|	393345	|	Valeriana palmeri	|	species	|	ncbi:300913	|		|		|	
+844973	|	393345	|	Valeriana hebecarpa	|	species	|	ncbi:947113	|		|		|	
+1052848	|	393345	|	Valeriana selerorum	|	species	|	ncbi:300926	|		|		|	
+646600	|	393345	|	Valeriana rigida	|	species	|	ncbi:243123	|		|		|	
+445625	|	393345	|	Valeriana tripteris	|	species	|	ncbi:183955	|		|		|	
+5226	|	393345	|	Valeriana gallinae	|	species	|	ncbi:300906	|		|		|	
+1052836	|	393345	|	Valeriana rumicoides	|	species	|	ncbi:300922	|		|		|	
+971857	|	393345	|	Valeriana apula	|	species	|	ncbi:183946	|		|		|	
+228778	|	393345	|	Valeriana fauriei	|	species	|	ncbi:105907	|		|		|	
+1052827	|	393345	|	Valeriana tanacetifolia	|	species	|	ncbi:300929	|		|		|	
+1052850	|	393345	|	Valeriana stenoptera	|	species	|	ncbi:300927	|		|		|	
+746279	|	393345	|	Valeriana sambucifolia	|	species	|	ncbi:669861	|		|		|	
+746277	|	393345	|	Valeriana transjenisensis	|	species	|	ncbi:669862	|		|		|	
+819332	|	393345	|	Valeriana hirtella	|	species	|	ncbi:59181	|		|		|	
+844987	|	393345	|	Valeriana lancifolia	|	species	|	ncbi:947115	|		|		|	
+526653	|	393345	|	Valeriana prionophylla	|	species	|	ncbi:300918	|		|		|	
+5239	|	393345	|	Valeriana ceratophylla	|	species	|	ncbi:300900	|		|		|	
+139316	|	393345	|	Valeriana longiflora	|	species	|	ncbi:245827	|		|		|	
+1028358	|	393345	|	Valeriana saxatilis	|	species	|	ncbi:882679	|		|		|	
+1035971	|	393345	|	Valeriana bracteata	|	species	|	ncbi:59174	|		|		|	
+971853	|	393345	|	Valeriana albonervata	|	species	|	ncbi:183945	|		|		|	
+219436	|	393345	|	Valeriana sichuanica	|	species	|	ncbi:947129	|		|		|	
+270529	|	393345	|	Valeriana carnosa	|	species	|	ncbi:947104	|		|		|	
+476263	|	393345	|	Valeriana tomentosa	|	species	|	ncbi:300931	|		|		|	
+510648	|	393345	|	Valeriana clarionifolia	|	species	|	ncbi:947106	|		|		|	
+510633	|	393345	|	Valeriana bracteosa	|	species	|	ncbi:947102	|		|		|	
+476257	|	393345	|	Valeriana wallrothii	|	species	|	ncbi:300934	|		|		|	
+30739	|	1042135	|	Weigela	|	genus	|	ncbi:79609,gbif:2888729,irmng:1033211	|		|	sibling_lower	|	
+3892230	|	30739	|	Weigela floribunda	|	species	|	gbif:2888732,irmng:10208032	|		|		|	
+551828	|	30739	|	Weigela florida	|	species	|	ncbi:79612,gbif:2888730,irmng:11429074	|		|		|	
+551829	|	551828	|	Weigela florida var. venusta	|	varietas	|	ncbi:79613	|		|	infraspecific	|	
+32944	|	30739	|	Weigela praecox	|	species	|	ncbi:79618	|		|		|	
+82212	|	30739	|	Weigela toensis	|	species	|	ncbi:79621	|		|		|	
+32939	|	30739	|	Weigela maximowiczii	|	species	|	ncbi:79616	|		|		|	
+551826	|	30739	|	Weigela coraeensis	|	species	|	ncbi:79610	|		|		|	
+32942	|	30739	|	Weigela middendorffiana	|	species	|	ncbi:79617,gbif:4934461	|		|		|	
+82213	|	30739	|	Weigela subsessilis	|	species	|	ncbi:79620	|		|		|	
+551831	|	30739	|	Weigela japonica	|	species	|	ncbi:79615,gbif:3856322	|		|		|	
+413763	|	551831	|	Weigela japonica var. sinica	|	varietas	|	ncbi:79619	|		|	infraspecific	|	
+551830	|	30739	|	Weigela hortensis	|	species	|	ncbi:79614	|		|		|	
+551827	|	30739	|	Weigela decora	|	species	|	ncbi:79611	|		|		|	
+467741	|	1042135	|	Succisella	|	genus	|	ncbi:183578,gbif:2888818,irmng:1290832	|		|	sibling_lower	|	
+467742	|	467741	|	Succisella inflexa	|	species	|	ncbi:183579,gbif:2888819,irmng:10210400	|		|		|	
+1035960	|	1042135	|	Triplostegia	|	genus	|	ncbi:59179,irmng:1241839	|		|	sibling_lower	|	
+819330	|	1035960	|	Triplostegia glandulifera	|	species	|	ncbi:59180	|		|		|	
+487561	|	1035960	|	Triplostegia grandiflora	|	species	|	ncbi:179861	|		|		|	
+945861	|	1042135	|	Plectritis	|	genus	|	ncbi:180555,gbif:2888735,irmng:1369007	|		|	sibling_lower	|	
+5512947	|	945861	|	Plectritis macroptera	|	species	|	irmng:10764288	|	Plectritis macroptera (species irmng:10764288 in order Dipsacales)	|		|	
+5512946	|	945861	|	Plectritis anomala	|	species	|	irmng:10210821	|	Plectritis anomala (species irmng:10210821 in order Dipsacales)	|		|	
+5512945	|	945861	|	Plectritis californica	|	species	|	irmng:11441675	|	Plectritis californica (species irmng:11441675 in order Dipsacales)	|		|	
+5512944	|	945861	|	Plectritis aphanoptera	|	species	|	irmng:10795759	|	Plectritis aphanoptera (species irmng:10795759 in order Dipsacales)	|		|	
+5512943	|	945861	|	Plectritis samolifolia	|	species	|	irmng:10707809	|	Plectritis samolifolia (species irmng:10707809 in order Dipsacales)	|		|	
+5512942	|	945861	|	Plectritis eichleriana	|	species	|	irmng:10211079	|	Plectritis eichleriana (species irmng:10211079 in order Dipsacales)	|		|	
+5512941	|	945861	|	Plectritis magna	|	species	|	irmng:10211080	|	Plectritis magna (species irmng:10211080 in order Dipsacales)	|		|	
+5512940	|	945861	|	Plectritis jepsonii	|	species	|	irmng:11413333	|	Plectritis jepsonii (species irmng:11413333 in order Dipsacales)	|		|	
+3892223	|	945861	|	Plectritis ciliosa	|	species	|	gbif:2888736,irmng:10204619	|		|		|	
+231853	|	945861	|	Plectritis brachystemon	|	species	|	ncbi:300889,irmng:11291076	|	Plectritis brachystemon (species ncbi:300889 in order Dipsacales)	|		|	
+945858	|	945861	|	Plectritis macrocera	|	species	|	ncbi:180556,gbif:2888737,irmng:11254588	|		|		|	
+830567	|	945861	|	Plectritis congesta	|	species	|	ncbi:245828,gbif:2888738,irmng:10204620	|		|		|	
+916996	|	1042135	|	Pterocephalodes	|	genus	|	ncbi:433485,irmng:1269738	|		|	sibling_lower	|	
+916998	|	916996	|	Pterocephalodes hookeri	|	species	|	ncbi:433486	|		|		|	
+945854	|	1042135	|	Fedia	|	genus	|	ncbi:180553,gbif:5428556,irmng:1276785,irmng:1276786	|		|	sibling_lower	|	
+945863	|	945854	|	Fedia cornucopiae	|	species	|	ncbi:180554	|		|		|	
+379476	|	945854	|	Fedia pallescens	|	species	|	ncbi:184116,gbif:7298853	|		|		|	
+971864	|	945854	|	Fedia graciliflora	|	species	|	ncbi:183943	|		|		|	
+819508	|	1042135	|	Linnaea	|	genus	|	ncbi:77622,gbif:2888574,irmng:1327190	|	Linnaea (genus in order Dipsacales)	|	sibling_lower	|	
+5512939	|	819508	|	Linnaea americana	|	species	|	irmng:10202300	|	Linnaea americana (species irmng:10202300 in order Dipsacales)	|		|	
+819501	|	819508	|	Linnaea borealis	|	species	|	ncbi:77623,gbif:5334220,irmng:11123712	|		|		|	
+5264385	|	819501	|	Linnaea borealis subsp. americana	|	subspecies	|	ncbi:1301390	|		|	infraspecific	|	
+502668	|	1042135	|	Heptacodium	|	genus	|	ncbi:137003,irmng:1265652	|		|	sibling_lower	|	
+832786	|	502668	|	Heptacodium miconioides	|	species	|	ncbi:137004	|		|		|	
+1035979	|	1042135	|	Patrinia	|	genus	|	ncbi:59171,gbif:3234647,irmng:1321870	|	Patrinia (genus in order Dipsacales)	|	sibling_lower	|	
+5144241	|	1035979	|	Patrinia sibirica	|	species	|	gbif:5668821	|		|		|	
+5144240	|	1035979	|	Patrinia formosana	|	species	|	gbif:5668874	|		|		|	
+5144239	|	1035979	|	Patrinia glabrifolia	|	species	|	gbif:5668871	|		|		|	
+139326	|	1035979	|	Patrinia saniculifolia	|	species	|	ncbi:245822	|		|		|	
+1035977	|	1035979	|	Patrinia rupestris	|	species	|	ncbi:59172,gbif:6058845	|		|		|	
+946520	|	1035979	|	Patrinia triloba	|	species	|	ncbi:105272	|		|		|	
+231856	|	1035979	|	Patrinia scabiosifolia	|	species	|	ncbi:300888,gbif:6058841	|		|		|	
+68253	|	1035979	|	Patrinia heterophylla	|	species	|	ncbi:180073	|		|		|	
+518011	|	1035979	|	Patrinia intermedia	|	species	|	ncbi:183557	|		|		|	
+231859	|	1035979	|	Patrinia gibbosa	|	species	|	ncbi:300887	|		|		|	
+68239	|	1035979	|	Patrinia scabra	|	species	|	ncbi:180074	|		|		|	
+971855	|	1035979	|	Patrinia villosa	|	species	|	ncbi:183944,gbif:6058838	|		|		|	
+275391	|	1042135	|	Kolkwitzia	|	genus	|	ncbi:105267,gbif:2888705,irmng:1012128	|		|	sibling_lower	|	
+275369	|	275391	|	Kolkwitzia amabilis	|	species	|	ncbi:105268,gbif:2888706,irmng:10202165	|		|		|	
+275370	|	1042135	|	Triosteum	|	genus	|	ncbi:105269,gbif:2888714,irmng:1031770	|		|	sibling_lower	|	
+5512938	|	275370	|	Triosteum illinoense	|	species	|	irmng:11122613	|	Triosteum illinoense (species irmng:11122613 in order Dipsacales)	|		|	
+389097	|	275370	|	Triosteum perfoliatum	|	species	|	ncbi:105270,gbif:2888715,irmng:10198026	|		|		|	
+364070	|	275370	|	Triosteum pinnatifidum	|	species	|	ncbi:134526	|		|		|	
+142946	|	275370	|	Triosteum sp. Boufford et al. 27350	|	species	|	ncbi:134530	|		|		|	
+364066	|	275370	|	Triosteum aurantiacum	|	species	|	ncbi:134524,gbif:2888716,irmng:10596828	|		|		|	
+364064	|	275370	|	Triosteum himalayanum	|	species	|	ncbi:134525	|		|		|	
+364068	|	275370	|	Triosteum sinuatum	|	species	|	ncbi:134527	|		|		|	
+364076	|	275370	|	Triosteum angustifolium	|	species	|	ncbi:134523,gbif:2888717,irmng:10718217	|		|		|	
+68247	|	1042135	|	Cryptothladia	|	genus	|	ncbi:180070,irmng:1009131	|		|	sibling_lower	|	
+68249	|	68247	|	Cryptothladia chinensis	|	species	|	ncbi:180071	|		|		|	
+326551	|	68247	|	Cryptothladia kokonorica	|	species	|	ncbi:242165	|		|		|	
+857592	|	68247	|	Cryptothladia polyphylla	|	species	|	ncbi:242166	|		|		|	
+68251	|	68247	|	Cryptothladia chlorantha	|	species	|	ncbi:180072	|		|		|	
+1035969	|	1042135	|	Pterocephalus	|	genus	|	ncbi:59175,gbif:3234649,irmng:1301076	|	Pterocephalus (genus in order Dipsacales)	|	sibling_lower	|	
+5144236	|	1035969	|	Pterocephalus pinardii	|	species	|	gbif:5929602	|		|		|	
+5144238	|	1035969	|	Pterocephalus canus	|	species	|	gbif:5671539	|		|		|	
+450630	|	1035969	|	Pterocephalus papposus	|	species	|	ncbi:596812,gbif:5671497	|		|		|	
+994136	|	1035969	|	Pterocephalus perennis	|	species	|	ncbi:183569	|		|		|	
+470597	|	1035969	|	Pterocephalus hookeri	|	species	|	ncbi:180560	|		|		|	
+450634	|	1035969	|	Pterocephalus spathulatus	|	species	|	ncbi:596814	|		|		|	
+450628	|	1035969	|	Pterocephalus pulverulentus	|	species	|	ncbi:596813	|		|		|	
+1026995	|	1035969	|	Pterocephalus depressus	|	species	|	ncbi:596809	|		|		|	
+450632	|	1035969	|	Pterocephalus strictus	|	species	|	ncbi:596815	|		|		|	
+1065578	|	1035969	|	Pterocephalus dumetorum	|	species	|	ncbi:398315	|		|		|	
+1035967	|	1035969	|	Pterocephalus lasiospermus	|	species	|	ncbi:59176	|		|		|	
+450624	|	1035969	|	Pterocephalus multiflorus	|	species	|	ncbi:596811	|		|		|	
+450626	|	1035969	|	Pterocephalus frutescens	|	species	|	ncbi:596810	|		|		|	
+1026993	|	1035969	|	Pterocephalus brevis	|	species	|	ncbi:596808	|		|		|	
+228783	|	1042135	|	Succisa	|	genus	|	ncbi:105905,gbif:2888810,irmng:1096083	|		|	sibling_lower	|	
+228781	|	228783	|	Succisa pratensis	|	species	|	ncbi:105906,gbif:2888811,irmng:10198037	|		|		|	
+69531	|	1042135	|	Dipsacus	|	genus	|	ncbi:40573,gbif:2888813,irmng:1360114	|		|	sibling_lower	|	
+489142	|	69531	|	Dipsacus strigosus	|	species	|	ncbi:398308	|		|		|	
+27766	|	69531	|	Dipsacus sp. Jansen 931	|	species	|	ncbi:44760	|		|		|	
+891715	|	69531	|	Dipsacus sp. Qiu 95111	|	species	|	ncbi:133547	|		|		|	
+365911	|	69531	|	Dipsacus asper	|	species	|	ncbi:516548	|		|		|	
+857626	|	69531	|	Dipsacus pilosus	|	species	|	ncbi:242169	|		|		|	
+589185	|	69531	|	Dipsacus asperoides	|	species	|	ncbi:180066	|		|		|	
+750910	|	69531	|	Dipsacus japonicus	|	species	|	ncbi:398306	|		|		|	
+559373	|	69531	|	Dipsacus chinensis	|	species	|	ncbi:555428	|		|		|	
+994148	|	69531	|	Dipsacus fullonum	|	species	|	ncbi:183561,gbif:2888815,irmng:11157254	|		|		|	
+776357	|	69531	|	Dipsacus inermis	|	species	|	ncbi:1113480	|		|		|	
+489131	|	69531	|	Dipsacus laciniatus	|	species	|	ncbi:398307,gbif:2888814,irmng:10198034	|		|		|	
+945865	|	69531	|	Dipsacus mitis	|	species	|	ncbi:180559	|		|		|	
+69540	|	69531	|	Dipsacus sativus	|	species	|	ncbi:40574,gbif:2888816,irmng:10602334	|		|		|	
+965921	|	1042135	|	Scabiosa	|	genus	|	ncbi:87007,gbif:2888800,irmng:1096855	|		|	sibling_lower	|	
+3892228	|	965921	|	Scabiosa triniaiefolia	|	species	|	gbif:7301080	|		|		|	
+450642	|	965921	|	Scabiosa tysonii	|	species	|	ncbi:596818	|		|		|	
+984335	|	965921	|	Scabiosa vestina	|	species	|	ncbi:1161158	|		|		|	
+984339	|	965921	|	Scabiosa triniifolia	|	species	|	ncbi:1161156	|		|		|	
+589183	|	965921	|	Scabiosa tschiliensis	|	species	|	ncbi:180067	|		|		|	
+458140	|	965921	|	Scabiosa cinerea	|	species	|	ncbi:1161149	|		|		|	
+458142	|	965921	|	Scabiosa canescens	|	species	|	ncbi:1161148	|		|		|	
+900954	|	965921	|	Scabiosa atropurpurea	|	species	|	ncbi:242170,gbif:2888805,irmng:10198035	|		|		|	
+3892224	|	900954	|	Scabiosa atropurpurea atropurpurea	|	subvariety	|	gbif:7301116	|		|	infraspecific	|	
+467758	|	965921	|	Scabiosa japonica	|	species	|	ncbi:183573	|		|		|	
+502473	|	965921	|	Scabiosa sp. KG2010	|	species	|	ncbi:882664	|		|		|	
+458138	|	965921	|	Scabiosa achaeta	|	species	|	ncbi:1161146	|		|		|	
+776355	|	965921	|	Scabiosa angustiloba	|	species	|	ncbi:1113481	|		|		|	
+450638	|	965921	|	Scabiosa ochroleuca	|	species	|	ncbi:596816,gbif:2888806,irmng:10455464	|		|		|	
+228785	|	965921	|	Scabiosa mansenensis	|	species	|	ncbi:105904	|		|		|	
+467743	|	965921	|	Scabiosa uniseta	|	species	|	ncbi:183574	|		|		|	
+409286	|	965921	|	Scabiosa webbiana	|	species	|	ncbi:1161159	|		|		|	
+503456	|	965921	|	Scabiosa triandra	|	species	|	ncbi:467602	|		|		|	
+984346	|	965921	|	Scabiosa tenuis	|	species	|	ncbi:1161155	|		|		|	
+984342	|	965921	|	Scabiosa turolensis	|	species	|	ncbi:1161157	|		|		|	
+470599	|	965921	|	Scabiosa columbaria	|	species	|	ncbi:180561,gbif:2888802,irmng:11441787	|		|		|	
+965923	|	965921	|	Scabiosa sp. Albach 39	|	species	|	ncbi:87008	|		|		|	
+458135	|	965921	|	Scabiosa buekiana	|	species	|	ncbi:1161147	|		|		|	
+984348	|	965921	|	Scabiosa lacerifolia	|	species	|	ncbi:1161152	|		|		|	
+984344	|	965921	|	Scabiosa taygetea	|	species	|	ncbi:1161154	|		|		|	
+503458	|	965921	|	Scabiosa lucida	|	species	|	ncbi:467601	|		|		|	
+984350	|	965921	|	Scabiosa silenifolia	|	species	|	ncbi:1161153	|		|		|	
+984352	|	965921	|	Scabiosa comosa	|	species	|	ncbi:1161150	|		|		|	
+450636	|	965921	|	Scabiosa transvaalensis	|	species	|	ncbi:596817	|		|		|	
+984354	|	965921	|	Scabiosa drakensbergensis	|	species	|	ncbi:1161151	|		|		|	
+785892	|	965921	|	Scabiosa nitens	|	species	|	ncbi:1053392	|		|		|	
+467756	|	965921	|	Scabiosa africana	|	species	|	ncbi:183572	|		|		|	
+518014	|	1042135	|	Cephalaria	|	genus	|	ncbi:183558,gbif:2888795,irmng:1277474	|		|	sibling_lower	|	
+3892197	|	518014	|	Cephalaria transsylvanica	|	species	|	gbif:4934466	|		|		|	
+3892199	|	518014	|	Cephalaria gigantea	|	species	|	gbif:2888797,irmng:10683276	|		|		|	
+3892198	|	518014	|	Cephalaria alpina	|	species	|	gbif:2888799,irmng:10205853	|		|		|	
+977916	|	518014	|	Cephalaria zeyheriana	|	species	|	ncbi:596796	|		|		|	
+1015411	|	518014	|	Cephalaria squamiflora	|	species	|	ncbi:641605	|		|		|	
+682861	|	1015411	|	Cephalaria squamiflora subsp. squamiflora	|	subspecies	|	ncbi:642477	|		|	infraspecific	|	
+492403	|	1015411	|	Cephalaria squamiflora subsp. balearica	|	subspecies	|	ncbi:641607	|		|	infraspecific	|	
+1031206	|	1015411	|	Cephalaria squamiflora subsp. mediterranea	|	subspecies	|	ncbi:641606	|		|	infraspecific	|	
+977927	|	518014	|	Cephalaria microcephala	|	species	|	ncbi:596793	|		|		|	
+977931	|	518014	|	Cephalaria aristata	|	species	|	ncbi:596791	|		|		|	
+977923	|	518014	|	Cephalaria tenella	|	species	|	ncbi:596795	|		|		|	
+977925	|	518014	|	Cephalaria hirsuta	|	species	|	ncbi:596792	|		|		|	
+977921	|	518014	|	Cephalaria paphlagonica	|	species	|	ncbi:596794	|		|		|	
+994155	|	518014	|	Cephalaria syriaca	|	species	|	ncbi:183560,gbif:2888796,irmng:10202387	|		|		|	
+258961	|	518014	|	Cephalaria humilis	|	species	|	ncbi:1113482	|		|		|	
+489129	|	518014	|	Cephalaria joppensis	|	species	|	ncbi:398304	|		|		|	
+489127	|	518014	|	Cephalaria natalensis	|	species	|	ncbi:398305	|		|		|	
+518016	|	518014	|	Cephalaria leucantha	|	species	|	ncbi:183559	|		|		|	
+467751	|	1042135	|	Pycnocomon	|	genus	|	ncbi:183570,irmng:1344699	|	Pycnocomon (genus ncbi:183570 in order Dipsacales)	|	sibling_lower	|	
+1065576	|	467751	|	Pycnocomon intermedium	|	species	|	ncbi:398314	|		|		|	
+467753	|	467751	|	Pycnocomon rutifolium	|	species	|	ncbi:183571	|		|		|	

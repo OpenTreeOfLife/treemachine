@@ -3,8 +3,8 @@ package opentree.testing;
 import java.util.HashSet;
 import java.util.LinkedList;
 
-import jade.tree.JadeNode;
-import jade.tree.JadeNode.NodeOrder;
+import jade.tree.deprecated.JadeNode;
+import jade.tree.deprecated.JadeNode.NodeOrder;
 
 public final class TreeUtils {	
 	

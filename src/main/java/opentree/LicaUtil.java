@@ -1,6 +1,6 @@
 package opentree;
 
-import jade.tree.JadeNode;
+import jade.tree.deprecated.JadeNode;
 
 import java.util.BitSet;
 import java.util.HashSet;
@@ -17,6 +17,7 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.kernel.Traversal;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 /**
  * 

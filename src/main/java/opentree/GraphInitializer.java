@@ -2,14 +2,11 @@ package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
 
-import jade.tree.JadeTree;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
@@ -17,8 +14,8 @@ import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
-import org.opentree.exceptions.TaxonNotFoundException;
 
+import org.opentree.exceptions.TaxonNotFoundException;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -27,6 +24,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class GraphInitializer extends GraphBase{
 
@@ -237,7 +235,7 @@ public class GraphInitializer extends GraphBase{
 				tx.finish();
 			}
 			
-		} catch(IOException ioe) {}
+		} catch(IOException ioe) { ioe.printStackTrace(); }
 
 		// taxonomy structure is done. now add the MRCA_CHILDOF and STREE_CHILDOF relationships
 		initMrcaAndStreeRelsTax();
@@ -353,15 +351,20 @@ public class GraphInitializer extends GraphBase{
 			if (tflag.equals("hidden")){
 				System.out.println("skipping hidden "+name);	
 				return;
-			}if (tflag.equals("unclassified")){
+			}
+			if (tflag.equals("unclassified")){
 				System.out.println("skipping unclassified "+name);	
 				return;
 			}
-			
+	// was "tattered" turned off from filtering on purpose?!?
 			if (tflag.equals("tattered")){
 				System.out.println("skipping tattered "+name);	
 			//	return;
 			}
+            if (tflag.equals("tattered_inherited")){
+                System.out.println("skipping tattered_inherited "+name);
+             //  return;
+            }
 		}
 		
 		Node tnode = graphDb.createNode();
@@ -452,9 +455,9 @@ public class GraphInitializer extends GraphBase{
 					}
 					if (startnode != friendnode) {//not the root
 						friendnode.createRelationshipTo(taxparent, RelType.MRCACHILDOF);
-						Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelType.STREECHILDOF);
-						trel2.setProperty(RelProperty.SOURCE.propertyName, "taxonomy");
-						sourceRelIndex.add(trel2, RelProperty.SOURCE.propertyName, "taxonomy");
+						//Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelType.STREECHILDOF);
+						//trel2.setProperty(RelProperty.SOURCE.propertyName, "taxonomy");
+						//sourceRelIndex.add(trel2, RelProperty.SOURCE.propertyName, "taxonomy");
 					}
 					cur_tran_iter += 1;
 					if (cur_tran_iter % transactionFrequency == 0) {

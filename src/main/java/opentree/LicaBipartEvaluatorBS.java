@@ -1,6 +1,6 @@
 package opentree;
 
-import jade.tree.JadeNode;
+import jade.tree.deprecated.JadeNode;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -8,7 +8,6 @@ import java.util.LinkedList;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
-
 import opentree.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
@@ -18,6 +17,8 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.kernel.Traversal;
+import org.opentree.bitarray.TLongBitArray;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 /**
  * This uses the mrca and mrca out bits
@@ -139,7 +140,7 @@ public class LicaBipartEvaluatorBS implements Evaluator {
 							}
 							//have to match at least 2 relationships from the set in the database sources
 							//have to match all of the lineages from the sources tree
-							if(relmatched.size() >=2 && childmatched.size() == jadenode.getChildCount()){
+							if(relmatched.size() >=2 ){//&& childmatched.size() == jadenode.getChildCount()){
 								passed = true;
 								break;
 							}

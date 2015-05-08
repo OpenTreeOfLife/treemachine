@@ -1,6 +1,7 @@
 package opentree.synthesis;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
@@ -16,6 +17,7 @@ import org.neo4j.graphdb.PathExpander;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.BranchState;
 import org.neo4j.kernel.Traversal;
+import org.opentree.bitarray.MutableCompactLongSet;
 
 /**
  * A PathExpander class that performs all the steps to make decisions about which relationships to
@@ -37,6 +39,7 @@ public class SynthesisExpander implements PathExpander {
 	private RelationshipRanker ranker;
 	private RelationshipConflictResolver resolver;
 	private Iterable<Relationship> candidateRels;
+	private Iterable<Relationship> candidateTaxRels;
 	private Iterable<Relationship> bestRels;
 	private TLongHashSet dupMRCAS;
 	private TLongHashSet deadnodes;
@@ -67,6 +70,15 @@ public class SynthesisExpander implements PathExpander {
 		return dupMRCAS;
 	}
 
+	/** whether or not to print verbose error messages. could be extended to allow various verbosity levels. */
+	boolean VERBOSE = false;
+	public enum Verbosity { SILENT, EXTREME }
+	
+	public SynthesisExpander setVerbosity(Verbosity v) {
+		if (v != Verbosity.SILENT) { VERBOSE = true; }
+		return this;
+	}
+	
 	/**
 	 * Set the conflict resolution method. The resolvers need some thought/work. Need to think about
 	 * how we would add multiple resolvers. E.g if there is no source preference, can there be branch and
@@ -91,7 +103,7 @@ public class SynthesisExpander implements PathExpander {
 		System.out.println("working with node: "+inNode);
 		
 		Iterable<Relationship> allRels = inNode.getRelationships(Direction.INCOMING, RelType.STREECHILDOF);
-		
+		candidateTaxRels = inNode.getRelationships(Direction.INCOMING, RelType.TAXCHILDOF);
 		if (filter != null) {
 			candidateRels = filter.filterRelationships(allRels);
 		} else {
@@ -117,14 +129,31 @@ public class SynthesisExpander implements PathExpander {
 	private void resolveConflicts() {
 		System.out.println("candidates: "+candidateRels);
 		if (resolver != null) {
-			bestRels = resolver.resolveConflicts(candidateRels);
+			bestRels = resolver.resolveConflicts(candidateRels,true);
 			dupMRCAS.addAll(resolver.getDupMRCAS());
 			System.out.println("dups from method: "+dupMRCAS.size());
 			//System.out.println(dupMRCAS);
 		} else {
 			bestRels = candidateRels;
 		}
-		
+		//worst way to do taxonomy
+		MutableCompactLongSet ms = new MutableCompactLongSet();
+		for(Relationship rel: bestRels){
+			MutableCompactLongSet ts = new MutableCompactLongSet((long[])rel.getStartNode().getProperty("mrca"));
+			ms.addAll(ts);
+		}
+		HashSet<Relationship> toadd = new HashSet<Relationship>();
+		for(Relationship rel: candidateTaxRels){
+			MutableCompactLongSet ts = new MutableCompactLongSet((long[])rel.getStartNode().getProperty("mrca"));
+			if(ts.containsAny(ms)==false){
+				toadd.add(rel);
+			}
+		}if(toadd.size()>0){
+			for(Relationship b: bestRels){
+				toadd.add(b);
+			}
+			bestRels = new LinkedList<Relationship>(toadd);
+		}
 		// testing
 //		System.out.println("now passing an array containing the following rels to GraphExplorer.");
 //		for (Relationship rel : bestRels) {
@@ -226,7 +255,7 @@ public class SynthesisExpander implements PathExpander {
 			//this will not always be the full set from the mrca of the node -- unless it is taxonomy relationship
 			//need to verify that the exclusive mrca is correct in this conflict
 			//it should be the mapped tip mrcas subtending this node
-			if (((String)rel.getProperty("source")).equals("taxonomy") == false &&
+			if (((String)rel.getProperty("source")).equals("taxonomy") == false && rel.isType(RelType.TAXCHILDOF)==false && 
 					rel.hasProperty("compat") == false) {
 				TLongArrayList exclusiveIds = new TLongArrayList((long[]) rel.getProperty("exclusive_mrca"));
 				tem.retainAll(exclusiveIds);

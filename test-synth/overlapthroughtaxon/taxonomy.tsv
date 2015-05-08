@@ -1,0 +1,14 @@
+uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|	
+805080	|		|	life	|	no rank	|		|		|		|	
+A	|	ABCDEF	|	A	|	no rank	|		|		|		|	
+B	|	ABCDEF	|	B	|	no rank	|		|		|		|	
+C	|	ABCDEF	|	C	|	no rank	|		|		|		|	
+D	|	ABCDEF	|	D	|	no rank	|		|		|		|	
+E	|	ABCDEF	|	E	|	no rank	|		|		|		|	
+F	|	ABCDEF	|	F	|	no rank	|		|		|		|	
+ABCDEF	|	AO	|	ABCDEF	|	no rank	|		|		|		|	
+AO	|	805080	|	AO	|	no rank	|		|		|		|	
+O	|	AO	|	O	|	no rank	|		|		|		|	
+P	|	PQ	|	P	|	no rank	|		|		|		|	
+Q	|	PQ	|	Q	|	no rank	|		|		|		|	
+PQ	|	805080	|	PQ	|	no rank	|		|		|		|	

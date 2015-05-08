@@ -1,6 +1,6 @@
 package opentree;
 
-import jade.tree.JadeNode;
+import jade.tree.deprecated.JadeNode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,9 +9,10 @@ import java.util.LinkedList;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
-
 import opentree.constants.RelType;
 
+import org.opentree.bitarray.TLongBitArray;
+import org.opentree.graphdb.GraphDatabaseAgent;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -19,6 +20,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.kernel.Traversal;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 /**
  * 

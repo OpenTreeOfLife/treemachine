@@ -5,6 +5,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 /**
  * This uses the mrca and mrca out bits

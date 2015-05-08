@@ -2,8 +2,8 @@ package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
-import jade.tree.*;
-import jade.MessageLogger;
+import jade.deprecated.MessageLogger;
+import jade.tree.deprecated.*;
 
 import java.lang.StringBuffer;
 import java.util.ArrayList;
@@ -15,8 +15,10 @@ import java.util.LinkedList;
 import java.util.Map.Entry;
 
 import opentree.constants.RelType;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
+
 import opentree.exceptions.TreeIngestException;
 
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -33,6 +35,7 @@ import org.neo4j.kernel.Traversal;
 import org.opentree.exceptions.AmbiguousTaxonException;
 
 import scala.actors.threadpool.Arrays;
+import org.opentree.graphdb.GraphDatabaseAgent;
 
 /**
  * GraphImporter is intended to control the initial creation 
@@ -160,6 +163,65 @@ public class GraphImporter extends GraphBase {
 		}
 		loadTree();
 	}
+
+	// map to deepest exemplified taxon, set tip names to uid
+	public JadeTree relabelDeepest () throws Exception {
+		for (JadeNode curLeaf : inputJadeTreeLeaves) {
+			Long ottId = (Long) curLeaf.getObject("ot:ottId");
+			Node matchedGraphNode = null;
+			IndexHits<Node> hits = null;
+			try {
+				hits = graphTaxUIDNodeIndex.get("tax_uid", ottId);
+				int numh = hits.size();
+				if (numh < 1) {
+					throw new TaxonNotFoundException(String.valueOf(ottId));
+				} else if (numh > 1) {
+					throw new AmbiguousTaxonException("tax_uid = " + ottId);
+				} else {
+					matchedGraphNode = hits.getSingle();
+				}
+			} finally {
+				hits.close();
+			}
+			inputJadeTreeLeafToMatchedGraphNodeIdMap.put(curLeaf, matchedGraphNode.getId());
+		}
+		
+		HashMap<JadeNode, Long> shallowTaxonMappings = new HashMap<JadeNode, Long>(inputJadeTreeLeafToMatchedGraphNodeIdMap);
+		System.out.println("attempting to remap tips to deepest exemplified taxa");
+
+		tx = graphDb.beginTx();
+		try {
+			for (JadeNode curLeaf : shallowTaxonMappings.keySet()) {
+				
+				Long originalMatchedNodeId = shallowTaxonMappings.get(curLeaf);
+				TLongArrayList outgroupIds = new TLongArrayList();
+				for (Long tid : shallowTaxonMappings.values()) {
+					if (tid.equals(originalMatchedNodeId) == false) {
+						outgroupIds.addAll((long[]) graphDb.getNodeById(tid).getProperty("mrca"));
+					}
+				}
+				Node newMatch = getDeepestExemplifiedTaxon(graphDb.getNodeById(originalMatchedNodeId), outgroupIds);
+				if (!originalMatchedNodeId.equals(newMatch.getId())) {
+					inputJadeTreeLeafToMatchedGraphNodeIdMap.put(curLeaf, newMatch.getId());
+					System.out.println("\t" + curLeaf.getName() + " was remapped to " + getIdString(newMatch));
+				}
+			}
+		} catch (Exception ex) { // dump the transaction if remapping fails
+			tx.failure();
+			tx.finish();
+			throw ex;
+		} finally {
+			tx.success();
+			tx.finish();
+		}
+		// relabel the tree already
+		for (JadeNode curLeaf : inputJadeTreeLeaves) {
+			Node graphNode = graphDb.getNodeById(inputJadeTreeLeafToMatchedGraphNodeIdMap.get(curLeaf));
+			curLeaf.setName(graphNode.getProperty("tax_uid").toString());
+		}
+		return inputTree;
+	}
+
 	
 	/**
 	 * Ingest the current JadeTree (in the jt data member) to the GoL.

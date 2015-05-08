@@ -1,24 +1,11 @@
 package opentree.addanalyses;
 
 import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.set.hash.TLongHashSet;
-
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.LinkedList;
-
-import opentree.LongArrayPropertyContainsAllEvaluator;
-import opentree.TLongBitArray;
-import opentree.constants.RelType;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
-import org.neo4j.kernel.Traversal;
+import org.opentree.bitarray.TLongBitArray;
 
 public class ConflictEvaluator implements Evaluator{
 	TLongBitArray ingroupNodeIds; 
