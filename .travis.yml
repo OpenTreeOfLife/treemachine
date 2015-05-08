@@ -1,6 +1,6 @@
 language: java
 java:
-    - "1.7"
+    - "1.8"
 before_install:
     - ./mvn_install_dependencies.sh
 branches:
