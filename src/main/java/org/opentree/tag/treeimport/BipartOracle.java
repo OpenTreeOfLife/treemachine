@@ -856,7 +856,7 @@ public class BipartOracle {
         // any taxonomic splits within the proposed sum S that are not supported by some combination of statements
         // in the supportingNodes.
 
-        // now we will look through Q to try and find information that supports the existence of the sum S. we will
+        // we will look through Q to try and find information that supports the existence of the sum S. we will
         // use a container R to keep track of the information we find during this search. R is a map that contains
         // an entry for every node in the sum ingroup (the map keys). the values of the map are sets. for each taxon 
         // L in the ingroup of the sum (i.e. for each key in R), we are going to scan Q to see if we can find support
@@ -870,51 +870,40 @@ public class BipartOracle {
         
         // the search for supporting info involves an iteration over the potential supporting nodes
         for (LongBipartition B : supportingBiparts) {
-            if (! B.isMergeableWith(S)) { continue; } // ???
+            if (! B.isMergeableWith(S)) { continue; } // should this be isCompatibleWith?
             
             LongSet inS_inB = S.ingroup().intersection(B.ingroup());
             LongSet outS_outB = S.outgroup().intersection(B.outgroup());
-            HashMap<Long, MutableCompactLongSet> outtoadd = new HashMap<Long, MutableCompactLongSet>();
-            //TODO: do the outgroup
+            MutableCompactLongSet outtoadd = new MutableCompactLongSet();
             for (Long x : outS_outB) {
-                outtoadd.put(x, new MutableCompactLongSet());
-                outtoadd.get(x).add(x);
+            	outtoadd.add(x);
                 for (Long y : Q.get(x).keySet()) {
                     if (! S.ingroup().contains(y) && B.outgroup().containsAny(Q.get(x).get(y))) {
-                        outtoadd.get(x).add(y);
+                    	outtoadd.add(y);
                     }
                     if (S.ingroup().contains(y) && B.ingroup().contains(y)) {
-                        outtoadd.get(x).addAll(Q.get(x).get(y));
+                    	outtoadd.addAll(Q.get(x).get(y));
                     }
                 }
             }
 
-            //TODO: change to a while and keep updating
             for (Long l1 : inS_inB) {
-                R.get(l1).addAll(outS_outB);
-                for (Long o : outtoadd.keySet()) {
-                    R.get(l1).addAll(outtoadd.get(o));
-                }
+                R.get(l1).addAll(outtoadd);
                 for (Long l2 : Q.get(l1).keySet()) {
                     if (B.ingroup().containsAny(Q.get(l1).get(l2))) {
-                        R.get(l2).addAll(outS_outB);
-                        for (Long o : outtoadd.keySet()) {
-                            R.get(l2).addAll(outtoadd.get(o));
-                        }
+                        R.get(l2).addAll(outtoadd);
                     }
                 }
             }
         }
-        //System.out.println(R);
+
         for (Long l : S.ingroup()) {
             if (R.get(l).size() != S.outgroup().size()) {
-                System.out.println("wouldn't make " + S);
-                //System.exit(0);
+                System.out.println("cannot find for support for: " + S);
                 return null;
             }
         }
-        System.out.println("would make " + S);
-        //System.exit(0);
+        System.out.println("found support for the node: " + S);
         return S;
 
     }
