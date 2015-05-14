@@ -5,15 +5,20 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import jade.tree.deprecated.JadeTree;
+//import jade.tree.deprecated.JadeTree;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
 
+import java.net.URL;
+import java.net.URLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
-import org.opentree.exceptions.TreeNotFoundException;
+//import org.opentree.exceptions.TreeNotFoundException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -59,14 +64,13 @@ public class graph extends ServerPlugin {
 		return OTRepresentationConverter.convert(graphInfo);
 	}
 	
-	
-	// TODO: change input arguments
-	@Description("Returns a source tree (corresponding to a tree in some [study](#studies)) as it exists "
-			+ "within the graph. Although the result of this service is a tree corresponding directly to a "
+	// Possibility of replacing tip label ottids with names?!?
+	@Description("Returns a processed source tree (corresponding to a tree in some [study](#studies)) used "
+			+ "as input for the synthetic tree. Although the result of this service is a tree corresponding directly to a "
 			+ "tree in a study, the representation of the tree in the graph may differ slightly from its "
-			+ "canonical representation in the study, due to changes made during tree import (for example, "
-			+ "pruning tips from the tree that cannot be mapped to taxa in the graph). In addition, both "
-			+ "internal and terminal nodes are labelled ott ids. The tree is returned in newick format.")
+			+ "canonical representation in the study, due to changes made during tree import: 1) includes "
+			+ "only the curator-designated ingroup clade, and 2) both unmapped and duplicate tips are pruned "
+			+ "from the tree. The tree is returned in newick format, with terminal nodes labelled with ott ids.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation source_tree(
 			@Source GraphDatabaseService graphDb,
@@ -74,34 +78,23 @@ public class graph extends ServerPlugin {
 					name = "study_id", optional = false) String studyID,
 			@Description("The tree identifier for a given study.") @Parameter(
 					name = "tree_id", optional = false) String treeID,
-			@Description("The git SHA identifying a particular source version.") @Parameter(
-					name = "git_sha", optional = false) String gitSHA,
 			@Description("The name of the return format. The only currently supported format is newick.") @Parameter(
-					name = "format", optional = true) String format) throws TreeNotFoundException {
+					name = "format", optional = true) String format) {
 
-		String source = studyID + "_" + treeID + "_" + gitSHA;
-		
-		// get the tree
-		GraphExplorer ge = new GraphExplorer(graphDb);
-		JadeTree tree = null;
-		try {
-			tree = ge.reconstructSource(source, -1); // -1 here means no limit on depth
-		} catch (TreeNotFoundException e) {
-
-		} finally {
-			ge.shutdownDB();
-		}
-
-		// return results
 		HashMap<String, Object> responseMap = new HashMap<String, Object>();
+		String source = studyID + "_" + treeID;
+		
+		String tree = getSourceTree(source);
 
 		if (tree == null) {
-			responseMap.put("error", "Invalid source id provided.");
+			responseMap.put("error", "Invalid source id '" + source + "' provided.");
 			return OTRepresentationConverter.convert(responseMap);
+		} else {
+			responseMap.put("newick", tree);
 		}
-
-		responseMap.put("newick", tree.getRoot().getNewick(tree.getHasBranchLengths()) + ";");
+		
 		return OTRepresentationConverter.convert(responseMap);
+		
 	}
 	
 	
@@ -243,6 +236,27 @@ public class graph extends ServerPlugin {
 		ge.shutdownDB();
 
 		return OTRepresentationConverter.convert(nodeIfo);
+	}
+	
+	
+	// fetch the processed input source tree newick from files.opentree.org
+	public String getSourceTree(String source) {
+		String tree = null;
+		String urlbase = "http://files.opentreeoflife.org/preprocessed/v3.0/trees/"
+				+ source + ".tre";
+		System.out.println("Looking up study: " + urlbase);
+
+		try {
+			URL phurl = new URL(urlbase);
+			URLConnection conn = (URLConnection) phurl.openConnection();
+			conn.connect();
+			try (BufferedReader un = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+				tree = un.readLine();
+			}
+			return tree;
+		} catch (Exception e) {
+		}
+		return tree;
 	}
 	
 	
