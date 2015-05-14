@@ -330,7 +330,7 @@ public class tree_of_life extends ServerPlugin {
 			vals.put("error", "Not enough valid node or ott ids provided to construct a subtree (there must be at least two).");
 			return OTRepresentationConverter.convert(vals);
 		} else {
-			vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
+			vals.put("newick", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
 			return OTRepresentationConverter.convert(vals);
 		}
 	}
