@@ -123,7 +123,7 @@ public class graph extends ServerPlugin {
 		Long nodeId = null;
 		boolean inGraph = false;
 		boolean inSynthTree = false;
-		Integer numSynthChildren = 0;
+		Integer numSynthTips = 0;
 		Integer numMRCA = 0;
 		LinkedList<HashMap<String, Object>> synthSources = new LinkedList<HashMap<String, Object>>();
 		LinkedList<HashMap<String, Object>> treeSources = new LinkedList<HashMap<String, Object>>();
@@ -180,7 +180,7 @@ public class graph extends ServerPlugin {
 			numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
 			if (ge.nodeIsInSyntheticTree(n)) {
 				inSynthTree = true;
-				numSynthChildren = ge.getSynthesisDescendantTips(n).size(); // may be faster to just use stored MRCA
+				numSynthTips = ge.getSynthesisDescendantTips(n).size(); // may be faster to just use stored MRCA
 				// get all the unique sources supporting this node
 				ArrayList<String> sSources = ge.getSynthesisSupportingSources(n);
 				ArrayList<String> tSources = ge.getSupportingTreeSources(n);
@@ -210,7 +210,7 @@ public class graph extends ServerPlugin {
 		}
 		nodeIfo.put("in_graph", inGraph);
 		nodeIfo.put("in_synth_tree", inSynthTree);
-		nodeIfo.put("num_synth_children", numSynthChildren);
+		nodeIfo.put("num_synth_tips", numSynthTips);
 		nodeIfo.put("num_tips", numMRCA);
 		nodeIfo.put("synth_sources", synthSources);
 		nodeIfo.put("tree_sources", treeSources);
