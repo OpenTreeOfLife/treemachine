@@ -417,7 +417,7 @@ public class tree_of_life extends ServerPlugin {
 		Integer numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
 		if (numMRCA > maxNumTips) {
 			responseMap.put("error", "Requested tree is larger than currently allowed by this service (" 
-					+ maxNumTips + " tips). For larger trees, download the tree directly.");
+					+ maxNumTips + " tips). For larger trees, please download the full tree directly from: http://files.opentreeoflife.org/trees/");
 			return OTRepresentationConverter.convert(responseMap);
 		}
 		
