@@ -860,9 +860,9 @@ public class BipartOracle {
         // use a container R to keep track of the information we find during this search. R is a map that contains
         // an entry for every node in the sum ingroup (the map keys). the values of the map are sets. for each taxon 
         // L in the ingroup of the sum (i.e. for each key in R), we are going to scan Q to see if we can find support
-        // for the separation of L from *all* the taxa in the outgroup of the sum. at the end of the procedure, if
-        // we have found information that allows us to separate all the sum's outgroup taxa from all its ingroup
-        // taxa, then we say that the sum S is supported. otherwise it is not.  
+        // for the separation of L from *all* the taxa in the outgroup of the sum. at the end of the procedure, for
+        // some taxon x in ingroup(S), R(x) will contain all the taxa in outgroup(S) that can be separated from x.
+        // if each outgroup(S) == R(x) for all x, then we say that the sum S is supported. otherwise it is not.
         
         // here we just create R and populate the entries with empty sets
         HashMap<Long, MutableCompactLongSet> R = new HashMap<Long, MutableCompactLongSet>();
@@ -887,11 +887,11 @@ public class BipartOracle {
                 }
             }
 
-            for (Long l1 : inS_inB) {
-                R.get(l1).addAll(outtoadd);
-                for (Long l2 : Q.get(l1).keySet()) {
-                    if (B.ingroup().containsAny(Q.get(l1).get(l2))) {
-                        R.get(l2).addAll(outtoadd);
+            for (Long x : inS_inB) {
+                R.get(x).addAll(outtoadd);
+                for (Long y : Q.get(x).keySet()) {
+                    if (B.ingroup().containsAny(Q.get(x).get(y))) {
+                        R.get(y).addAll(outtoadd);
                     }
                 }
             }
@@ -1356,8 +1356,12 @@ public class BipartOracle {
 					}
 					LongBipartition bqParent = bipart.get(bipartId.get(bipartForTreeNode.get(q.getParent())));
 
-					if(bq.isMergeableWith(bp) && (bq.isMergeableWith(bpParent) == false)
-							&& (bp.isMergeableWith(bqParent) == false)){
+					// here we implement the check to make sure that:
+					// (1) the nodes are mergeable, and
+					// (2) that we haven't created any merged nodes at ancestral nodes of these in the trees. the
+					// earliest position is the most conservative place to combine the trees, so that's what we want
+					if (bq.isMergeableWith(bp) && // check 1
+							(! bq.isMergeableWith(bpParent)) && (! bp.isMergeableWith(bqParent))) { // check 2
 						compatibleBiparts.get(qid).add(pid);
 					}
 					
