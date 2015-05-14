@@ -102,7 +102,7 @@ public class tree_of_life extends ServerPlugin {
 	
 	@Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott "
 			+ "ids as input. Returns information about the most recent common ancestor (MRCA) node as well as the most recent "
-			+ "taxonomic ancestor (MRTA) node (the closest taxonomic node to the MRCA node in the synthetic tree; the MRCA "
+			+ "taxonomic ancestor (MRTA) node (the smallest taxon that encompasses the query; the MRCA "
 			+ "and MRTA may be the same node). Node ids that are not in the synthetic tree are dropped from the MRCA "
 			+ "calculation. For a valid ott id that is not in the synthetic tree (i.e. it is not recovered as monophyletic "
 			+ "from the source tree information), the taxonomic descendants of the node are used in the MRCA calculation. "
