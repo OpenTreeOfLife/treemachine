@@ -16,6 +16,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 import org.opentree.exceptions.TaxonNotFoundException;
+import org.opentree.utils.GeneralUtils;
+import org.opentree.graphdb.GraphDatabaseAgent;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -28,8 +31,6 @@ import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
-import org.opentree.utils.GeneralUtils;
-import org.opentree.graphdb.GraphDatabaseAgent;
 
 // Graph of Life Services 
 public class graph extends ServerPlugin {
@@ -114,7 +115,6 @@ public class graph extends ServerPlugin {
         String rank = "";
         String taxSource = "";
         Long nodeId = null;
-        boolean inGraph = false;
         boolean inSynthTree = false;
         Integer numSynthTips = 0;
         Integer numMRCA = 0;
@@ -165,7 +165,6 @@ public class graph extends ServerPlugin {
                 taxSource = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
                 ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
             }
-            inGraph = true;
             numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
             if (ge.nodeIsInSyntheticTree(n)) {
                 inSynthTree = true;
@@ -197,7 +196,6 @@ public class graph extends ServerPlugin {
         } else {
             nodeIfo.put("ott_id", "null");
         }
-        nodeIfo.put("in_graph", inGraph);
         nodeIfo.put("in_synth_tree", inSynthTree);
         nodeIfo.put("num_synth_tips", numSynthTips);
         nodeIfo.put("num_tips", numMRCA);
