@@ -862,7 +862,7 @@ public class BipartOracle {
         // L in the ingroup of the sum (i.e. for each key in R), we are going to scan Q to see if we can find support
         // for the separation of L from *all* the taxa in the outgroup of the sum. at the end of the procedure, for
         // some taxon x in ingroup(S), R(x) will contain all the taxa in outgroup(S) that can be separated from x.
-        // if each outgroup(S) == R(x) for all x, then we say that the sum S is supported. otherwise it is not.
+        // if each R(x) == outgroup(S) for all x, then we say that the sum S is supported. otherwise it is not.
         
         // here we just create R and populate the entries with empty sets
         HashMap<Long, MutableCompactLongSet> R = new HashMap<Long, MutableCompactLongSet>();
@@ -874,23 +874,57 @@ public class BipartOracle {
             
             LongSet inS_inB = S.ingroup().intersection(B.ingroup());
             LongSet outS_outB = S.outgroup().intersection(B.outgroup());
+            
+            // this will record a set of taxa that can be separated from the ingroup of S
+            // based on information in B
             MutableCompactLongSet outtoadd = new MutableCompactLongSet();
-            for (Long x : outS_outB) {
+            
+            for (Long x : outS_outB) { // consider each taxon x in both outgroup(S) and outgroup(B)
+            	
+            	// everything in the outgroup of B and S can be separated from the ingroup of S
             	outtoadd.add(x);
+            	
+            	// for each taxon x in the *outgroup* of B and S, get each other taxon y that may
+            	// be grouped with x given some information from a supporting node
                 for (Long y : Q.get(x).keySet()) {
-                    if (! S.ingroup().contains(y) && B.outgroup().containsAny(Q.get(x).get(y))) {
-                    	outtoadd.add(y);
-                    }
-                    if (S.ingroup().contains(y) && B.ingroup().contains(y)) {
-                    	outtoadd.addAll(Q.get(x).get(y));
+                	
+                	// T is the set of taxa for which, given some taxa x, y, and any t in T,
+                	// we can say that ((x,y),t)
+                	LongSet T = Q.get(x).get(y);
+                	
+                	// we know that x is in the outgroup. if y is in the ingroup, then we can use
+                	// ((y,x),t) to also allow all T to also be in the outgroup
+                	if (S.ingroup().contains(y) && B.ingroup().contains(y)) {
+                		outtoadd.addAll(T);
+                	}
+
+                	// we know that x is in the outgroup. if some t is *also* in the outgroup, then
+                	// we can use ((x,y),t) to also allow y to be in the outgroup
+                    if (B.outgroup().containsAny(T)) {
+                    	if (! S.ingroup().contains(y)) { outtoadd.add(y); }
                     }
                 }
             }
 
-            for (Long x : inS_inB) {
+            for (Long x : inS_inB) { // consider each taxon x in both ingroup(S) and ingroup(B)
+            	
+            	// record the taxa in outgroup(S) for which we just found information allowing them
+            	// to be separated from each taxon ingroup(B) taxon
                 R.get(x).addAll(outtoadd);
+                
+            	// for each taxon x in the *ingroup* of B and S, get each other taxon y that may
+            	// be grouped with x given some information from a supporting node
                 for (Long y : Q.get(x).keySet()) {
-                    if (B.ingroup().containsAny(Q.get(x).get(y))) {
+
+                	// T is the set of taxa for which, given some taxa x, y, and any t in T,
+                	// we can say that ((x,y),t)
+                	LongSet T = Q.get(x).get(y);
+                	
+                	// we know that x in the ingroup. if some t is *also* in the ingroup, then
+                	// we can use ((x,y),t) to infer that if y could also be in the ingrou, i.e.
+                	// y can also be separated from anything that x can be separated from (which
+                	// is the set of things in outtoadd)
+                    if (B.ingroup().containsAny(T)) {
                         R.get(y).addAll(outtoadd);
                     }
                 }
@@ -898,6 +932,7 @@ public class BipartOracle {
         }
 
         for (Long l : S.ingroup()) {
+//        	if (R.get(l).equals(S)) {
             if (R.get(l).size() != S.outgroup().size()) {
                 System.out.println("cannot find for support for: " + S);
                 return null;
