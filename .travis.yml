@@ -1,6 +1,7 @@
 language: java
-java:
+jdk:
     - oraclejdk8
+#java:
 #    - "1.8"
 before_install:
     - ./mvn_install_dependencies.sh
