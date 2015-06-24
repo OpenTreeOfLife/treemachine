@@ -2307,7 +2307,7 @@ public class GraphExplorer extends GraphBase {
 					
 					if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
 						curNode.assocObject("supporting_sources", (String [] ) synthChildRel.getProperty("supporting_sources"));
-						System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
+						if (verbose) System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
 						done = true;
 					}
 				}
