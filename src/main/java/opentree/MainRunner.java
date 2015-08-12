@@ -2541,18 +2541,21 @@ public class MainRunner {
 	 * Args are: nexson_filename, treeid, graph.db
 	 */
 	public int processtree(String [] args) throws Exception {
-		if (args.length != 4 & args.length != 5) {
-			System.out.println("the argument has to be: nexson_filename treeid graphdb (optional: <mapdeeper[T|F]>)");
+		if (args.length != 5 & args.length != 6) {
+			System.out.println("the argument has to be: nexson_filename treeid graphdb out_directory (optional: <mapdeeper[T|F]>)");
 			return 0;
 		}
 		String filen = args[1];
 		File file = new File(filen);
 		System.err.println("file " + file);
 		String treeid = args[2];
+		String gitSHA = "";
 		GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[3]);
-		boolean mapDeeper = false;
-		if (args.length == 5) {
-			String smapDeeper = args[4];			
+		String outdir = args[4];
+		
+		boolean mapDeeper = false; // not really used anymore
+		if (args.length == 6) {
+			String smapDeeper = args[5];			
 			if (smapDeeper.toLowerCase().equals("t")) {
 				mapDeeper = true;
 			}
@@ -2585,6 +2588,7 @@ public class MainRunner {
 				if (treeJId != null) {
 					if (treeJId.compareTo(treeid) == 0) {
 						jt.add(j);
+						gitSHA = (String)j.getObject("sha");
 						break;
 					}
 				}
@@ -2646,12 +2650,13 @@ public class MainRunner {
 				j = gi.relabelDeepest();
 			}
 			String studyn = filen.substring(filen.lastIndexOf('/') + 1);
-			String outfile = studyn + "_" + treeid + ".tre";
+			String outfile = outdir + "/" + studyn + "_" + treeid + "_" + gitSHA + ".tre";
 			FileWriter fw;
 			try {
 				fw = new FileWriter(outfile);
 				fw.write(j.getRoot().getNewick(false) + ";");
 				fw.close();
+				System.out.println(j.getRoot().getNewick(false) + ";");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
