@@ -92,7 +92,9 @@ public class NexsonReader {
 		
 		// The XML root element
 		JSONObject root = (JSONObject)((JSONObject)all.get("data")).get("nexml");
-
+		
+		String gitSHA = (String)all.get("sha");
+		
 		// All of the <meta> elements from root (i.e. study-wide). Trees may have their own meta elements (e.g. inGroupClade)
 		List<Object> studyMetaList = getMetaList(root);
 		//System.out.println("studyMetaList = " + studyMetaList);
@@ -146,6 +148,7 @@ public class NexsonReader {
 									  studyMetaList,
 									  treeMetaList,
 									  treeID,
+									  gitSHA,
 									  verbose,
 									  msgLogger));
 			}
@@ -160,6 +163,7 @@ public class NexsonReader {
 									   List<Object> studyMetaList,
 									   List<Object> treeMetaList,
 									   String treeID,
+									   String gitSHA,
 									   Boolean verbose,
 									   MessageLogger msgLogger) {
 		msgLogger.indentMessageInt(1, "tree info", "number nodes", nodeList.size());
@@ -255,8 +259,9 @@ public class NexsonReader {
 						}
 						jn.assocObject(propname, value);
 					}
-					if(ottlabel == null && origlabel != null)
+					if (ottlabel == null && origlabel != null) {
 						jn.setName(origlabel);
+					}
 				}
 			}
 		}
@@ -283,7 +288,7 @@ public class NexsonReader {
 			Double length = null;
 			try{
 				length = (Double)j.get("@length");
-			}catch(java.lang.ClassCastException c){
+			} catch(java.lang.ClassCastException c) {
 				length = 0.;
 				continue;
 			}
@@ -319,6 +324,7 @@ public class NexsonReader {
 			associateMetadata(tree, treeMetaList, (verbose ? msgLogger : null));
 		}
 		tree.assocObject("id", treeID);
+		tree.assocObject("sha", gitSHA);
 		return tree;
 	}
 	

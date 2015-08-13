@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
+import org.apache.commons.lang3.ArrayUtils;
 
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
@@ -26,7 +27,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
-public class GraphInitializer extends GraphBase{
+public class GraphInitializer extends GraphBase {
 
 	//static Logger _LOG = Logger.getLogger(GraphImporter.class);
 
@@ -46,6 +47,19 @@ public class GraphInitializer extends GraphBase{
 	private HashMap<String, Node> taxUIDToNodeMap;
 	private HashMap<String, String> childNodeIDToParentNodeIDMap;
 	private boolean synFileExists;
+	private String [] dubiousFlags; // filter out taxa that contain any of these filters
+	
+	// dubious flags; change with taxonomy version //
+	// used in 'version 3' and previous synthetic trees
+	String[] ott28_exclude_flags = {"major_rank_conflict", "major_rank_conflict_direct", "major_rank_conflict_inherited", 
+		"environmental", "unclassified_inherited", "unclassified_direct", "viral", "nootu", "barren", "not_otu", 
+		"incertae_sedis", "incertae_sedis_direct", "incertae_sedis_inherited", "extinct_inherited", "extinct_direct", 
+		"hidden", "unclassified"};
+	// not sure if these are the correct flags. need documentation
+	String[] ott29_exclude_flags = {"major_rank_conflict", "major_rank_conflict_inherited", "environmental",
+		"unclassified_inherited", "unclassified", "viral", "barren", "not_otu", "incertae_sedis",
+		"incertae_sedis_inherited", "extinct_inherited", "extinct", "hidden", "unplaced", "unplaced_inherited",
+		"was_container", "inconsistent", "inconsistent"};
 	
 	public GraphInitializer(String graphname) {
 		super(graphname);
@@ -68,22 +82,23 @@ public class GraphInitializer extends GraphBase{
 		taxUIDToNodeMap = new HashMap<String, Node>();
 		childNodeIDToParentNodeIDMap = new HashMap<String, String>();
 		synFileExists = false;
+		//dubiousFlags = ott28_exclude_flags; // change this depending on taxonomy version
+		dubiousFlags = ott29_exclude_flags; // change this depending on taxonomy version
 	}
 	
 	/**
 	 * Reads a taxonomy file with rows formatted as:
-	 *	taxon_id,parent_id,Name with spaces allowed\n
+	 *  uid, parent_uid, name, rank, sourceinfo, uniqname, flags
 	 * 
-	 * The source name is going to be OTTOL
+	 * The source name is going to be TAXONOMY
 	 * 
 	 * Creates the nodes and TAXCHILDOF relationship for a taxonomy tree
 	 * Node objects will get a "name", "mrca", and "nested_mrca" properties
 	 * 
 	 * They will also get tax_uid, tax_parent_uid, tax_rank, tax_source, tax_sourceid, tax_sourcepid, uniqname
 	 * 
-	 * 
 	 * TAXCHILDOF relationships will get "source" of "ottol", "childid", and "parentid" properties
-	 * with the addition of the new information in the ottol dumps the nodes will also get properties
+	 * with the addition of the new information in the ott dumps the nodes will also get properties
 	 * 
 	 * STREECHILDOF relationships will get "source" properties as "taxonomy"
 	 * Nodes are indexed in graphNamedNodes with their name as the value for a "name" key
@@ -91,13 +106,12 @@ public class GraphInitializer extends GraphBase{
 	 * This will load the taxonomy, adding 
 	 * 
 	 * @param filename file path to the taxonomy file
-	 * @param synonymfile file that has the synonyms as dumped by ottol dump
+	 * @param synonymfile file that has the synonyms as dumped by ott dump
 	 * @throws TaxonNotFoundException 
 	 */
 	public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile, String taxonomyversion) throws TaxonNotFoundException {
 		
 		initContainersForTaxLoading();
-		
 		String str = "";
 		int count = 0;
 
@@ -114,13 +128,13 @@ public class GraphInitializer extends GraphBase{
 					if (!str.trim().equals("")) {
 						StringTokenizer st = new StringTokenizer(str,"\t|\t");
 						String name = st.nextToken();
-						//this is the id that points to the right node
+						// this is the id that points to the right node
 						String parentuid = st.nextToken();
 						String uid = parentuid;
-						String type = "OTT synonym";//st.nextToken();
-						String source = "OTT";//st.nextToken();
+						String type = "OTT synonym";
+						String source = "OTT";
 						ArrayList<String> tar = new ArrayList<String>();
-						tar.add(uid);tar.add(name);tar.add(type);tar.add(source);
+						tar.add(uid); tar.add(name); tar.add(type); tar.add(source);
 						if (synonymHash.get(parentuid) == null) {
 							ArrayList<ArrayList<String> > ttar = new ArrayList<ArrayList<String> >();
 							synonymHash.put(parentuid, ttar);
@@ -254,7 +268,7 @@ public class GraphInitializer extends GraphBase{
 	 */
 	private void processTaxInputLine(String line, String taxonomyversion) {
 		
-		StringTokenizer st = new StringTokenizer(line,"|");
+		StringTokenizer st = new StringTokenizer(line, "|");
 		String tid = null;
 		String pid = null;
 		String name = null;
@@ -270,101 +284,106 @@ public class GraphInitializer extends GraphBase{
 			rank = st.nextToken().trim();
 			srce = st.nextToken().trim();
 			uniqname = st.nextToken().trim();
-			flag = st.nextToken().trim(); //for dubious
+			flag = st.nextToken().trim(); // for dubious
 		} catch (NoSuchElementException ex) {
 			throw new NoSuchElementException("the taxonomy file appears to be missing some fields.");
 		}
 
 		/**
 		 * This is meant to ignore certain bad taxa based on a flagging system used in smasher
-		 * Currently, we filter 
-		 * major_rank_conflict   - an ancestor has a sibling with a *much* higher rank
-		 * environmental
-		 * unclassified_inherited
-		 * unclassified_direct
+		 * The set of 'dubious' flags are stored in the array dubiousFlags, which itself is set
+		 * in initContainersForTaxLoading(). This should make swapping flag sets easier.
 		 */
-		//the flag can be comma delimited
-		StringTokenizer stfl = new StringTokenizer(flag,",");
-		while (stfl.hasMoreTokens()){
+		// the flag can be comma delimited
+		StringTokenizer stfl = new StringTokenizer(flag, ",");
+		int flagIndex = -1;
+		while (stfl.hasMoreTokens()) {
 			String tflag = stfl.nextToken();
+			flagIndex = ArrayUtils.indexOf(dubiousFlags, tflag);
+			if (flagIndex > -1) {
+				System.out.println("skipping " + dubiousFlags[flagIndex] + " " + name);	
+				return;
+			}
+			/*
 			//if flag == D
-			if (tflag.equals("major_rank_conflict")){
+			if (tflag.equals("major_rank_conflict")) {
 				System.out.println("skipping major_rank_conflict "+name);	
 				return;
 			}
-			if (tflag.equals("major_rank_conflict_direct")){
+			if (tflag.equals("major_rank_conflict_direct")) {
 				System.out.println("skipping major_rank_confict_direct "+name);	
 				return;
 			}
-			if (tflag.equals("major_rank_conflict_inherited")){
+			if (tflag.equals("major_rank_conflict_inherited")) {
 				System.out.println("skipping major_rank_conflict_inherited "+name);	
 				return;
 			}
-			if (tflag.equals("environmental")){
+			if (tflag.equals("environmental")) {
 				System.out.println("skipping environmental "+name);	
 				return;
 			}
-			if (tflag.equals("unclassified_inherited")){
+			if (tflag.equals("unclassified_inherited")) {
 				System.out.println("skipping unclassified_inherited "+name);	
 				return;
 			}
-			if (tflag.equals("unclassified_direct")){
+			if (tflag.equals("unclassified_direct")) {
 				System.out.println("skipping unclassified_direct "+name);	
 				return;
 			}
-			if (tflag.equals("viral")){
+			if (tflag.equals("viral")) {
 				System.out.println("skipping viral "+name);	
 				return;
 			}
-			if (tflag.equals("nootu")){
+			if (tflag.equals("nootu")) {
 				System.out.println("skipping nootu "+name);	
 				return;
 			}
-			if (tflag.equals("barren")){
+			if (tflag.equals("barren")) {
 				System.out.println("skipping barren "+name);	
 				return;
 			}
-			if (tflag.equals("not_otu")){
+			if (tflag.equals("not_otu")) {
 				System.out.println("skipping not_otu "+name);	
 				return;
 			}
-			if (tflag.equals("incertae_sedis")){
+			if (tflag.equals("incertae_sedis")) {
 				System.out.println("skipping incertae_sedis "+name);	
 				return;
 			}
-			if (tflag.equals("incertae_sedis_direct")){
+			if (tflag.equals("incertae_sedis_direct")) {
 				System.out.println("skipping incertae_sedis_direct "+name);	
 				return;
 			}
-			if (tflag.equals("incertae_sedis_inherited")){
+			if (tflag.equals("incertae_sedis_inherited")) {
 				System.out.println("skipping incertae_sedis_inherited "+name);	
 				return;
 			}
-			if (tflag.equals("extinct_inherited")){
+			if (tflag.equals("extinct_inherited")) {
 				System.out.println("skipping extinct_inherited "+name);	
 				return;
 			}
-			if (tflag.equals("extinct_direct")){
+			if (tflag.equals("extinct_direct")) {
 				System.out.println("skipping extinct_direct "+name);	
 				return;
 			}
-			if (tflag.equals("hidden")){
+			if (tflag.equals("hidden")) {
 				System.out.println("skipping hidden "+name);	
 				return;
 			}
-			if (tflag.equals("unclassified")){
+			if (tflag.equals("unclassified")) {
 				System.out.println("skipping unclassified "+name);	
 				return;
 			}
 	// was "tattered" turned off from filtering on purpose?!?
-			if (tflag.equals("tattered")){
+			if (tflag.equals("tattered")) {
 				System.out.println("skipping tattered "+name);	
 			//	return;
 			}
-            if (tflag.equals("tattered_inherited")){
+            if (tflag.equals("tattered_inherited")) {
                 System.out.println("skipping tattered_inherited "+name);
              //  return;
             }
+            */
 		}
 		
 		Node tnode = graphDb.createNode();
@@ -385,7 +404,6 @@ public class GraphInitializer extends GraphBase{
 		} else { // root node
 			
 			// set taxonomy version here
-			
 			System.out.println("found root node: " + tnode.getProperty("name"));
 			setGraphRootNode(tnode, taxonomyversion);
 			
@@ -455,9 +473,6 @@ public class GraphInitializer extends GraphBase{
 					}
 					if (startnode != friendnode) {//not the root
 						friendnode.createRelationshipTo(taxparent, RelType.MRCACHILDOF);
-						//Relationship trel2 = friendnode.createRelationshipTo(taxparent, RelType.STREECHILDOF);
-						//trel2.setProperty(RelProperty.SOURCE.propertyName, "taxonomy");
-						//sourceRelIndex.add(trel2, RelProperty.SOURCE.propertyName, "taxonomy");
 					}
 					cur_tran_iter += 1;
 					if (cur_tran_iter % transactionFrequency == 0) {

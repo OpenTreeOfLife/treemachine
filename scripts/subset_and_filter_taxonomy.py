@@ -1,5 +1,5 @@
 """
-  Subset the OTT taxonomy.tsv file (http://files.opentreeoflife.org/ott/ott2.8/)
+  Subset the OTT taxonomy.tsv file (http://files.opentreeoflife.org/ott/)
   Discards "bad" taxa i.e. those that treemachine itself prunes, so taxonomy will 
   reflect what is in treemachine (and, therefore, in the synthetic tree).
 
@@ -16,10 +16,16 @@ import os
 import sys
 
 # treemachine flags
-tflags = ["major_rank_conflict", "major_rank_conflict_direct", "major_rank_conflict_inherited", 
-"environmental", "unclassified_inherited", "unclassified_direct", "viral", "nootu", "barren", 
-"not_otu", "incertae_sedis", "incertae_sedis_direct", "incertae_sedis_inherited", "extinct_inherited", 
-"extinct_direct", "hidden", "unclassified"]
+# the following are for ott 2.8draft5 (used in the publication)
+#tflags = ["major_rank_conflict", "major_rank_conflict_direct", "major_rank_conflict_inherited", 
+#"environmental", "unclassified_inherited", "unclassified_direct", "viral", "nootu", "barren", 
+#"not_otu", "incertae_sedis", "incertae_sedis_direct", "incertae_sedis_inherited", "extinct_inherited", 
+#"extinct_direct", "hidden", "unclassified"]
+# the following are for ott 2.9draft8
+tflags = ["major_rank_conflict", "major_rank_conflict_inherited", "environmental",
+"unclassified_inherited", "unclassified", "viral", "barren", "not_otu", "incertae_sedis",
+"incertae_sedis_inherited", "extinct_inherited", "extinct", "hidden", "unplaced", "unplaced_inherited",
+"was_container", "inconsistent", "inconsistent"]
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
