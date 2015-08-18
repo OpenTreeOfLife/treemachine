@@ -25,7 +25,7 @@ import sys
 tflags = ["major_rank_conflict", "major_rank_conflict_inherited", "environmental",
 "unclassified_inherited", "unclassified", "viral", "barren", "not_otu", "incertae_sedis",
 "incertae_sedis_inherited", "extinct_inherited", "extinct", "hidden", "unplaced", "unplaced_inherited",
-"was_container", "inconsistent", "inconsistent"]
+"was_container", "inconsistent", "inconsistent", "hybrid"]
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
