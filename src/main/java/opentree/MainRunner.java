@@ -1629,7 +1629,7 @@ public class MainRunner {
 			fw = new FileWriter(outfile);
 			fw.write(figtreetop);
 			fw.write(returnTreeString);
-			fw.write(figtreetail);
+			fw.write(figtreetail2);
 			fw.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -1653,9 +1653,11 @@ public class MainRunner {
 				ret.append(",");
 			}
 		}
-		if (innode.getName() != null) {
-            ret.append(innode.getName().replaceAll(innode.offendingChars,"_"));
-            ret.append("_ott" + String.valueOf(innode.getObject("id")));
+		if (innode.getChildCount() == 0) {
+			if (innode.getName() != null) {
+	            ret.append(innode.getName().replaceAll(innode.offendingChars,"_"));
+	            ret.append("_ott" + String.valueOf(innode.getObject("id")));
+			}
 		}
 		if (innode.getObject(objectName) != null) {
 			ret.append(String.valueOf(innode.getObject(objectName)));
@@ -2364,9 +2366,6 @@ public class MainRunner {
 			}
 		}
 		if (innode.getName() != null) {
-//			ret.append(GeneralUtils.cleanName(this.name));
-			//This isn't working so I am just putting this in
-            //ret.append(GeneralUtils.scrubName(this.name));
             ret.append(innode.getName().replaceAll(innode.offendingChars,"_"));
 		}
 		if (innode.getObject(objectName) != null) {
@@ -2377,7 +2376,7 @@ public class MainRunner {
 	
 	public static final String figtreetop = "#NEXUS\nbegin trees;\n\ttree support = [&R] ";
 	public static final String figtreetail = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"relmap\";\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"label\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=true;\nset branchLabels.significantDigits=4;\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"label\";\nset legend.fontSize=10.0;\nset legend.isShown=false;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"User selection\";\nset nodeLabels.displayAttribute=\"Node ages\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=false;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"User selection\";\nset nodeShape.isShown=false;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=25.0;\nset nodeShape.sizeAttribute=\"label\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9.;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=false;\nset tipLabels.significantDigits=4;\nset trees.order=false;\nset trees.orderType=\"decreasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;\n";
-	
+	public static final String figtreetail2 = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"User selection\";\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"Branch times\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=false;\nset branchLabels.significantDigits=4;\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"coverage\";\nset legend.fontSize=10.0;\nset legend.isShown=false;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"coverage\";\nset nodeLabels.displayAttribute=\"name\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=true;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"User selection\";\nset nodeShape.isShown=false;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=25.0;\nset nodeShape.sizeAttribute=\"Fixed\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=false;\nset tipLabels.significantDigits=4;\nset trees.order=false;\nset trees.orderType=\"decreasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;\n";
 	
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForNodeId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
