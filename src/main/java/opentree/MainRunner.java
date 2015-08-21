@@ -963,7 +963,7 @@ public class MainRunner {
 					String source = null;
 					if (sourceAvail) {
 						String [] spls = ts.split(" ");
-						source= spls[0];
+						source= spls[0].replace(".tre", "");
 						ts = spls[1];
 					}
 					Tree tt = jade.tree.TreeReader.readTree(ts);

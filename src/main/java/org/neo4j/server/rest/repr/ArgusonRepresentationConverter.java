@@ -40,7 +40,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 
 			@Override
 			protected void serialize(final MappingSerializer serializer) {
-
 				/*
 				 * EXAMPLE CODE FROM TNRSRESULTSREPRESENTATION
 				 * 
@@ -222,16 +221,13 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 		for (String sourceName : sourceNameToMetadataNodeMap.keySet()) {
 			
 			HashMap<String, Object> studyMetadata = new HashMap<String, Object>();
-			//sourceName = sourceName.replace(".tre", "");
 			
 			Node metadataNode = sourceNameToMetadataNodeMap.get(sourceName);
 			if (sourceName == null || sourceName.length() == 0) {
 				sourceName = "unnamedSource";
 			}
-			if (metadataNode == null) { // why is the metadata node not found?!? it is there. but all information is contained within the source name, anyway
-				HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(sourceName);
-				studyMetadata.putAll(indStudy);
-				sourceMetadataMap.put(sourceName, studyMetadata);
+			if (metadataNode == null) {
+				sourceMetadataMap.put(sourceName, null);
 			} else {
 				for (SourceProperty p : SourceProperty.values()) {
 					if (metadataNode.hasProperty(p.propertyName)) {
@@ -254,7 +250,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 						}
 					}
 				}
-				//HashMap<String, Map<String, Object>> studyMetadataContainer = new HashMap<String, Map<String, Object>>();
 				sourceMetadataMap.put(sourceName, studyMetadata);
 			}
 		}
@@ -292,6 +287,5 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 	@Override
 	protected void serialize(MappingSerializer serializer) {
 		throw new java.lang.UnsupportedOperationException("unimplemented method");
-	}
-		
+	}		
 }
