@@ -40,7 +40,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 
 			@Override
 			protected void serialize(final MappingSerializer serializer) {
-
 				/*
 				 * EXAMPLE CODE FROM TNRSRESULTSREPRESENTATION
 				 * 
@@ -143,7 +142,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 						supList.add(sup[i]);
 					}
 					serializer.putList("supportedBy", OTRepresentationConverter.getListRepresentation(supList));
-
 				}
 								
 				// report metadata for the sources mentioned in supporting_sources. the sourceMetaList property
@@ -221,16 +219,16 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 		HashMap<String, Object> sourceMetadataMap = new HashMap<String, Object>();
 		
 		for (String sourceName : sourceNameToMetadataNodeMap.keySet()) {
+			
+			HashMap<String, Object> studyMetadata = new HashMap<String, Object>();
+			
 			Node metadataNode = sourceNameToMetadataNodeMap.get(sourceName);
 			if (sourceName == null || sourceName.length() == 0) {
 				sourceName = "unnamedSource";
 			}
 			if (metadataNode == null) {
 				sourceMetadataMap.put(sourceName, null);
-
 			} else {
-				HashMap<String, Object> studyMetadata = new HashMap<String, Object>();
-				Boolean taxonomySource = false;
 				for (SourceProperty p : SourceProperty.values()) {
 					if (metadataNode.hasProperty(p.propertyName)) {
 						if (!p.propertyName.equals("newick")) {
@@ -242,7 +240,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 									String taxVersion = String.valueOf(gda.getGraphProperty("graphRootNodeTaxonomy"));
 									gda.shutdownDb();
 									studyMetadata.put("version", taxVersion);
-
 								} else {
 									HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(sStudy);
 									studyMetadata.putAll(indStudy);
@@ -253,7 +250,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 						}
 					}
 				}
-				HashMap<String, Map<String, Object>> studyMetadataContainer = new HashMap<String, Map<String, Object>>();
 				sourceMetadataMap.put(sourceName, studyMetadata);
 			}
 		}
@@ -291,6 +287,5 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 	@Override
 	protected void serialize(MappingSerializer serializer) {
 		throw new java.lang.UnsupportedOperationException("unimplemented method");
-	}
-		
+	}		
 }

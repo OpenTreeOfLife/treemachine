@@ -14,27 +14,63 @@
 
 import os
 import sys
+import getopt
 
-# treemachine flags
+## treemachine flags
+
 # the following are for ott 2.8draft5 (used in the publication)
 #tflags = ["major_rank_conflict", "major_rank_conflict_direct", "major_rank_conflict_inherited", 
 #"environmental", "unclassified_inherited", "unclassified_direct", "viral", "nootu", "barren", 
 #"not_otu", "incertae_sedis", "incertae_sedis_direct", "incertae_sedis_inherited", "extinct_inherited", 
 #"extinct_direct", "hidden", "unclassified"]
+
 # the following are for ott 2.9draft8
 tflags = ["major_rank_conflict", "major_rank_conflict_inherited", "environmental",
 "unclassified_inherited", "unclassified", "viral", "barren", "not_otu", "incertae_sedis",
 "incertae_sedis_inherited", "extinct_inherited", "extinct", "hidden", "unplaced", "unplaced_inherited",
-"was_container", "inconsistent", "inconsistent"]
+"was_container", "inconsistent", "inconsistent", "hybrid"]
+
+def printhelp():
+    print
+    print 'Utility for subsetting the OpenTree Taxonomy (OTT)'
+    print
+    print 'Command options:'
+    print '  -t STRING: target taxon, either name or (safer) OTTid. Required'
+    print '  -i FILE: OTT taxonomy file (.tsv format). Required'
+    print '  -o FILE: subsetted taxonomy filename. Required'
+    print '  -p: prune terminal taxa. Optional'
+    print '  -h: print this help'
+    print
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print "python subset_taxonomy.py target infile outfile"
-        sys.exit(0)
-    target = (sys.argv[1]).strip()
+    
+    oplist,args = getopt.getopt(sys.argv[1:],'t:i:o:ph')
+    target = ''
+    inf = ''
+    outf = ''
+    prune = False
+    
+    for e in oplist:
+        if e[0] == '-h':
+            printhelp()
+            exit()
+        elif e[0] == '-t':
+            target = e[1]
+        elif e[0] == '-i':
+            inf = e[1]
+        elif e[0] == '-o':
+            outf = e[1]
+        elif e[0] == '-p':
+            prune = True
+    
+    if (target == '' or inf == '' or outf == ''):
+        'Insufficient arguments given'
+        printhelp()
+        exit()
+    
     print "target taxa: ",target
-    infile = open(sys.argv[2],"r")
-    outfile = open(sys.argv[3],"w")
+    infile = open(inf,"r")
+    outfile = open(outf,"w")
 
     count = 0
     pid = {} #key is the child id and the value is the parent
@@ -84,6 +120,10 @@ if __name__ == "__main__":
         outfile.write(tempid+"\t|\t"+pid[tempid]+"\t|\t"+nid[tempid]+"\t|\t"+nrank[tempid]+"\t|\t"+sid[tempid]+"\t|\t"+unid[tempid]+"\t|\t"+flagsp[tempid]+"\t|\t\n")
         if tempid in cid:
             for i in cid[tempid]:
-                stack.append(i)
+                if prune == True:
+                    if i in cid: # is the taxon a parent?
+                        stack.append(i)
+                else:
+                    stack.append(i)
     outfile.close()
 

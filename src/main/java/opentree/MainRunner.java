@@ -696,8 +696,6 @@ public class MainRunner {
 	 * @return 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
 	 * @throws TaxonNotFoundException
 	 */
-	
-	
 	public int graphArgusJSON(String [] args) throws TreeNotFoundException, TaxonNotFoundException {
 		GraphExplorer ge = null;
 		if (args[0].compareTo("argusjson") == 0) {
@@ -760,6 +758,8 @@ public class MainRunner {
 			return 2;
 		}
 	}
+	
+	
 	/**
 	 * 
 	 * @param args
@@ -767,8 +767,6 @@ public class MainRunner {
 	 * @throws TaxonNotFoundException
 	 * @throws MultipleHitsException 
 	 */
-	
-	
 	public int graphExplorerParser(String [] args) throws TaxonNotFoundException, MultipleHitsException {
 		GraphExplorer gi = null;
 		GraphExporter ge = null;
@@ -965,7 +963,7 @@ public class MainRunner {
 					String source = null;
 					if (sourceAvail) {
 						String [] spls = ts.split(" ");
-						source= spls[0];
+						source= spls[0].replace(".tre", "");
 						ts = spls[1];
 					}
 					Tree tt = jade.tree.TreeReader.readTree(ts);
@@ -1366,6 +1364,7 @@ public class MainRunner {
 		return 0;
 	}
 
+	
 	/// @returns 0 for success, 1 for poorly formed command
 	public int graphExporter(String [] args) throws TaxonNotFoundException {
 		String usageString = "arguments should be name outfile usetaxonomy[T|F] graphdbfolder";
@@ -1483,6 +1482,190 @@ public class MainRunner {
 		return 0;
 	}
 	
+	// write a tree file for viewing in FigTree, with nodes labelled according to:
+	//  0 = taxonomy only
+	//  1 = trees, no conflict
+	//  2 = trees, conflict
+	// assume that dubious taxa have already been pruned
+	// subprobdir will contain files of name 'ottXXX-tree-names.txt'
+	// not worrying about number of sources at the moment
+	public int labelSourceCoverage (String [] args) {
+		
+		if (args.length != 4) {
+			System.out.println("arguments should be: taxonomyfile subprobdir treefile");
+			return 1;
+		}
+		String taxonomyfile = args[1];
+		String subprobdir = args[2];
+		String outfile = args[3];
+		
+		HashMap<String, Integer> subproblems = new HashMap<String, Integer>();
+		
+		// first, process subprob directory
+		File dir = new File(subprobdir);
+        for (File fl : dir.listFiles()) {
+            if (fl.getName().contains("-tree-names.txt") == false) {
+                continue;
+            }
+            Integer sourcecode = -1;
+            String taxid = fl.getName().split("-")[0];
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(fl));
+                String st = "";
+                int numSources = 0;
+                // either: 1) taxonomy only, or 2) not. not worrying about trivial trees at the moment
+                while ((st = br.readLine()) != null) {
+                    if (numSources == 0) {
+                    	if (st.trim().equals("TAXONOMY") == true) {
+                    		sourcecode = 0;
+                    	}
+                    } else {
+                    	sourcecode = 1;
+                    }
+                	numSources++; // use this later when counting (nontrivial) sources
+                }
+                if (sourcecode != -1) {
+                	subproblems.put(taxid, sourcecode);
+                }
+                br.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        System.out.println("Processed " + subproblems.size() + " subproblems.");
+		
+		
+		// now, make newick string
+		JadeTree tree = null;
+		JadeNode root = null;
+		String taxonomyRoot = "";
+		
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(taxonomyfile));
+			String str;
+			int count = 0;
+			HashMap<String,JadeNode> id_node_map = new HashMap<String,JadeNode>();
+			HashMap<String,ArrayList<String>> id_childs = new HashMap<String,ArrayList<String>>();
+			while ((str = br.readLine()) != null) {
+				// check the first line to see if it the file has a header that we should skip
+				if (count == 0) {
+					if (str.startsWith("uid")) { // file contains a header. skip line
+						System.out.println("Skipping taxonomy header line: " + str);
+						continue;
+					}
+				}
+				if (!str.trim().equals("")) {
+					// collect sets of lines until we reach the transaction frequency
+					StringTokenizer st = new StringTokenizer(str,"|");
+					String tid = null;
+					String pid = null;
+					String name = null;
+					tid = st.nextToken().trim();
+					pid = st.nextToken().trim();
+					name = st.nextToken().trim();
+					if (pid.trim().equals("")) {
+						taxonomyRoot = tid;
+					}
+					if (id_childs.containsKey(pid) == false) {
+						id_childs.put(pid, new ArrayList<String>());
+					}
+					id_childs.get(pid).add(tid);
+					JadeNode tnode = new JadeNode();
+					String label = name;
+					//GeneralUtils.scrubName(label).concat("_ott").concat(tid);
+					
+					String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
+					label = label.replaceAll(offendingChars,"_").concat("_ott").concat(tid);
+					
+					//System.out.println("Checking if " + "ott".concat(tid) + " is a subproblem...");
+					if (subproblems.containsKey("ott".concat(tid))) {
+						label = "[&name=" + label + ",coverage=" + subproblems.get("ott".concat(tid)) + "]";
+					} else {
+						label = "[&name=" + label + ",coverage=2]";
+					}
+					tnode.setName(name);
+					tnode.assocObject("id", tid);
+					tnode.assocObject("label", label);
+					id_node_map.put(tid, tnode);
+					count += 1;
+				}
+			}
+			br.close();
+			count = 0;
+			// construct tree
+			Stack <JadeNode> nodes = new Stack<JadeNode>();
+			System.out.println("Setting root to: " + taxonomyRoot);
+			root = id_node_map.get(taxonomyRoot);
+			
+			nodes.add(root);
+			while (nodes.empty() == false) {
+				JadeNode tnode = nodes.pop();
+				count += 1;
+				ArrayList<String> childs = id_childs.get((String)tnode.getObject("id"));
+				for (int i = 0; i < childs.size(); i++) {
+					JadeNode ttnode = id_node_map.get(childs.get(i));
+					tnode.addChild(ttnode);
+					if (id_childs.containsKey(childs.get(i))) {
+						nodes.add(ttnode);
+					}
+				}
+				if (count%10000 == 0) {
+					System.out.println(count);
+				}
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		tree = new JadeTree(root);
+		tree.processRoot();
+		String returnTreeString = appendFigTreeAnnotation(tree.getRoot(), "label") + ";\nend;\n";
+		String figtreetail = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"User selection\";\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"Branch times\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=false;\nset branchLabels.significantDigits=4;\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"coverage\";\nset legend.fontSize=10.0;\nset legend.isShown=false;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"coverage\";\nset nodeLabels.displayAttribute=\"name\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=true;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"User selection\";\nset nodeShape.isShown=false;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=25.0;\nset nodeShape.sizeAttribute=\"Fixed\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=false;\nset tipLabels.significantDigits=4;\nset trees.order=false;\nset trees.orderType=\"decreasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;\n";
+		FileWriter fw;
+		try {
+			fw = new FileWriter(outfile);
+			fw.write(figtreetop);
+			fw.write(returnTreeString);
+			fw.write(figtreetail);
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return 0;
+	}
+	
+	
+	// assumes that the label is already complete e.g. [&name=Rozella allomycis,coverage=2]
+	private String appendFigTreeAnnotation(JadeNode innode, String objectName) {
+		StringBuffer ret = new StringBuffer("");
+		for (int i = 0; i < innode.getChildCount(); i++) {
+			if (i == 0) {
+				ret.append("(");
+			}
+			ret.append(appendFigTreeAnnotation(innode.getChild(i),objectName));
+			if (i == innode.getChildCount()-1) {
+				ret.append(")");
+			} else {
+				ret.append(",");
+			}
+		}
+		if (innode.getChildCount() == 0) {
+			if (innode.getName() != null) {
+	            ret.append(innode.getName().replaceAll(innode.offendingChars,"_"));
+	            ret.append("_ott" + String.valueOf(innode.getObject("id")));
+			}
+		}
+		if (innode.getObject(objectName) != null) {
+			ret.append(String.valueOf(innode.getObject(objectName)));
+		}
+		return ret.toString();
+	}
+	
 	
 	public int treeUtils(String [] args) {
 		if (args.length < 2) {
@@ -1596,7 +1779,7 @@ public class MainRunner {
 			//polytomies will have one node and it will have this width
 			HashMap<String,String> source_mp = new HashMap<String,String>();
 			HashMap<String,Double> id_counts = new HashMap<String,Double>();
-			if (args.length == 4 && args[0].equals("convertfigtree")) {
+			if (args.length == 4 && args[0].equals("convert")) {
 				try {
 					BufferedReader brt = new BufferedReader(new FileReader(args[3]));
 					while ((ts = brt.readLine()) != null) {
@@ -2184,20 +2367,17 @@ public class MainRunner {
 			}
 		}
 		if (innode.getName() != null) {
-//			ret.append(GeneralUtils.cleanName(this.name));
-			//This isn't working so I am just putting this in
-            //ret.append(GeneralUtils.scrubName(this.name));
             ret.append(innode.getName().replaceAll(innode.offendingChars,"_"));
 		}
-		if(innode.getObject(objectName) != null){
+		if (innode.getObject(objectName) != null) {
 			ret.append("[&"+objectName+"="+String.valueOf((Integer)innode.getObject(objectName))+".0]");
 		}
 		return ret.toString();
 	}
+	
 	public static final String figtreetop = "#NEXUS\nbegin trees;\n\ttree support = [&R] ";
 	public static final String figtreetail = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"relmap\";\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"label\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=true;\nset branchLabels.significantDigits=4;\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"label\";\nset legend.fontSize=10.0;\nset legend.isShown=false;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"User selection\";\nset nodeLabels.displayAttribute=\"Node ages\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=false;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"User selection\";\nset nodeShape.isShown=false;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=25.0;\nset nodeShape.sizeAttribute=\"label\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9.;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=false;\nset tipLabels.significantDigits=4;\nset trees.order=false;\nset trees.orderType=\"decreasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;\n";
-	
-	
+		
 	/// @returns 0 for success, 1 for poorly formed command, -1 for failure
 	public int extractDraftTreeForNodeId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
 		if (args.length != 4 & args.length != 5 & args.length != 6) {
@@ -2978,6 +3158,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	/**
 	 * this takes a file with trees and loads them against the taxonomy
 	 * given an id, you will be informed, 
@@ -3238,6 +3419,7 @@ public class MainRunner {
 					id_node_map.put(tid, tnode);
 				}
 			}
+			br.close();
 			count = 0;
 			// construct tree
 			Stack <JadeNode> nodes = new Stack<JadeNode>();
@@ -3347,6 +3529,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	//Runs tree comparison analyses
 	public int treeCompare(String [] args){
 		//1 = graphdb, 2 = nexson, 3 = treeid
@@ -3366,6 +3549,7 @@ public class MainRunner {
 		return 0;
 	}
 	
+	
 	//Runs tree comparison analyses on taxonomy tree
 	public int taxCompare(String [] args){
 			//1 = graphdb, 2 = nexson, 3 = treeid
@@ -3384,6 +3568,7 @@ public class MainRunner {
 			graphDb.shutdownDb();
 			return 0;
 		}
+	
 	
 	public static void printShortHelp() {
 		System.out.println("======================Treemachine======================");
@@ -3645,6 +3830,8 @@ public class MainRunner {
 				cmdReturnCode = mr.sinkSynth(args);
 			} else if (command.compareTo("processtree") == 0) {
 				cmdReturnCode = mr.processtree(args);
+			}else if (command.compareTo("taxcoverage") == 0) {
+				cmdReturnCode = mr.labelSourceCoverage(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
