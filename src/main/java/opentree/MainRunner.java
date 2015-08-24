@@ -1489,7 +1489,7 @@ public class MainRunner {
 	// assume that dubious taxa have already been pruned
 	// subprobdir will contain files of name 'ottXXX-tree-names.txt'
 	// not worrying about number of sources at the moment
-	public int labelSourceCoverage (String [] args) {
+	public int labelSubprobCoverage (String [] args) {
 		
 		if (args.length != 4) {
 			System.out.println("arguments should be: taxonomyfile subprobdir treefile");
@@ -1499,7 +1499,7 @@ public class MainRunner {
 		String subprobdir = args[2];
 		String outfile = args[3];
 		
-		HashMap<String, Integer> subproblems = new HashMap<String, Integer>();
+		HashMap<String, String> subproblems = new HashMap<String, String>();
 		
 		// first, process subprob directory
 		File dir = new File(subprobdir);
@@ -1507,7 +1507,7 @@ public class MainRunner {
             if (fl.getName().contains("-tree-names.txt") == false) {
                 continue;
             }
-            Integer sourcecode = -1;
+            String sourcecode = "";
             String taxid = fl.getName().split("-")[0];
             try {
                 BufferedReader br = new BufferedReader(new FileReader(fl));
@@ -1517,14 +1517,14 @@ public class MainRunner {
                 while ((st = br.readLine()) != null) {
                     if (numSources == 0) {
                     	if (st.trim().equals("TAXONOMY") == true) {
-                    		sourcecode = 0;
+                    		sourcecode = "taxonomy_only";
                     	}
                     } else {
-                    	sourcecode = 1;
+                    	sourcecode = "source_support";
                     }
                 	numSources++; // use this later when counting (nontrivial) sources
                 }
-                if (sourcecode != -1) {
+                if (sourcecode != "") {
                 	subproblems.put(taxid, sourcecode);
                 }
                 br.close();
@@ -1582,7 +1582,7 @@ public class MainRunner {
 					if (subproblems.containsKey("ott".concat(tid))) {
 						label = "[&name=" + label + ",coverage=" + subproblems.get("ott".concat(tid)) + "]";
 					} else {
-						label = "[&name=" + label + ",coverage=2]";
+						label = "[&name=" + label + ",coverage=conflicted]";
 					}
 					tnode.setName(name);
 					tnode.assocObject("id", tid);
@@ -1624,7 +1624,9 @@ public class MainRunner {
 		tree = new JadeTree(root);
 		tree.processRoot();
 		String returnTreeString = appendFigTreeAnnotation(tree.getRoot(), "label") + ";\nend;\n";
-		String figtreetail = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"User selection\";\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"Branch times\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=false;\nset branchLabels.significantDigits=4;\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"coverage\";\nset legend.fontSize=10.0;\nset legend.isShown=false;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"coverage\";\nset nodeLabels.displayAttribute=\"name\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=true;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"User selection\";\nset nodeShape.isShown=false;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=25.0;\nset nodeShape.sizeAttribute=\"Fixed\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=false;\nset tipLabels.significantDigits=4;\nset trees.order=false;\nset trees.orderType=\"decreasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;\n";
+		//String figtreetail = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"User selection\";\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"Branch times\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=false;\nset branchLabels.significantDigits=4;\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"coverage\";\nset legend.fontSize=10.0;\nset legend.isShown=true;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"coverage\";\nset nodeLabels.displayAttribute=\"name\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=true;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"User selection\";\nset nodeShape.isShown=false;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=25.0;\nset nodeShape.sizeAttribute=\"Fixed\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=false;\nset tipLabels.significantDigits=4;\nset trees.order=false;\nset trees.orderType=\"decreasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;\n";
+		String figtreetail = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"User selection\";\nset appearance.branchColorGradient=false;\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.hilightingGradient=false;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"Branch times\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=false;\nset branchLabels.significantDigits=4;\nset colour.order.coverage=\"coverage:source_support,conflicted,taxonomy_only\";\nset colour.scheme.coverage=\"coverage:FixedDiscrete{FIXED}\";\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"coverage\";\nset legend.fontSize=10.0;\nset legend.isShown=true;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"User selection\";\nset nodeLabels.displayAttribute=\"name\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=true;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"coverage\";\nset nodeShape.isShown=true;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=8.0;\nset nodeShape.sizeAttribute=\"Fixed\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=true;\nset tipLabels.significantDigits=4;\nset trees.order=true;\nset trees.orderType=\"increasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;";
+		
 		FileWriter fw;
 		try {
 			fw = new FileWriter(outfile);
@@ -3650,6 +3652,7 @@ public class MainRunner {
 		System.out.println("  nexson2newick <filename.nexson> (<filename.newick>) (construct newick tree file from a nexson file)");
 		System.out.println("  convertfigtree <filename.tre> <outfile.tre>");
 		System.out.println("  nexson2mrp <filename.nexson>");
+		System.out.println("  subprobcoverage <taxonomy_filename> <subproblem_directory> <outfile.tre> (construct FigTree file of taxonomy tree annotated by subprob coverage)");
 		System.out.println("  converttaxonomy <taxonomy_filename> <outfile.tre> (<labels=UIDs [T|F]>) (construct a newick tree from a TSV taxonomy file)\n");
 		
 		System.out.println("---synthesis functions---");
@@ -3769,11 +3772,8 @@ public class MainRunner {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForTaxUID(args);
 			} else if (command.compareTo("synthesizedrafttreelist_nodeid") == 0) {
 				cmdReturnCode = mr.synthesizeDraftTreeWithListForNodeId(args);
-				
 			} else if (command.compareTo("extractdrafttree_name") == 0) {
 				cmdReturnCode = mr.extractDraftTreeByName(args);
-				
-				
 			} else if (command.compareTo("synthesisinfo") == 0) {
 				cmdReturnCode = mr.getSynthesisInfo(args);
 			} else if (command.compareTo("extractdrafttree_ottid") == 0) {
@@ -3830,8 +3830,8 @@ public class MainRunner {
 				cmdReturnCode = mr.sinkSynth(args);
 			} else if (command.compareTo("processtree") == 0) {
 				cmdReturnCode = mr.processtree(args);
-			}else if (command.compareTo("taxcoverage") == 0) {
-				cmdReturnCode = mr.labelSourceCoverage(args);
+			}else if (command.compareTo("subprobcoverage") == 0) {
+				cmdReturnCode = mr.labelSubprobCoverage(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
