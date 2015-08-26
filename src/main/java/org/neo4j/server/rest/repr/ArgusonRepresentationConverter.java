@@ -97,6 +97,10 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 					serializer.putNumber("maxnodedepth", (Integer) inNode.getObject("nodedepth"));
 				}
 				
+				if (inNode.getObject("tip_descendants") != null) {
+					serializer.putNumber("maxnodedepth", (Integer) inNode.getObject("tip_descendants"));
+				}
+				
 				if (inNode.isInternal()) {
 					serializer.putNumber("nleaves", inNode.getTips().size());
 				} else {
