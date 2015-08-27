@@ -98,7 +98,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 				}
 				
 				if (inNode.getObject("tip_descendants") != null) {
-					serializer.putNumber("tip_descendants", (Integer) inNode.getObject("tip_descendants"));
+					serializer.putNumber("nTipDescendants", (Integer) inNode.getObject("tip_descendants"));
 				}
 				
 				if (inNode.isInternal()) {
