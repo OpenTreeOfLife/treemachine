@@ -3562,6 +3562,19 @@ public class GraphExplorer extends GraphBase {
 		if (nd.hasProperty("tax_uid")) {
 			jNd.assocObject("ottId", nd.getProperty("tax_uid"));
 		}
+		if (nd.hasProperty("mrca")) {
+			long[] mrcas = (long[]) nd.getProperty("mrca");
+			if (mrcas.length == 1) {
+				if (mrcas[0] == nid) {
+					jNd.assocObject("tip_descendants", 0);
+				} else {
+					jNd.assocObject("tip_descendants", 1);
+				}
+			} else {
+				jNd.assocObject("tip_descendants", mrcas.length);
+			}
+		}
+		
 	}
 	
 	

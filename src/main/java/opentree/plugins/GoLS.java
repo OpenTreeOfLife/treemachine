@@ -631,7 +631,7 @@ public class GoLS extends ServerPlugin {
 		} else {
 			subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
 		}
-
+		
 		// get the subtree for export
 		GraphExplorer ge = new GraphExplorer(graphDb);
 		JadeTree tree = null;
