@@ -1489,64 +1489,149 @@ public class MainRunner {
 	// assume that dubious taxa have already been pruned
 	// subprobdir will contain files of name 'ottXXX-tree-names.txt'
 	// not worrying about number of sources at the moment
+	// *** REDOING THIS TO PARSE DECOMPOSITION LOG INSTEAD OF SUBPROBLEMS *** //
+	// log looks like this:
+	// 2015-09-23 10:14:16,845 INFO  [default] reading "step_5/pg_312_264_a2c48df995ddc9fd208986c3d4225112550c8452.tre"...
+	// ... <- a ton of lines about reading input trees, i.e. skip if "reading"
+	// 2015-09-23 10:14:35,739 INFO  [default]  exportOrCollapse for ott172867 outdegree = 5 numLoopTrees = 1 numLoops = 3
+	// 2015-09-23 10:14:35,740 INFO  [default]     Uncontested
+	// 2015-09-23 10:14:35,741 INFO  [default]      exporting ott172867  treeIndex = 472 name = pg_2742_6342_a2c48df995ddc9fd208986c3d4225112550c8452.tre
+	// 2015-09-23 10:14:35,742 INFO  [default]      exporting ott172867  treeIndex = 481 name = TAXONOMY
+	// 2015-09-23 10:14:35,748 INFO  [default]  exportOrCollapse for ott850166 outdegree = 5 numLoopTrees = 1 numLoops = 1
+	// 2015-09-23 10:14:35,748 INFO  [default]     Contested
+
 	public int labelSubprobCoverage (String [] args) {
 		
 		if (args.length != 4) {
-			System.out.println("arguments should be: taxonomyfile subprobdir treefile");
+			System.out.println("arguments should be: taxonomyfile decomplog outtreefile");
 			return 1;
 		}
 		String taxonomyfile = args[1];
-		String subprobdir = args[2];
+		String decomplog = args[2];
 		String outfile = args[3];
 		
 		HashMap<String, String> subproblems = new HashMap<String, String>();
 		
+		String nstr = "";
+		String tax = "";
+		String stat = "";
+		//int count = 0;
+		// decomposition has names as ottids alone
+		
+		try {
+			// for each line in input file
+			BufferedReader nbr = new BufferedReader(new FileReader(decomplog));
+			
+			boolean going = true; // started a taxon (i.e. got name)
+			boolean started = false; // turn on after finished with the tree reading bits. first non-tree will have 16 tokens
+			boolean middle = false; // in case an id has multiple support. only care about first here, but later will count
+			
+			while ((nstr = nbr.readLine()) != null) {
+				if (!nstr.trim().equals("")) {
+					String [] tss = nstr.split(" +");
+					
+					if (started == false) {
+						if (tss.length == 6) {
+							continue;
+						} else {
+							started = true;
+						}
+					}
+					if (going == true) { // already got the name
+						if (tss.length == 5) {
+							stat = tss[4];
+							if (stat.compareTo("Contested") == 0) {
+								subproblems.put(tax, "conflicted");
+								going = false;
+								continue;
+							} else {
+								continue;
+							}
+						} else if (tss.length == 12) { // if you get this far, you are uncontested
+							stat = tss[11];
+							if (middle == true) {
+								if (stat.compareTo("TAXONOMY") == 0) {
+									subproblems.put(tax, "source_support");
+									middle = false;
+									going = false;
+									continue;
+								}
+							} else {
+								if (stat.compareTo("TAXONOMY") == 0) {
+									subproblems.put(tax, "taxonomy_only");
+									going = false;
+									continue;
+								} else {
+									middle = true;
+									continue;
+								}
+							}
+						}
+					}
+					
+					if (tss.length == 16) {
+						tax = tss[6];
+						going = true;
+					}
+					
+	//				String treeFormat = "";
+	//				r.mark(1);
+	//				char c = (char)r.read();
+	//				r.reset();
+					
+				}
+			}
+			nbr.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
+		
 		// first, process subprob directory
-		File dir = new File(subprobdir);
-        for (File fl : dir.listFiles()) {
-            if (fl.getName().contains("-tree-names.txt") == false) {
-                continue;
-            }
-            String sourcecode = "";
-            String taxid = fl.getName().split("-")[0];
-            try {
-                BufferedReader br = new BufferedReader(new FileReader(fl));
-                String st = "";
-                int numSources = 0;
-                // either: 1) taxonomy only, or 2) not. not worrying about trivial trees at the moment
-                while ((st = br.readLine()) != null) {
-                    if (numSources == 0) {
-                    	if (st.trim().equals("TAXONOMY") == true) {
-                    		sourcecode = "taxonomy_only";
-                    	}
-                    } else {
-                    	sourcecode = "source_support";
-                    }
-                	numSources++; // use this later when counting (nontrivial) sources
-                }
-                if (sourcecode != "") {
-                	subproblems.put(taxid, sourcecode);
-                }
-                br.close();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-        System.out.println("Processed " + subproblems.size() + " subproblems.");
+//		File dir = new File(subprobdir);
+//        for (File fl : dir.listFiles()) {
+//            if (fl.getName().contains("-tree-names.txt") == false) {
+//                continue;
+//            }
+//            String sourcecode = "";
+//            String taxid = fl.getName().split("-")[0];
+//            try {
+//                BufferedReader br = new BufferedReader(new FileReader(fl));
+//                String st = "";
+//                int numSources = 0;
+//                // either: 1) taxonomy only, or 2) not. not worrying about trivial trees at the moment
+//                while ((st = br.readLine()) != null) {
+//                    if (numSources == 0) {
+//                    	if (st.trim().equals("TAXONOMY") == true) {
+//                    		sourcecode = "taxonomy_only";
+//                    	}
+//                    } else {
+//                    	sourcecode = "source_support";
+//                    }
+//                	numSources++; // use this later when counting (nontrivial) sources
+//                }
+//                if (sourcecode != "") {
+//                	subproblems.put(taxid, sourcecode);
+//                }
+//                br.close();
+//            } catch (IOException e) {
+//                // TODO Auto-generated catch block
+//                e.printStackTrace();
+//            }
+//        }
+//        System.out.println("Processed " + subproblems.size() + " subproblems.");
 		
 		
-		// now, make newick string
-		JadeTree tree = null;
-		JadeNode root = null;
+		
 		String taxonomyRoot = "";
+		int count = 0;
+		HashMap<String,JadeNode> id_node_map = new HashMap<String,JadeNode>();
+		HashMap<String,ArrayList<String>> id_childs = new HashMap<String,ArrayList<String>>();
 		
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(taxonomyfile));
 			String str;
-			int count = 0;
-			HashMap<String,JadeNode> id_node_map = new HashMap<String,JadeNode>();
-			HashMap<String,ArrayList<String>> id_childs = new HashMap<String,ArrayList<String>>();
+			
 			while ((str = br.readLine()) != null) {
 				// check the first line to see if it the file has a header that we should skip
 				if (count == 0) {
@@ -1582,7 +1667,9 @@ public class MainRunner {
 					if (subproblems.containsKey("ott".concat(tid))) {
 						label = "[&name=" + label + ",coverage=" + subproblems.get("ott".concat(tid)) + "]";
 					} else {
-						label = "[&name=" + label + ",coverage=conflicted]";
+						// contested taxa are caught above. because of pruning, these are uncontested
+						// could do a check to see if it is a knuckle
+						label = "[&name=" + label + ",coverage=taxonomy_only]";
 					}
 					tnode.setName(name);
 					tnode.assocObject("id", tid);
@@ -1592,6 +1679,7 @@ public class MainRunner {
 				}
 			}
 			br.close();
+			/*
 			count = 0;
 			// construct tree
 			Stack <JadeNode> nodes = new Stack<JadeNode>();
@@ -1614,6 +1702,7 @@ public class MainRunner {
 					System.out.println(count);
 				}
 			}
+			*/
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1621,6 +1710,33 @@ public class MainRunner {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		// now, make newick string
+		JadeTree tree = null;
+		JadeNode root = null;
+		count = 0;
+		// construct tree
+		Stack <JadeNode> nodes = new Stack<JadeNode>();
+		System.out.println("Setting root to: " + taxonomyRoot);
+		root = id_node_map.get(taxonomyRoot);
+		
+		nodes.add(root);
+		while (nodes.empty() == false) {
+			JadeNode tnode = nodes.pop();
+			count += 1;
+			ArrayList<String> childs = id_childs.get((String)tnode.getObject("id"));
+			for (int i = 0; i < childs.size(); i++) {
+				JadeNode ttnode = id_node_map.get(childs.get(i));
+				tnode.addChild(ttnode);
+				if (id_childs.containsKey(childs.get(i))) {
+					nodes.add(ttnode);
+				}
+			}
+			if (count%10000 == 0) {
+				System.out.println(count);
+			}
+		}
+		
 		tree = new JadeTree(root);
 		tree.processRoot();
 		String returnTreeString = appendFigTreeAnnotation(tree.getRoot(), "label") + ";\nend;\n";
