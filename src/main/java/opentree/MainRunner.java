@@ -1568,17 +1568,10 @@ public class MainRunner {
 							}
 						}
 					}
-					
 					if (tss.length == 16) {
 						tax = tss[6];
 						going = true;
 					}
-					
-	//				String treeFormat = "";
-	//				r.mark(1);
-	//				char c = (char)r.read();
-	//				r.reset();
-					
 				}
 			}
 			nbr.close();
@@ -1586,42 +1579,6 @@ public class MainRunner {
 			e.printStackTrace();
 			System.exit(0);
 		}
-		
-		// first, process subprob directory
-//		File dir = new File(subprobdir);
-//        for (File fl : dir.listFiles()) {
-//            if (fl.getName().contains("-tree-names.txt") == false) {
-//                continue;
-//            }
-//            String sourcecode = "";
-//            String taxid = fl.getName().split("-")[0];
-//            try {
-//                BufferedReader br = new BufferedReader(new FileReader(fl));
-//                String st = "";
-//                int numSources = 0;
-//                // either: 1) taxonomy only, or 2) not. not worrying about trivial trees at the moment
-//                while ((st = br.readLine()) != null) {
-//                    if (numSources == 0) {
-//                    	if (st.trim().equals("TAXONOMY") == true) {
-//                    		sourcecode = "taxonomy_only";
-//                    	}
-//                    } else {
-//                    	sourcecode = "source_support";
-//                    }
-//                	numSources++; // use this later when counting (nontrivial) sources
-//                }
-//                if (sourcecode != "") {
-//                	subproblems.put(taxid, sourcecode);
-//                }
-//                br.close();
-//            } catch (IOException e) {
-//                // TODO Auto-generated catch block
-//                e.printStackTrace();
-//            }
-//        }
-//        System.out.println("Processed " + subproblems.size() + " subproblems.");
-		
-		
 		
 		String taxonomyRoot = "";
 		int count = 0;
@@ -1658,7 +1615,6 @@ public class MainRunner {
 					id_childs.get(pid).add(tid);
 					JadeNode tnode = new JadeNode();
 					String label = name;
-					//GeneralUtils.scrubName(label).concat("_ott").concat(tid);
 					
 					String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
 					label = label.replaceAll(offendingChars,"_").concat("_ott").concat(tid);
@@ -1679,30 +1635,6 @@ public class MainRunner {
 				}
 			}
 			br.close();
-			/*
-			count = 0;
-			// construct tree
-			Stack <JadeNode> nodes = new Stack<JadeNode>();
-			System.out.println("Setting root to: " + taxonomyRoot);
-			root = id_node_map.get(taxonomyRoot);
-			
-			nodes.add(root);
-			while (nodes.empty() == false) {
-				JadeNode tnode = nodes.pop();
-				count += 1;
-				ArrayList<String> childs = id_childs.get((String)tnode.getObject("id"));
-				for (int i = 0; i < childs.size(); i++) {
-					JadeNode ttnode = id_node_map.get(childs.get(i));
-					tnode.addChild(ttnode);
-					if (id_childs.containsKey(childs.get(i))) {
-						nodes.add(ttnode);
-					}
-				}
-				if (count%10000 == 0) {
-					System.out.println(count);
-				}
-			}
-			*/
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
