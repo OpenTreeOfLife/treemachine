@@ -963,7 +963,7 @@ public class MainRunner {
 					String source = null;
 					if (sourceAvail) {
 						String [] spls = ts.split(" ");
-						source= spls[0].replace(".tre", "");
+						source = spls[0].replace(".tre", "");
 						ts = spls[1];
 					}
 					Tree tt = jade.tree.TreeReader.readTree(ts);
@@ -2815,8 +2815,10 @@ public class MainRunner {
 					sourcename = (String)j.getObject("ot:studyId");
 				}
 				String treeJId = (String)j.getObject("id");
+				treeJId = treeJId.replace("Tr", "");
 				if (treeJId != null) {
 					if (treeJId.compareTo(treeid) == 0) {
+						//System.out.println("\nFound tree ID '" + treeid + "'!\n");
 						jt.add(j);
 						gitSHA = (String)j.getObject("sha");
 						break;
@@ -2846,6 +2848,7 @@ public class MainRunner {
 			GraphImporter gi = new GraphImporter(graphDb);
 			boolean doubname = false;
 			String treeJId = (String)j.getObject("id");
+			treeJId = treeJId.replace("Tr", "");
 			if (treeid != null) {
 				if (treeJId.equals(treeid) == false) {
 					System.out.println("skipping tree: " + treeJId);
