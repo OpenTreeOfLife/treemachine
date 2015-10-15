@@ -1690,6 +1690,67 @@ public class MainRunner {
 	}
 	
 	
+	public int processSubproblems(String [] args) {
+        
+		if (args.length != 3) {
+			System.out.println("arguments should be subproblemdir outdir");
+			return 1;
+		}
+		String subproblemdir = args[1];
+		String outdir = args[2];
+		
+		FileWriter fw = null;
+		BufferedReader br = null;  // *tree-names.txt
+		BufferedReader br2 = null; // *.tre
+		
+        File dir = new File(subproblemdir);
+        for (File fl : dir.listFiles()) {
+        	boolean first = true;
+        	boolean open = false;
+            if (fl.getName().contains("-tree-names.txt") == false) {
+                continue;
+            }
+            String fn = fl.getName().split("-")[0] + ".tre";
+            try {
+                br = new BufferedReader(new FileReader(fl));
+                String sourcestr = "";
+                String treestr = "";
+                while ((sourcestr = br.readLine()) != null) {
+                    if (first) {
+                    	first = false;
+                    	if (sourcestr.equals("TAXONOMY")) {
+                    		break;
+                    	} else {
+                    		open = true;
+                    		br2 = new BufferedReader(new FileReader(subproblemdir + "/" + fn));
+                    		treestr = br2.readLine();
+                    		fw = new FileWriter(outdir + "/" + fn);
+                    		fw.write(sourcestr + " " + treestr.replace("ott", "") + "\n");
+                    	}
+                    } else {
+                    	if (sourcestr.equals("TAXONOMY")) {
+                    		break;
+                    	} else {
+                    		treestr = br2.readLine();
+                    		fw.write(sourcestr + " " + treestr.replace("ott", "") + "\n");
+                    	}
+                    }
+                }
+                br.close();
+                if (open) {
+                	System.out.println(fn);
+                	br2.close();
+                	fw.close();
+                }
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        return 0;
+    }
+	
+	
 	// assumes that the label is already complete e.g. [&name=Rozella allomycis,coverage=2]
 	private String appendFigTreeAnnotation(JadeNode innode, String objectName) {
 		StringBuffer ret = new StringBuffer("");
@@ -3873,7 +3934,7 @@ public class MainRunner {
 				cmdReturnCode = mr.treeCompare(args);
 			} else if (command.compareTo("taxcomp") == 0) {
 				cmdReturnCode = mr.taxCompare(args);
-			} else if (command.compareTo("filtertreesforload") == 0){
+			} else if (command.compareTo("filtertreesforload") == 0) {
 				cmdReturnCode = mr.filterTreesForLoad(args);
 			} else if (command.compareTo("testsynth") == 0) {
 				cmdReturnCode = mr.testsynth(args);
@@ -3881,8 +3942,10 @@ public class MainRunner {
 				cmdReturnCode = mr.sinkSynth(args);
 			} else if (command.compareTo("processtree") == 0) {
 				cmdReturnCode = mr.processtree(args);
-			}else if (command.compareTo("subprobcoverage") == 0) {
+			} else if (command.compareTo("subprobcoverage") == 0) {
 				cmdReturnCode = mr.labelSubprobCoverage(args);
+			} else if (command.compareTo("processsubprobs") == 0) {
+				cmdReturnCode = mr.processSubproblems(args);
 			} else {
 				System.err.println("Unrecognized command \"" + command + "\"");
 				cmdReturnCode = 2;
