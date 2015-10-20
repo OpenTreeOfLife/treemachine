@@ -2919,8 +2919,7 @@ public class MainRunner {
 			HashSet<Long> ottols = new HashSet<Long>();
 			messageLogger.indentMessageStr(1, "Checking for uniqueness of OTT IDs", "tree id", treeJId);
 			for (int m = 0; m < j.getExternalNodeCount(); m++) {
-				// System.out.println(j.getExternalNode(m).getName() + " " + j.getExternalNode(m).getObject("ot:ottId"));
-				if (j.getExternalNode(m).getObject("ot:ottId") == null) {//use doubname as also 
+				if (j.getExternalNode(m).getObject("ot:ottId") == null) {
 					messageLogger.indentMessageStr(2, "null OTT ID for node", "name", j.getExternalNode(m).getName());
 					doubname = true;
 					break;
@@ -2939,20 +2938,27 @@ public class MainRunner {
 			if (doubname == true) {
 				messageLogger.indentMessageStr(1, "Null or duplicate names. Skipping tree", "tree id", treeJId);
 			}
-			if (mapDeeper) {
-				gi.setTree(j);
-				j = gi.relabelDeepest();
-			}
-			String studyn = filen.substring(filen.lastIndexOf('/') + 1);
-			String outfile = outdir + "/" + studyn + "_" + treeid + "_" + gitSHA + ".tre";
-			FileWriter fw;
-			try {
-				fw = new FileWriter(outfile);
-				fw.write(j.getRoot().getNewick(false) + ";");
-				fw.close();
-				System.out.println(j.getRoot().getNewick(false) + ";");
-			} catch (IOException e) {
-				e.printStackTrace();
+			
+			System.out.println("Processed tree has " + j.getExternalNodeCount() + " terminals.");
+			
+			if (j.getExternalNodeCount() > 1) {
+				if (mapDeeper) {
+					gi.setTree(j);
+					j = gi.relabelDeepest();
+				}
+				String studyn = filen.substring(filen.lastIndexOf('/') + 1);
+				String outfile = outdir + "/" + studyn + "_" + treeid + "_" + gitSHA + ".tre";
+				FileWriter fw;
+				try {
+					fw = new FileWriter(outfile);
+					fw.write(j.getRoot().getNewick(false) + ";");
+					fw.close();
+					System.out.println(j.getRoot().getNewick(false) + ";");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			} else {
+				messageLogger.indentMessageStr(1, "Tree has < 2 terminals. Skipping, ", "tree id", treeJId);
 			}
 		}
 		return 0;
