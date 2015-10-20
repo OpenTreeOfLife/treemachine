@@ -59,7 +59,7 @@ public class GraphInitializer extends GraphBase {
 	String[] ott29_exclude_flags = {"major_rank_conflict", "major_rank_conflict_inherited", "environmental",
 		"unclassified_inherited", "unclassified", "viral", "barren", "not_otu", "incertae_sedis",
 		"incertae_sedis_inherited", "extinct_inherited", "extinct", "hidden", "unplaced", "unplaced_inherited",
-		"was_container", "inconsistent", "inconsistent", "hybrid"};
+		"was_container", "inconsistent", "inconsistent", "hybrid", "merged", "inconsistent"};
 	
 	public GraphInitializer(String graphname) {
 		super(graphname);
