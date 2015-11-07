@@ -229,7 +229,7 @@ public class graph extends ServerPlugin {
     // fetch the processed input source tree newick from files.opentree.org
     public String getSourceTree(String source) {
         String tree = null;
-        String urlbase = "http://files.opentreeoflife.org/preprocessed/v3.0/trees/"
+        String urlbase = "http://files.opentreeoflife.org/preprocessed/v4.0/trees/"
             + source + ".tre";
         System.out.println("Looking up study: " + urlbase);
 
