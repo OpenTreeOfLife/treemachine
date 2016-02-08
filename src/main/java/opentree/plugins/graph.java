@@ -34,33 +34,43 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 
 // Graph of Life Services 
 public class graph extends ServerPlugin {
-	
-    @Description("Returns summary information about the entire graph database, including identifiers for the "
-        + "taxonomy and source trees used to build it.")
+    
+    // Don't deprecate: can use to list synthetic trees available
+    @Description("Returns summary information about the draft synthetic tree(s) "
+        + "currently contained within the graph database.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation about(@Source GraphDatabaseService graphDb) {
+    public Representation about(@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
 
-        GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-        GraphExplorer ge = new GraphExplorer(gdb);
-        HashMap<String, Object> graphInfo = new HashMap<String, Object>();
-
-        Node root = ge.getGraphRootNode();
-
-        graphInfo.put("graph_root_node_id", root.getId());
-        graphInfo.put("graph_root_ott_id", Long.valueOf((String) root.getProperty(NodeProperty.TAX_UID.propertyName)));
-        graphInfo.put("graph_root_name", String.valueOf(root.getProperty(NodeProperty.NAME.propertyName)));
-        graphInfo.put("graph_taxonomy_version", ge.getTaxonomyVersion());
-        graphInfo.put("graph_num_tips", ((long[]) root.getProperty(NodeProperty.MRCA.propertyName)).length);
-
-        // *** do we want to return the _list_ of studies?
-        graphInfo.put("graph_num_source_trees", ge.getSourceList().size());
-
+        HashMap<String, Object> graphInfo = new HashMap<>();
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+        
+        if (synthTreeIDs.size() > 0) {
+            graphInfo.put("num_synth_trees", synthTreeIDs.size());
+            LinkedList<HashMap<String, Object>> trees = new LinkedList<>();
+            
+            for (String treeID : synthTreeIDs) {
+                HashMap<String, Object> draftTreeInfo = new HashMap<>();
+                Node meta = ge.getSynthesisMetaNodeByName(treeID);
+                for (String key : meta.getPropertyKeys()) {
+                    draftTreeInfo.put(key, meta.getProperty(key));
+                }
+                trees.add(draftTreeInfo);
+            }
+            graphInfo.put("synth_trees", trees);
+        } else {
+            throw new IllegalArgumentException("Could not find any draft synthetic trees in the graph.");
+        }
         ge.shutdownDB();
 
         return OTRepresentationConverter.convert(graphInfo);
     }
-
-    // Possibility of replacing tip label ottids with names?!?
+    
+    
+    
+    
+    // TODO: Possibility of replacing tip label ottids with names?!?
     @Description("Returns a processed source tree (corresponding to a tree in some [study](#studies)) used "
         + "as input for the synthetic tree. Although the result of this service is a tree corresponding directly to a "
         + "tree in a study, the representation of the tree in the graph may differ slightly from its "
@@ -77,7 +87,7 @@ public class graph extends ServerPlugin {
         @Description("The name of the return format. The only currently supported format is newick.") @Parameter(
             name = "format", optional = true) String format) throws IllegalArgumentException {
 
-        HashMap<String, Object> responseMap = new HashMap<String, Object>();
+        HashMap<String, Object> responseMap = new HashMap<>();
         String source = studyID + "_" + treeID;
 
         String tree = getSourceTree(source);
@@ -91,7 +101,8 @@ public class graph extends ServerPlugin {
         return OTRepresentationConverter.convert(responseMap);
     }
 
-
+    
+    // TODO: need to tie to specific synth tree
     @Description("Returns summary information about a node in the graph. The node of interest may be specified "
         + "using *either* a node id, or an ott id, **but not both**. If the specified node or ott id is not in "
         + "the graph, an error will be returned.")
@@ -108,7 +119,7 @@ public class graph extends ServerPlugin {
             + "ancestors, with the immediate parent of the specified node occupying position 0 in the list.") 
         @Parameter(name = "include_lineage", optional = true) Boolean includeLineage) throws IllegalArgumentException {
         
-        HashMap<String, Object> nodeIfo = new HashMap<String, Object>();
+        HashMap<String, Object> nodeIfo = new HashMap<>();
         
         Long ottId = null;
         String name = "";
@@ -118,8 +129,8 @@ public class graph extends ServerPlugin {
         boolean inSynthTree = false;
         Integer numSynthTips = 0;
         Integer numMRCA = 0;
-        LinkedList<HashMap<String, Object>> synthSources = new LinkedList<HashMap<String, Object>>();
-        LinkedList<HashMap<String, Object>> treeSources = new LinkedList<HashMap<String, Object>>();
+        LinkedList<HashMap<String, Object>> synthSources = new LinkedList<>();
+        LinkedList<HashMap<String, Object>> treeSources = new LinkedList<>();
         
         if (queryNodeId == null && queryOttId == null) {
             throw new IllegalArgumentException("Must provide a \"node_id\" or \"ott_id\" argument.");
@@ -245,8 +256,9 @@ public class graph extends ServerPlugin {
         }
         return tree;
     }
-
-
+    
+    
+    // TODO: need to tie to specific synth tree
     public List<Long> getDraftTreePathToRoot(Node startNode) {
 
         ArrayList<Long> path = new ArrayList<Long>();
