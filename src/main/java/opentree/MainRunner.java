@@ -362,8 +362,9 @@ public class MainRunner {
         //System.out.println("source_id_map toJSONString: " + sourceIDMap.toJSONString());
         //System.out.println("source_id_map toString: " + sourceIDMap.toString());
         
+        /*
         Iterator srcIter = sourceIDMap.keySet().iterator();
-
+        
         while (srcIter.hasNext()) {
             String srcID = (String) srcIter.next();
             JSONObject indSrc = (JSONObject) sourceIDMap.get(srcID);
@@ -394,7 +395,7 @@ public class MainRunner {
         }
         
         System.out.println("tree_id = " + jsonObject.get("tree_id"));
-        
+        */
 
         //Set<String> glurp = nodes.keySet();
         boolean doit = false;
@@ -428,10 +429,66 @@ public class MainRunner {
                 }
             }
         }
+        JSONObject terp = (JSONObject) nodes.get("mrcaott115048ott550672");
+        System.out.println("terp: " + terp.toString());
+        System.out.println("terp is of size: " + terp.size());
         
+        HashMap<String, String> res = getAnnotations(terp);
+        for (Map.Entry<String, String> entry : res.entrySet()) {
+            System.out.println(entry.getKey() + " : " + entry.getValue());
+        }
+        /*
+        Iterator it = terp.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Map.Entry entry = (Map.Entry)it.next();
+            JSONArray msg = (JSONArray) terp.get(entry.getKey());
+            
+            System.out.println("  " + entry.getKey() + " (size: " + msg.size() + "):");
+            //System.out.println("  " + entry.getKey() + ": value: " + entry.getValue());
+            
+            String res = "";
+            String[] res1 = new String[msg.size()];
+            
+            for (int i=0; i < msg.size(); i++) {
+                JSONArray foo = (JSONArray) msg.get(i);
+                System.out.println("    " + foo.get(0) + ", " + foo.get(1));
+                if (res != "") {
+                    res += ",";
+                }
+                res += foo.get(0) + ":" + foo.get(1);
+                res1[i] = foo.get(0) + ":" + foo.get(1);
+            }
+            System.out.println("    " + entry.getKey() + ": " + res);
+            System.out.println("    " + entry.getKey() + ": " + msg.toString());
+            System.out.println("    " + entry.getKey() + ": " + res1);
+            
+            System.out.println("    " + entry.getKey() + ": " + Arrays.toString(res1));
+        }
+        */
         return 0;
     }
-
+    
+    public HashMap<String, String> getAnnotations (JSONObject indNodeInfo) {
+        HashMap<String, String> res = new HashMap<>();
+        Iterator it = indNodeInfo.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry entry = (Map.Entry)it.next();
+            JSONArray info = (JSONArray) indNodeInfo.get(entry.getKey());
+            String str = "";
+            for (int i=0; i < info.size(); i++) {
+                JSONArray terp = (JSONArray) info.get(i);
+                if (str != "") {
+                    str += ",";
+                }
+                str += terp.get(0) + ":" + terp.get(1);
+            }
+            res.put((String)entry.getKey(), str);
+        }
+        return res;
+    }
+    
+    
     public void parseSynthJSON (String filename) {
         BufferedReader br = null;
         

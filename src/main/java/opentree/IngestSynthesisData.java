@@ -49,7 +49,11 @@ public class IngestSynthesisData extends GraphBase {
     private String inputNewick;
     private String synthTreeName; // get this from the json: "tree_id": "a synthesis version id"
     private String rootTaxonID;
+    private String taxonomyVersion;
     JSONObject jsonObject; // for annotations
+    
+    JSONObject nodeMetaData;// nodeMetaData = (JSONObject) jsonObject.get("nodes");
+    
     private JadeTree inputJadeTree;
     private HashMap<String, HashMap<String, String> > sourceMap;
     private HashMap<String, HashMap<String, String> > taxNodeInfo;
@@ -112,6 +116,7 @@ public class IngestSynthesisData extends GraphBase {
         // annotations currently does not prepend 'ott' to "root_ott_id"
         rootTaxonID = "ott" + String.valueOf(jsonObject.get("root_ott_id"));
         System.out.println("rootTaxonID = " + rootTaxonID);
+        taxonomyVersion = String.valueOf(jsonObject.get("taxonomy_version"));
         
         readNewick(newickFile);
         collectOTTIDs(); // don't think i need this anymore...
@@ -250,6 +255,8 @@ public class IngestSynthesisData extends GraphBase {
             fileReader.close();
         } catch (IOException | ParseException e) {
         }
+        nodeMetaData = (JSONObject) jsonObject.get("nodes");
+        System.out.println("nodeMetaData is of size: " + nodeMetaData.size());
     }
     
     
@@ -328,10 +335,13 @@ public class IngestSynthesisData extends GraphBase {
         }
         
         Node newGraphNode = graphDb.createNode();
+        
+        String otNodeID = curJadeNode.getName();
+        
         //newGraphNode.setProperty("ot_node_id", curJadeNode.getName());
-        newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, curJadeNode.getName());
+        newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, otNodeID);
         if (verbose) {
-            System.out.print("Added " + newGraphNode + ": " + newGraphNode.getProperty("ot_node_id"));
+            System.out.print("Added " + newGraphNode + ": " + otNodeID);
             if (curJadeNode.isTheRoot()) {
                 System.out.print("\n");
             } else {
@@ -343,7 +353,7 @@ public class IngestSynthesisData extends GraphBase {
         
         // taxonomy node; add info from hashmap
         if (curJadeNode.getName().startsWith("ott")) {
-            HashMap<String, String> taxDat = taxNodeInfo.get(curJadeNode.getName());
+            HashMap<String, String> taxDat = taxNodeInfo.get(otNodeID);
             newGraphNode.setProperty(NodeProperty.NAME.propertyName, taxDat.get("name"));
             newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
             newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, taxDat.get("rank"));
@@ -358,7 +368,7 @@ public class IngestSynthesisData extends GraphBase {
             graphTaxUIDNodeIndex.add(newGraphNode, NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
         }
         
-        graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, curJadeNode.getName());
+        graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
         
         // add relationships 
         //System.out.print("   Child nodes:");
@@ -371,10 +381,23 @@ public class IngestSynthesisData extends GraphBase {
             // TODO: add metadata properties (for childnode) here
             // changing from storing in individual metadata nodes to within (outgoing) rels
             // - ind. metadata nodes: doubles nodes and rels for each tree
+            
+            String childID = curJadeNode.getChild(i).getName();
+            HashMap<String, String> res = getAnnotations(otNodeID);
+            for (Map.Entry<String, String> entry : res.entrySet()) {
+                newRel.setProperty(entry.getKey(), entry.getValue());
+            }
+            
             synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
             
-            
-            
+            // print out info for Aves
+            /*
+            if (newGraphNode.getProperty("ot_node_id") == "ott81461") {
+                for (Map.Entry<String, String> entry : res.entrySet()) {
+                    System.out.println(entry.getKey() + " : " + entry.getValue());
+                }
+            }
+            */
             if (verbose) {
                 System.out.println("   Created " + newRel + ": " + childNode + "(" + 
                     childNode.getProperty("ot_node_id") + ")"
@@ -391,7 +414,47 @@ public class IngestSynthesisData extends GraphBase {
             System.out.println("Root node = " + synthRootNode.getId());
         }
     }
+    
+    
+    // convert to strings, because: neo4j does not support nested values
+    // taxonomy not annotated; add in here (maybe?)
+    private HashMap<String, String> getAnnotations (String otNodeID) {
+        
+        HashMap<String, String> res = new HashMap<>();
+        // will not have annotations if just taxonomy
+        if (nodeMetaData.containsKey(otNodeID)) {
+            JSONObject indNodeInfo = (JSONObject) nodeMetaData.get(otNodeID);
+            Iterator it = indNodeInfo.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry entry = (Map.Entry)it.next();
+                String prop = (String) entry.getKey();
+                JSONArray info = (JSONArray) indNodeInfo.get(prop);
+                String str = "";
+                for (int i=0; i < info.size(); i++) {
+                    JSONArray terp = (JSONArray) info.get(i);
+                    if (str != "") {
+                        str += ",";
+                    }
+                    str += terp.get(0) + ":" + terp.get(1);
+                }
+                res.put(prop, str);
+            }
+        }
+        
+        // add taxonomy 'support'
+        if (otNodeID.startsWith("ott")) {
+            String taxSupport = taxonomyVersion + ":" + otNodeID;
+            if (res.containsKey("supported_by")) {
+                taxSupport = res.get("supported_by") + "," + taxSupport;
+            }
+            res.put("supported_by", taxSupport);
+        }
+        return res;
+    }
 }
+
+//taxonomyVersion
+    
 
 /*
  // get all the sources supporting this relationship

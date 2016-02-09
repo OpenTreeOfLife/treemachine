@@ -13,7 +13,9 @@ public enum RelProperty {
     
     // TODO should move all the descriptions into javadoc. They never need to be accessible to users, but are helpful for dev
     
-    // *** TODO: get rid of everything not being used
+    // *** TODO: get rid of everything not being used ***
+    // add new conflict properties:
+    //   terminal, supported_by, conflicts_with, resolves, partial_path_of
     
     // TAXCHILDOF relationships
     /** The tax_uid of the child of this relationship. Used for taxnonomic rels. */
