@@ -54,8 +54,10 @@ public abstract class GraphBase {
     protected static Index<Node> sourceRootIndex;
     protected static Index<Node> sourceMetaIndex;
     protected static Index<Node> graphTaxUIDNodeIndex; // tax_uid is the key, the uid from the taxonomy points to this node
-    protected static Index<Node> synTaxUIDNodeIndex;   // tax_uid is the key, this points to the synonymn node, to get the tax that this points to you need to travel synonymof
+    //protected static Index<Node> synTaxUIDNodeIndex;   // tax_uid is the key, this points to the synonymn node, to get the tax that this points to you need to travel synonymof
     protected static Index<Node> graphTaxNewNodes;
+    
+    protected static Index<Node> graphOTTNodeIDIndex;
     
     protected static Index<Node> synthMetaIndex; // metadata nodes for each synth tree
     protected static Index<Relationship> synthRelIndex;
@@ -169,7 +171,7 @@ public abstract class GraphBase {
      * @throws TaxonNotFoundException
      */
     public Node findGraphNodeByOTTID(final String ottNodeID) throws MultipleHitsException, TaxonNotFoundException {
-        IndexHits<Node> hits = GraphBase.graphNodeIndex.get(NodeProperty.OT_NODE_ID.propertyName, ottNodeID);
+        IndexHits<Node> hits = GraphBase.graphOTTNodeIDIndex.get(NodeProperty.OT_NODE_ID.propertyName, ottNodeID);
         Node firstNode = null;
         try {
             firstNode = hits.getSingle();
@@ -434,6 +436,8 @@ public abstract class GraphBase {
         //sourceMetaIndex = graphDb.getNodeIndex("sourceMetaNodes", "type", "exact", "to_lower_case", "true");
         graphTaxUIDNodeIndex = graphDb.getNodeIndex("graphTaxUIDNodes", "type", "exact", "to_lower_case", "true");
         //synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns", "type", "exact", "to_lower_case", "true"); // same name as 'synNodeIndex'
+        
+        graphOTTNodeIDIndex = graphDb.getNodeIndex("graphOTTNodeIDNodes", "type", "exact", "to_lower_case", "true");
         
         // synthetic tree indices
         synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes", "type", "exact", "to_lower_case", "true");

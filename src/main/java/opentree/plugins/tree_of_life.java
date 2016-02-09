@@ -59,10 +59,11 @@ public class tree_of_life extends ServerPlugin {
         
         @Description("Synthetic tree identifier")
         @Parameter(name = "tree_id", optional = true)
-        String treeID) throws TaxonNotFoundException, MultipleHitsException {
+        String treeID
+        
+        ) throws TaxonNotFoundException, MultipleHitsException {
 
-        GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-        GraphExplorer ge = new GraphExplorer(gdb);
+        GraphExplorer ge = new GraphExplorer(graphDb);
         HashMap<String, Object> draftTreeInfo = new HashMap<>();
         Boolean returnStudyList = false; // default to true for now
         String synthTreeID = null;
@@ -81,8 +82,9 @@ public class tree_of_life extends ServerPlugin {
                 meta = ge.getSynthesisMetaNodeByName(synthTreeID);
                 // invalid treeid
                 if (meta == null) {
+                    ge.shutdownDB();
                     String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
-                            + synthTreeID + "'.";
+                        + synthTreeID + "'.";
                     throw new IllegalArgumentException(ret);
                 }
             } else {
@@ -134,12 +136,12 @@ public class tree_of_life extends ServerPlugin {
                 draftTreeInfo.put("filtered_flags", Arrays.asList((String[]) meta.getProperty("filtered_flags")));
                 
             } else {
-                //draftTreeInfo = new HashMap<String, Object>();
+                ge.shutdownDB();
                 draftTreeInfo.put("error", "No synthetic tree found in the graph.");
                 return OTRepresentationConverter.convert(draftTreeInfo);
             }    
         } finally {
-                ge.shutdownDB();
+            ge.shutdownDB();
         }
         return OTRepresentationConverter.convert(draftTreeInfo);
     }
@@ -161,7 +163,9 @@ public class tree_of_life extends ServerPlugin {
         
         @Description("A set of ott ids")
         @Parameter(name = "ott_ids", optional = true)
-        long[] ottIds) throws IllegalArgumentException {
+        long[] ottIds
+        
+        ) throws IllegalArgumentException {
 
         if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
             throw new IllegalArgumentException("You must supply at least one node_id or ott_id.");
@@ -289,7 +293,9 @@ public class tree_of_life extends ServerPlugin {
 
         @Description("OTT ids indicating nodes to be used as tips in the induced tree")
         @Parameter(name = "ott_ids", optional = true)
-        long[] ottIds) throws IllegalArgumentException {
+        long[] ottIds
+        
+        ) throws IllegalArgumentException {
         
         if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
             throw new IllegalArgumentException("You must supply at least two node or ott ids.");
@@ -394,7 +400,9 @@ public class tree_of_life extends ServerPlugin {
         @Description("The ott id of the node in the tree that should serve as the root of the tree returned. This "
             + "argument may not be used in combination with `node_id`.")
         @Parameter(name = "ott_id", optional = true)
-        Long subtreeOttId) throws TreeNotFoundException, IllegalArgumentException {
+        Long subtreeOttId
+        
+        ) throws TreeNotFoundException, IllegalArgumentException {
         
         GraphExplorer ge = new GraphExplorer(graphDb);
         HashMap<String, Object> responseMap = new HashMap<String, Object>();

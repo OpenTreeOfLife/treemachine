@@ -353,7 +353,12 @@ public class IngestSynthesisData extends GraphBase {
                 uName = taxDat.get("name");
             }
             newGraphNode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uName);
+            
+            graphNodeIndex.add(newGraphNode, NodeProperty.NAME.propertyName, taxDat.get("name"));
+            graphTaxUIDNodeIndex.add(newGraphNode, NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
         }
+        
+        graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, curJadeNode.getName());
         
         // add relationships 
         //System.out.print("   Child nodes:");
@@ -377,6 +382,8 @@ public class IngestSynthesisData extends GraphBase {
             }
             //sourceRelIndex.add(rel, "source", sourceName);
         }
+        
+        
         
         if (curJadeNode.getName().equals(rootTaxonID)) {
             System.out.println("This is the ROOT");

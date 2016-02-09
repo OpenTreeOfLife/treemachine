@@ -167,94 +167,7 @@ public class MainRunner {
         */
         return 0;
     }
-    
-    public int readTree (String [] args) {
-        String fileName = args[1];
-        System.out.println("Reading tree(s) from file: " + fileName);
-        JadeTree inTree = new JadeTree();
-        try {
-            System.out.println("Reading newick file...");
-            TreeReader tr = new TreeReader();
-            String ts = "";
-            BufferedReader br = new BufferedReader(new FileReader(fileName));
-            ts = br.readLine();
-            System.out.println("ts is of length:" + ts.length());
-
-            if (ts.length() > 1) {
-                inTree = tr.readTree(ts);
-            }
-            br.close();
-        } catch (IOException ioe) {}
         
-        // collect all ottids
-        ArrayList<String> ottIDs = new ArrayList<String>();
-        Iterable<JadeNode> terp = inTree.iterateExternalNodes();
-        for (JadeNode tt : terp) {
-            String str = tt.getName();
-            if (str.startsWith("ott")) {
-                ottIDs.add(str.replace("ott", ""));
-            }
-        }
-        System.out.println("Collected " + ottIDs.size() + " terminal ottIDs.");
-        
-        terp = inTree.iterateInternalNodes();
-        for (JadeNode tt : terp) {
-            String str = tt.getName();
-            if (str.startsWith("ott")) {
-                ottIDs.add(str.replace("ott", ""));
-            }
-        }
-        System.out.println("Collected " + ottIDs.size() + " total ottIDs.");
-        //System.out.println(inTree.getRoot().getNewick(false) + ";");
-        try {
-            postOrderAddTreeToGraphFAKE(inTree.getRoot());
-        } catch (TreeIngestException ex) {
-            Logger.getLogger(MainRunner.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
-        return 0;
-    }
-    
-    
-    private void postOrderAddTreeToGraphFAKE (JadeNode curJadeNode) throws TreeIngestException {
-        
-        boolean verbose = true;
-        // postorder traversal via recursion
-        for (int i = 0; i < curJadeNode.getChildCount(); i++) {
-            postOrderAddTreeToGraphFAKE(curJadeNode.getChild(i));
-        }
-        
-        if (verbose) {
-            System.out.print("Added new node: " + curJadeNode.getName());
-            if (curJadeNode.isTheRoot()) {
-                System.out.print("\n");
-            } else {
-                System.out.print(". Parent node: " + curJadeNode.getParent().getName() + "\n");
-            }
-        }
-        
-        // add relationships 
-        //System.out.print("   Child nodes:");
-        for (int i = 0; i < curJadeNode.getChildCount(); i++) {
-            
-            JadeNode childNode = curJadeNode.getChild(i);
-            
-            //Relationship newRel = childNode.createRelationshipTo(newGraphNode, RelType.SYNTHCHILDOF);
-            //synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
-            
-            if (verbose) {
-                System.out.println("   Created relationship: " + childNode.getName() + 
-                    " -> " + curJadeNode.getName());
-            }
-            //sourceRelIndex.add(rel, "source", sourceName);
-        }
-        
-        if (curJadeNode.isTheRoot()) {
-            System.out.println("This is the ROOT");
-        } 
-    }
-
-    
     
     public int getmdn(String [] args) {
         
@@ -281,8 +194,101 @@ public class MainRunner {
         return 0;
     }
     
-
+    public int getnodeOTTID(String [] args) {
+        
+        if (args.length != 3) {
+            System.out.println("arguments should be: nodeId graphdb");
+            return 1;
+        }
+        String nodeId = args[1];
+        String graphDb = args[2];
+        String name = null;
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        Node n = null;
+        Long lnodeId = null;
+        try {
+            n = ge.findGraphNodeByOTTID(nodeId);
+        } catch (Exception e) {}
+        if (n != null) {
+            lnodeId = n.getId();
+            name = (String)n.getProperty("name");
+            
+            HashMap<String, Object> tinfo = ge.getNodeTaxInfo(n);
+            for (Map.Entry<String, Object> entry : tinfo.entrySet()) {
+                System.out.println(entry.getKey() + " : " + entry.getValue());
+            }
+            
+            HashMap<String, String> tsource = (HashMap<String, String>) tinfo.get("tax_source");
+            for (Map.Entry<String, String> entry : tsource.entrySet()) {
+                System.out.println(entry.getKey() + " : " + entry.getValue());
+            }
+            
+            System.out.println("tsource is of size: " + tsource.size());
+        }
+        
+        System.out.println("Query nodeId: " + nodeId);
+        System.out.println("NodeId: " + lnodeId);
+        System.out.println("Name: " + name);
+        return 0;
+    }
     
+    public int getnodeName(String [] args) {
+        
+        if (args.length != 3) {
+            System.out.println("arguments should be: name graphdb");
+            return 1;
+        }
+        String name = args[1];
+        String graphDb = args[2];
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        Node n = null;
+        Long lnodeId = null;
+        try {
+            n = ge.findTaxNodeByName(name);
+        } catch (Exception e) {}
+        if (n != null) {
+            lnodeId = n.getId();
+        }
+        
+        System.out.println("Query name: " + name);
+        System.out.println("NodeId: " + lnodeId);
+        return 0;
+    }
+    
+    public int getnodeID(String [] args) {
+        
+        if (args.length != 3) {
+            System.out.println("arguments should be: nodeid graphdb");
+            return 1;
+        }
+        String nodeId = args[1];
+        String graphDbName = args[2];
+        String name = null;
+        
+        Long lnodeID = Long.parseLong(nodeId, 10);
+        
+        GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbName);
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        Node n = null;
+        Long lnodeId = null;
+        try {
+            n = graphDb.getNodeById(lnodeId);
+        } catch (Exception e) {}
+        if (n != null) {
+            lnodeId = n.getId();
+            name = (String)n.getProperty("name");
+        }
+        
+        System.out.println("Query node: " + nodeId);
+        System.out.println("NodeId: " + lnodeId);
+        System.out.println("Name: " + name);
+        return 0;
+    }
     
     public int goo (String [] args) {
         
@@ -4224,12 +4230,16 @@ public class MainRunner {
                 
             } else if (command.compareTo("ingestsynth") == 0) {
                 cmdReturnCode = mr.ingestSynthesisData(args);
-            } else if (command.compareTo("readtree") == 0) {
-                cmdReturnCode = mr.readTree(args);
             } else if (command.compareTo("goo") == 0) {
                 cmdReturnCode = mr.goo(args);
             } else if (command.compareTo("getmdn") == 0) {
                 cmdReturnCode = mr.getmdn(args);
+            } else if (command.compareTo("getnodeottid") == 0) {
+                cmdReturnCode = mr.getnodeOTTID(args);
+            } else if (command.compareTo("getnodename") == 0) {
+                cmdReturnCode = mr.getnodeName(args);
+            } else if (command.compareTo("getnodeid") == 0) {
+                cmdReturnCode = mr.getnodeID(args);
             }
             
             

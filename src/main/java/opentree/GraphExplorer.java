@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
+import java.util.StringTokenizer;
 
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
@@ -4000,6 +4001,46 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    public HashMap<String, Object> getNodeTaxInfo(Node n) {
+        
+        HashMap<String, Object> results = new HashMap<>();
+        String name = "";
+        String uniqueName = "";
+        String rank = "";
+        Long ottId = null;
+        String nodeID = String.valueOf(n.getProperty(NodeProperty.OT_NODE_ID.propertyName));
+        
+        if (n.hasProperty(NodeProperty.NAME.propertyName)) {
+            name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
+            uniqueName = String.valueOf(n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+            rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
+            ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
+            
+            // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
+            String taxSource = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
+            HashMap<String, String> taxSources = new HashMap<>();
+            StringTokenizer st = new StringTokenizer(taxSource, ",");
+            while (st.hasMoreTokens()) {
+                String indSrc = st.nextToken();
+                String[] tSource = indSrc.split(":");
+                if (tSource.length == 2) {
+                    taxSources.put(tSource[0], tSource[1]);
+                }
+            }
+            results.put("tax_source", taxSources);
+        }
+        
+        results.put("ot_node_id", nodeID);
+        results.put("name", name);
+        results.put("unique_name", uniqueName);
+        results.put("rank", rank);
+        if (ottId != null) {
+            results.put("ott_id", ottId);
+        } else {
+            results.put("ott_id", "null"); // services cannot have null values
+        }
+        return results;
+    }
     
 }
 
