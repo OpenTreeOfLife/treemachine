@@ -51,10 +51,12 @@ public class graph extends ServerPlugin {
             graphInfo.put("num_synth_trees", synthTreeIDs.size());
             LinkedList<HashMap<String, Object>> trees = new LinkedList<>();
             
+            // trying not to hardcode things here; arrays make it difficult
             for (String treeID : synthTreeIDs) {
                 HashMap<String, Object> draftTreeInfo = new HashMap<>();
                 Node meta = ge.getSynthesisMetaNodeByName(treeID);
                 for (String key : meta.getPropertyKeys()) {
+                    // TODO: detect arrays
                     draftTreeInfo.put(key, meta.getProperty(key));
                 }
                 trees.add(draftTreeInfo);
