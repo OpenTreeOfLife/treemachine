@@ -443,7 +443,7 @@ public class IngestSynthesisData extends GraphBase {
         
         // add taxonomy 'support'
         if (otNodeID.startsWith("ott")) {
-            String taxSupport = taxonomyVersion + ":" + otNodeID;
+            String taxSupport = "taxonomy:" + taxonomyVersion;
             if (res.containsKey("supported_by")) {
                 taxSupport = res.get("supported_by") + "," + taxSupport;
             }
