@@ -84,13 +84,36 @@ public class graph extends ServerPlugin {
             name = "study_id", optional = false) String studyID,
         @Description("The tree identifier for a given study.") @Parameter(
             name = "tree_id", optional = false) String treeID,
+        @Description("The synthetic tree identifier (defaults to most recent).") @Parameter(
+            name = "synth_tree_id", optional = true) String synthTreeID,
         @Description("The name of the return format. The only currently supported format is newick.") @Parameter(
             name = "format", optional = true) String format) throws IllegalArgumentException {
 
         HashMap<String, Object> responseMap = new HashMap<>();
         String source = studyID + "_" + treeID;
-
-        String tree = getSourceTree(source);
+        String synTreeID = null;
+        Node meta = null;
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        if (synthTreeID != null) {
+            synTreeID = synthTreeID;
+            // check
+            meta = ge.getSynthesisMetaNodeByName(synthTreeID);
+            // invalid treeid
+            if (meta == null) {
+                ge.shutdownDB();
+                String ret = "Could not find a synthetic tree corresponding to the 'synth_tree_id' arg: '"
+                        + synTreeID + "'.";
+                throw new IllegalArgumentException(ret);
+            }
+        } else {
+            // get most recent tree
+            synTreeID = ge.getMostRecentSynthTreeID();
+        }
+        ge.shutdownDB();
+        
+        String tree = getSourceTree(source, synTreeID);
 
         if (tree == null) {
             throw new IllegalArgumentException("Invalid source id '" + source + "' provided.");
@@ -238,10 +261,14 @@ public class graph extends ServerPlugin {
 
 
     // fetch the processed input source tree newick from files.opentree.org
-    public String getSourceTree(String source) {
+    public String getSourceTree(String source, String synTreeID) {
         String tree = null;
-        String urlbase = "http://files.opentreeoflife.org/preprocessed/v4.0/trees/"
-            + source + ".tre";
+        
+        // synTreeID will be of format: "opentree4.0"
+        String version = synTreeID.replace("opentree", "");
+        
+        String urlbase = "http://files.opentreeoflife.org/preprocessed/v"
+            + version + "/trees/" + source + ".tre";
         System.out.println("Looking up study: " + urlbase);
 
         try {
@@ -249,7 +276,7 @@ public class graph extends ServerPlugin {
             URLConnection conn = (URLConnection) phurl.openConnection();
             conn.connect();
             try (BufferedReader un = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                    tree = un.readLine();
+                tree = un.readLine();
             }
             return tree;
         } catch (Exception e) {
