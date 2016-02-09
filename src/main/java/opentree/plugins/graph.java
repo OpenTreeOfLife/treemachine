@@ -68,8 +68,6 @@ public class graph extends ServerPlugin {
     }
     
     
-    
-    
     // TODO: Possibility of replacing tip label ottids with names?!?
     @Description("Returns a processed source tree (corresponding to a tree in some [study](#studies)) used "
         + "as input for the synthetic tree. Although the result of this service is a tree corresponding directly to a "
@@ -80,14 +78,24 @@ public class graph extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation source_tree(
         @Source GraphDatabaseService graphDb,
-        @Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")") @Parameter(
-            name = "study_id", optional = false) String studyID,
-        @Description("The tree identifier for a given study.") @Parameter(
-            name = "tree_id", optional = false) String treeID,
-        @Description("The synthetic tree identifier (defaults to most recent).") @Parameter(
-            name = "synth_tree_id", optional = true) String synthTreeID,
-        @Description("The name of the return format. The only currently supported format is newick.") @Parameter(
-            name = "format", optional = true) String format) throws IllegalArgumentException {
+
+        @Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")")
+        @Parameter(name = "study_id", optional = false)
+        String studyID,
+
+        @Description("The tree identifier for a given study.")
+        @Parameter(name = "tree_id", optional = false)
+        String treeID,
+
+        @Description("The synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "synth_tree_id", optional = true)
+        String synthTreeID,
+
+        @Description("The name of the return format. The only currently supported format is newick.")
+        @Parameter(name = "format", optional = true)
+        String format
+
+        ) throws IllegalArgumentException {
 
         HashMap<String, Object> responseMap = new HashMap<>();
         String source = studyID + "_" + treeID;
@@ -119,6 +127,7 @@ public class graph extends ServerPlugin {
             throw new IllegalArgumentException("Invalid source id '" + source + "' provided.");
         } else {
             responseMap.put("newick", tree);
+            responseMap.put("synth_tree_id", synTreeID);
         }
         
         return OTRepresentationConverter.convert(responseMap);
@@ -132,15 +141,23 @@ public class graph extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation node_info(
         @Source GraphDatabaseService graphDb,
-        @Description("The node id of the node of interest. This argument may not be combined with `ott_id`.") @Parameter(
-            name = "node_id", optional = true) Long queryNodeId,
-        @Description("The ott id of the node of interest. This argument may not be combined with `node_id`.") @Parameter(
-            name = "ott_id", optional = true) Long queryOttId,
+        
+        @Description("The node id of the node of interest. This argument may not be combined with `ott_id`.")
+        @Parameter(name = "node_id", optional = true)
+        Long queryNodeId,
+        
+        @Description("The ott id of the node of interest. This argument may not be combined with `node_id`.")
+        @Parameter(name = "ott_id", optional = true)
+        Long queryOttId,
+        
         @Description("Include the ancestral lineage of the node in the draft tree. If this argument is `true`, then "
             + "a list of all the ancestors of this node in the draft tree, down to the root of the tree itself, "
             + "will be included in the results. Higher list indices correspond to more incluive (i.e. deeper) "
             + "ancestors, with the immediate parent of the specified node occupying position 0 in the list.") 
-        @Parameter(name = "include_lineage", optional = true) Boolean includeLineage) throws IllegalArgumentException {
+        @Parameter(name = "include_lineage", optional = true)
+        Boolean includeLineage
+        
+        ) throws IllegalArgumentException {
         
         HashMap<String, Object> nodeIfo = new HashMap<>();
         
