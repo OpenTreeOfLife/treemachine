@@ -254,7 +254,6 @@ public class GoLS extends ServerPlugin {
         return OTRepresentationConverter.convert(draftTreeInfo);
     }
     
-    
     // is this used?
     @Description("Returns the version of the taxonomy used to initialize the graph")
     @PluginTarget(GraphDatabaseService.class)
