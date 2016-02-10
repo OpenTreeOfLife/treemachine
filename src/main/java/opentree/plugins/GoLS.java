@@ -246,6 +246,7 @@ public class GoLS extends ServerPlugin {
             draftTreeInfo.put("tree_id", meta.getProperty("tree_id"));
             draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
             draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
+            draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
         } finally {
             ge.shutdownDB();
         }
@@ -256,15 +257,16 @@ public class GoLS extends ServerPlugin {
     // is this used? if so, needs to be updated i.e. need treeid
     @Description("Returns the version of the taxonomy used to initialize the graph")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getTaxonomyVersion (
-            @Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
+    public Representation getTaxonomyVersion (@Source GraphDatabaseService graphDb) {
 
         GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
         GraphExplorer ge = new GraphExplorer(gdb);
+        Node meta = null;
         String taxVersion = "";
         
         try {
-            taxVersion = ge.getTaxonomyVersion();
+            meta = ge.getMostRecentSynthesisMetaNode();
+            taxVersion = (String)meta.getProperty("taxonomy_version");
         } finally {
             ge.shutdownDB();
         }

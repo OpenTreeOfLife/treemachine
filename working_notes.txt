@@ -6,6 +6,7 @@ ft12.tsv TEST.db
 ## working calls (run local):
 
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeID
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
