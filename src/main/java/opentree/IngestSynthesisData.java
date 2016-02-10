@@ -383,7 +383,7 @@ public class IngestSynthesisData extends GraphBase {
             // - ind. metadata nodes: doubles nodes and rels for each tree
             
             String childID = curJadeNode.getChild(i).getName();
-            HashMap<String, String> res = getAnnotations(otNodeID);
+            HashMap<String, String> res = getAnnotations(childID);
             for (Map.Entry<String, String> entry : res.entrySet()) {
                 newRel.setProperty(entry.getKey(), entry.getValue());
             }
