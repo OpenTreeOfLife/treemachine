@@ -231,7 +231,7 @@ public class GoLS extends ServerPlugin {
     
     
     // what is startingTaxonOTTId about? has nothing to do with synth tree ids
-    // this is n't really useful; all services have treeid arg, default to most recent
+    // this isn't really useful; all services have treeid arg, default to most recent
     @Description("Returns identifying information for the most recent draft tree")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeID (
@@ -243,27 +243,14 @@ public class GoLS extends ServerPlugin {
         GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
         GraphExplorer ge = new GraphExplorer(gdb);
         HashMap<String, Object> draftTreeInfo = null;
-        Node startNode = null;
+        Node meta = null;
+        
         try {
-
-            // caller can request an alternate starting point in the tree - why?!?
-            if (startingTaxonOTTId == null || startingTaxonOTTId.length() == 0) {
-                Long draftTreeRootNodeId = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
-                if (draftTreeRootNodeId != null) {
-                    startNode = gdb.getNodeById(draftTreeRootNodeId);
-                } else {
-                    return null;
-                }
-            } else {
-                startNode = ge.findGraphTaxNodeByUID(startingTaxonOTTId);
-            }
-
+            meta = ge.getMostRecentSynthesisMetaNode();
             draftTreeInfo = new HashMap<String, Object>();
-            draftTreeInfo.put("draftTreeName", GraphBase.DRAFTTREENAME);
-            draftTreeInfo.put("startNodeTaxName", String.valueOf(startNode.getProperty(NodeProperty.NAME.propertyName)));
-            draftTreeInfo.put("startNodeOTTId", Long.valueOf((String) startNode.getProperty(NodeProperty.TAX_UID.propertyName))); //TODO: the taxuids should be stored as longs, not strings... fix this where it happens
-            draftTreeInfo.put("startNodeID", startNode.getId());
-
+            draftTreeInfo.put("tree_id", meta.getProperty("tree_id"));
+            draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
+            draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
         } finally {
             ge.shutdownDB();
         }
@@ -271,7 +258,7 @@ public class GoLS extends ServerPlugin {
     }
     
     
-    // is this used? if so, needs to be updated
+    // is this used? if so, needs to be updated i.e. need treeid
     @Description("Returns the version of the taxonomy used to initialize the graph")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getTaxonomyVersion (
