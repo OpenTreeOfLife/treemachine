@@ -230,15 +230,10 @@ public class GoLS extends ServerPlugin {
 
     
     
-    // what is startingTaxonOTTId about? has nothing to do with synth tree ids
     // this isn't really useful; all services have treeid arg, default to most recent
     @Description("Returns identifying information for the most recent draft tree")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeID (
-            @Source GraphDatabaseService graphDb,
-            @Description("The OTT id of the intended starting taxon. If not specified, the the root of the draft tree will be used if it is set. " +
-            "If it not set then this will return null.")
-            @Parameter(name = "startingTaxonOTTId", optional = true) String startingTaxonOTTId) throws TaxonNotFoundException, MultipleHitsException {
+    public Representation getDraftTreeID (@Source GraphDatabaseService graphDb) {
 
         GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
         GraphExplorer ge = new GraphExplorer(gdb);
