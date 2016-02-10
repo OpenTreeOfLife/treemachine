@@ -48,8 +48,9 @@ public class tree_of_life extends ServerPlugin {
     
     
     // NEW: add treeid as a optional argument, default to most recent
-    @Description("Returns summary information about the current draft tree of life, including information "
-        + "about the list of source trees and the taxonomy used to build it.")
+    @Description("Returns summary information about a draft tree of life (by default "
+        + "the most recent version), including information about the list of source "
+        + "trees and the taxonomy used to build it.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation about (@Source GraphDatabaseService graphDb,
         
@@ -384,9 +385,8 @@ public class tree_of_life extends ServerPlugin {
         + "start node may be specified using *either* a node id or an ott id, **but not both**. If the specified node "
         + "is not in the synthetic tree (or is entirely absent from the graph), an error will be returned.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation subtree (
+    public Representation subtree (@Source GraphDatabaseService graphDb,
         
-        @Source GraphDatabaseService graphDb,
         @Description("The identifier for the synthesis tree. We currently only support a single draft tree "
             + "in the db at a time, so this argument is superfluous and may be safely ignored.")
         @Parameter(name = "tree_id", optional = true)

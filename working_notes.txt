@@ -7,9 +7,10 @@ ft12.tsv TEST.db
 
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeID
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/synthtrees
 
 curl -X POST http://localhost:7474/db/data/ext/graph/graphdb/about

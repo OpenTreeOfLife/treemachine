@@ -247,6 +247,7 @@ public class GoLS extends ServerPlugin {
             draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
             draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
             draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
+            draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
         } finally {
             ge.shutdownDB();
         }
@@ -254,23 +255,44 @@ public class GoLS extends ServerPlugin {
     }
     
     
-    // is this used? if so, needs to be updated i.e. need treeid
+    // is this used?
     @Description("Returns the version of the taxonomy used to initialize the graph")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getTaxonomyVersion (@Source GraphDatabaseService graphDb) {
+    public Representation getTaxonomyVersion (@Source GraphDatabaseService graphDb,
+        
+        @Description("Synthetic tree identifier")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID
+        
+        ) {
 
-        GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-        GraphExplorer ge = new GraphExplorer(gdb);
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        String synthTreeID = null;
         Node meta = null;
         String taxVersion = "";
         
+        if (treeID != null) {
+            synthTreeID = treeID;
+        }
+        
         try {
-            meta = ge.getMostRecentSynthesisMetaNode();
+            if (synthTreeID != null) {
+                meta = ge.getSynthesisMetaNodeByName(synthTreeID);
+                // invalid treeid
+                if (meta == null) {
+                    ge.shutdownDB();
+                    String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
+                        + synthTreeID + "'.";
+                    throw new IllegalArgumentException(ret);
+                }
+            } else {
+                // default to most recent
+                meta = ge.getMostRecentSynthesisMetaNode();
+            }
             taxVersion = (String)meta.getProperty("taxonomy_version");
         } finally {
             ge.shutdownDB();
         }
-
         return OTRepresentationConverter.convert(taxVersion);
     }
     

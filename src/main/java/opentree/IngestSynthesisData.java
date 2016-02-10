@@ -302,7 +302,7 @@ public class IngestSynthesisData extends GraphBase {
             */
             //System.out.println("Value of '" + entry.getKey() + " is of class: " + entry.getValue().getClass());
         }
-        
+        // TODO: deal with arrays better
         List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
         String[] flist = flagList.toArray(new String[flagList.size()]);
         metadatanode.setProperty("filtered_flags", flist);
@@ -310,6 +310,9 @@ public class IngestSynthesisData extends GraphBase {
         List<String> sourceList = (ArrayList<String>) jsonObject.get("sources");
         String[] slist = sourceList.toArray(new String[sourceList.size()]);
         metadatanode.setProperty("sources", slist);
+        
+        // store root ot_node_id here for fast retrieval
+        metadatanode.setProperty("root_ot_node_id", synthRootNode.getProperty("ot_node_id"));
         
         synthMetaIndex.add(metadatanode, "name", synthTreeName);
         tx.success();
