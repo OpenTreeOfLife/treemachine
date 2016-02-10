@@ -9,7 +9,7 @@ curl 'https://devapi.opentreeoflife.org/treemachine/v1/getSyntheticTree' -H 'Con
 
 curl -X POST https://devapi.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"2","subtreeNodeID":"792659"}'
 
-curl -X POST https://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"2","subtreeNodeID":"792659"}'
+curl -v -X POST https://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"2","subtreeNodeID":"792659"}'
 
 curl 'https://devapi.opentreeoflife.org/treemachine/v1/getSyntheticTree' -H 'Content-Type: application/json' --data-binary '{"treeID":"opentree4.0","format":"arguson","maxDepth":"2","subtreeNodeID":"792659"}'
 

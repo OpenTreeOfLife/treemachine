@@ -209,7 +209,7 @@ public class MainRunner {
         Node n = null;
         Long lnodeId = null;
         try {
-            n = ge.findGraphNodeByOTTID(nodeId);
+            n = ge.findGraphNodeByOTTNodeID(nodeId);
         } catch (Exception e) {}
         if (n != null) {
             lnodeId = n.getId();

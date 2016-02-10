@@ -20,4 +20,15 @@ curl -X POST http://localhost:7474/db/data/ext/graph/graphdb/node_info -H "conte
 # Aves (taxonomy): ott81461
 # Root node id (neo4j): 2659019
 
+# Aves
+curl -X POST https://api.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type:application/json' --data-binary '{"format":"arguson","maxDepth":"3","subtreeNodeID":"1391697"}'
+
+curl 'https://api.opentreeoflife.org/treemachine/v1/getSyntheticTree' -H 'Content-Type:application/json' --data-binary '{"format":"newick","maxDepth":"3","subtreeNodeID":"1391697"}'
+
+curl 'https://devapi.opentreeoflife.org/treemachine/v1/getSyntheticTree' -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"3","subtreeNodeID":"812340"}'
+
+curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"2","subtreeNodeID":"792659"}'
+
+
+curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"3","ot_node_id":"ott81461"}'
 

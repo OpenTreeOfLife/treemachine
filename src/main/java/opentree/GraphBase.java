@@ -170,7 +170,7 @@ public abstract class GraphBase {
      * @throws MultipleHitsException
      * @throws TaxonNotFoundException
      */
-    public Node findGraphNodeByOTTID(final String ottNodeID) throws MultipleHitsException, TaxonNotFoundException {
+    public Node findGraphNodeByOTTNodeID(final String ottNodeID) throws MultipleHitsException, TaxonNotFoundException {
         IndexHits<Node> hits = GraphBase.graphOTTNodeIDIndex.get(NodeProperty.OT_NODE_ID.propertyName, ottNodeID);
         Node firstNode = null;
         try {

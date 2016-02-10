@@ -3538,137 +3538,7 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    /**
-     * @param maxDepth is the max number of edges between the root and an included node
-     *        if non-negative this can be used to prune off subtrees that exceed the threshold
-     *        distance from the root. If maxDepth is negative, no threshold is applied
-     */
-    private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
-        HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
-        
-        JadeNode root = new JadeNode();
-        decorateJadeNodeWithCoreProperties(root, rootnode);
-        
-        List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
-        root.assocObject("pathToRoot", pathToRoot); // TODO: add supported by sources to this
-        
-        ArrayList<String> allSources = new ArrayList<String>(); // used in tree browser
-        for (Node nd : pathToRoot) {
-            ArrayList<String> curSources = getSynthesisSupportingSources(nd);
-            if (!curSources.isEmpty()) {
-                allSources.addAll(curSources);
-            }
-        }
-        
-        ArrayList<String> rootSynthSources = getSynthesisSupportingSources(rootnode);
-        String[] sources = rootSynthSources.stream().toArray(String[]::new); // java8
-        root.assocObject("supporting_sources", sources);
-        
-        allSources.addAll(rootSynthSources);
-        
-        // add source info
-        for (String s : allSources) {
-            if (!mentionedSources.containsKey(s)) {
-                IndexHits<Node> metanodes = null;
-                try {
-                    metanodes = sourceMetaIndex.get("source", s);
-                    Node m1 = null;
-                    if (metanodes.hasNext()) {
-                        m1 = metanodes.next();
-                    }
-                    mentionedSources.put(s, m1);
-                } finally {
-                    metanodes.close();
-                }
-            }
-        }
-        
-        boolean printlengths = false;
-        HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
-        node2JadeNode.put(rootnode, root);
-        TraversalDescription synthEdgeTraversal = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
-        //@TEMP should create an evaluator to check the name of the SYNTHCHILDOF rel and not follow paths with the wrong name...
-        synthEdgeTraversal = synthEdgeTraversal.depthFirst();
-        if (maxDepth >= 0) {
-            synthEdgeTraversal = synthEdgeTraversal.evaluator(Evaluators.toDepth(maxDepth));
-        }
-        HashSet<Node> internalNodes = new HashSet<Node>();
-        ArrayList<Node> unnamedChildNodes = new ArrayList<Node>();
-        ArrayList<Node> namedChildNodes = new ArrayList<Node>();
-        
-        for (Path path : synthEdgeTraversal.traverse(rootnode)) {
-            Relationship furshestRel = path.lastRelationship();
-            if (furshestRel != null && furshestRel.hasProperty("name")) {
-                String rn = (String) furshestRel.getProperty("name");
-                if (rn.equals(treeID)) {
-                    Node parNode = furshestRel.getEndNode();
-                    Node childNode = furshestRel.getStartNode();
-                    internalNodes.add(parNode);
-                    JadeNode jChild = new JadeNode();
-                    if (childNode.hasProperty("name")) {
-                        namedChildNodes.add(childNode);
-                    } else {
-                        unnamedChildNodes.add(childNode);
-                    }
-                    decorateJadeNodeWithCoreProperties(jChild, childNode);
-                    if (furshestRel.hasProperty("branch_length")) {
-                        printlengths = true;
-                        jChild.setBL((Double) furshestRel.getProperty("branch_length"));
-                    }
-                    if (furshestRel.hasProperty("supporting_sources")) {
-                        String [] supportingSources = (String []) furshestRel.getProperty("supporting_sources");
-                        jChild.assocObject("supporting_sources", supportingSources);
-                        for (String s : supportingSources) {
-                            if (!mentionedSources.containsKey(s)) {
-                                IndexHits<Node> metanodes = null;
-                                try {
-                                    metanodes = sourceMetaIndex.get("source", s);
-                                    Node m1 = null;
-                                    if (metanodes.hasNext()) {
-                                        m1 = metanodes.next();
-                                    }
-                                    mentionedSources.put(s, m1);
-                                } finally {
-                                    metanodes.close();
-                                }
-                            }
-                        }
-                    }
-                    node2JadeNode.get(parNode).addChild(jChild);
-                    node2JadeNode.put(childNode, jChild);
-                }
-            }
-        }
-        if (internalNodes.isEmpty()) {
-            root.assocObject("hasChildren", false);
-        }
-        for (Node ucn : unnamedChildNodes) {
-            if (!internalNodes.contains(ucn)) {
-                ArrayList<String> subNameList = getNamesOfRepresentativeDescendants(ucn, RelType.SYNTHCHILDOF, treeID);
-                String [] dnA = subNameList.toArray(new String[subNameList.size()]);
-                JadeNode cjn = node2JadeNode.get(ucn);
-                cjn.assocObject("descendantNameList", dnA);
-                Boolean hc = new Boolean(hasIncomingRel(ucn, RelType.SYNTHCHILDOF, treeID));
-                cjn.assocObject("hasChildren", hc);
-            }
-        }
-        for (Node ncn : namedChildNodes) {
-            if (!internalNodes.contains(ncn)) {
-                JadeNode cjn = node2JadeNode.get(ncn);
-                Boolean hc = new Boolean(hasIncomingRel(ncn, RelType.SYNTHCHILDOF, treeID));
-                cjn.assocObject("hasChildren", hc);
-            }
-        }
-        
-        // print the newick string
-        JadeTree tree = new JadeTree(root);
-        root.assocObject("nodedepth", root.getNodeMaxDepth());
-        if (!mentionedSources.isEmpty()) {
-            root.assocObject("sourceMetaList", mentionedSources);
-        }
-        //    tree.setHasBranchLengths(printlengths); // commented out because it seems to be failing with newer version of jade dependency.. not sure why
-        return tree;
-    }
+    
     
     
     // ================================= methods for trees ====================================
@@ -4000,6 +3870,157 @@ public class GraphExplorer extends GraphBase {
         return (sourceList);
     }
     
+    
+    /**
+     * @return a JadeTree representation of a subtree of the synthesis tree with the specified treeID
+     * @param treeID the synthetic tree identifier
+     * @param startOTNodeID the node ID of the node that will be used as the root of the returned tree.
+     *        the node must be a node in the tree
+     * @param maxDepth is the max number of edges between the root and an included node
+     *        if non-negative this can be used to prune off subtrees that exceed the threshold
+     *        distance from the root. If maxDepth is negative, no threshold is applied
+     * @throws TaxonNotFoundException
+     */
+    public JadeTree reconstructSyntheticTree(String treeID, String startOTNodeID, int maxDepth) throws TaxonNotFoundException {
+        Node rootnode = findGraphNodeByOTTNodeID(startOTNodeID);
+        return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
+    }
+    
+    
+    /**
+     * @return a JadeTree representation of a subtree of the synthesis tree
+     * @param maxDepth is the max number of edges between the root and an included node
+     *        if non-negative this can be used to prune off subtrees that exceed the threshold
+     *        distance from the root. If maxDepth is negative, no threshold is applied
+     * @param treeID the synthetic tree identifier
+     * @param rootnode the root of the returned tree
+     */
+    private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
+        HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
+        
+        JadeNode root = new JadeNode();
+        decorateJadeNodeWithCoreProperties(root, rootnode);
+        
+        List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
+        root.assocObject("pathToRoot", pathToRoot); // TODO: add supported by sources to this
+        
+        ArrayList<String> allSources = new ArrayList<String>(); // used in tree browser
+        for (Node nd : pathToRoot) {
+            ArrayList<String> curSources = getSynthesisSupportingSources(nd);
+            if (!curSources.isEmpty()) {
+                allSources.addAll(curSources);
+            }
+        }
+        
+        ArrayList<String> rootSynthSources = getSynthesisSupportingSources(rootnode);
+        String[] sources = rootSynthSources.stream().toArray(String[]::new); // java8
+        root.assocObject("supporting_sources", sources);
+        
+        allSources.addAll(rootSynthSources);
+        
+        // add source info
+        for (String s : allSources) {
+            if (!mentionedSources.containsKey(s)) {
+                IndexHits<Node> metanodes = null;
+                try {
+                    metanodes = sourceMetaIndex.get("source", s);
+                    Node m1 = null;
+                    if (metanodes.hasNext()) {
+                        m1 = metanodes.next();
+                    }
+                    mentionedSources.put(s, m1);
+                } finally {
+                    metanodes.close();
+                }
+            }
+        }
+        
+        boolean printlengths = false;
+        HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
+        node2JadeNode.put(rootnode, root);
+        TraversalDescription synthEdgeTraversal = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
+        //@TEMP should create an evaluator to check the name of the SYNTHCHILDOF rel and not follow paths with the wrong name...
+        synthEdgeTraversal = synthEdgeTraversal.depthFirst();
+        if (maxDepth >= 0) {
+            synthEdgeTraversal = synthEdgeTraversal.evaluator(Evaluators.toDepth(maxDepth));
+        }
+        HashSet<Node> internalNodes = new HashSet<Node>();
+        ArrayList<Node> unnamedChildNodes = new ArrayList<Node>();
+        ArrayList<Node> namedChildNodes = new ArrayList<Node>();
+        
+        for (Path path : synthEdgeTraversal.traverse(rootnode)) {
+            Relationship furshestRel = path.lastRelationship();
+            if (furshestRel != null && furshestRel.hasProperty("name")) {
+                String rn = (String) furshestRel.getProperty("name");
+                if (rn.equals(treeID)) {
+                    Node parNode = furshestRel.getEndNode();
+                    Node childNode = furshestRel.getStartNode();
+                    internalNodes.add(parNode);
+                    JadeNode jChild = new JadeNode();
+                    if (childNode.hasProperty("name")) {
+                        namedChildNodes.add(childNode);
+                    } else {
+                        unnamedChildNodes.add(childNode);
+                    }
+                    decorateJadeNodeWithCoreProperties(jChild, childNode);
+                    if (furshestRel.hasProperty("branch_length")) {
+                        printlengths = true;
+                        jChild.setBL((Double) furshestRel.getProperty("branch_length"));
+                    }
+                    if (furshestRel.hasProperty("supporting_sources")) {
+                        String [] supportingSources = (String []) furshestRel.getProperty("supporting_sources");
+                        jChild.assocObject("supporting_sources", supportingSources);
+                        for (String s : supportingSources) {
+                            if (!mentionedSources.containsKey(s)) {
+                                IndexHits<Node> metanodes = null;
+                                try {
+                                    metanodes = sourceMetaIndex.get("source", s);
+                                    Node m1 = null;
+                                    if (metanodes.hasNext()) {
+                                        m1 = metanodes.next();
+                                    }
+                                    mentionedSources.put(s, m1);
+                                } finally {
+                                    metanodes.close();
+                                }
+                            }
+                        }
+                    }
+                    node2JadeNode.get(parNode).addChild(jChild);
+                    node2JadeNode.put(childNode, jChild);
+                }
+            }
+        }
+        if (internalNodes.isEmpty()) {
+            root.assocObject("hasChildren", false);
+        }
+        for (Node ucn : unnamedChildNodes) {
+            if (!internalNodes.contains(ucn)) {
+                ArrayList<String> subNameList = getNamesOfRepresentativeDescendants(ucn, RelType.SYNTHCHILDOF, treeID);
+                String [] dnA = subNameList.toArray(new String[subNameList.size()]);
+                JadeNode cjn = node2JadeNode.get(ucn);
+                cjn.assocObject("descendantNameList", dnA);
+                Boolean hc = new Boolean(hasIncomingRel(ucn, RelType.SYNTHCHILDOF, treeID));
+                cjn.assocObject("hasChildren", hc);
+            }
+        }
+        for (Node ncn : namedChildNodes) {
+            if (!internalNodes.contains(ncn)) {
+                JadeNode cjn = node2JadeNode.get(ncn);
+                Boolean hc = new Boolean(hasIncomingRel(ncn, RelType.SYNTHCHILDOF, treeID));
+                cjn.assocObject("hasChildren", hc);
+            }
+        }
+        
+        // print the newick string
+        JadeTree tree = new JadeTree(root);
+        root.assocObject("nodedepth", root.getNodeMaxDepth());
+        if (!mentionedSources.isEmpty()) {
+            root.assocObject("sourceMetaList", mentionedSources);
+        }
+        //    tree.setHasBranchLengths(printlengths); // commented out because it seems to be failing with newer version of jade dependency.. not sure why
+        return tree;
+    }
     
     public HashMap<String, Object> getNodeTaxInfo(Node n) {
         

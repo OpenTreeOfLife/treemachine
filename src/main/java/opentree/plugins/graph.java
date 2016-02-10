@@ -163,7 +163,7 @@ public class graph extends ServerPlugin {
         GraphExplorer ge = new GraphExplorer(graphDb);
         
         try {
-            qNode = ge.findGraphNodeByOTTID(nodeId);
+            qNode = ge.findGraphNodeByOTTNodeID(nodeId);
         } catch (TaxonNotFoundException e) {
         }
         
@@ -176,7 +176,7 @@ public class graph extends ServerPlugin {
         
         nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
         
-        // TODO: add snth-tree-specific metadata (stored in outgoing rels)
+        // TODO: add synth-tree-specific metadata (stored in outgoing rels)
         
         // = ge.getNodeTaxInfo(qNode);
         

@@ -379,7 +379,7 @@ public class IngestSynthesisData extends GraphBase {
             
             Node childNode = graphDb.getNodeById((Long) curJadeNode.getChild(i).getObject("gid"));
             Relationship newRel = childNode.createRelationshipTo(newGraphNode, RelType.SYNTHCHILDOF);
-            
+            newRel.setProperty("name", synthTreeName);
             
             // TODO: add metadata properties (for childnode) here
             // changing from storing in individual metadata nodes to within (outgoing) rels

@@ -85,7 +85,7 @@ public class tree_of_life extends ServerPlugin {
                 if (meta == null) {
                     ge.shutdownDB();
                     String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
-                        + synthTreeID + "'.";
+                        + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
                     throw new IllegalArgumentException(ret);
                 }
             } else {
@@ -123,6 +123,7 @@ public class tree_of_life extends ServerPlugin {
                 draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
                 draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
                 draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
+                draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
                 
                 draftTreeInfo.put("sources", Arrays.asList((String[]) meta.getProperty("sources")));
                 
@@ -147,7 +148,8 @@ public class tree_of_life extends ServerPlugin {
         return OTRepresentationConverter.convert(draftTreeInfo);
     }
 
-
+    
+    // *** TODO: update to specific tree; will need to check if nodes are in _that_ tree
     @Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott "
         + "ids as input. Returns information about the most recent common ancestor (MRCA) node as well as the most recent "
         + "taxonomic ancestor (MRTA) node (the smallest taxon that encompasses the query; the MRCA "
@@ -164,7 +166,15 @@ public class tree_of_life extends ServerPlugin {
         
         @Description("A set of ott ids")
         @Parameter(name = "ott_ids", optional = true)
-        long[] ottIds
+        long[] ottIds,
+        
+        @Description("Synthetic tree identifier")
+        @Parameter(name = "tree_id", optional = true)
+        String[] treeID,
+        
+        @Description("A set of open tree node ids")
+        @Parameter(name = "ot_node_ids", optional = true)
+        String otNodeIDs
         
         ) throws IllegalArgumentException {
 

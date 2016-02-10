@@ -157,6 +157,7 @@ public class GoLS extends ServerPlugin {
         }
     }
     
+    
     // is this being used?
     @Description("Get a subtree of the draft tree with tips corresponding to the set of nodes identified by the query"
             + "input. Accepts any combination of node ids and ott ids as input.")
@@ -206,10 +207,10 @@ public class GoLS extends ServerPlugin {
     @Description("Return a JSON obj that represents the error and warning messages associated with attempting to ingest a NexSON blob")
     @PluginTarget (GraphDatabaseService.class)
     public Representation getStudyIngestMessagesForNexSON(
-                @Source GraphDatabaseService graphDbs,
-                @Description("The ottId of the node to use as the root for synthesis. If omitted then the root of all life is used.")
-                @Parameter(name = "nexsonBlob", optional = true) String nexsonBlob)
-                throws Exception {
+            @Source GraphDatabaseService graphDbs,
+            @Description("The ottId of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+            @Parameter(name = "nexsonBlob", optional = true) String nexsonBlob)
+            throws Exception {
         GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
         ByteArrayInputStream inpStream = new ByteArrayInputStream(nexsonBlob.getBytes("UTF-8"));
         BufferedReader nexsonContentBR = new BufferedReader(new InputStreamReader(inpStream));
@@ -299,12 +300,11 @@ public class GoLS extends ServerPlugin {
     // is this used? if so, will need to be updated i.e. which synth tree?
     @Description("Returns a list of the synthesis tree source information")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getSynthesisSourceList (
-            @Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
+    public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
         GraphExplorer ge = new GraphExplorer(graphDb);
         ArrayList<String> sourceList = new ArrayList<String>();
         try {
-            Node meta = ge.getSynthesisMetaNode();
+            Node meta = ge.getMostRecentSynthesisMetaNode();
             if (meta != null){
                 String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
                 for (int i = 0; i < sourcePrimList.length; i++){
@@ -329,18 +329,35 @@ public class GoLS extends ServerPlugin {
     // should this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh
         // avoiding code duplication? what is the advantage of having separate queries?
     // subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
-    @Description("Returns a synthetic tree if format is \"newick\" then return JSON will have two fields: newick and treeID. If format = \"arguson\" then the return object will be the form of JSON expected by argus")
+    @Description("Returns a synthetic tree if format is \"newick\" then return JSON will "
+        + "have two fields: newick and treeID. If format = \"arguson\" then the return "
+        + "object will be the form of JSON expected by argus")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getSyntheticTree(
-            @Source GraphDatabaseService graphDb,
-            @Description("The identifier for the synthesic tree (e.g. \"opentree3.0\") (default is most current synthetic tree)")
-            @Parameter(name = "treeID", optional = true) String treeID,
-            @Description("The name of the return format (default is newick)")
-            @Parameter(name = "format", optional = true) String format,
-            @Description("The nodeid of the a node in the tree that should serve as the root of the tree returned")
-            @Parameter(name = "subtreeNodeID", optional = true) String subtreeNodeIDStr, 
-            @Description("An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is 5.")
-            @Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) throws TreeNotFoundException, TaxonNotFoundException {
+    public Representation getSyntheticTree(@Source GraphDatabaseService graphDb,
+        
+        @Description("The identifier for the synthetic tree (e.g. \"opentree4.0\") "
+            + "(default is most current synthetic tree)")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID,
+        
+        @Description("The name of the return format (default is newick)")
+        @Parameter(name = "format", optional = true)
+        String format,
+        
+        @Description("The ot node id of the node in the tree that should serve as the "
+            + "root of the tree returned")
+        @Parameter(name = "ot_node_id", optional = true)
+        String otNodeID, 
+        
+        @Description("The nodeid of the node in the tree that should serve as the root of the tree returned")
+        @Parameter(name = "subtreeNodeID", optional = true)
+        String subtreeNodeIDStr, 
+        
+        @Description("An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is 5.")
+        @Parameter(name = "maxDepth", optional = true)
+        Integer maxDepthArg
+        
+        ) throws TreeNotFoundException, TaxonNotFoundException {
 
         // set default param values
         int maxDepth = 3;
@@ -348,36 +365,52 @@ public class GoLS extends ServerPlugin {
         boolean emitNewick = false;
         //String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value; // don't use this
         String synthTreeID = "";
+        String startOTNodeID = "";
+        Node meta = null;
+        
         HashMap<String, Object> responseMap = new HashMap<String, Object>();
         
         // grab existing synth tree ids
         GraphExplorer ge = new GraphExplorer(graphDb);
         ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs(); // these are sorted
-        ge.shutdownDB();
         
         // synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
         if (treeID != null) {
             if (synthTreeIDs.contains(treeID)) {
                 synthTreeID = treeID;
             } else {
-                responseMap.put("error", "Unrecognized \"tree_id\" argument. Leave blank to default to the current synthetic tree.");
-                return OTRepresentationConverter.convert(responseMap);
+                ge.shutdownDB();
+                String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
+                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
             }
         } else { // default to most recent
             if (!synthTreeIDs.isEmpty()) {
                 synthTreeID = synthTreeIDs.get(synthTreeIDs.size() - 1);
             } else { // no synth trees in graph
+                ge.shutdownDB();
                 responseMap.put("error", "No synthetic trees found.");
                 return OTRepresentationConverter.convert(responseMap);
             }
+        }
+        
+        meta = ge.getSynthesisMetaNodeByName(synthTreeID);
+        
+        if (otNodeID != null) {
+            startOTNodeID = otNodeID;
+            // check if this node is in the tree of interest
+        } else {
+            // get root node id from metadata node
+            startOTNodeID = (String) meta.getProperty("root_ot_node_id");
         }
         
         // determine output format
         if (format == null || format.length() == 0 || format.equalsIgnoreCase("newick")) {
             emitNewick = true;
         } else if (!format.equalsIgnoreCase("arguson")) {
-            responseMap.put("error", "Expecting either \"newick\" or \"arguson\" as the format.");
-            return OTRepresentationConverter.convert(responseMap);
+            String ret = "Unrecognized 'format' arg: " + format + ". Expecting either "
+                + "\"newick\" or \"arguson\" for the 'format' arg.";
+            throw new IllegalArgumentException(ret);
         }
 
         // override defaults if user-specified
@@ -385,22 +418,20 @@ public class GoLS extends ServerPlugin {
             maxDepth = maxDepthArg;
         }
         
+        /*
         // update this to get root of whichever tree is desired
         if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0) { // get root of draft tree
             GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
             subtreeNodeID = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
         } else {
-            ge = new GraphExplorer(graphDb);
-            subtreeNodeID = ge.findGraphNodeByOTTID(subtreeNodeIDStr).getId();
-            //subtreeNodeID = Long.parseLong(subtreeNodeIDStr, 10);
-            ge.shutdownDB();
+            subtreeNodeID = ge.findGraphNodeByOTTNodeID(subtreeNodeIDStr).getId();
         }
+        */
         
         // get the subtree for export
-        ge = new GraphExplorer(graphDb);
         JadeTree tree = null;
         try {
-            tree = ge.reconstructSyntheticTree(synthTreeID, subtreeNodeID, maxDepth);
+            tree = ge.reconstructSyntheticTree(synthTreeID, startOTNodeID, maxDepth);
         } finally {
             ge.shutdownDB();
         }
