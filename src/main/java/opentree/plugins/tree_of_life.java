@@ -66,7 +66,7 @@ public class tree_of_life extends ServerPlugin {
 
         GraphExplorer ge = new GraphExplorer(graphDb);
         HashMap<String, Object> draftTreeInfo = new HashMap<>();
-        Boolean returnStudyList = false; // default to true for now
+        Boolean returnStudyList = true; // default to true for now
         String synthTreeID = null;
         Node meta = null;
         
@@ -91,28 +91,13 @@ public class tree_of_life extends ServerPlugin {
             } else {
                 // default to most recent
                 meta = ge.getMostRecentSynthesisMetaNode();
+                synthTreeID = (String) meta.getProperty("tree_id");
             }
             
             if (meta != null) {
-                //String [] sourceList = (String []) meta.getProperty("sourcenames");
-                // get from metadata node instead
-                ArrayList<String> sourceList = ge.getSynthesisSourceList();
-                
-                // don't use this hard-coded stuff; just traverse meta rel
-                //Node startNode = gdb.getNodeById((Long) gdb.getGraphProperty("draftTreeRootNodeId"));
-                Node startNode = meta.getSingleRelationship(RelType.SYNTHMETADATAFOR, Direction.OUTGOING).getEndNode();
-                
-                // grab number of tips (and, really, everything) from metadata node instead of mrca count
-                //Integer numMRCA = ((long[]) startNode.getProperty(NodeProperty.MRCA.propertyName)).length;
-                
-                //Integer numStudies = sourceList.size();
-                //draftTreeInfo = new HashMap<String, Object>();
-                
                 // general info
-                draftTreeInfo.put("tree_id", meta.getProperty("tree_id"));
+                draftTreeInfo.put("tree_id", synthTreeID);
                 draftTreeInfo.put("date_completed", meta.getProperty("date_completed"));
-                
-                // currently comes from root node of graph. should bake into metadatanode of synth tree 
                 draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
                 
                 // root node info
@@ -125,15 +110,18 @@ public class tree_of_life extends ServerPlugin {
                 draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
                 draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
                 
-                draftTreeInfo.put("sources", Arrays.asList((String[]) meta.getProperty("sources")));
-                
                 if (returnStudyList) {
-                    LinkedList<HashMap<String, Object>> sourcesFull = new LinkedList<>();
-                    for (String study : sourceList) {
-                        HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(study);
-                        sourcesFull.add(indStudy);
+                    
+                    Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
+                    draftTreeInfo.put("sources", Arrays.asList((String[]) meta.getProperty("sources")));
+                    
+                    HashMap<String, Object> sourceMap = new HashMap<>();
+                    for (String key : sourceMapNode.getPropertyKeys()) {
+                        String indSource = (String) sourceMapNode.getProperty(key);
+                        HashMap<String, String> formatSource = ge.stringToMap(indSource);
+                        sourceMap.put(key, formatSource);
                     }
-                    draftTreeInfo.put("study_list", sourcesFull);
+                    draftTreeInfo.put("source_id_map", sourceMap);
                 }
                 draftTreeInfo.put("filtered_flags", Arrays.asList((String[]) meta.getProperty("filtered_flags")));
                 

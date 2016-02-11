@@ -43,6 +43,7 @@ public class IngestSynthesisData extends GraphBase {
     private Node synthRootNode;
     private Node metadatanode;
     private final boolean verbose = false;
+    private boolean newGraph; // simplifies things if new (i.e. no checking of existing nodes)
     
     // containers used during import
     private HashSet<String> ottIDs;
@@ -54,8 +55,10 @@ public class IngestSynthesisData extends GraphBase {
     
     JSONObject nodeMetaData;// nodeMetaData = (JSONObject) jsonObject.get("nodes");
     
+    
+    
     private JadeTree inputJadeTree;
-    private HashMap<String, HashMap<String, String> > sourceMap;
+    //private HashMap<String, String> sourceMap; // probably do not need this
     private HashMap<String, HashMap<String, String> > taxNodeInfo;
     
     //private HashMap<String, Node> taxUIDToNodeMap;
@@ -90,7 +93,7 @@ public class IngestSynthesisData extends GraphBase {
         //childNodeIDToParentNodeIDMap = new HashMap<String, String>();
     }
     
-    public void buildDB (String newickFile, String jsonFile, String taxFile) throws TreeIngestException, IOException {
+    public void buildDB (String newickFile, String jsonFile, String taxFile, boolean isNewGraph) throws TreeIngestException, IOException {
         /*
         Need to:
         0) Check if:
@@ -109,10 +112,18 @@ public class IngestSynthesisData extends GraphBase {
         */
         initilaize();
         
+        newGraph = isNewGraph;
+        if (newGraph) {
+            System.out.println("Constructing new graph db");
+        } else {
+            System.out.println("Adding to existing graph db");
+        }
+        
         readAnnotations(jsonFile);
         
         synthTreeName = (String) jsonObject.get("tree_id");
         System.out.println("synthTreeName = " + synthTreeName);
+        
         // annotations currently does not prepend 'ott' to "root_ott_id"
         rootTaxonID = "ott" + String.valueOf(jsonObject.get("root_ott_id"));
         System.out.println("rootTaxonID = " + rootTaxonID);
@@ -313,14 +324,25 @@ public class IngestSynthesisData extends GraphBase {
         
         // store root ot_node_id here for fast retrieval
         metadatanode.setProperty("root_ot_node_id", synthRootNode.getProperty("ot_node_id"));
-        
         synthMetaIndex.add(metadatanode, "name", synthTreeName);
+        
+        // put sources in separate node for easier retrieval. points to metadatanode
+        Node sourceMeta = graphDb.createNode();
+        storeSourceMetaData(sourceMeta);
+        sourceMeta.createRelationshipTo(metadatanode, RelType.SOURCEMETADATAFOR);
+        
+        System.out.println("Sources node = " + sourceMeta.getId());
+        
+        sourceMapIndex.add(sourceMeta, "name", synthTreeName);
+        
         tx.success();
         tx.finish();
     }
     
     
     // recursive
+    // TODO: if newGraph == false, need to check existing nodes
+    // TODO: add tax nodes earlier, check existing here
     private void postOrderAddTreeToGraph (JadeNode curJadeNode) throws TreeIngestException {
         if (nNodesToCommit % commitFrequency == 0 && nNodesToCommit > 0) {
             System.out.println("Committing nodes " + (nNodesToCommit - commitFrequency + 1) + " through " + nNodesToCommit);
@@ -406,7 +428,6 @@ public class IngestSynthesisData extends GraphBase {
                     childNode.getProperty("ot_node_id") + ")"
                     + " -> " + newGraphNode + "(" + newGraphNode.getProperty("ot_node_id") + ")");
             }
-            //sourceRelIndex.add(rel, "source", sourceName);
         }
         
         
@@ -454,36 +475,42 @@ public class IngestSynthesisData extends GraphBase {
         }
         return res;
     }
-}
-
-//taxonomyVersion
     
-
-/*
- // get all the sources supporting this relationship
-    HashSet<String> sources = new HashSet<String>();
-    if (curNode.hasRelationship(RelType.STREECHILDOF, Direction.OUTGOING)) {
-        for (Relationship rel2 : curNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
-            if (rel2.getEndNode().getId() == parentNode.getId()) {
-                if (rel2.hasProperty("source")) {
-                    sources.add(String.valueOf(rel2.getProperty("source")));
+    
+    /*
+    Will look like:
+    "pg_2044_tree4212": {
+        "git_sha":"c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f",
+        "tree_id":"tree4212",
+        "study_id":"pg_2044"
+    }
+    will become:
+    "pg_2044_tree4212" : "git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree4212,study_id:pg_2044"
+    */
+    // store source_id_map in node. hacky; will clean up later
+    private void storeSourceMetaData (Node metaNode) {
+        
+        JSONObject sourceIDMap = (JSONObject) jsonObject.get("source_id_map");
+        //System.out.println("source_id_map length: " + sourceIDMap.size());
+        
+        HashMap<String, String> res = new HashMap<>();
+        Iterator srcIter = sourceIDMap.keySet().iterator();
+        
+        while (srcIter.hasNext()) {
+            String srcID = (String) srcIter.next();
+            JSONObject indSrc = (JSONObject) sourceIDMap.get(srcID);
+            Iterator iter = indSrc.entrySet().iterator();
+            String str = "";
+            while (iter.hasNext()) {
+                Map.Entry entry = (Map.Entry)iter.next();
+                
+                if (str != "") {
+                    str += ",";
                 }
+                str += entry.getKey() + ":" + (String) entry.getValue();
             }
+            metaNode.setProperty(srcID, str);
         }
     }
+}
 
-    // include taxonomy as a source as well
-    if (curNode.hasRelationship(RelType.TAXCHILDOF)) {
-        sources.add("taxonomy");
-    }
-
-    // store the sources in a string array
-    String[] sourcesArray = new String[sources.size()];
-    Iterator<String> sourcesIter = sources.iterator();
-    for (int i = 0; i < sources.size(); i++) {
-        sourcesArray[i] = sourcesIter.next();
-    }
-
-    // set the string array as a property of the relationship
-    newRel.setProperty("supporting_sources", sourcesArray);
-*/

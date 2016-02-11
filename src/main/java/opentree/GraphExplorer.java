@@ -1677,27 +1677,6 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    private List<Node> getPathToRoot(Node startNode, RelType relType, String nameToFilterBy) {
-        ArrayList<Node> path = new ArrayList<Node>();
-        Node curNode = startNode;
-        while (true) {
-            Node nextNode = null;
-            Iterable<Relationship> parentRels = curNode.getRelationships(relType, Direction.OUTGOING);
-            for (Relationship m : parentRels) {
-                if (String.valueOf(m.getProperty("name")).equals(nameToFilterBy)) {
-                    nextNode = m.getEndNode();
-                    break;
-                }
-            }
-            if (nextNode != null) {
-                path.add(nextNode);
-                curNode = nextNode;
-            } else {
-                return path;
-            }
-        }
-    }
-    
     /**
      * Return a List<Node> containing the nodes on the path to the root along the draft tree branches. Will be screwy
      * if there are multiple draft tree branches bearing the current draft tree name.
@@ -3835,12 +3814,27 @@ public class GraphExplorer extends GraphBase {
      */
     public Node getSynthesisMetaNodeByName(String synthTreeName) {
         IndexHits<Node> hits = synthMetaIndex.query("name", synthTreeName);
-        Node nd = null;
+        Node metaDataNode = null;
         if (hits.hasNext()) {
-            nd = hits.next();
+            metaDataNode = hits.next();
         }
         hits.close();
-        return nd;
+        return metaDataNode;
+    }
+    
+    
+    /**
+     * @param synthTreeName is the synthetic tree 'tree_id' identifier
+     * @return sourceMapNode Node for queried synthetic tree id
+     */
+    public Node getSourceMapNodeByName(String synthTreeName) {
+        IndexHits<Node> hits = sourceMapIndex.query("name", synthTreeName);
+        Node sourceMapNode = null;
+        if (hits.hasNext()) {
+            sourceMapNode = hits.next();
+        }
+        hits.close();
+        return sourceMapNode;
     }
     
     
@@ -3887,6 +3881,28 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    private List<Node> getPathToRoot(Node startNode, RelType relType, String nameToFilterBy) {
+        ArrayList<Node> path = new ArrayList<Node>();
+        Node curNode = startNode;
+        while (true) {
+            Node nextNode = null;
+            Iterable<Relationship> parentRels = curNode.getRelationships(relType, Direction.OUTGOING);
+            for (Relationship m : parentRels) {
+                if (String.valueOf(m.getProperty("name")).equals(nameToFilterBy)) {
+                    nextNode = m.getEndNode();
+                    break;
+                }
+            }
+            if (nextNode != null) {
+                path.add(nextNode);
+                curNode = nextNode;
+            } else {
+                return path;
+            }
+        }
+    }
+    
+    
     /**
      * @return a JadeTree representation of a subtree of the synthesis tree
      * @param maxDepth is the max number of edges between the root and an included node
@@ -3912,6 +3928,7 @@ public class GraphExplorer extends GraphBase {
             }
         }
         
+        // TODO: update all of this
         ArrayList<String> rootSynthSources = getSynthesisSupportingSources(rootnode);
         String[] sources = rootSynthSources.stream().toArray(String[]::new); // java8
         root.assocObject("supporting_sources", sources);
@@ -4062,6 +4079,22 @@ public class GraphExplorer extends GraphBase {
         }
         return results;
     }
+    
+    
+    public HashMap<String, String> stringToMap (String source) {
+        
+        HashMap<String, String> res = new HashMap<>();
+        /// format will be: git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree1,study_id:ot_157
+        String [] props = source.split(",");
+        for (String s : props) {
+            String[] terp = s.split(":");
+            if (terp.length == 2) {
+                res.put(terp[0], terp[1]);
+            }
+        }
+        return res;
+    }
+    
     
 }
 

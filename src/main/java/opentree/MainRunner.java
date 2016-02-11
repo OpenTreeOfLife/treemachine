@@ -133,6 +133,11 @@ public class MainRunner {
         String taxFile    = args[3]; // taxonomy.tsv from ott
         String graphName  = args[4];
         
+        boolean isNewGraph = true;
+        
+        if (new File(graphName).exists()) {
+            isNewGraph = false;
+        }
         // don't want this; want to be able to host multiple trees in one DB
         // check if graph already exists. abort if it does to prevent overwriting.
         /*
@@ -152,7 +157,7 @@ public class MainRunner {
         }
         
         IngestSynthesisData tl = new IngestSynthesisData(graphName);
-        tl.buildDB(newickFile, jsonFile, taxFile);
+        tl.buildDB(newickFile, jsonFile, taxFile, isNewGraph);
         
         /*
         System.out.println("Initializing ott taxonomy '" + ottVersion + "' from '" + taxFile + "' with synonyms in '"
@@ -184,6 +189,32 @@ public class MainRunner {
         Long nodeId = null;
         try {
             n = ge.getSynthesisMetaNodeByName(treeId);
+        } catch (Exception e) {}
+        if (n != null) {
+            nodeId = n.getId();
+        }
+        
+        System.out.println("Query treeId: " + treeId);
+        System.out.println("NodeId: " + nodeId);
+        return 0;
+    }
+    
+    
+    public int getmapn(String [] args) {
+        
+        if (args.length != 3) {
+            System.out.println("arguments should be: treeId graphdb");
+            return 1;
+        }
+        String treeId = args[1];
+        String graphDb = args[2];
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        Node n = null;
+        Long nodeId = null;
+        try {
+            n = ge.getSourceMapNodeByName(treeId);
         } catch (Exception e) {}
         if (n != null) {
             nodeId = n.getId();
@@ -362,7 +393,7 @@ public class MainRunner {
         //System.out.println("source_id_map toJSONString: " + sourceIDMap.toJSONString());
         //System.out.println("source_id_map toString: " + sourceIDMap.toString());
         
-        /*
+        
         Iterator srcIter = sourceIDMap.keySet().iterator();
         
         while (srcIter.hasNext()) {
@@ -388,6 +419,7 @@ public class MainRunner {
                 
             }
             System.out.println("Source '" + srcID + "' has " + srcProps.size() + " properties.");
+            System.out.println("Original: " + indSrc.toJSONString());
             System.out.println("    " + res0);
             System.out.println("    " + res);
             System.out.println("    " + indSrc.toString());
@@ -395,7 +427,7 @@ public class MainRunner {
         }
         
         System.out.println("tree_id = " + jsonObject.get("tree_id"));
-        */
+        
 
         //Set<String> glurp = nodes.keySet();
         boolean doit = false;
@@ -4297,6 +4329,8 @@ public class MainRunner {
                 cmdReturnCode = mr.getnodeName(args);
             } else if (command.compareTo("getnodeid") == 0) {
                 cmdReturnCode = mr.getnodeID(args);
+            } else if (command.compareTo("getmapn") == 0) {
+                cmdReturnCode = mr.getmapn(args);
             }
             
             

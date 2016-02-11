@@ -11,7 +11,9 @@ package opentree.constants;
  *
  */
 public enum SourceProperty {
-
+    
+    NAME ("name", String.class, "Synthetic tree id"),
+    
     // ===== All metadata nodes
     SOURCE ("source", String.class, "The name of this source. Used for all sources."),
 

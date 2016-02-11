@@ -59,6 +59,7 @@ public abstract class GraphBase {
     
     protected static Index<Node> graphOTTNodeIDIndex;
     
+    protected static Index<Node> sourceMapIndex;
     protected static Index<Node> synthMetaIndex; // metadata nodes for each synth tree
     protected static Index<Relationship> synthRelIndex;
 
@@ -439,6 +440,8 @@ public abstract class GraphBase {
         //synTaxUIDNodeIndex = graphDb.getNodeIndex("graphNamedNodesSyns", "type", "exact", "to_lower_case", "true"); // same name as 'synNodeIndex'
         
         graphOTTNodeIDIndex = graphDb.getNodeIndex("graphOTTNodeIDNodes", "type", "exact", "to_lower_case", "true");
+        
+        sourceMapIndex = graphDb.getNodeIndex("sourceMapNodes", "type", "exact", "to_lower_case", "true");
         
         // synthetic tree indices
         synthMetaIndex = graphDb.getNodeIndex("synthMetaNodes", "type", "exact", "to_lower_case", "true");
