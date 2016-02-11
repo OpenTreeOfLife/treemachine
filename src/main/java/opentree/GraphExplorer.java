@@ -3513,11 +3513,26 @@ public class GraphExplorer extends GraphBase {
                 jNd.assocObject("tip_descendants", mrcas.length);
             }
         }
-        
     }
     
     
-    
+    // get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
+    // only outgoing rels are reported
+    public ArrayList<String> getSynthesisSupportingSources (Node startNode) {
+        HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
+        if (startNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (rel.hasProperty("supporting_sources")) {
+                    String[] sources = (String[]) rel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
+                    for (String s : sources) {
+                        sourceSet.add(s);
+                    }
+                }
+            }
+        }
+        ArrayList<String> sources = new ArrayList<String>(sourceSet);
+        return sources;
+    }
     
     
     // ================================= methods for trees ====================================
@@ -3725,25 +3740,6 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    // get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
-    // only outgoing rels are reported
-    public ArrayList<String> getSynthesisSupportingSources (Node startNode) {
-            HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
-            if (startNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-                for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-                    if (rel.hasProperty("supporting_sources")) {
-                        String[] sources = (String[]) rel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
-                        for (String s : sources) {
-                            sourceSet.add(s);
-                        }
-                    }
-                }
-            }
-            ArrayList<String> sources = new ArrayList<String>(sourceSet);
-            return sources;
-    }
-    
-    
     // unlike above, this looks at STREE support (including taxonomy), not sources from synthesis alone
     public ArrayList<String> getSupportingTreeSources (Node startNode) {
             HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
@@ -3903,6 +3899,26 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    // new: "support" sources stored in rels rather than nodes
+    // need to filter by synth tree id
+    public HashMap<String, String> getSynthesisSources (Node curNode, String treeID) {
+        HashMap<String, String> sourceSet = new HashMap<>(); // only want unique sources
+        if (curNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : curNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                    // loop over properties
+                    for (String key : rel.getPropertyKeys()) {
+                        if (!"name".equals(key)) {
+                            sourceSet.put(key, (String) rel.getProperty(key));
+                        }
+                    }
+                }
+            }
+        }
+        return sourceSet;
+    }
+    
+    
     /**
      * @return a JadeTree representation of a subtree of the synthesis tree
      * @param maxDepth is the max number of edges between the root and an included node
@@ -3920,8 +3936,10 @@ public class GraphExplorer extends GraphBase {
         List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
         root.assocObject("pathToRoot", pathToRoot); // TODO: add supported by sources to this
         
+        
         ArrayList<String> allSources = new ArrayList<String>(); // used in tree browser
         for (Node nd : pathToRoot) {
+            // update to getSynthesisSources(nd, treeID)
             ArrayList<String> curSources = getSynthesisSupportingSources(nd);
             if (!curSources.isEmpty()) {
                 allSources.addAll(curSources);
@@ -3929,18 +3947,20 @@ public class GraphExplorer extends GraphBase {
         }
         
         // TODO: update all of this
+        // update to getSynthesisSources(nd, treeID)
         ArrayList<String> rootSynthSources = getSynthesisSupportingSources(rootnode);
         String[] sources = rootSynthSources.stream().toArray(String[]::new); // java8
         root.assocObject("supporting_sources", sources);
         
         allSources.addAll(rootSynthSources);
         
+        
         // add source info
         for (String s : allSources) {
             if (!mentionedSources.containsKey(s)) {
                 IndexHits<Node> metanodes = null;
                 try {
-                    metanodes = sourceMetaIndex.get("source", s);
+                    metanodes = sourceMetaIndex.get("source", s); // not using this index
                     Node m1 = null;
                     if (metanodes.hasNext()) {
                         m1 = metanodes.next();
@@ -3952,11 +3972,12 @@ public class GraphExplorer extends GraphBase {
             }
         }
         
-        boolean printlengths = false;
+        //boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
         node2JadeNode.put(rootnode, root);
-        TraversalDescription synthEdgeTraversal = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
-        //@TEMP should create an evaluator to check the name of the SYNTHCHILDOF rel and not follow paths with the wrong name...
+        TraversalDescription synthEdgeTraversal = Traversal.description().
+            relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
+        
         synthEdgeTraversal = synthEdgeTraversal.depthFirst();
         if (maxDepth >= 0) {
             synthEdgeTraversal = synthEdgeTraversal.evaluator(Evaluators.toDepth(maxDepth));
@@ -3979,11 +4000,13 @@ public class GraphExplorer extends GraphBase {
                     } else {
                         unnamedChildNodes.add(childNode);
                     }
-                    decorateJadeNodeWithCoreProperties(jChild, childNode);
+                    addCorePropertiesToJadeNode(jChild, childNode);
+                    /*
                     if (furshestRel.hasProperty("branch_length")) {
                         printlengths = true;
                         jChild.setBL((Double) furshestRel.getProperty("branch_length"));
                     }
+                    */
                     if (furshestRel.hasProperty("supporting_sources")) {
                         String [] supportingSources = (String []) furshestRel.getProperty("supporting_sources");
                         jChild.assocObject("supporting_sources", supportingSources);
@@ -3991,7 +4014,7 @@ public class GraphExplorer extends GraphBase {
                             if (!mentionedSources.containsKey(s)) {
                                 IndexHits<Node> metanodes = null;
                                 try {
-                                    metanodes = sourceMetaIndex.get("source", s);
+                                    metanodes = sourceMetaIndex.get("source", s); // not using this index
                                     Node m1 = null;
                                     if (metanodes.hasNext()) {
                                         m1 = metanodes.next();
@@ -4028,16 +4051,62 @@ public class GraphExplorer extends GraphBase {
                 cjn.assocObject("hasChildren", hc);
             }
         }
-        
         // print the newick string
         JadeTree tree = new JadeTree(root);
         root.assocObject("nodedepth", root.getNodeMaxDepth());
         if (!mentionedSources.isEmpty()) {
             root.assocObject("sourceMetaList", mentionedSources);
         }
-        //    tree.setHasBranchLengths(printlengths); // commented out because it seems to be failing with newer version of jade dependency.. not sure why
         return tree;
     }
+    
+    
+    private static void addCorePropertiesToJadeNode(JadeNode jNd, Node nd) {
+        if (nd.hasProperty("name")) {
+            jNd.setName((String) nd.getProperty("name"));
+        }
+        // don't want node id anymore
+        /*
+        final long nid = nd.getId();
+        jNd.assocObject("nodeid", nid);
+        */
+        
+        // this basically replaces nodeid above
+        jNd.assocObject("otNodeId", nd.getProperty("ot_node_id"));
+        
+        if (nd.hasProperty("uniqname")) {
+            jNd.assocObject("uniqname", nd.getProperty("uniqname"));
+        }
+        if (nd.hasProperty("tax_source")) {
+            jNd.assocObject("taxSource", nd.getProperty("tax_source"));
+        }
+        if (nd.hasProperty("tax_sourceid")) {
+            jNd.assocObject("taxSourceId", nd.getProperty("tax_sourceid"));
+        }
+        if (nd.hasProperty("tax_rank")) {
+            jNd.assocObject("taxRank", nd.getProperty("tax_rank"));
+        }
+        if (nd.hasProperty("tax_uid")) {
+            jNd.assocObject("ottId", nd.getProperty("tax_uid"));
+        }
+        
+        // hmm. not using mrca
+        /*
+        if (nd.hasProperty("mrca")) {
+            long[] mrcas = (long[]) nd.getProperty("mrca");
+            if (mrcas.length == 1) {
+                if (mrcas[0] == nid) {
+                    jNd.assocObject("tip_descendants", 0);
+                } else {
+                    jNd.assocObject("tip_descendants", 1);
+                }
+            } else {
+                jNd.assocObject("tip_descendants", mrcas.length);
+            }
+        }
+        */
+    }
+    
     
     public HashMap<String, Object> getNodeTaxInfo(Node n) {
         
