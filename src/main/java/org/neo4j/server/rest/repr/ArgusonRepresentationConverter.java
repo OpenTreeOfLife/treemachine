@@ -164,21 +164,13 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 
                 // report metadata for the sources mentioned in supporting_sources. the sourceMetaList property
                 //    should be set for the root
+                /*
                 Object n2m = inNode.getObject("sourceMetaList");
                 if (n2m != null) {
                     serializer.putMapping("sourceToMetaMap", getSourceMetadataRepresentation(inNode));
                 }
-                
-                
-                
-                // ugly temp stuff
-                /*
-                Object terp = inNode.getObject("supported_by");
-                if (terp != null) {
-                    HashMap<String, Object> foo = (HashMap<String, Object>) inNode.getObject("supported_by");
-                    serializer.putMapping("supported_by", GeneralizedMappingRepresentation.getMapRepresentation(foo));
-                }
                 */
+                
                 
                 Object terp = inNode.getObject("annotations");
                 if (terp != null) {
@@ -188,6 +180,14 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                         serializer.putMapping(indProp, GeneralizedMappingRepresentation.getMapRepresentation(prop));
                     }
                 }
+                
+                // source id map
+                terp = inNode.getObject("sourceMap");
+                if (terp != null) {
+                    HashMap<String, Object> sMap = (HashMap<String, Object>) inNode.getObject("sourceMap");
+                    serializer.putMapping("sourceToMetaMap", GeneralizedMappingRepresentation.getMapRepresentation(sMap));
+                }
+                
             }
         };
     }
