@@ -40,7 +40,7 @@ public class graph extends ServerPlugin {
     @Description("Returns summary information about the draft synthetic tree(s) "
         + "currently contained within the graph database.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation about(@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
+    public Representation about (@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
 
         HashMap<String, Object> graphInfo = new HashMap<>();
         
@@ -79,10 +79,10 @@ public class graph extends ServerPlugin {
         + "only the curator-designated ingroup clade, and 2) both unmapped and duplicate tips are pruned "
         + "from the tree. The tree is returned in newick format, with terminal nodes labelled with ott ids.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation source_tree(
+    public Representation source_tree (
         @Source GraphDatabaseService graphDb,
 
-        @Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")")
+        @Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\").")
         @Parameter(name = "study_id", optional = false)
         String studyID,
 
@@ -143,12 +143,16 @@ public class graph extends ServerPlugin {
         + "of interest may be specified using its `ott_node_id`. If the specified "
         + "node is not in the graph, an error will be returned.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation node_info(
+    public Representation node_info (
         @Source GraphDatabaseService graphDb,
         
         @Description("The `ott_node_id` of the node of interest.")
         @Parameter(name = "node_id", optional = false)
-        String otNodeID
+        String otNodeID,
+        
+        @Description("The synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID
         
         ) throws IllegalArgumentException, TaxonNotFoundException {
         
@@ -156,6 +160,12 @@ public class graph extends ServerPlugin {
         
         String nodeId = otNodeID;
         Node qNode = null;
+        String synthTreeID = null;
+        Node meta = null;
+        
+        if (treeID != null) {
+            synthTreeID = treeID;
+        }
         
         LinkedList<HashMap<String, Object>> synthSources = new LinkedList<>();
         LinkedList<HashMap<String, Object>> treeSources = new LinkedList<>();
@@ -174,7 +184,24 @@ public class graph extends ServerPlugin {
             throw new IllegalArgumentException(ret);
         }
         
+        if (synthTreeID != null) {
+            meta = ge.getSynthesisMetaNodeByName(synthTreeID);
+            // invalid treeid
+            if (meta == null) {
+                ge.shutdownDB();
+                String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
+                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
+            }
+        } else {
+            // default to most recent
+            meta = ge.getMostRecentSynthesisMetaNode();
+            synthTreeID = (String) meta.getProperty("tree_id");
+        }
+        
         nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
+        
+        nodeIfo.putAll(ge.getSynthMetadata(qNode, synthTreeID));
         
         // TODO: add synth-tree-specific metadata (stored in outgoing rels)
         

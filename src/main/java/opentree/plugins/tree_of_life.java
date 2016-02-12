@@ -29,7 +29,6 @@ import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
-import org.opentree.graphdb.GraphDatabaseAgent;
 
 // Graph of Life Services 
 public class tree_of_life extends ServerPlugin {
@@ -58,7 +57,7 @@ public class tree_of_life extends ServerPlugin {
         @Parameter(name = "study_list", optional = true)
         Boolean study_list,
         
-        @Description("Synthetic tree identifier")
+        @Description("Synthetic tree identifier (defaults to most recent)")
         @Parameter(name = "tree_id", optional = true)
         String treeID
         

@@ -3516,23 +3516,7 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    // get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
-    // only outgoing rels are reported
-    public ArrayList<String> getSynthesisSupportingSources (Node startNode) {
-        HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
-        if (startNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-            for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-                if (rel.hasProperty("supporting_sources")) {
-                    String[] sources = (String[]) rel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
-                    for (String s : sources) {
-                        sourceSet.add(s);
-                    }
-                }
-            }
-        }
-        ArrayList<String> sources = new ArrayList<String>(sourceSet);
-        return sources;
-    }
+    
     
     
     // ================================= methods for trees ====================================
@@ -3808,7 +3792,7 @@ public class GraphExplorer extends GraphBase {
      * @param synthTreeName is the synthetic tree 'tree_id' identifier
      * @return metadata Node for queried synthetic tree id
      */
-    public Node getSynthesisMetaNodeByName(String synthTreeName) {
+    public Node getSynthesisMetaNodeByName (String synthTreeName) {
         IndexHits<Node> hits = synthMetaIndex.query("name", synthTreeName);
         Node metaDataNode = null;
         if (hits.hasNext()) {
@@ -3823,7 +3807,7 @@ public class GraphExplorer extends GraphBase {
      * @param synthTreeName is the synthetic tree 'tree_id' identifier
      * @return sourceMapNode Node for queried synthetic tree id
      */
-    public Node getSourceMapNodeByName(String synthTreeName) {
+    public Node getSourceMapNodeByName (String synthTreeName) {
         IndexHits<Node> hits = sourceMapIndex.query("name", synthTreeName);
         Node sourceMapNode = null;
         if (hits.hasNext()) {
@@ -3837,7 +3821,7 @@ public class GraphExplorer extends GraphBase {
     /**
      * @return metadata Node for most recent synthetic tree
      */
-    public Node getMostRecentSynthesisMetaNode() {
+    public Node getMostRecentSynthesisMetaNode () {
         String treeid = getMostRecentSynthTreeID();
         Node nd = getSynthesisMetaNodeByName(treeid);
         return nd;
@@ -3871,13 +3855,13 @@ public class GraphExplorer extends GraphBase {
      *        distance from the root. If maxDepth is negative, no threshold is applied
      * @throws TaxonNotFoundException
      */
-    public JadeTree reconstructSyntheticTree(String treeID, String startOTNodeID, int maxDepth) throws TaxonNotFoundException {
+    public JadeTree reconstructSyntheticTree (String treeID, String startOTNodeID, int maxDepth) throws TaxonNotFoundException {
         Node rootnode = findGraphNodeByOTTNodeID(startOTNodeID);
         return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
     }
     
     
-    private List<Node> getPathToRoot(Node startNode, RelType relType, String nameToFilterBy) {
+    private List<Node> getPathToRoot (Node startNode, RelType relType, String nameToFilterBy) {
         ArrayList<Node> path = new ArrayList<Node>();
         Node curNode = startNode;
         while (true) {
@@ -3918,6 +3902,44 @@ public class GraphExplorer extends GraphBase {
         return sourceSet;
     }
     
+    // annotations are stored in outgoing rels
+    public HashMap<String, Object> getSynthMetadata (Node curNode, String treeID) {
+        HashMap<String, Object> results = new HashMap<>();
+        if (curNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : curNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                    // loop over properties
+                    for (String key : rel.getPropertyKeys()) {
+                        if (!"name".equals(key) && !"tip_descendants".equals(key)) {
+                            HashMap<String, String> mapProp = stringToMap((String) rel.getProperty(key));
+                            results.put(key, mapProp);
+                        }
+                    }
+                }
+            }
+        }
+        return results;
+    }
+    
+    // this is the deprecated version
+    // get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
+    // only outgoing rels are reported
+    public ArrayList<String> getSynthesisSupportingSources (Node startNode) {
+        HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
+        if (startNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (rel.hasProperty("supporting_sources")) {
+                    String[] sources = (String[]) rel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
+                    for (String s : sources) {
+                        sourceSet.add(s);
+                    }
+                }
+            }
+        }
+        ArrayList<String> sources = new ArrayList<String>(sourceSet);
+        return sources;
+    }
+    
     
     /**
      * @return a JadeTree representation of a subtree of the synthesis tree
@@ -3927,8 +3949,13 @@ public class GraphExplorer extends GraphBase {
      * @param treeID the synthetic tree identifier
      * @param rootnode the root of the returned tree
      */
-    private JadeTree reconstructSyntheticTreeHelper(String treeID, Node rootnode, int maxDepth) {
-        HashMap<String, Node> mentionedSources = new HashMap<String, Node>();
+    private JadeTree reconstructSyntheticTreeHelper (String treeID, Node rootnode, int maxDepth) {
+        
+        // don't want this
+        HashMap<String, Node> mentionedSources = new HashMap<>();
+        
+        
+        HashSet<String> uniqueSources = new HashSet<String>();
         
         JadeNode root = new JadeNode();
         decorateJadeNodeWithCoreProperties(root, rootnode);
@@ -4055,13 +4082,14 @@ public class GraphExplorer extends GraphBase {
         JadeTree tree = new JadeTree(root);
         root.assocObject("nodedepth", root.getNodeMaxDepth());
         if (!mentionedSources.isEmpty()) {
+            // mentionedSources is currently: HashMap<String, Node>
             root.assocObject("sourceMetaList", mentionedSources);
         }
         return tree;
     }
     
     
-    private static void addCorePropertiesToJadeNode(JadeNode jNd, Node nd, String treeID) {
+    private static void addCorePropertiesToJadeNode (JadeNode jNd, Node nd, String treeID) {
         if (nd.hasProperty("name")) {
             jNd.setName((String) nd.getProperty("name"));
         }
@@ -4071,7 +4099,7 @@ public class GraphExplorer extends GraphBase {
         jNd.assocObject("nodeid", nid);
         */
         
-        // this basically replaces nodeid above
+        // this basically replaces (neo4j) nodeid from before
         jNd.assocObject("otNodeId", nd.getProperty("ot_node_id"));
         
         if (nd.hasProperty("uniqname")) {
@@ -4103,26 +4131,10 @@ public class GraphExplorer extends GraphBase {
                 }
             }
         }
-        
-        // hmm. not using mrca
-        /*
-        if (nd.hasProperty("mrca")) {
-            long[] mrcas = (long[]) nd.getProperty("mrca");
-            if (mrcas.length == 1) {
-                if (mrcas[0] == nid) {
-                    jNd.assocObject("tip_descendants", 0);
-                } else {
-                    jNd.assocObject("tip_descendants", 1);
-                }
-            } else {
-                jNd.assocObject("tip_descendants", mrcas.length);
-            }
-        }
-        */
     }
     
     
-    public HashMap<String, Object> getNodeTaxInfo(Node n) {
+    public HashMap<String, Object> getNodeTaxInfo (Node n) {
         
         HashMap<String, Object> results = new HashMap<>();
         String name = "";

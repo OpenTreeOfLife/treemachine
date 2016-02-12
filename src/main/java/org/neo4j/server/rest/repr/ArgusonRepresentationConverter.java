@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import org.opentree.utils.GeneralUtils;
@@ -103,6 +102,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     serializer.putNumber("maxnodedepth", (Integer) inNode.getObject("nodedepth"));
                 }
                 
+                
                 if (inNode.getObject("tip_descendants") != null) {
                     serializer.putNumber("nTipDescendants", (Integer) inNode.getObject("tip_descendants"));
                 }
@@ -112,6 +112,11 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 } else {
                     serializer.putNumber("nleaves", 0);
                 }
+                
+                
+                
+                
+                // could do a similar thing to below for supported_by, etc.
                 
                 String [] optProperties = {"uniqName", "taxSource", "taxSourceId", "taxRank", "ottId"};
                 for (String optPropertyName : optProperties) {
@@ -143,7 +148,8 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     }
                     serializer.putList("descendantNameList", OTRepresentationConverter.getListRepresentation(dnlList));
                 }
-
+                
+                
                 // report tree IDs supporting each clade as supportedBy list of strings
                 String[] sup = (String[]) inNode.getObject("supporting_sources");
                 if (sup != null) {
@@ -163,7 +169,8 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
             }
         };
     }
-
+    
+    
     /** Returns a representation object capable of serializing a brief summary of a Node. Currently the fields written are: nodeid, name.
      * @param nd
      * @returns node representation
@@ -178,6 +185,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
         
         return GeneralizedMappingRepresentation.getMapRepresentation(nodeInfoMap);
     }
+    
     
     // same as above, but with more info returned
     public static Representation getNodeRepresentationWithMetadata(final Node nd) {
@@ -223,6 +231,52 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
         return GeneralizedMappingRepresentation.getMapRepresentation(nodeInfoMap);
     }
     
+    
+    // just use what is in tree_of_life/about
+    public static MappingRepresentation getsourceToMetaMap (JadeNode inNode) {
+        
+        HashMap<String, Node> sourceNameToMetadataNodeMap = (HashMap<String, Node>) inNode.getObject("sourceMetaList");
+        HashMap<String, Object> sourceMetadataMap = new HashMap<String, Object>();
+        
+        for (String sourceName : sourceNameToMetadataNodeMap.keySet()) {
+            
+            HashMap<String, Object> studyMetadata = new HashMap<String, Object>();
+            
+            Node metadataNode = sourceNameToMetadataNodeMap.get(sourceName);
+            if (sourceName == null || sourceName.length() == 0) {
+                sourceName = "unnamedSource";
+            }
+            if (metadataNode == null) {
+                sourceMetadataMap.put(sourceName, null);
+            } else {
+                for (SourceProperty p : SourceProperty.values()) {
+                    if (metadataNode.hasProperty(p.propertyName)) {
+                        if (!p.propertyName.equals("newick")) {
+                            if (p.propertyName.equals("source")) {
+                                String sStudy = String.valueOf(metadataNode.getProperty(p.propertyName));
+                                if (sStudy.compareTo("taxonomy") == 0) {
+                                    // get taxonomy version. stored at node 0
+                                    GraphDatabaseAgent gda = new GraphDatabaseAgent(metadataNode.getGraphDatabase());
+                                    String taxVersion = String.valueOf(gda.getGraphProperty("graphRootNodeTaxonomy"));
+                                    gda.shutdownDb();
+                                    studyMetadata.put("version", taxVersion);
+                                } else {
+                                    HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(sStudy);
+                                    studyMetadata.putAll(indStudy);
+                                }
+                            } else { // allow the possibility of future metadata
+                                studyMetadata.put(p.propertyName, p.type.cast(metadataNode.getProperty(p.propertyName)));
+                            }
+                        }
+                    }
+                }
+                sourceMetadataMap.put(sourceName, studyMetadata);
+            }
+        }
+
+        return GeneralizedMappingRepresentation.getMapRepresentation(sourceMetadataMap);
+    }
+    
     public static MappingRepresentation getSourceMetadataRepresentation(JadeNode inNode) {
         
         HashMap<String, Node> sourceNameToMetadataNodeMap = (HashMap<String, Node>) inNode.getObject("sourceMetaList");
@@ -266,14 +320,16 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 
         return GeneralizedMappingRepresentation.getMapRepresentation(sourceMetadataMap);
     }
-
+    
+    
     // ////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // general serialization methods below here, mostly just copied from Neo4j
     // RepresentationConverter classes
     //
     // ///////////////////////////////////////////////////////////////////////////////////////////////////
-
+    
+    
     @Override
     String serialize(RepresentationFormat format, URI baseUri,
             ExtensionInjector extensions) {
@@ -283,19 +339,23 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
         writer.done();
         return format.complete(writer);
     }
-
+    
+    
     @Override
     void addTo(ListSerializer serializer) {
         serializer.addMapping(this);
     }
-
+    
+    
     @Override
     void putTo(MappingSerializer serializer, String key) {
         serializer.putMapping(key, this);
     }
-
+    
+    
     @Override
     protected void serialize(MappingSerializer serializer) {
         throw new java.lang.UnsupportedOperationException("unimplemented method");
-    }        
+    }
+    
 }
