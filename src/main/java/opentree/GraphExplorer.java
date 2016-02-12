@@ -3480,45 +3480,6 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    private static void decorateJadeNodeWithCoreProperties(JadeNode jNd, Node nd) {
-        if (nd.hasProperty("name")) {
-            jNd.setName((String) nd.getProperty("name"));
-        }
-        final long nid = nd.getId();
-        jNd.assocObject("nodeid", nid);
-        if (nd.hasProperty("uniqname")) {
-            jNd.assocObject("uniqname", nd.getProperty("uniqname"));
-        }
-        if (nd.hasProperty("tax_source")) {
-            jNd.assocObject("taxSource", nd.getProperty("tax_source"));
-        }
-        if (nd.hasProperty("tax_sourceid")) {
-            jNd.assocObject("taxSourceId", nd.getProperty("tax_sourceid"));
-        }
-        if (nd.hasProperty("tax_rank")) {
-            jNd.assocObject("taxRank", nd.getProperty("tax_rank"));
-        }
-        if (nd.hasProperty("tax_uid")) {
-            jNd.assocObject("ottId", nd.getProperty("tax_uid"));
-        }
-        if (nd.hasProperty("mrca")) {
-            long[] mrcas = (long[]) nd.getProperty("mrca");
-            if (mrcas.length == 1) {
-                if (mrcas[0] == nid) {
-                    jNd.assocObject("tip_descendants", 0);
-                } else {
-                    jNd.assocObject("tip_descendants", 1);
-                }
-            } else {
-                jNd.assocObject("tip_descendants", mrcas.length);
-            }
-        }
-    }
-    
-    
-    
-    
-    
     // ================================= methods for trees ====================================
     public void labelInternalNodesTax(JadeTree tree, MessageLogger logger) {
         //first get the unequivocal ones
@@ -3862,7 +3823,7 @@ public class GraphExplorer extends GraphBase {
     
     
     private List<Node> getPathToRoot (Node startNode, RelType relType, String nameToFilterBy) {
-        ArrayList<Node> path = new ArrayList<Node>();
+        ArrayList<Node> path = new ArrayList<>();
         Node curNode = startNode;
         while (true) {
             Node nextNode = null;
@@ -3881,27 +3842,6 @@ public class GraphExplorer extends GraphBase {
             }
         }
     }
-    
-    /*
-    // new: "support" sources stored in rels rather than nodes
-    // need to filter by synth tree id
-    public HashMap<String, String> getSynthesisSources (Node curNode, String treeID) {
-        HashMap<String, String> sourceSet = new HashMap<>(); // only want unique sources
-        if (curNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-            for (Relationship rel : curNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-                if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
-                    // loop over properties
-                    for (String key : rel.getPropertyKeys()) {
-                        if (!"name".equals(key)) {
-                            sourceSet.put(key, (String) rel.getProperty(key));
-                        }
-                    }
-                }
-            }
-        }
-        return sourceSet;
-    }
-    */
     
     
     // annotations are stored in outgoing rels
@@ -3980,19 +3920,17 @@ public class GraphExplorer extends GraphBase {
      */
     private JadeTree reconstructSyntheticTreeHelper (String treeID, Node rootnode, int maxDepth) {
         
-        // don't want this
-        HashMap<String, Node> mentionedSources = new HashMap<>();
-        
-        
         HashSet<String> uniqueSources = new HashSet<>();
         
         JadeNode root = new JadeNode();
-        decorateJadeNodeWithCoreProperties(root, rootnode);
+        addCorePropertiesToJadeNode(root, rootnode, treeID);
         
         List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
-        root.assocObject("pathToRoot", pathToRoot); // TODO: add supported by sources to this
+        root.assocObject("path_to_root", pathToRoot); // TODO: add supported by sources to this
         
+        root.assocObject("treeID", treeID);
         
+        // update this
         ArrayList<String> allSources = new ArrayList<String>(); // used in tree browser
         for (Node nd : pathToRoot) {
             // update to getSynthesisSources(nd, treeID)
@@ -4002,44 +3940,9 @@ public class GraphExplorer extends GraphBase {
             }
         }
         
-        // TODO: update all of this
-        // update to getSynthesisSources(nd, treeID)
-        
-        HashMap<String, Object> rootProps = getSynthMetadataAndUniqueSources(rootnode, treeID, uniqueSources);
-        
-        //ArrayList<String> rootSynthSources = getSynthesisSupportingSources(rootnode);
-        //String[] sources = rootSynthSources.stream().toArray(String[]::new); // java8
-        //root.assocObject("supporting_sources", sources);
-        
+        HashMap<String, Object> rootProps = getSynthMetadataAndUniqueSources(rootnode, 
+            treeID, uniqueSources);
         root.assocObject("annotations", rootProps);
-        
-        /*
-        rootProps.keySet().stream().forEach((key) -> {
-            root.assocObject(key, rootProps.get(key));
-        });
-        */
-        
-        /*
-        allSources.addAll(rootSynthSources);
-        
-        
-        // add source info
-        for (String s : allSources) {
-            if (!mentionedSources.containsKey(s)) {
-                IndexHits<Node> metanodes = null;
-                try {
-                    metanodes = sourceMetaIndex.get("source", s); // not using this index
-                    Node m1 = null;
-                    if (metanodes.hasNext()) {
-                        m1 = metanodes.next();
-                    }
-                    mentionedSources.put(s, m1);
-                } finally {
-                    metanodes.close();
-                }
-            }
-        }
-        */
         
         //boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
@@ -4107,7 +4010,7 @@ public class GraphExplorer extends GraphBase {
             }
         }
         if (internalNodes.isEmpty()) {
-            root.assocObject("hasChildren", false);
+            root.assocObject("has_children", false);
         }
         for (Node ucn : unnamedChildNodes) {
             if (!internalNodes.contains(ucn)) {
@@ -4116,14 +4019,14 @@ public class GraphExplorer extends GraphBase {
                 JadeNode cjn = node2JadeNode.get(ucn);
                 cjn.assocObject("descendantNameList", dnA);
                 Boolean hc = new Boolean(hasIncomingRel(ucn, RelType.SYNTHCHILDOF, treeID));
-                cjn.assocObject("hasChildren", hc);
+                cjn.assocObject("has_children", hc);
             }
         }
         for (Node ncn : namedChildNodes) {
             if (!internalNodes.contains(ncn)) {
                 JadeNode cjn = node2JadeNode.get(ncn);
                 Boolean hc = new Boolean(hasIncomingRel(ncn, RelType.SYNTHCHILDOF, treeID));
-                cjn.assocObject("hasChildren", hc);
+                cjn.assocObject("has_children", hc);
             }
         }
         
@@ -4156,22 +4059,22 @@ public class GraphExplorer extends GraphBase {
         */
         
         // this basically replaces (neo4j) nodeid from before
-        jNd.assocObject("otNodeId", nd.getProperty("ot_node_id"));
+        jNd.assocObject("ot_node_id", nd.getProperty("ot_node_id"));
         
         if (nd.hasProperty("uniqname")) {
             jNd.assocObject("uniqname", nd.getProperty("uniqname"));
         }
         if (nd.hasProperty("tax_source")) {
-            jNd.assocObject("taxSource", nd.getProperty("tax_source"));
+            jNd.assocObject("tax_source", nd.getProperty("tax_source"));
         }
         if (nd.hasProperty("tax_sourceid")) {
             jNd.assocObject("taxSourceId", nd.getProperty("tax_sourceid"));
         }
         if (nd.hasProperty("tax_rank")) {
-            jNd.assocObject("taxRank", nd.getProperty("tax_rank"));
+            jNd.assocObject("tax_rank", nd.getProperty("tax_rank"));
         }
         if (nd.hasProperty("tax_uid")) {
-            jNd.assocObject("ottId", nd.getProperty("tax_uid"));
+            jNd.assocObject("ott_id", nd.getProperty("tax_uid"));
         }
         
         // num descendants stored in rel, since it may change depending on taxonomy, 
@@ -4179,11 +4082,9 @@ public class GraphExplorer extends GraphBase {
         if (nd.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
             for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
                 if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
-                    
                     if (rel.hasProperty("tip_descendants")) {
                         jNd.assocObject("tip_descendants", rel.getProperty("tip_descendants"));
                     }
-                    
                 }
             }
         }
@@ -4216,7 +4117,7 @@ public class GraphExplorer extends GraphBase {
                     taxSources.put(tSource[0], tSource[1]);
                 }
             }
-            results.put("tax_source", taxSources);
+            results.put("tax_sources", taxSources);
         }
         
         results.put("ot_node_id", nodeID);

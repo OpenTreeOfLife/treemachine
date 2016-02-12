@@ -72,53 +72,40 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 *
                 * END EXAMPLE CODE
                 */
-                            
+                
+                String treeID = (String) inNode.getObject("treeID");
+                
                 if (inNode.getName() != null) {
                     serializer.putString("name", inNode.getName());
                 } else {
                     serializer.putString("name", "");
                 }
-                
-                /*
-                if (inNode.getObject("nodeid") != null) {
-                    serializer.putNumber("nodeid", (Long) inNode.getObject("nodeid"));
+                if (inNode.getObject("ot_node_id") != null) {
+                    serializer.putString("ot_node_id", (String) inNode.getObject("ot_node_id"));
                 }
-                */
-                
-                if (inNode.getObject("otNodeId") != null) {
-                    serializer.putString("otNodeId", (String) inNode.getObject("otNodeId"));
-                }
-                
                 ArrayList<Representation> children = new ArrayList<Representation>();
                 for (int i = 0; i < inNode.getChildCount(); i++) {
                     children.add(ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(inNode.getChild(i)));
                 }
-                
                 if (children.size() > 0) {
                     serializer.putList("children", OTRepresentationConverter.getListRepresentation(children));
                 }
-                
                 if (inNode.getObject("nodedepth") != null) {
-                    serializer.putNumber("maxnodedepth", (Integer) inNode.getObject("nodedepth"));
+                    serializer.putNumber("max_node_depth", (Integer) inNode.getObject("nodedepth"));
                 }
-                
-                
                 if (inNode.getObject("tip_descendants") != null) {
-                    serializer.putNumber("nTipDescendants", (Integer) inNode.getObject("tip_descendants"));
+                    serializer.putNumber("n_tip_descendants", (Integer) inNode.getObject("tip_descendants"));
                 }
-                
                 if (inNode.isInternal()) {
-                    serializer.putNumber("nleaves", inNode.getTips().size());
+                    serializer.putNumber("n_leaves", inNode.getTips().size());
                 } else {
-                    serializer.putNumber("nleaves", 0);
+                    serializer.putNumber("n_leaves", 0);
                 }
                 
                 
                 
-                
-                // could do a similar thing to below for supported_by, etc.
-                
-                String [] optProperties = {"uniqName", "taxSource", "taxSourceId", "taxRank", "ottId"};
+                // update this
+                String [] optProperties = {"uniqname", "tax_source", "taxSourceId", "tax_rank", "ott_id", "ot_node_id"};
                 for (String optPropertyName : optProperties) {
                     if (inNode.getObject(optPropertyName) != null) {
                         serializer.putString(optPropertyName, (String) inNode.getObject(optPropertyName));
@@ -126,18 +113,18 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 }
                 
                 // add in metadata for pathToRoot (requested by jimallman)
-                List<Node> pathToRoot = (List<Node>) inNode.getObject("pathToRoot");
+                List<Node> pathToRoot = (List<Node>) inNode.getObject("path_to_root");
                 if (pathToRoot != null) {
                     LinkedList<Representation> pathToRootRepresentation = new LinkedList<Representation>();
 
                     for (Node m : pathToRoot) {
-                        pathToRootRepresentation.add(ArgusonRepresentationConverter.getNodeRepresentationWithMetadata(m));
+                        pathToRootRepresentation.add(ArgusonRepresentationConverter.getNodeRepresentationWithMetadata(m, treeID));
                     }
-                    serializer.putList("pathToRoot", OTRepresentationConverter.getListRepresentation(pathToRootRepresentation));
+                    serializer.putList("path_to_root", OTRepresentationConverter.getListRepresentation(pathToRootRepresentation));
                 }
                 
-                if (inNode.getObject("hasChildren") != null) {
-                    serializer.putBoolean("hasChildren", (Boolean) inNode.getObject("hasChildren"));
+                if (inNode.getObject("has_children") != null) {
+                    serializer.putBoolean("has_children", (Boolean) inNode.getObject("has_children"));
                 }
                 
                 String[] dnl = (String[]) inNode.getObject("descendantNameList");
@@ -146,7 +133,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     for (int i = 0; i < dnl.length; i++) {
                         dnlList.add(dnl[i]);
                     }
-                    serializer.putList("descendantNameList", OTRepresentationConverter.getListRepresentation(dnlList));
+                    serializer.putList("descendant_name_list", OTRepresentationConverter.getListRepresentation(dnlList));
                 }
                 
                 
@@ -172,8 +159,8 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 */
                 
                 
-                Object terp = inNode.getObject("annotations");
-                if (terp != null) {
+                
+                if (inNode.getObject("annotations") != null) {
                     HashMap<String, Object> ann = (HashMap<String, Object>) inNode.getObject("annotations");
                     for (String indProp : ann.keySet()) {
                         HashMap<String, Object> prop = (HashMap<String, Object>) ann.get(indProp);
@@ -182,8 +169,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 }
                 
                 // source id map
-                terp = inNode.getObject("sourceMap");
-                if (terp != null) {
+                if (inNode.getObject("sourceMap") != null) {
                     HashMap<String, Object> sMap = (HashMap<String, Object>) inNode.getObject("sourceMap");
                     serializer.putMapping("sourceToMetaMap", GeneralizedMappingRepresentation.getMapRepresentation(sMap));
                 }
@@ -209,10 +195,10 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
     
     
     // same as above, but with more info returned
-    public static Representation getNodeRepresentationWithMetadata(final Node nd) {
+    public static Representation getNodeRepresentationWithMetadata(final Node nd, String treeID) {
         
         HashMap<String, Object> nodeInfoMap = new HashMap<String, Object>();
-        nodeInfoMap.put("nodeid", nd.getId());
+        //nodeInfoMap.put("nodeid", nd.getId());
         if (nd.hasProperty("name")) {
             nodeInfoMap.put("name", nd.getProperty("name"));
         }
@@ -220,16 +206,19 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
             nodeInfoMap.put("uniqname", nd.getProperty("uniqname"));
         }
         if (nd.hasProperty("tax_source")) {
-            nodeInfoMap.put("taxSource", nd.getProperty("tax_source"));
+            nodeInfoMap.put("tax_source", nd.getProperty("tax_source"));
         }
         if (nd.hasProperty("tax_sourceid")) {
             nodeInfoMap.put("taxSourceId", nd.getProperty("tax_sourceid"));
         }
         if (nd.hasProperty("tax_rank")) {
-            nodeInfoMap.put("taxRank", nd.getProperty("tax_rank"));
+            nodeInfoMap.put("tax_rank", nd.getProperty("tax_rank"));
         }
         if (nd.hasProperty("tax_uid")) {
-            nodeInfoMap.put("ottId", nd.getProperty("tax_uid"));
+            nodeInfoMap.put("ott_id", nd.getProperty("tax_uid"));
+        }
+        if (nd.hasProperty("ot_node_id")) {
+            nodeInfoMap.put("ot_node_id", nd.getProperty("ot_node_id"));
         }
         
         LinkedList<String> sourceList = new LinkedList<String>();
