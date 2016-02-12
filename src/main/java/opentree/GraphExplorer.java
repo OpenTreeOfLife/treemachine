@@ -3934,6 +3934,12 @@ public class GraphExplorer extends GraphBase {
             treeID, uniqueSources);
         root.assocObject("annotations", rootProps);
         
+        // really just to update uniqueSources with path_to_root nodes
+        for (Node n : pathToRoot) {
+            HashMap<String, Object> temp = getSynthMetadataAndUniqueSources(n, 
+            treeID, uniqueSources);
+        }
+        
         //boolean printlengths = false;
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<>();
         node2JadeNode.put(rootnode, root);
