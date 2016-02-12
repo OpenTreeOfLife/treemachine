@@ -4176,6 +4176,12 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    public HashMap<String, String> getSourceMapIndSource (String source, String treeID) {
+        HashMap<String, String> res = stringToMap((String) getSourceMapNodeByName(treeID).getProperty(source));
+        return res;
+    }
+    
+    
     public HashMap<String, String> stringToMap (String source) {
         
         HashMap<String, String> res = new HashMap<>();

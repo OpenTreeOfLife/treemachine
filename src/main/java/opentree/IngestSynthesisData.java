@@ -514,6 +514,10 @@ public class IngestSynthesisData extends GraphBase {
             }
             metaNode.setProperty(srcID, str);
         }
+        // add taxonomy as a source
+        // temp; will come from json
+        String tax = "name:ott,version:" + taxonomyVersion;
+        metaNode.setProperty("taxonomy", tax);
     }
 }
 

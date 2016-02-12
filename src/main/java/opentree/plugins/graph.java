@@ -148,11 +148,7 @@ public class graph extends ServerPlugin {
         
         @Description("The `ott_node_id` of the node of interest.")
         @Parameter(name = "node_id", optional = false)
-        String otNodeID,
-        
-        @Description("The synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "tree_id", optional = true)
-        String treeID
+        String otNodeID
         
         ) throws IllegalArgumentException, TaxonNotFoundException {
         
@@ -161,11 +157,6 @@ public class graph extends ServerPlugin {
         String nodeId = otNodeID;
         Node qNode = null;
         String synthTreeID = null;
-        Node meta = null;
-        
-        if (treeID != null) {
-            synthTreeID = treeID;
-        }
         
         LinkedList<HashMap<String, Object>> synthSources = new LinkedList<>();
         LinkedList<HashMap<String, Object>> treeSources = new LinkedList<>();
@@ -184,24 +175,35 @@ public class graph extends ServerPlugin {
             throw new IllegalArgumentException(ret);
         }
         
-        if (synthTreeID != null) {
-            meta = ge.getSynthesisMetaNodeByName(synthTreeID);
-            // invalid treeid
-            if (meta == null) {
-                ge.shutdownDB();
-                String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
-                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
-            }
-        } else {
-            // default to most recent
-            meta = ge.getMostRecentSynthesisMetaNode();
-            synthTreeID = (String) meta.getProperty("tree_id");
-        }
-        
         nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
         
-        nodeIfo.putAll(ge.getSynthMetadata(qNode, synthTreeID));
+        // will need to check here if node is in the synth tree of interest
+        // or, just report all?
+        // loop over all synth trees this node is in
+        if (qNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : qNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                HashMap<String, Object> treeInfo = new HashMap<>();
+                
+                int nTips = (int) rel.getProperty("tip_descendants");
+                synthTreeID = (String) rel.getProperty("name");
+                treeInfo.put("tip_descendants", nTips);
+                
+                HashMap<String, Object> props = ge.getSynthMetadata(qNode, synthTreeID);
+                treeInfo.putAll(props);
+                // todo: source to meta map
+                HashMap<String, Object> sourceMap = new HashMap<>();
+                for (String key : props.keySet()) {
+                    HashMap<String, Object> ind = (HashMap<String, Object>) props.get(key);
+                    for (String src : ind.keySet()) {
+                        HashMap<String, String> fsrc = ge.getSourceMapIndSource(src, synthTreeID);
+                        sourceMap.put(src, fsrc);
+                    }
+                }
+                treeInfo.put("source_id_map", sourceMap);
+                nodeIfo.put(synthTreeID, treeInfo);
+            }
+        }
+        
         
         // TODO: add synth-tree-specific metadata (stored in outgoing rels)
         

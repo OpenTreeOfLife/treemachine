@@ -53,11 +53,11 @@ public class tree_of_life extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation about (@Source GraphDatabaseService graphDb,
         
-        @Description("Return a list of source studies")
+        @Description("Return a list of source studies.")
         @Parameter(name = "study_list", optional = true)
         Boolean study_list,
         
-        @Description("Synthetic tree identifier (defaults to most recent)")
+        @Description("Synthetic tree identifier (defaults to most recent).")
         @Parameter(name = "tree_id", optional = true)
         String treeID
         
@@ -116,8 +116,7 @@ public class tree_of_life extends ServerPlugin {
                     
                     HashMap<String, Object> sourceMap = new HashMap<>();
                     for (String key : sourceMapNode.getPropertyKeys()) {
-                        String indSource = (String) sourceMapNode.getProperty(key);
-                        HashMap<String, String> formatSource = ge.stringToMap(indSource);
+                        HashMap<String, String> formatSource = ge.stringToMap((String) sourceMapNode.getProperty(key));
                         sourceMap.put(key, formatSource);
                     }
                     draftTreeInfo.put("source_id_map", sourceMap);
