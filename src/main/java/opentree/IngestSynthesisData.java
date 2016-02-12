@@ -413,6 +413,9 @@ public class IngestSynthesisData extends GraphBase {
                 newRel.setProperty(entry.getKey(), entry.getValue());
             }
             
+            // add number of tip descendants; could differ depending on taxonomy, filtering, etc.
+            int ntips = curJadeNode.getChild(i).getDescendantLeavesNumbers();
+            newRel.setProperty("tip_descendants", ntips);
             synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
             
             // print out info for Aves
