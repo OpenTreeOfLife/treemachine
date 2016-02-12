@@ -4000,7 +4000,7 @@ public class GraphExplorer extends GraphBase {
                     } else {
                         unnamedChildNodes.add(childNode);
                     }
-                    addCorePropertiesToJadeNode(jChild, childNode);
+                    addCorePropertiesToJadeNode(jChild, childNode, treeID);
                     /*
                     if (furshestRel.hasProperty("branch_length")) {
                         printlengths = true;
@@ -4061,7 +4061,7 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    private static void addCorePropertiesToJadeNode(JadeNode jNd, Node nd) {
+    private static void addCorePropertiesToJadeNode(JadeNode jNd, Node nd, String treeID) {
         if (nd.hasProperty("name")) {
             jNd.setName((String) nd.getProperty("name"));
         }
@@ -4088,6 +4088,20 @@ public class GraphExplorer extends GraphBase {
         }
         if (nd.hasProperty("tax_uid")) {
             jNd.assocObject("ottId", nd.getProperty("tax_uid"));
+        }
+        
+        // num descendants stored in rel, since it may change depending on taxonomy, 
+        // filtering, sampling, etc.
+        if (nd.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                    
+                    if (rel.hasProperty("tip_descendants")) {
+                        jNd.assocObject("tip_descendants", rel.getProperty("tip_descendants"));
+                    }
+                    
+                }
+            }
         }
         
         // hmm. not using mrca
