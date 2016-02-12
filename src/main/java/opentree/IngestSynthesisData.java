@@ -418,22 +418,12 @@ public class IngestSynthesisData extends GraphBase {
             newRel.setProperty("tip_descendants", ntips);
             synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
             
-            // print out info for Aves
-            /*
-            if (newGraphNode.getProperty("ot_node_id") == "ott81461") {
-                for (Map.Entry<String, String> entry : res.entrySet()) {
-                    System.out.println(entry.getKey() + " : " + entry.getValue());
-                }
-            }
-            */
             if (verbose) {
                 System.out.println("   Created " + newRel + ": " + childNode + "(" + 
                     childNode.getProperty("ot_node_id") + ")"
                     + " -> " + newGraphNode + "(" + newGraphNode.getProperty("ot_node_id") + ")");
             }
         }
-        
-        
         
         if (curJadeNode.getName().equals(rootTaxonID)) {
             System.out.println("This is the ROOT");

@@ -13,6 +13,7 @@ import org.opentree.utils.GeneralUtils;
 import org.opentree.graphdb.GraphDatabaseAgent;
 import org.neo4j.graphdb.Node;
 import opentree.constants.SourceProperty;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Relationship;
 
 public class ArgusonRepresentationConverter extends MappingRepresentation {
@@ -102,15 +103,18 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     serializer.putNumber("n_leaves", 0);
                 }
                 
-                
-                
-                // update this
-                String [] optProperties = {"uniqname", "tax_source", "taxSourceId", "tax_rank", "ott_id", "ot_node_id"};
+                String [] optProperties = {"uniqname", "tax_rank", "ott_id", "ot_node_id"};
                 for (String optPropertyName : optProperties) {
                     if (inNode.getObject(optPropertyName) != null) {
                         serializer.putString(optPropertyName, (String) inNode.getObject(optPropertyName));
                     }
                 }
+                if (inNode.getObject("tax_sources") != null) {
+                    HashMap<String, Object> tsMap = (HashMap<String, Object>) inNode.getObject("tax_sources");
+                    serializer.putMapping("tax_sources", GeneralizedMappingRepresentation.getMapRepresentation(tsMap));
+                }
+                
+                
                 
                 // add in metadata for pathToRoot (requested by jimallman)
                 List<Node> pathToRoot = (List<Node>) inNode.getObject("path_to_root");
@@ -135,30 +139,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     }
                     serializer.putList("descendant_name_list", OTRepresentationConverter.getListRepresentation(dnlList));
                 }
-                
-                
-                // report tree IDs supporting each clade as supportedBy list of strings
-                /*
-                String[] sup = (String[]) inNode.getObject("supporting_sources");
-                if (sup != null) {
-                    LinkedList<String> supList = new LinkedList<String>();
-                    for (int i = 0; i < sup.length; i++) {
-                        supList.add(sup[i]);
-                    }
-                    serializer.putList("supportedBy", OTRepresentationConverter.getListRepresentation(supList));
-                }
-                */
-                
-                // report metadata for the sources mentioned in supporting_sources. the sourceMetaList property
-                //    should be set for the root
-                /*
-                Object n2m = inNode.getObject("sourceMetaList");
-                if (n2m != null) {
-                    serializer.putMapping("sourceToMetaMap", getSourceMetadataRepresentation(inNode));
-                }
-                */
-                
-                
                 
                 if (inNode.getObject("annotations") != null) {
                     HashMap<String, Object> ann = (HashMap<String, Object>) inNode.getObject("annotations");
@@ -206,10 +186,9 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
             nodeInfoMap.put("uniqname", nd.getProperty("uniqname"));
         }
         if (nd.hasProperty("tax_source")) {
-            nodeInfoMap.put("tax_source", nd.getProperty("tax_source"));
-        }
-        if (nd.hasProperty("tax_sourceid")) {
-            nodeInfoMap.put("taxSourceId", nd.getProperty("tax_sourceid"));
+            String tSrc = (String) nd.getProperty("tax_source");
+            HashMap<String, String> res = stringToMap(tSrc);
+            nodeInfoMap.put("tax_sources", res);
         }
         if (nd.hasProperty("tax_rank")) {
             nodeInfoMap.put("tax_rank", nd.getProperty("tax_rank"));
@@ -221,6 +200,14 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
             nodeInfoMap.put("ot_node_id", nd.getProperty("ot_node_id"));
         }
         
+        HashMap<String, Object> md = getSynthMetadata(nd, treeID);
+        for (String indProp : md.keySet()) {
+            HashMap<String, Object> prop = (HashMap<String, Object>) md.get(indProp);
+            nodeInfoMap.put(indProp, prop);
+        }
+        
+        /*
+        // this does not exist
         LinkedList<String> sourceList = new LinkedList<String>();
         if (nd.hasRelationship(RelType.SYNTHCHILDOF)) {
             for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF)) {
@@ -237,11 +224,44 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
         if (sourceList.size() != 0) {
             nodeInfoMap.put("supporting_sources", sourceList);
         }
-        
+        */
         return GeneralizedMappingRepresentation.getMapRepresentation(nodeInfoMap);
     }
     
+    public static HashMap<String, Object> getSynthMetadata (Node curNode, String treeID) {
+        HashMap<String, Object> results = new HashMap<>();
+        if (curNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : curNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                    // loop over properties
+                    for (String key : rel.getPropertyKeys()) {
+                        if (!"name".equals(key) && !"tip_descendants".equals(key)) {
+                            HashMap<String, String> mapProp = stringToMap((String) rel.getProperty(key));
+                            results.put(key, mapProp);
+                        }
+                    }
+                }
+            }
+        }
+        return results;
+    }
     
+    public static HashMap<String, String> stringToMap (String source) {
+        
+        HashMap<String, String> res = new HashMap<>();
+        /// format will be: git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree1,study_id:ot_157
+        String [] props = source.split(",");
+        for (String s : props) {
+            String[] terp = s.split(":");
+            if (terp.length == 2) {
+                res.put(terp[0], terp[1]);
+            }
+        }
+        return res;
+    }
+    
+    // deprecated
+    /*
     // just use what is in tree_of_life/about
     // actually, probably don't need this. just construct map earlier
     public static MappingRepresentation getsourceToMetaMap (JadeNode inNode) {
@@ -331,7 +351,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
 
         return GeneralizedMappingRepresentation.getMapRepresentation(sourceMetadataMap);
     }
-    
+    */
     
     // ////////////////////////////////////////////////////////////////////////////////////////////////////
     //

@@ -3436,6 +3436,24 @@ public class GraphExplorer extends GraphBase {
         }
     }
     
+    // this is the deprecated version
+    // get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
+    // only outgoing rels are reported
+    public ArrayList<String> getSynthesisSupportingSources (Node startNode) {
+        HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
+        if (startNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (rel.hasProperty("supporting_sources")) {
+                    String[] sources = (String[]) rel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
+                    for (String s : sources) {
+                        sourceSet.add(s);
+                    }
+                }
+            }
+        }
+        ArrayList<String> sources = new ArrayList<String>(sourceSet);
+        return sources;
+    }
     
     ///@TODO @TEMP inefficient recursive impl as a placeholder...
     public static ArrayList<String> getNamesOfRepresentativeDescendants(Node subtreeRoot, RelType relType, String treeID) {
@@ -3890,24 +3908,7 @@ public class GraphExplorer extends GraphBase {
         return results;
     }
     
-    // this is the deprecated version
-    // get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
-    // only outgoing rels are reported
-    public ArrayList<String> getSynthesisSupportingSources (Node startNode) {
-        HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
-        if (startNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-            for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-                if (rel.hasProperty("supporting_sources")) {
-                    String[] sources = (String[]) rel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
-                    for (String s : sources) {
-                        sourceSet.add(s);
-                    }
-                }
-            }
-        }
-        ArrayList<String> sources = new ArrayList<String>(sourceSet);
-        return sources;
-    }
+    
     
     
     /**
@@ -3927,25 +3928,14 @@ public class GraphExplorer extends GraphBase {
         
         List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
         root.assocObject("path_to_root", pathToRoot); // TODO: add supported by sources to this
-        
         root.assocObject("treeID", treeID);
-        
-        // update this
-        ArrayList<String> allSources = new ArrayList<String>(); // used in tree browser
-        for (Node nd : pathToRoot) {
-            // update to getSynthesisSources(nd, treeID)
-            ArrayList<String> curSources = getSynthesisSupportingSources(nd);
-            if (!curSources.isEmpty()) {
-                allSources.addAll(curSources);
-            }
-        }
         
         HashMap<String, Object> rootProps = getSynthMetadataAndUniqueSources(rootnode, 
             treeID, uniqueSources);
         root.assocObject("annotations", rootProps);
         
         //boolean printlengths = false;
-        HashMap<Node, JadeNode> node2JadeNode = new HashMap<Node, JadeNode>();
+        HashMap<Node, JadeNode> node2JadeNode = new HashMap<>();
         node2JadeNode.put(rootnode, root);
         TraversalDescription synthEdgeTraversal = Traversal.description().
             relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
@@ -3954,9 +3944,9 @@ public class GraphExplorer extends GraphBase {
         if (maxDepth >= 0) {
             synthEdgeTraversal = synthEdgeTraversal.evaluator(Evaluators.toDepth(maxDepth));
         }
-        HashSet<Node> internalNodes = new HashSet<Node>();
-        ArrayList<Node> unnamedChildNodes = new ArrayList<Node>();
-        ArrayList<Node> namedChildNodes = new ArrayList<Node>();
+        HashSet<Node> internalNodes = new HashSet<>();
+        ArrayList<Node> unnamedChildNodes = new ArrayList<>();
+        ArrayList<Node> namedChildNodes = new ArrayList<>();
         
         for (Path path : synthEdgeTraversal.traverse(rootnode)) {
             Relationship furshestRel = path.lastRelationship();
@@ -3977,33 +3967,6 @@ public class GraphExplorer extends GraphBase {
                     HashMap<String, Object> indProps = getSynthMetadataAndUniqueSources(childNode, treeID, uniqueSources);
                     jChild.assocObject("annotations", indProps);
                     
-                    /*
-                    if (furshestRel.hasProperty("branch_length")) {
-                        printlengths = true;
-                        jChild.setBL((Double) furshestRel.getProperty("branch_length"));
-                    }
-                    */
-                    /*
-                    if (furshestRel.hasProperty("supporting_sources")) {
-                        String [] supportingSources = (String []) furshestRel.getProperty("supporting_sources");
-                        jChild.assocObject("supporting_sources", supportingSources);
-                        for (String s : supportingSources) {
-                            if (!mentionedSources.containsKey(s)) {
-                                IndexHits<Node> metanodes = null;
-                                try {
-                                    metanodes = sourceMetaIndex.get("source", s); // not using this index
-                                    Node m1 = null;
-                                    if (metanodes.hasNext()) {
-                                        m1 = metanodes.next();
-                                    }
-                                    mentionedSources.put(s, m1);
-                                } finally {
-                                    metanodes.close();
-                                }
-                            }
-                        }
-                    }
-                    */
                     node2JadeNode.get(parNode).addChild(jChild);
                     node2JadeNode.put(childNode, jChild);
                 }
@@ -4048,7 +4011,7 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    private static void addCorePropertiesToJadeNode (JadeNode jNd, Node nd, String treeID) {
+    private void addCorePropertiesToJadeNode (JadeNode jNd, Node nd, String treeID) {
         if (nd.hasProperty("name")) {
             jNd.setName((String) nd.getProperty("name"));
         }
@@ -4065,10 +4028,9 @@ public class GraphExplorer extends GraphBase {
             jNd.assocObject("uniqname", nd.getProperty("uniqname"));
         }
         if (nd.hasProperty("tax_source")) {
-            jNd.assocObject("tax_source", nd.getProperty("tax_source"));
-        }
-        if (nd.hasProperty("tax_sourceid")) {
-            jNd.assocObject("taxSourceId", nd.getProperty("tax_sourceid"));
+            String tSrc = (String) nd.getProperty("tax_source");
+            HashMap<String, String> taxSources = stringToMap(tSrc);
+            jNd.assocObject("tax_sources", taxSources);
         }
         if (nd.hasProperty("tax_rank")) {
             jNd.assocObject("tax_rank", nd.getProperty("tax_rank"));
@@ -4107,16 +4069,8 @@ public class GraphExplorer extends GraphBase {
             ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
             
             // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
-            String taxSource = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
-            HashMap<String, String> taxSources = new HashMap<>();
-            StringTokenizer st = new StringTokenizer(taxSource, ",");
-            while (st.hasMoreTokens()) {
-                String indSrc = st.nextToken();
-                String[] tSource = indSrc.split(":");
-                if (tSource.length == 2) {
-                    taxSources.put(tSource[0], tSource[1]);
-                }
-            }
+            String taxStr = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
+            HashMap<String, String> taxSources = stringToMap(taxStr);
             results.put("tax_sources", taxSources);
         }
         
