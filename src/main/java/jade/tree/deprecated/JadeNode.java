@@ -378,8 +378,8 @@ public class JadeNode {
      */
     public Object getObject(String key) {
         // @todo This is written as if there could be multiple elements in assoc that
-        //        have the same key. I don't think this is true. (we should probably
-        //        return on finding a match, rather than continuing to walk through the list).
+        //   have the same key. I don't think this is true. (we should probably
+        //   return on finding a match, rather than continuing to walk through the list).
         Object a = null;
         for (int i = 0; i < this.assoc.size(); i++) {
             if (this.assoc.get(i).getName().compareTo(key) == 0) {

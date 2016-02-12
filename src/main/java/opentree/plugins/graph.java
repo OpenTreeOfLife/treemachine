@@ -177,8 +177,6 @@ public class graph extends ServerPlugin {
         
         nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
         
-        // will need to check here if node is in the synth tree of interest
-        // or, just report all?
         // loop over all synth trees this node is in
         if (qNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
             for (Relationship rel : qNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {

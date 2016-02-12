@@ -33,7 +33,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
      * @param inNode
      * @return arguson description of inNode
      */
-    public static ArgusonRepresentationConverter getArgusonRepresentationForJadeNode(
+    public static ArgusonRepresentationConverter getArgusonRepresentationForJadeNode (
             final JadeNode inNode) {
         return new ArgusonRepresentationConverter(RepresentationType.MAP.toString()) {
 
@@ -151,6 +151,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 
                 
                 // report tree IDs supporting each clade as supportedBy list of strings
+                /*
                 String[] sup = (String[]) inNode.getObject("supporting_sources");
                 if (sup != null) {
                     LinkedList<String> supList = new LinkedList<String>();
@@ -159,12 +160,33 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     }
                     serializer.putList("supportedBy", OTRepresentationConverter.getListRepresentation(supList));
                 }
-                                
+                */
+                
                 // report metadata for the sources mentioned in supporting_sources. the sourceMetaList property
                 //    should be set for the root
                 Object n2m = inNode.getObject("sourceMetaList");
                 if (n2m != null) {
                     serializer.putMapping("sourceToMetaMap", getSourceMetadataRepresentation(inNode));
+                }
+                
+                
+                
+                // ugly temp stuff
+                /*
+                Object terp = inNode.getObject("supported_by");
+                if (terp != null) {
+                    HashMap<String, Object> foo = (HashMap<String, Object>) inNode.getObject("supported_by");
+                    serializer.putMapping("supported_by", GeneralizedMappingRepresentation.getMapRepresentation(foo));
+                }
+                */
+                
+                Object terp = inNode.getObject("annotations");
+                if (terp != null) {
+                    HashMap<String, Object> ann = (HashMap<String, Object>) inNode.getObject("annotations");
+                    for (String indProp : ann.keySet()) {
+                        HashMap<String, Object> prop = (HashMap<String, Object>) ann.get(indProp);
+                        serializer.putMapping(indProp, GeneralizedMappingRepresentation.getMapRepresentation(prop));
+                    }
                 }
             }
         };
@@ -182,7 +204,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
         if (n.hasProperty("name")) {
             nodeInfoMap.put("name", n.getProperty("name"));
         }
-        
         return GeneralizedMappingRepresentation.getMapRepresentation(nodeInfoMap);
     }
     
@@ -233,6 +254,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
     
     
     // just use what is in tree_of_life/about
+    // actually, probably don't need this. just construct map earlier
     public static MappingRepresentation getsourceToMetaMap (JadeNode inNode) {
         
         HashMap<String, Node> sourceNameToMetadataNodeMap = (HashMap<String, Node>) inNode.getObject("sourceMetaList");

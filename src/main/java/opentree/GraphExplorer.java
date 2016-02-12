@@ -3975,9 +3975,20 @@ public class GraphExplorer extends GraphBase {
         
         // TODO: update all of this
         // update to getSynthesisSources(nd, treeID)
+        
+        HashMap<String, Object> rootProps = getSynthMetadata(rootnode, treeID);
+        
         ArrayList<String> rootSynthSources = getSynthesisSupportingSources(rootnode);
         String[] sources = rootSynthSources.stream().toArray(String[]::new); // java8
         root.assocObject("supporting_sources", sources);
+        
+        root.assocObject("annotations", rootProps);
+        
+        /*
+        rootProps.keySet().stream().forEach((key) -> {
+            root.assocObject(key, rootProps.get(key));
+        });
+        */
         
         allSources.addAll(rootSynthSources);
         

@@ -270,7 +270,7 @@ public class GraphInitializer extends GraphBase {
         String rank = null;
         String srce = null;
         String uniqname = null;
-        String flag = null; 
+        String flag = null;
         
         try {
             tid = st.nextToken().trim();
