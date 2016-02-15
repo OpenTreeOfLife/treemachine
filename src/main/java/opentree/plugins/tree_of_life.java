@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import jade.tree.deprecated.JadeTree;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Arrays;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
@@ -598,4 +602,98 @@ public class tree_of_life extends ServerPlugin {
         responseMap.put("tree_id", synthTreeID);
         return OTRepresentationConverter.convert(responseMap);
     }
+    
+    // TODO: Possibility of replacing tip label ottids with names?!?
+    // is there a plan to do something with the "format" arg? if not, deprecate
+    @Description("Returns a processed source tree (corresponding to a tree in some [study](#studies)) used "
+        + "as input for the synthetic tree. Although the result of this service is a tree corresponding directly to a "
+        + "tree in a study, the representation of the tree in the graph may differ slightly from its "
+        + "canonical representation in the study, due to changes made during tree import: 1) includes "
+        + "only the curator-designated ingroup clade, and 2) both unmapped and duplicate tips are pruned "
+        + "from the tree. The tree is returned in newick format, with terminal nodes labelled with ott ids.")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation source_tree (
+        @Source GraphDatabaseService graphDb,
+
+        @Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\").")
+        @Parameter(name = "study_id", optional = false)
+        String studyID,
+
+        @Description("The tree identifier for a given study.")
+        @Parameter(name = "tree_id", optional = false)
+        String treeID,
+
+        @Description("The synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "synth_tree_id", optional = true)
+        String synthTreeID,
+
+        @Description("The name of the return format. The only currently supported format is newick.")
+        @Parameter(name = "format", optional = true)
+        String format
+
+        ) throws IllegalArgumentException {
+
+        HashMap<String, Object> responseMap = new HashMap<>();
+        String source = studyID + "_" + treeID;
+        String synTreeID = null;
+        Node meta = null;
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        if (synthTreeID != null) {
+            synTreeID = synthTreeID;
+            // check
+            meta = ge.getSynthesisMetaNodeByName(synthTreeID);
+            // invalid treeid
+            if (meta == null) {
+                ge.shutdownDB();
+                String ret = "Could not find a synthetic tree corresponding to the 'synth_tree_id' arg: '"
+                        + synTreeID + "'.";
+                throw new IllegalArgumentException(ret);
+            }
+        } else {
+            // get most recent tree
+            synTreeID = ge.getMostRecentSynthTreeID();
+        }
+        ge.shutdownDB();
+        
+        String tree = getSourceTree(source, synTreeID);
+
+        if (tree == null) {
+            throw new IllegalArgumentException("Invalid source id '" + source + "' provided.");
+        } else {
+            responseMap.put("newick", tree);
+            responseMap.put("synth_tree_id", synTreeID);
+        }
+        
+        return OTRepresentationConverter.convert(responseMap);
+    }
+    
+    
+    // fetch the processed input source tree newick from files.opentree.org
+    // source has format: studyID + "_" + treeID
+    public String getSourceTree(String source, String synTreeID) {
+        String tree = null;
+        
+        // synTreeID will be of format: "opentree4.0"
+        String version = synTreeID.replace("opentree", "");
+        
+        String urlbase = "http://files.opentreeoflife.org/preprocessed/v"
+            + version + "/trees/" + source + ".tre";
+        System.out.println("Looking up study: " + urlbase);
+
+        try {
+            URL phurl = new URL(urlbase);
+            URLConnection conn = (URLConnection) phurl.openConnection();
+            conn.connect();
+            try (BufferedReader un = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                tree = un.readLine();
+            }
+            return tree;
+        } catch (Exception e) {
+        }
+        return tree;
+    }
+    
+    
 }
