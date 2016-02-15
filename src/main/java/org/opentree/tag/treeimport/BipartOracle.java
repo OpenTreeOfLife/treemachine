@@ -1,4 +1,4 @@
-	package org.opentree.tag.treeimport;
+package org.opentree.tag.treeimport;
 
 import jade.tree.JadeNode;
 import jade.tree.TreeBipartition;
@@ -30,8 +30,6 @@ import opentree.GraphInitializer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
-import opentree.synthesis.TarjanSCC;
-import opentree.synthesis.TopologicalOrder;
 
 import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.Direction;

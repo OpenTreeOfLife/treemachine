@@ -5,7 +5,7 @@ DOMAIN = config('host', 'apihost')
 SUBMIT_URI = DOMAIN + '/v3/tree_of_life/node_info'
 TEST_NAME = u'Alseuosmia banksii'
 test, result, _ = test_http_json_method(SUBMIT_URI, "POST",
-                                        data={"node_id": "ott901642"},
+                                        data={"ot_node_id": "ott901642"},
                                         expected_status=200,
                                         return_bool_data=True)
 if not test:

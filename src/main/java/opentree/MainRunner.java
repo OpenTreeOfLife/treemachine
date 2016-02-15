@@ -3,7 +3,6 @@ package opentree;
 import gnu.trove.set.hash.TLongHashSet;;
 import jade.deprecated.MessageLogger;
 import jade.tree.Tree;
-import jade.tree.TreeNode;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
@@ -28,7 +27,6 @@ import java.util.StringTokenizer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.exceptions.TreeIngestException;
-import opentree.testing.TreeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -41,7 +39,6 @@ import org.opentree.exceptions.StoredEntityNotFoundException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
 import org.opentree.graphdb.GraphDatabaseAgent;
-import org.opentree.tag.treeimport.BipartOracle;
 import org.opentree.tag.treeimport.SubsetTreesUtility;
 import org.opentree.utils.GeneralUtils;
 
@@ -1042,6 +1039,7 @@ public class MainRunner {
     
     
     /// @returns 0 for success, 1 for poorly formed command
+    /*
     public int loadTreeAnalysis(String [] args) throws Exception {
         if (args.length < 4) {
             System.out.println("arguments should be: filename graphdbfolder (taxonomyalreadyloaded)T|F (subset)");
@@ -1131,9 +1129,7 @@ public class MainRunner {
                     jt.add(tt);
                     treeCounter++;
                 }
-            }
-            
-            /*} else { // nexson
+            } else { // nexson
                 System.out.println("Reading nexson file...");
                 for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
                     if (tree == null) {
@@ -1143,7 +1139,7 @@ public class MainRunner {
                         treeCounter++;
                     }
                 }
-            }*/
+            }
             br.close();
         } catch (FileNotFoundException e) {
             //e.printStackTrace();
@@ -1166,6 +1162,7 @@ public class MainRunner {
         gdb.shutdownDb();
         return 0;
     }
+    */
     
     
     /// @returns 0 for success, 1 for poorly formed command
@@ -3991,11 +3988,11 @@ public class MainRunner {
                 cmdReturnCode = mr.mrpDumpParser(args);
             } else if (command.compareTo("fulltreelist") == 0) {
                 cmdReturnCode = mr.graphListPruner(args);
-            } else if (command.compareTo("loadtrees") == 0) {
-                cmdReturnCode = mr.loadTreeAnalysis(args);
             } 
             /*
-            else if (command.compareTo("sourceexplorer") == 0
+            else if (command.compareTo("loadtrees") == 0) {
+                cmdReturnCode = mr.loadTreeAnalysis(args);
+            } else if (command.compareTo("sourceexplorer") == 0
                     || command.equalsIgnoreCase("sourcepruner")
                     || command.equalsIgnoreCase("sourceexplorer_inf_mono")) {
                 cmdReturnCode = mr.sourceTreeExplorer(args);

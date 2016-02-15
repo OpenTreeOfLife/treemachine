@@ -1,7 +1,6 @@
 package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -10,12 +9,10 @@ import java.util.HashMap;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 import org.apache.commons.lang3.ArrayUtils;
-
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
-
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Direction;
@@ -334,6 +331,7 @@ public class GraphInitializer extends GraphBase {
         taxUIDToNodeMap.put(tid, tnode);
 
         // synonym processing
+        /*
         if (synFileExists) {
             if (synonymHash.get(tid) != null) {
                 ArrayList<ArrayList<String>> syns = synonymHash.get(tid);
@@ -354,7 +352,8 @@ public class GraphInitializer extends GraphBase {
                     synNodeIndex.add(tnode, NodeProperty.NAME.propertyName, synName);
                 }
             }
-        }        
+        }
+        */
     }
     
     /**
