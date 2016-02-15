@@ -32,19 +32,6 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 // Graph of Life Services 
 public class tree_of_life extends ServerPlugin {
     
-    // temporary for testing
-    @Description("Returns list of existing synth tree ids.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation foo (@Source GraphDatabaseService graphDb) {
-        // grab existing synth tree ids
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs(); // these are sorted
-        ge.shutdownDB();
-        
-        return OTRepresentationConverter.convert(synthTreeIDs);
-    }
-    
-    
     @Description("Returns brief summary information about the draft synthetic tree(s) "
         + "currently contained within the graph database.")
     @PluginTarget(GraphDatabaseService.class)
