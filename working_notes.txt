@@ -15,7 +15,10 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about  -H 'C
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/synthtrees
 
 curl -X POST http://localhost:7474/db/data/ext/graph/graphdb/about
-curl -X POST http://localhost:7474/db/data/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"ott5839486"}'
+# moved to tree_of_life
+#curl -X POST http://localhost:7474/db/data/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"ott81461"}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/node_info -H "content-type:application/json" -d ‘{“ot_node_id":"ott81461"}'
 
 ## some nodes for testing
 # Aves (taxonomy): ott81461
@@ -31,5 +34,5 @@ curl 'https://devapi.opentreeoflife.org/treemachine/v1/getSyntheticTree' -H 'Con
 curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"2","subtreeNodeID":"792659"}'
 
 
-curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"3","ot_node_id":"ott5839486"}'
+curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"3","ot_node_id":"ott81461"}'
 

@@ -22,6 +22,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
@@ -43,6 +44,73 @@ public class tree_of_life extends ServerPlugin {
         ge.shutdownDB();
         
         return OTRepresentationConverter.convert(synthTreeIDs);
+    }
+    
+    
+    @Description("Returns summary information about a node in the graph. The node "
+        + "of interest may be specified using its `ott_node_id`. If the specified "
+        + "node is not in the graph, an exception will be thrown.")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation node_info (
+        @Source GraphDatabaseService graphDb,
+        
+        @Description("The `ot_node_id` of the node of interest.")
+        @Parameter(name = "ot_node_id", optional = false)
+        String otNodeID
+        
+        ) throws IllegalArgumentException, TaxonNotFoundException {
+        
+        HashMap<String, Object> nodeIfo = new HashMap<>();
+        
+        String nodeId = otNodeID;
+        Node qNode = null;
+        String synthTreeID = null;
+        
+        LinkedList<HashMap<String, Object>> synthSources = new LinkedList<>();
+        LinkedList<HashMap<String, Object>> treeSources = new LinkedList<>();
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        try {
+            qNode = ge.findGraphNodeByOTTNodeID(nodeId);
+        } catch (TaxonNotFoundException e) {
+        }
+        
+        if (qNode == null) {
+            ge.shutdownDB();
+            String ret = "Could not find a graph node corresponding to the 'node_id' arg: '"
+                + otNodeID + "'.";
+            throw new IllegalArgumentException(ret);
+        }
+        
+        nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
+        
+        // loop over all synth trees this node is in
+        if (qNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : qNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                HashMap<String, Object> treeInfo = new HashMap<>();
+                
+                int nTips = (int) rel.getProperty("tip_descendants");
+                synthTreeID = (String) rel.getProperty("name");
+                treeInfo.put("tip_descendants", nTips);
+                
+                HashMap<String, Object> props = ge.getSynthMetadata(qNode, synthTreeID);
+                treeInfo.putAll(props);
+                // todo: source to meta map
+                HashMap<String, Object> sourceMap = new HashMap<>();
+                for (String key : props.keySet()) {
+                    HashMap<String, Object> ind = (HashMap<String, Object>) props.get(key);
+                    for (String src : ind.keySet()) {
+                        HashMap<String, String> fsrc = ge.getSourceMapIndSource(src, synthTreeID);
+                        sourceMap.put(src, fsrc);
+                    }
+                }
+                treeInfo.put("source_id_map", sourceMap);
+                nodeIfo.put(synthTreeID, treeInfo);
+            }
+        }
+        ge.shutdownDB();
+        return OTRepresentationConverter.convert(nodeIfo);
     }
     
     

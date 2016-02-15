@@ -3,27 +3,12 @@ package opentree.plugins;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
-
 import opentree.GraphExplorer;
-import opentree.constants.NodeProperty;
-import opentree.constants.RelType;
-import opentree.constants.GeneralConstants;
-
 import java.net.URL;
 import java.net.URLConnection;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.StringTokenizer;
-
-import org.opentree.exceptions.TaxonNotFoundException;
-import org.opentree.utils.GeneralUtils;
-import org.opentree.graphdb.GraphDatabaseAgent;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
@@ -137,17 +122,16 @@ public class graph extends ServerPlugin {
     }
     
     
-    // TODO: only take in nodeid string
-    // deprecating the include_lineage option
+    /*
     @Description("Returns summary information about a node in the graph. The node "
         + "of interest may be specified using its `ott_node_id`. If the specified "
-        + "node is not in the graph, an error will be returned.")
+        + "node is not in the graph, an exception will be thrown.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation node_info (
         @Source GraphDatabaseService graphDb,
         
-        @Description("The `ott_node_id` of the node of interest.")
-        @Parameter(name = "node_id", optional = false)
+        @Description("The `ot_node_id` of the node of interest.")
+        @Parameter(name = "ot_node_id", optional = false)
         String otNodeID
         
         ) throws IllegalArgumentException, TaxonNotFoundException {
@@ -201,40 +185,10 @@ public class graph extends ServerPlugin {
                 nodeIfo.put(synthTreeID, treeInfo);
             }
         }
-        
-        
-        // TODO: add synth-tree-specific metadata (stored in outgoing rels)
-        
-        // = ge.getNodeTaxInfo(qNode);
-        
-        // if we want this, have to calculate by traversal of individual tree
-        //numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
-        /*
-        if (ge.nodeIsInSyntheticTree(n)) {
-            numSynthTips = ge.getSynthesisDescendantTips(n).size(); // may be faster to just use stored MRCA
-            // get all the unique sources supporting this node
-            ArrayList<String> sSources = ge.getSynthesisSupportingSources(n);
-            ArrayList<String> tSources = ge.getSupportingTreeSources(n);
-
-            for (String sStudy : sSources) {
-                HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(sStudy);
-                synthSources.add(indStudy);
-            }
-
-            for (String tStudy : tSources) {
-                HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(tStudy);
-                treeSources.add(indStudy);
-            }
-        }
-        
-        nodeIfo.put("synth_sources", synthSources);
-        nodeIfo.put("tree_sources", treeSources);
-        */
-        
         ge.shutdownDB();
-        
         return OTRepresentationConverter.convert(nodeIfo);
     }
+    */
 
 
     // fetch the processed input source tree newick from files.opentree.org
