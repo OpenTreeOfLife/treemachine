@@ -125,8 +125,6 @@ public class GoLS extends ServerPlugin {
                 res.put("nodes_not_in_tree", nodesNotInTree);
             }
             
-            // assuming for now that we still want the mrta node, and not just the mrca (which may be unnamed)
-            
             // now attempt to find the most recent taxonomic ancestor (in tree)
             Node mrta = mrca;
             if (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
@@ -154,90 +152,6 @@ public class GoLS extends ServerPlugin {
             return OTRepresentationConverter.convert(res);
         }
     }
-    
-    
-    // is this being used? jim doesn't think so
-    /*
-    @Description("Get a subtree of the draft tree with tips corresponding to the set "
-        + "of ot_node_idss identified by the query input.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeSubtreeForNodes(@Source GraphDatabaseService graphDb,
-
-        @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "tree_id", optional = true)
-        String treeID,
-
-        @Description("A set of open tree node ids")
-        @Parameter(name = "ot_node_ids", optional = false)
-        String[] otNodeIDs,
-
-        @Description("A set of node ids")
-        @Parameter(name = "nodeIds", optional = true)
-        long[] nodeIds
-        
-        ) throws MultipleHitsException, TaxonNotFoundException {
-        
-        if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
-            throw new IllegalArgumentException("You must supply at least one node or ott id.");
-        }
-        
-        ArrayList<Node> tips = new ArrayList<Node>();
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        
-        if (nodeIds != null && nodeIds.length > 0) {
-            for (long nodeId : nodeIds) {
-                Node n = graphDb.getNodeById(nodeId);
-                if (n != null) {
-                    tips.add(n);
-                }
-            }
-        }
-
-        if (tips.size() < 1) {
-            throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
-        } else {
-            HashMap<String, Object> vals = new HashMap<String, Object>();
-            vals.put("found_nodes", tips);
-            vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";\n");
-            return OTRepresentationConverter.convert(vals);
-        }
-    }
-    */
-    
-    
-
-    
-    
-    // this isn't really useful; all services have treeid arg, default to most recent
-    @Description("Returns identifying information for the most recent draft tree.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeID (@Source GraphDatabaseService graphDb) {
-
-        GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-        GraphExplorer ge = new GraphExplorer(gdb);
-        HashMap<String, Object> draftTreeInfo = null;
-        Node meta = null;
-        
-        try {
-            meta = ge.getMostRecentSynthesisMetaNode();
-            draftTreeInfo = new HashMap<String, Object>();
-            draftTreeInfo.put("tree_id", meta.getProperty("tree_id"));
-            draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
-            draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
-            draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
-            draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
-        } finally {
-            ge.shutdownDB();
-        }
-        return OTRepresentationConverter.convert(draftTreeInfo);
-    }
-    
-    
-    
-    
-    
-    
-    
     
     
     @Description("Returns a synthetic tree identified by arg `tree_id` (defaults to the "
@@ -346,6 +260,31 @@ public class GoLS extends ServerPlugin {
     }
     
     
+    // this isn't really useful; all services have treeid arg, default to most recent
+    @Description("Returns identifying information for the most recent draft tree.")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation getDraftTreeID (@Source GraphDatabaseService graphDb) {
+
+        GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
+        GraphExplorer ge = new GraphExplorer(gdb);
+        HashMap<String, Object> draftTreeInfo = null;
+        Node meta = null;
+        
+        try {
+            meta = ge.getMostRecentSynthesisMetaNode();
+            draftTreeInfo = new HashMap<String, Object>();
+            draftTreeInfo.put("tree_id", meta.getProperty("tree_id"));
+            draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
+            draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
+            draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
+            draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
+        } finally {
+            ge.shutdownDB();
+        }
+        return OTRepresentationConverter.convert(draftTreeInfo);
+    }
+    
+    
     // not currently used (Jim Allman)
     @Description("Returns the version of the taxonomy used in the construction of a draft "
         + "synthesis tree (defaults to the most recent tree).")
@@ -427,50 +366,105 @@ public class GoLS extends ServerPlugin {
     
     
     
-    // *** are any of the following used? ***
-    @Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeForottId( // TODO: should be renamed getDraftTreeNewickForottId, will need to be updated in argus
+    
 
-        @Source GraphDatabaseService graphDb,
-        @Description("The ottId of the taxon to be used as the root for the tree.")
-        @Parameter(name = "ottId", optional = false)
-        String ottId
+    
+    @Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `nodeID`.")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation getDraftTreeForOTNodeID(@Source GraphDatabaseService graphDb,
         
-        ) throws TaxonNotFoundException, MultipleHitsException { //,
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID,
+        
+        @Description("The Neo4j node id of the node to be used as the root for the tree.")
+        @Parameter(name = "ot_node_id", optional = false)
+        String otNodeID
+    
+        ) {
+        
+        String synthTreeID = null;
+        String rootNodeID = otNodeID;
         
         GraphExplorer ge = new GraphExplorer(graphDb);
-        Node startNode = ge.findGraphTaxNodeByUID(ottId);
+        Node startNode = null;
         
-        JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
+        // synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
+        if (treeID != null) {
+            ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+            if (synthTreeIDs.contains(treeID)) {
+                synthTreeID = treeID;
+            } else {
+                ge.shutdownDB();
+                String ret = "Unrecognized \"tree_id\" argument. Leave blank to default "
+                    + "to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
+            }
+        } else {
+            // default to most recent
+            Node meta = ge.getMostRecentSynthesisMetaNode();
+            synthTreeID = (String) meta.getProperty("tree_id");
+        }
+        
+        try {
+            startNode = ge.findGraphNodeByOTTNodeID(rootNodeID);
+        } catch (MultipleHitsException e) {
+        } catch (TaxonNotFoundException e) {
+        }
+        
+        if (startNode == null) {
+            ge.shutdownDB();
+            String ret = "Could not find any graph nodes corresponding to the arg `ot_node_id` provided.";
+            throw new IllegalArgumentException(ret);
+        }
+        
+        if (!ge.nodeIsInSyntheticTree(startNode, synthTreeID)) {
+            ge.shutdownDB();
+            String ret = "Queried `ot_node_id`: " + rootNodeID + " is in the graph, but "
+                + "not in the draft tree: " + synthTreeID;
+            throw new IllegalArgumentException(ret);
+        }
+        
+        JadeTree tree = ge.extractDraftTree(startNode, synthTreeID);
 
         HashMap<String, String> response = new HashMap<String, String>();
         response.put("tree", tree.getRoot().getNewick(false));
-
+        response.put("tree_id", synthTreeID);
+        
         return OTRepresentationConverter.convert(response);
     }
-
     
-    @Description("returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `nodeID`.")
+    
+    
+    
+    
+    // ============================== arbor interoperability services ==================================
+    
+    // *** TODO: is this being used? who to ask? ***
+    @Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree. Temporary, for interoperability testing with the arbor project.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeForNodeID( // TODO: should be renamed getDraftTreeNewickForNodeID, will need to be updated in argus
+    public Representation getDraftTreeChildNodesForNodeID(
             @Source GraphDatabaseService graphDb,
             @Description("The Neo4j node id of the node to be used as the root for the tree.")
             @Parameter(name = "nodeID", optional = false) Long nodeID) {
-        
-        GraphExplorer ge = new GraphExplorer(graphDb);
+                
         Node startNode = graphDb.getNodeById(nodeID);
+        HashSet<Long> childIds = new HashSet<Long>();
         
-        JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
-
-        HashMap<String, String> response = new HashMap<String, String>();
-        response.put("tree", tree.getRoot().getNewick(false));
-
-        return OTRepresentationConverter.convert(response);
+        for (Relationship synthChildRel : startNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+            if (GraphBase.DRAFTTREENAME.equals(String.valueOf(synthChildRel.getProperty("name"))))    {
+                childIds.add(synthChildRel.getStartNode().getId());
+            }
+        }
+        return OTRepresentationConverter.convert(childIds);
     }
     
     
-    // is this being used?
+    // ============================== deprecated services ==================================
+    
+    
+    /*
+    // is this being used? jimallman says no
     @Description("Return a JSON obj that represents the error and warning messages associated "
         + "with attempting to ingest a NexSON blob")
     @PluginTarget (GraphDatabaseService.class)
@@ -500,31 +494,83 @@ public class GoLS extends ServerPlugin {
         String jsonResponse = outputJSONStream.toString();
         return OTRepresentationConverter.convert(jsonResponse); // TODO: still double wrapping string. Need to figure out a thin String->Representation wrapper.
     }
+    */
     
     
-    // ============================== arbor interoperability services ==================================
-    
-    // *** TODO: is this being used? who to ask? ***
-    @Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree. Temporary, for interoperability testing with the arbor project.")
+    /*
+    // *** are any of the following used? ***
+    @Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeChildNodesForNodeID(
-            @Source GraphDatabaseService graphDb,
-            @Description("The Neo4j node id of the node to be used as the root for the tree.")
-            @Parameter(name = "nodeID", optional = false) Long nodeID) {
-                
-        Node startNode = graphDb.getNodeById(nodeID);
-        HashSet<Long> childIds = new HashSet<Long>();
+    public Representation getDraftTreeForottId( // TODO: should be renamed getDraftTreeNewickForottId, will need to be updated in argus
+
+        @Source GraphDatabaseService graphDb,
+        @Description("The ottId of the taxon to be used as the root for the tree.")
+        @Parameter(name = "ottId", optional = false)
+        String ottId
         
-        for (Relationship synthChildRel : startNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
-            if (GraphBase.DRAFTTREENAME.equals(String.valueOf(synthChildRel.getProperty("name"))))    {
-                childIds.add(synthChildRel.getStartNode().getId());
+        ) throws TaxonNotFoundException, MultipleHitsException { //,
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        Node startNode = ge.findGraphTaxNodeByUID(ottId);
+        
+        JadeTree tree = ge.extractDraftTree(startNode, GraphBase.DRAFTTREENAME);
+
+        HashMap<String, String> response = new HashMap<String, String>();
+        response.put("tree", tree.getRoot().getNewick(false));
+
+        return OTRepresentationConverter.convert(response);
+    }
+    */
+    
+    
+    // is this being used? jim doesn't think so
+    /*
+    @Description("Get a subtree of the draft tree with tips corresponding to the set "
+        + "of ot_node_idss identified by the query input.")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation getDraftTreeSubtreeForNodes(@Source GraphDatabaseService graphDb,
+
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID,
+
+        @Description("A set of open tree node ids")
+        @Parameter(name = "ot_node_ids", optional = false)
+        String[] otNodeIDs,
+
+        @Description("A set of node ids")
+        @Parameter(name = "nodeIds", optional = true)
+        long[] nodeIds
+        
+        ) throws MultipleHitsException, TaxonNotFoundException {
+        
+        if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
+            throw new IllegalArgumentException("You must supply at least one node or ott id.");
+        }
+        
+        ArrayList<Node> tips = new ArrayList<Node>();
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        if (nodeIds != null && nodeIds.length > 0) {
+            for (long nodeId : nodeIds) {
+                Node n = graphDb.getNodeById(nodeId);
+                if (n != null) {
+                    tips.add(n);
+                }
             }
         }
-        return OTRepresentationConverter.convert(childIds);
+
+        if (tips.size() < 1) {
+            throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
+        } else {
+            HashMap<String, Object> vals = new HashMap<String, Object>();
+            vals.put("found_nodes", tips);
+            vals.put("subtree", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";\n");
+            return OTRepresentationConverter.convert(vals);
+        }
     }
+    */
     
-    
-    // ============================== deprecated services ==================================
     
     /*
     // not useful: ottids *are* nodeids now
@@ -539,6 +585,7 @@ public class GoLS extends ServerPlugin {
         return ge.findGraphTaxNodeByUID(ottId).getId();
     }
     */
+    
     
     /*
     // don't think this is being used anymore
@@ -573,6 +620,7 @@ public class GoLS extends ServerPlugin {
         }
     }
     */
+    
     
     /*
     // source trees no longer stored in graph
@@ -639,6 +687,7 @@ public class GoLS extends ServerPlugin {
     }
     */
     
+    
     /*
     @Deprecated
     // NOTE: this isn't as useful anymore, since the curator gives trees IDs 1, 2, etc. for each study
@@ -658,6 +707,8 @@ public class GoLS extends ServerPlugin {
         return OTRepresentationConverter.convert(sourceArrayList);
     }
     */
+    
+    
     /*
     @Deprecated
     @Description("Get the MRCA of a set of nodes in the draft tree. Accepts any combination of node ids and ott ids as input." +
@@ -745,6 +796,8 @@ public class GoLS extends ServerPlugin {
         }
     }
     */
+    
+    
     /*
     @Deprecated
     @Description("Get the MRCA of a set of nodes in the taxonomy. Accepts any combination of node ids and ott ids as input. Returns the " +
@@ -816,5 +869,6 @@ public class GoLS extends ServerPlugin {
         }
     }
     */
+    
 }
 

@@ -520,11 +520,8 @@ public class tree_of_life extends ServerPlugin {
         GraphExplorer ge = new GraphExplorer(graphDb);
         HashMap<String, Object> responseMap = new HashMap<>();
 
-        // set default param values
-        long startNodeID = -1;
+        Node startNode = null;
         Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
-        //String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value; // don't use this.
-        
         String synthTreeID = null;
         String rootNodeID = otNodeID;
         
@@ -546,20 +543,19 @@ public class tree_of_life extends ServerPlugin {
         }
         
         try {
-            startNodeID = ge.findGraphNodeByOTTNodeID(rootNodeID).getId();
+            startNode = ge.findGraphNodeByOTTNodeID(rootNodeID);
         } catch (MultipleHitsException e) {
         } catch (TaxonNotFoundException e) {
         }
         
-        if (startNodeID == -1) {
+        if (startNode == null) {
             ge.shutdownDB();
             String ret = "Could not find any graph nodes corresponding to the arg `ot_node_id` provided.";
             throw new IllegalArgumentException(ret);
         }
         
         // check that startNode is indeed in the synthetic tree
-        Node n = graphDb.getNodeById(startNodeID);
-        if (!ge.nodeIsInSyntheticTree(n, synthTreeID)) {
+        if (!ge.nodeIsInSyntheticTree(startNode, synthTreeID)) {
             ge.shutdownDB();
             String ret = "Queried `ot_node_id`: " + rootNodeID + " is in the graph, but "
                 + "not in the draft tree: " + synthTreeID;
@@ -567,7 +563,7 @@ public class tree_of_life extends ServerPlugin {
         }
         
         // check that the returned tree is not too large
-        Integer numMRCA = ge.getNumTipDescendants(n, synthTreeID);
+        Integer numMRCA = ge.getNumTipDescendants(startNode, synthTreeID);
         
         if (numMRCA > maxNumTips) {
             ge.shutdownDB();
@@ -580,7 +576,7 @@ public class tree_of_life extends ServerPlugin {
         // get the subtree for export
         JadeTree tree = null;
         try {
-            tree = ge.extractDraftTreeByName(n, synthTreeID);
+            tree = ge.extractDraftTreeByName(startNode, synthTreeID);
         } finally {
             ge.shutdownDB();
         }
@@ -589,6 +585,7 @@ public class tree_of_life extends ServerPlugin {
         responseMap.put("tree_id", synthTreeID);
         return OTRepresentationConverter.convert(responseMap);
     }
+    
     
     // TODO: Possibility of replacing tip label ottids with names?!?
     // is there a plan to do something with the "format" arg? if not, deprecate
@@ -659,7 +656,8 @@ public class tree_of_life extends ServerPlugin {
     
     // fetch the processed input source tree newick from files.opentree.org
     // source has format: studyID + "_" + treeID
-    public String getSourceTree(String source, String synTreeID) {
+    // this should be private (i think)
+    private String getSourceTree(String source, String synTreeID) {
         String tree = null;
         
         // synTreeID will be of format: "opentree4.0"

@@ -44,7 +44,7 @@ curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree 
 curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
 
 
-
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForOTNodeID -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
 
 
 
