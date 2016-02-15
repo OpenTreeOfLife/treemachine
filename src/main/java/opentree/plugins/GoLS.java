@@ -260,6 +260,108 @@ public class GoLS extends ServerPlugin {
     }
     
     
+    
+    
+    
+    @Description("Returns a newick string of the draft tree specified by the optional arg "
+        + "`tree_id` (defaults to most current) for the node identified by `ot_node_id`.")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation getDraftTreeForOTNodeID(@Source GraphDatabaseService graphDb,
+        
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID,
+        
+        @Description("The Neo4j node id of the node to be used as the root for the tree.")
+        @Parameter(name = "ot_node_id", optional = false)
+        String otNodeID
+    
+        ) {
+        
+        String synthTreeID = null;
+        String rootNodeID = otNodeID;
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        Node startNode = null;
+        
+        // synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
+        if (treeID != null) {
+            ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+            if (synthTreeIDs.contains(treeID)) {
+                synthTreeID = treeID;
+            } else {
+                ge.shutdownDB();
+                String ret = "Unrecognized \"tree_id\" argument. Leave blank to default "
+                    + "to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
+            }
+        } else {
+            // default to most recent
+            Node meta = ge.getMostRecentSynthesisMetaNode();
+            synthTreeID = (String) meta.getProperty("tree_id");
+        }
+        
+        try {
+            startNode = ge.findGraphNodeByOTTNodeID(rootNodeID);
+        } catch (MultipleHitsException e) {
+        } catch (TaxonNotFoundException e) {
+        }
+        
+        if (startNode == null) {
+            ge.shutdownDB();
+            String ret = "Could not find any graph nodes corresponding to the arg `ot_node_id` provided.";
+            throw new IllegalArgumentException(ret);
+        }
+        
+        if (!ge.nodeIsInSyntheticTree(startNode, synthTreeID)) {
+            ge.shutdownDB();
+            String ret = "Queried `ot_node_id`: " + rootNodeID + " is in the graph, but "
+                + "not in the draft tree: " + synthTreeID;
+            throw new IllegalArgumentException(ret);
+        }
+        
+        JadeTree tree = ge.extractDraftTree(startNode, synthTreeID);
+
+        HashMap<String, String> response = new HashMap<String, String>();
+        response.put("tree", tree.getRoot().getNewick(false));
+        response.put("tree_id", synthTreeID);
+        
+        return OTRepresentationConverter.convert(response);
+    }
+    
+    
+    
+    // ============================== deprecate service below?  ==================================
+    
+    // is this used? if so, will need to be updated i.e. which synth tree?
+    // tree_of_life/about is better (i.e. a superset)
+    @Description("Returns a list of the synthesis tree source information")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb,
+        
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID
+        
+        ) throws TaxonNotFoundException, MultipleHitsException {
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        ArrayList<String> sourceList = new ArrayList<>();
+        
+        try {
+            Node meta = ge.getMostRecentSynthesisMetaNode();
+            if (meta != null){
+                String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
+                for (int i = 0; i < sourcePrimList.length; i++){
+                    sourceList.add(sourcePrimList[i]);
+                }
+            }
+        } finally {
+            ge.shutdownDB();
+        }
+        return OTRepresentationConverter.convert(sourceList);
+    }
+    
     // this isn't really useful; all services have treeid arg, default to most recent
     @Description("Returns identifying information for the most recent draft tree.")
     @PluginTarget(GraphDatabaseService.class)
@@ -331,111 +433,7 @@ public class GoLS extends ServerPlugin {
         }
         return OTRepresentationConverter.convert(taxonomyInfo);
     }
-    
-    
-    // is this used? if so, will need to be updated i.e. which synth tree?
-    // tree_of_life/about is better (i.e. a superset)
-    @Description("Returns a list of the synthesis tree source information")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb,
-        
-        @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "tree_id", optional = true)
-        String treeID
-        
-        ) throws TaxonNotFoundException, MultipleHitsException {
-        
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        ArrayList<String> sourceList = new ArrayList<>();
-        
-        try {
-            Node meta = ge.getMostRecentSynthesisMetaNode();
-            if (meta != null){
-                String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
-                for (int i = 0; i < sourcePrimList.length; i++){
-                    sourceList.add(sourcePrimList[i]);
-                }
-            }
-        } finally {
-            ge.shutdownDB();
-        }
-        return OTRepresentationConverter.convert(sourceList);
-    }
-    
-    
-    
-    
-    
-    
-
-    
-    @Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `nodeID`.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeForOTNodeID(@Source GraphDatabaseService graphDb,
-        
-        @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "tree_id", optional = true)
-        String treeID,
-        
-        @Description("The Neo4j node id of the node to be used as the root for the tree.")
-        @Parameter(name = "ot_node_id", optional = false)
-        String otNodeID
-    
-        ) {
-        
-        String synthTreeID = null;
-        String rootNodeID = otNodeID;
-        
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        Node startNode = null;
-        
-        // synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
-        if (treeID != null) {
-            ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
-            if (synthTreeIDs.contains(treeID)) {
-                synthTreeID = treeID;
-            } else {
-                ge.shutdownDB();
-                String ret = "Unrecognized \"tree_id\" argument. Leave blank to default "
-                    + "to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
-            }
-        } else {
-            // default to most recent
-            Node meta = ge.getMostRecentSynthesisMetaNode();
-            synthTreeID = (String) meta.getProperty("tree_id");
-        }
-        
-        try {
-            startNode = ge.findGraphNodeByOTTNodeID(rootNodeID);
-        } catch (MultipleHitsException e) {
-        } catch (TaxonNotFoundException e) {
-        }
-        
-        if (startNode == null) {
-            ge.shutdownDB();
-            String ret = "Could not find any graph nodes corresponding to the arg `ot_node_id` provided.";
-            throw new IllegalArgumentException(ret);
-        }
-        
-        if (!ge.nodeIsInSyntheticTree(startNode, synthTreeID)) {
-            ge.shutdownDB();
-            String ret = "Queried `ot_node_id`: " + rootNodeID + " is in the graph, but "
-                + "not in the draft tree: " + synthTreeID;
-            throw new IllegalArgumentException(ret);
-        }
-        
-        JadeTree tree = ge.extractDraftTree(startNode, synthTreeID);
-
-        HashMap<String, String> response = new HashMap<String, String>();
-        response.put("tree", tree.getRoot().getNewick(false));
-        response.put("tree_id", synthTreeID);
-        
-        return OTRepresentationConverter.convert(response);
-    }
-    
-    
-    
+    // ============================== ^ deprecate? ^ ==================================
     
     
     // ============================== arbor interoperability services ==================================
