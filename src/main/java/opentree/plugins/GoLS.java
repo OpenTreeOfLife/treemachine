@@ -8,7 +8,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-
 import jade.deprecated.JSONMessageLogger;
 import jade.tree.deprecated.JadeTree;
 import opentree.GraphBase;
@@ -16,10 +15,8 @@ import opentree.GraphExplorer;
 import opentree.MainRunner;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
-
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
-
 import org.opentree.exceptions.TreeNotFoundException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -40,132 +37,130 @@ public class GoLS extends ServerPlugin {
     
     // TODO: not doing taxonomy MRCA anymore, as entire taxonomy is not ingested
     // refactor as synth-only; need to know which synth tree (default = most recent)
-    @Description("Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current " +
-        "synthetic tree). come from either the 1) taxonomy, or 2) synthetic tree (which could be quite different)in the taxonomy. " +
-        "Accepts any combination of nodeIds and ottIds as input. Returns the following information about the MRCA: 1) name, 2) ottId, " +
-        "3) rank, and 4) nodeId. Also returns the nodeIds of the query taxa, the query target (treeSource), and any unmatched nodeIds/ottIds.")
+    @Description("Get the MRCA of a set of ot_node_ids. MRCA is calculated on a specific synthetic "
+        + "given by the optional `tree_id` arg (defaults to most current draft tree). Returns the "
+        + "following information about the MRCA: 1) name, 2) ott_id, 3) rank, and 4) ot_node_id. "
+        + "Also returns the matched query nodes, and any nodes unmatched because they are 1) not "
+        + "found in the graph, or 2) are valid nodes but not in the focal synthetic tree.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getMRCA(@Source GraphDatabaseService graphDb,
-            
-           @Description("Synthetic tree identifier (defaults to most recent).")
-            @Parameter(name = "tree_id", optional = true)
-            String treeID,
-            
-            @Description("A set of open tree node ids")
-            @Parameter(name = "ot_node_ids", optional = true)
-            String[] otNodeIDs,
-            
-            @Description("A set of node ids")
-            @Parameter(name = "nodeIds", optional = true)
-            long[] nodeIds,
-            
-            @Description("A set of ott ids")
-            @Parameter(name = "ottIds", optional = true)
-            long[] ottIds,
-            
-            @Description("Tree source (either 'taxonomy' or 'synth'")
-            @Parameter(name = "treeSource",
-            optional = false
-            
-            ) String treeSource) throws MultipleHitsException, TaxonNotFoundException {
         
-        boolean taxonomyOnly = true;
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID,
+
+        @Description("A set of open tree node ids")
+        @Parameter(name = "ot_node_ids", optional = false)
+        String[] otNodeIDs
         
-        if (treeSource == null) {
-            throw new IllegalArgumentException("You must supply a treeSource, either 'taxonomy' or 'synth'.");
-        } else if (!treeSource.equalsIgnoreCase("synth") && !treeSource.equalsIgnoreCase("taxonomy")) {
-            throw new IllegalArgumentException("treeSource must be either 'taxonomy' or 'synth'.");
-        }
-        if (treeSource.equalsIgnoreCase("synth")) {
-            taxonomyOnly = false;
-        }
-        if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
-            throw new IllegalArgumentException("You must supply at least one nodeId or ottId.");
-        }
+        ) throws MultipleHitsException, TaxonNotFoundException {
         
         ArrayList<Node> tips = new ArrayList<Node>();
-        ArrayList<Long> unmatchedOtts = new ArrayList<Long>();
-        ArrayList<Long> unmatchedNodes = new ArrayList<Long>();
+        ArrayList<String> matchedNodes = new ArrayList<>();
+        ArrayList<String> unmatchedNodes = new ArrayList<>();
+        ArrayList<String> nodesNotInTree = new ArrayList<>();
+        
+        String synthTreeID = null;
+        
         GraphExplorer ge = new GraphExplorer(graphDb);
         
-        if (nodeIds != null && nodeIds.length > 0) {
-            for (long nodeId : nodeIds) {
-                Node n = graphDb.getNodeById(nodeId);
-                if (n != null) {
-                    if (taxonomyOnly) {
-                        tips.add(n);
-                    } else { // need to check if taxon is in the synthetic tree. 
-                        if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
-                            tips.add(n);
-                        } else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
-                            tips.addAll(ge.getTaxonomyDescendantTips(n));
-                        }
-                    }
-                } else {
-                    unmatchedNodes.add(nodeId);
-                }
+        ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs(); // these are sorted
+        
+        // synthetic tree identifier. check against synth meta index
+        if (treeID != null) {
+            if (synthTreeIDs.contains(treeID)) {
+                synthTreeID = treeID;
+            } else {
+                ge.shutdownDB();
+                String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
+                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
+            }
+        } else { // default to most recent
+            if (!synthTreeIDs.isEmpty()) {
+                synthTreeID = synthTreeIDs.get(synthTreeIDs.size() - 1);
+            } else { // no synth trees in graph
+                ge.shutdownDB();
+                HashMap<String, Object> responseMap = new HashMap<String, Object>();
+                responseMap.put("error", "No synthetic trees found.");
+                return OTRepresentationConverter.convert(responseMap);
             }
         }
         
-        if (ottIds != null && ottIds.length > 0) {
-            for (long ottId : ottIds) {
-                Node n = null;
-                try {
-                    n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
-                } catch (TaxonNotFoundException e) {}
-                if (n != null) {
-                    if (taxonomyOnly) {
-                        tips.add(n);
-                    } else { // need to check if taxon is in the synthetic tree. 
-                        if (n.hasRelationship(RelType.SYNTHCHILDOF)) {
-                            tips.add(n);
-                        } else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
-                            tips.addAll(ge.getTaxonomyDescendantTips(n));
-                        }
-                    }
+        for (String nodeId : otNodeIDs) {
+            Node n = null;
+            try {
+                n = ge.findGraphNodeByOTTNodeID(nodeId);
+            } catch (TaxonNotFoundException e) {}
+            if (n != null) {
+                // need to check if taxon is in the relevant synthetic tree
+                if (ge.nodeIsInSyntheticTree(n, treeID)) {
+                    tips.add(n);
+                    matchedNodes.add(nodeId);
                 } else {
-                    unmatchedOtts.add(ottId);
+                    nodesNotInTree.add(nodeId);
                 }
+            } else {
+                // could not find node at all
+                unmatchedNodes.add(nodeId);
             }
         }
 
         if (tips.size() < 1) {
-            throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ottIds provided.");
+            String ret = "Could not find any graph nodes corresponding to the arg `ot_node_ids` provided.";
+            throw new IllegalArgumentException(ret);
         } else {
-            HashMap<String, Object> vals = new HashMap<String, Object>();
-            Node mrca = ge.getDraftTreeMRCAForNodes(tips, taxonomyOnly);
+            HashMap<String, Object> res = new HashMap<String, Object>();
+            Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
             
-            vals.put("tree_source", treeSource);
-            vals.put("mrca_node_id", mrca.getId());
-            vals.put("found_nodes", tips);
+            res.put("tree_id", synthTreeID);
+            res.put("mrca_ot_node_id", mrca.getProperty("ot_node_id"));
+            res.put("matched_nodes", matchedNodes);
             
-            if (!unmatchedOtts.isEmpty()) {
-                vals.put("unmatched_ott_ids", unmatchedOtts);
-            }
             if (!unmatchedNodes.isEmpty()) {
-                vals.put("unmatched_node_ids", unmatchedNodes);
+                res.put("unmatched_ot_node_ids", unmatchedNodes);
+            }
+            // good nodes, but not in the tree of interest
+            if (!nodesNotInTree.isEmpty()) {
+                res.put("nodes_not_in_tree", nodesNotInTree);
             }
             
-            // now attempt to find the most recent taxonomic ancestor
-            Node mrta = mrca;
+            // assuming for now that we still want the mrta node, and not just the mrca (which may be unnamed)
             
-            if (!taxonomyOnly) {
-                while (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
-                    mrta = mrta.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
-                }
-                vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
-                vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-                vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-                vals.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
-                vals.put("nearest_taxon_mrca_node_id", mrta.getId());
-            } else {
+            // now attempt to find the most recent taxonomic ancestor (in tree)
+            Node mrta = mrca;
+            if (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+                boolean done = false;
+                while (!done) {
+                    for (Relationship rel : mrta.getRelationships(RelType.SYNTHCHILDOF, Direction.INCOMING)) {
+                        if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                            mrta = rel.getStartNode();
+                            if (mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+                                done = true;
+                                break;
+                            }
+                        }
+                    }
+                }  
+            }
+            
+            res.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
+            res.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+            res.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
+            res.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+            res.put("nearest_taxon_mrca_ot_node_id", mrta.getProperty("ot_node_id"));
+            
+            // not using taxonomy mrca anymore
+            /*
+            else {
                 vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
                 vals.put("mrca_unique_name", mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
                 vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
                 vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
             }
+            */
             ge.shutdownDB();
-            return OTRepresentationConverter.convert(vals);
+            return OTRepresentationConverter.convert(res);
         }
     }
     
@@ -224,40 +219,12 @@ public class GoLS extends ServerPlugin {
     }
     
     
-    // is this being used?
-    @Description("Return a JSON obj that represents the error and warning messages associated with attempting to ingest a NexSON blob")
-    @PluginTarget (GraphDatabaseService.class)
-    public Representation getStudyIngestMessagesForNexSON(
-        @Source GraphDatabaseService graphDbs,
-        
-        @Description("The ottId of the node to use as the root for synthesis. If omitted then the root of all life is used.")
-        @Parameter(name = "nexsonBlob", optional = true)
-        String nexsonBlob)
-        
-        throws Exception {
-        
-        GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
-        ByteArrayInputStream inpStream = new ByteArrayInputStream(nexsonBlob.getBytes("UTF-8"));
-        BufferedReader nexsonContentBR = new BufferedReader(new InputStreamReader(inpStream));
-        JSONMessageLogger messageLogger = new JSONMessageLogger("pgloadind-ws");
-        ByteArrayOutputStream outputJSONStream = new ByteArrayOutputStream();
-        PrintStream outputPrintStream = new PrintStream(outputJSONStream);
-        messageLogger.setPrintStream(outputPrintStream);
-        try {
-            boolean onlyTestTheInput = true;
-            MainRunner.loadPhylografterStudy(graphDb, nexsonContentBR, null, null,messageLogger, onlyTestTheInput);
-        } finally {
-            messageLogger.close();
-            outputPrintStream.close();
-        }
-        String jsonResponse = outputJSONStream.toString();
-        return OTRepresentationConverter.convert(jsonResponse); // TODO: still double wrapping string. Need to figure out a thin String->Representation wrapper.
-    }
+    
 
     
     
     // this isn't really useful; all services have treeid arg, default to most recent
-    @Description("Returns identifying information for the most recent draft tree")
+    @Description("Returns identifying information for the most recent draft tree.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeID (@Source GraphDatabaseService graphDb) {
 
@@ -280,8 +247,10 @@ public class GoLS extends ServerPlugin {
         return OTRepresentationConverter.convert(draftTreeInfo);
     }
     
+    
     // is this used?
-    @Description("Returns the version of the taxonomy used to initialize the graph")
+    @Description("Returns the version of the taxonomy used in the construction of a draft "
+        + "synthesis tree (defaults to the most recent tree).")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getTaxonomyVersion (@Source GraphDatabaseService graphDb,
         
@@ -292,14 +261,15 @@ public class GoLS extends ServerPlugin {
         ) {
 
         GraphExplorer ge = new GraphExplorer(graphDb);
-        String synthTreeID = null;
         Node meta = null;
         String taxVersion = "";
+        String synthTreeID = null;
+        
+        HashMap<String, Object> taxonomyInfo = new HashMap<>();
         
         if (treeID != null) {
             synthTreeID = treeID;
         }
-        
         try {
             if (synthTreeID != null) {
                 meta = ge.getSynthesisMetaNodeByName(synthTreeID);
@@ -313,100 +283,67 @@ public class GoLS extends ServerPlugin {
             } else {
                 // default to most recent
                 meta = ge.getMostRecentSynthesisMetaNode();
+                synthTreeID = (String) meta.getProperty("tree_id");
             }
             taxVersion = (String)meta.getProperty("taxonomy_version");
+            taxonomyInfo.put("taxonomy_version", taxVersion);
+            taxonomyInfo.put("tree_id", synthTreeID);
+            
         } finally {
             ge.shutdownDB();
         }
-        return OTRepresentationConverter.convert(taxVersion);
-    }
-    
-    
-    // is this used? if so, will need to be updated i.e. which synth tree?
-    @Description("Returns a list of the synthesis tree source information")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb,
-        
-        @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "tree_id", optional = true)
-        String treeID
-        
-        ) throws TaxonNotFoundException, MultipleHitsException {
-        
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        ArrayList<String> sourceList = new ArrayList<String>();
-        try {
-            Node meta = ge.getMostRecentSynthesisMetaNode();
-            if (meta != null){
-                String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
-                for (int i = 0; i < sourcePrimList.length; i++){
-                    sourceList.add(sourcePrimList[i]);
-                }
-            }
-        } finally {
-            ge.shutdownDB();
-        }
-        return OTRepresentationConverter.convert(sourceList);
+        return OTRepresentationConverter.convert(taxonomyInfo);
     }
     
     
     
     
     
-    
-
-    
-    
-    // TODO: use new node IDs: ot_node_id
-    // should this be two different queries? what is the advantage of having the arguson and newick served from the same query? - ceh
-        // avoiding code duplication? what is the advantage of having separate queries?
-    // subtreeNodeID is a string in case we use stable node identifiers at some point. Currently we just convert it to the db node id.
-    @Description("Returns a synthetic tree if format is \"newick\" then return JSON will "
-        + "have two fields: newick and treeID. If format = \"arguson\" then the return "
-        + "object will be the form of JSON expected by argus")
+    @Description("Returns a synthetic tree identified by arg `tree_id` (defaults to the "
+        + "most recent version). If format is \"newick\" then return JSON will "
+        + "have two fields: newick and tree_id. If format = \"arguson\" then the return "
+        + "object will be the form of JSON expected by argus. The returned tree will be "
+        + "truncated to a depth specified by arg `max_depth` (default is 5).")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getSyntheticTree(@Source GraphDatabaseService graphDb,
         
         @Description("The identifier for the synthetic tree (e.g. \"opentree4.0\") "
-            + "(default is most current synthetic tree)")
+            + "(default is most current synthetic tree).")
         @Parameter(name = "tree_id", optional = true)
         String treeID,
         
-        @Description("The name of the return format (default is newick)")
+        @Description("The name of the return format (default is newick).")
         @Parameter(name = "format", optional = true)
         String format,
         
         @Description("The ot node id of the node in the tree that should serve as the "
-            + "root of the tree returned")
+            + "root of the tree returned.")
         @Parameter(name = "ot_node_id", optional = true)
-        String otNodeID, 
+        String otNodeID,
         
-        @Description("The nodeid of the node in the tree that should serve as the root of the tree returned")
-        @Parameter(name = "subtreeNodeID", optional = true)
-        String subtreeNodeIDStr, 
-        
-        @Description("An integer controlling the max number of edges between the leaves and the node. A negative number specifies that no depth limit will be applied. The default is 5.")
-        @Parameter(name = "maxDepth", optional = true)
+        @Description("An integer controlling the max number of edges between the leaves and "
+            + "the node. A negative number specifies that no depth limit will be applied. "
+            + "The default is 5.")
+        @Parameter(name = "max_depth", optional = true)
         Integer maxDepthArg
         
         ) throws TreeNotFoundException, TaxonNotFoundException {
 
         // set default param values
-        int maxDepth = 3;
-        long subtreeNodeID = 0;
+        int maxDepth = 5;
         boolean emitNewick = false;
         //String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value; // don't use this
         String synthTreeID = "";
         String startOTNodeID = "";
         Node meta = null;
         
-        HashMap<String, Object> responseMap = new HashMap<String, Object>();
+        HashMap<String, Object> responseMap = new HashMap<>();
         
         // grab existing synth tree ids
         GraphExplorer ge = new GraphExplorer(graphDb);
         ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs(); // these are sorted
         
-        // synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
+        // synthetic tree identifier. check against synth meta index
         if (treeID != null) {
             if (synthTreeIDs.contains(treeID)) {
                 synthTreeID = treeID;
@@ -450,16 +387,6 @@ public class GoLS extends ServerPlugin {
             maxDepth = maxDepthArg;
         }
         
-        /*
-        // update this to get root of whichever tree is desired
-        if (subtreeNodeIDStr == null || subtreeNodeIDStr.length() == 0) { // get root of draft tree
-            GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-            subtreeNodeID = (Long) gdb.getGraphProperty("draftTreeRootNodeId");
-        } else {
-            subtreeNodeID = ge.findGraphNodeByOTTNodeID(subtreeNodeIDStr).getId();
-        }
-        */
-        
         // get the subtree for export
         JadeTree tree = null;
         try {
@@ -470,7 +397,7 @@ public class GoLS extends ServerPlugin {
 
         if (emitNewick) {
             responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
-            responseMap.put("treeID", synthTreeID);
+            responseMap.put("tree_id", synthTreeID);
             return OTRepresentationConverter.convert(responseMap);
         } else { // emit arguson
             return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
@@ -480,20 +407,49 @@ public class GoLS extends ServerPlugin {
     
     
     
+    // is this used? if so, will need to be updated i.e. which synth tree?
+    @Description("Returns a list of the synthesis tree source information")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb,
+        
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID
+        
+        ) throws TaxonNotFoundException, MultipleHitsException {
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        ArrayList<String> sourceList = new ArrayList<>();
+        
+        try {
+            Node meta = ge.getMostRecentSynthesisMetaNode();
+            if (meta != null){
+                String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
+                for (int i = 0; i < sourcePrimList.length; i++){
+                    sourceList.add(sourcePrimList[i]);
+                }
+            }
+        } finally {
+            ge.shutdownDB();
+        }
+        return OTRepresentationConverter.convert(sourceList);
+    }
     
     
     
     
-    // are either of the 2 following used?
     
+    // *** are any of the following used? ***
     @Description("Returns a newick string of the current draft tree (see GraphExplorer) for the node identified by `ottId`.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeForottId( // TODO: should be renamed getDraftTreeNewickForottId, will need to be updated in argus
-            @Source GraphDatabaseService graphDb,
-            @Description("The ottId of the taxon to be used as the root for the tree.")
-            @Parameter(name = "ottId", optional = false) String ottId) throws TaxonNotFoundException, MultipleHitsException { //,
-//            @Description("DEPRECATED. Has no effect. Previously, was an integer controlling the maximum depth to which the graph will be traversed when building the tree.")
-//            @Parameter(name = "maxDepth", optional = true) Integer maxDepthArg) { // TODO: Remove this parameter if it is unused
+
+        @Source GraphDatabaseService graphDb,
+        @Description("The ottId of the taxon to be used as the root for the tree.")
+        @Parameter(name = "ottId", optional = false)
+        String ottId
+        
+        ) throws TaxonNotFoundException, MultipleHitsException { //,
         
         GraphExplorer ge = new GraphExplorer(graphDb);
         Node startNode = ge.findGraphTaxNodeByUID(ottId);
@@ -524,8 +480,38 @@ public class GoLS extends ServerPlugin {
 
         return OTRepresentationConverter.convert(response);
     }
-
     
+    
+    // is this being used?
+    @Description("Return a JSON obj that represents the error and warning messages associated "
+        + "with attempting to ingest a NexSON blob")
+    @PluginTarget (GraphDatabaseService.class)
+    public Representation getStudyIngestMessagesForNexSON(
+        @Source GraphDatabaseService graphDbs,
+        
+        @Description("The ottId of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+        @Parameter(name = "nexsonBlob", optional = true)
+        String nexsonBlob)
+        
+        throws Exception {
+        
+        GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
+        ByteArrayInputStream inpStream = new ByteArrayInputStream(nexsonBlob.getBytes("UTF-8"));
+        BufferedReader nexsonContentBR = new BufferedReader(new InputStreamReader(inpStream));
+        JSONMessageLogger messageLogger = new JSONMessageLogger("pgloadind-ws");
+        ByteArrayOutputStream outputJSONStream = new ByteArrayOutputStream();
+        PrintStream outputPrintStream = new PrintStream(outputJSONStream);
+        messageLogger.setPrintStream(outputPrintStream);
+        try {
+            boolean onlyTestTheInput = true;
+            MainRunner.loadPhylografterStudy(graphDb, nexsonContentBR, null, null,messageLogger, onlyTestTheInput);
+        } finally {
+            messageLogger.close();
+            outputPrintStream.close();
+        }
+        String jsonResponse = outputJSONStream.toString();
+        return OTRepresentationConverter.convert(jsonResponse); // TODO: still double wrapping string. Need to figure out a thin String->Representation wrapper.
+    }
     
     
     // ============================== arbor interoperability services ==================================

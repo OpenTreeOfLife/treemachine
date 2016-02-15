@@ -332,7 +332,29 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    // Assumes all query nodes are in the synthetic tree. Doesn't calculate all paths.
+    /**
+     * Get the MRCA of one or more nodes (interpreted as tips in some theoretical tree) according to the
+     * topology of the draft tree. If only one tip is provided, then the tip itself is returned. If taxonomy
+     * is true it will only traverse taxonomy relationships
+     * @param tips
+     * @return
+     */
+    public Node getDraftTreeMRCAForNodes(Iterable<Node> tips, boolean taxonomy) {
+        //Map<Node, ArrayList<Node>> treeTipRootPathMap = null;
+        if (taxonomy == false) {
+            //treeTipRootPathMap = getTreeTipRootPathMap(tips);
+            Node mrca = getDraftTreeMRCA(tips); // redirect to new method
+            return mrca;
+        } else {
+            //treeTipRootPathMap = getTreeTipRootPathTaxonomyMap(tips);
+            Node mrca = getTaxonomyMRCA(tips); // redirect to new method
+            return mrca;
+        }
+    }
+    
+    
+    // Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
+    // Doesn't calculate all paths.
     public Node getDraftTreeMRCA(Iterable<Node> nodeset) {
         Node mrca = null;
         ArrayList<Node> holder = null;
@@ -364,81 +386,6 @@ public class GraphExplorer extends GraphBase {
             }
         }
         return mrca;
-    }
-    
-    
-    /**
-     * Get the MRCA of one or more nodes (interpreted as tips in some theoretical tree) according to the
-     * topology of the draft tree. If only one tip is provided, then the tip itself is returned. If taxonomy
-     * is true it will only traverse taxonomy relationships
-     * @param tips
-     * @return
-     */
-    public Node getDraftTreeMRCAForNodes(Iterable<Node> tips, boolean taxonomy) {
-        //Map<Node, ArrayList<Node>> treeTipRootPathMap = null;
-        if (taxonomy == false) {
-            //treeTipRootPathMap = getTreeTipRootPathMap(tips);
-            Node mrca = getDraftTreeMRCA(tips); // redirect to new method
-            return mrca;
-        } else {
-            //treeTipRootPathMap = getTreeTipRootPathTaxonomyMap(tips);
-            Node mrca = getTaxonomyMRCA(tips); // redirect to new method
-            return mrca;
-        }
-        
-        /*
-        if (treeTipRootPathMap.size() < 1) {
-            throw new IllegalArgumentException("Cannot find the ancestor of zero tips");
-        } else if (treeTipRootPathMap.size() < 2) {
-            return (Node) treeTipRootPathMap.keySet().toArray()[0];
-        }
-        
-        Node lastSharedAncestor = null;
-        Node curTestAncestor = null;
-        
-        int i = 0;
-        boolean found = false;
-        
-        // starting at the deepest level, look for different ancestors
-        outer:
-            while (!found) {
-                
-                // reset at each level
-                curTestAncestor = null;
-                
-                for (Node tip : treeTipRootPathMap.keySet()) {
-                    
-                    List<Node> rootPath = treeTipRootPathMap.get(tip);
-                    
-                    if (rootPath.size() == i) { // can't get another element. node must be an ancestor of another node.
-                        //System.out.println("No more nodes to check. Returning previous lastSharedAncestor.");
-                        found = true;
-                        break outer;
-                    }
-                    
-                    // if this is a new level, then just get the ancestor of the first lineage and move on to the next
-                    if (curTestAncestor == null) {
-                        curTestAncestor = rootPath.get(i);
-                        //if (curTestAncestor.hasProperty("name")) {
-                        //    System.out.println("curTestAncestor = " + curTestAncestor.getProperty("name"));
-                        //}
-                        continue;
-                    }
-                    
-                    // if we already have an ancestor at this level and it differs from the ancestor of the current lineage, then the last one was the mrca
-                    if (curTestAncestor.getId() != rootPath.get(i).getId()) {
-                        found = true;
-                        break outer;
-                    }
-                }
-                
-                // this ancestor is shared by all. record it and check the next
-                lastSharedAncestor = curTestAncestor;
-                i++;
-            }
-        
-        return lastSharedAncestor;
-        */
     }
     
     
@@ -3862,6 +3809,18 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    // is the node in the specified synthetic tree?
+    public boolean nodeIsInSyntheticTree (Node startNode, String treeID) {
+        boolean inTree = false;
+        for (Relationship rel : startNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                inTree = true;
+                break;
+            }
+        }
+        return inTree;
+    }
+    
     // annotations are stored in outgoing rels
     // this works for a single node
     public HashMap<String, Object> getSynthMetadata (Node curNode, String treeID) {
@@ -3907,8 +3866,6 @@ public class GraphExplorer extends GraphBase {
         }
         return results;
     }
-    
-    
     
     
     /**
@@ -4114,5 +4071,40 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    // Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
+    // Doesn't calculate all paths.
+    public Node getDraftTreeMRCA(Iterable<Node> nodeset, String treeID) {
+        Node mrca = null;
+        ArrayList<Node> holder = null;
+        int index = 10000000;
+        for (Node curNode : nodeset) {
+            if (holder != null) {
+                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                        .traverse(curNode).nodes()) {
+                    int foo = holder.indexOf(m);
+                    if (foo != -1) { // first match. 
+                        if (foo < index) {
+                            index = foo; // if hit is more rootward than previous hit, record that.
+                        }
+                        break; // subsequent matches are not informative. bail.
+                    }
+                }
+            } else { // first pass. get full path to root. ideally we would get the shortest path...
+                ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
+                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID)).traverse(curNode).nodes()) {
+                    graphPathToRoot.add(0, m);
+                }
+                holder = graphPathToRoot;
+            }
+        }
+        if (!holder.isEmpty()) {
+            if (index == 10000000) { // only a single node passed in, but it *is* in the synthetic tree
+                mrca = holder.get(holder.size() - 1);
+            } else {
+                mrca = holder.get(index);
+            }
+        }
+        return mrca;
+    }
 }
 

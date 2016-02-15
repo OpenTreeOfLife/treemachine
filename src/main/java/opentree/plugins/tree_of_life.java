@@ -3,21 +3,15 @@ package opentree.plugins;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-
 import jade.tree.deprecated.JadeTree;
 import java.util.Arrays;
-import java.util.List;
-
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.constants.GeneralConstants;
-
-import org.opentree.utils.GeneralUtils;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -65,9 +59,6 @@ public class tree_of_life extends ServerPlugin {
         String nodeId = otNodeID;
         Node qNode = null;
         String synthTreeID = null;
-        
-        LinkedList<HashMap<String, Object>> synthSources = new LinkedList<>();
-        LinkedList<HashMap<String, Object>> treeSources = new LinkedList<>();
         
         GraphExplorer ge = new GraphExplorer(graphDb);
         
