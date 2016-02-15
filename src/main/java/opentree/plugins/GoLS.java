@@ -439,6 +439,8 @@ public class GoLS extends ServerPlugin {
         HashSet<Long> childIds = new HashSet<Long>();
         
         for (Relationship synthChildRel : startNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+            
+            // *** will have to fix the following if we still need it
             if (GraphBase.DRAFTTREENAME.equals(String.valueOf(synthChildRel.getProperty("name"))))    {
                 childIds.add(synthChildRel.getStartNode().getId());
             }

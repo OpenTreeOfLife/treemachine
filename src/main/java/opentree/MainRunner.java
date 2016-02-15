@@ -4,7 +4,6 @@ import gnu.trove.set.hash.TLongHashSet;;
 import jade.deprecated.MessageLogger;
 import jade.tree.Tree;
 import jade.tree.TreeNode;
-import jade.tree.*;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
@@ -2495,6 +2494,7 @@ public class MainRunner {
     
     // gets graph nodeid from ottid
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
+    /*
     public int extractDraftTreeForOttId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
         if (args.length != 4 & args.length != 5 & args.length != 6) {
             System.out.println("arguments should be rootNodeOttId outfilename graphdbfolder (optional:labels=UIDs [T|F]) (optional:labelinternal=T [T|F])");
@@ -2512,8 +2512,9 @@ public class MainRunner {
         
         return extractDraftTreeForNodeId(args);
     }
+    */
     
-    
+    /*
     public int extractDraftTreeForOttIdRelIDMap(String [] args) throws MultipleHitsException, TaxonNotFoundException {
         if (args.length != 5) {
             System.out.println("arguments should be rootNodeOttId relidinfile outfilename graphdbfolder");
@@ -2585,6 +2586,7 @@ public class MainRunner {
         }
         return 0;
     }
+    */
     
     private String getCustomNewick(JadeNode innode, String objectName, boolean bl) {
         StringBuffer ret = new StringBuffer("");
@@ -2619,6 +2621,7 @@ public class MainRunner {
     public static final String figtreetail = "begin figtree;\nset appearance.backgroundColorAttribute=\"Default\";\nset appearance.backgroundColour=#-1;\nset appearance.branchColorAttribute=\"relmap\";\nset appearance.branchLineWidth=1.0;\nset appearance.branchMinLineWidth=0.0;\nset appearance.branchWidthAttribute=\"Fixed\";\nset appearance.foregroundColour=#-16777216;\nset appearance.selectionColour=#-2144520576;\nset branchLabels.colorAttribute=\"User selection\";\nset branchLabels.displayAttribute=\"label\";\nset branchLabels.fontName=\"Arial\";\nset branchLabels.fontSize=8;\nset branchLabels.fontStyle=0;\nset branchLabels.isShown=true;\nset branchLabels.significantDigits=4;\nset layout.expansion=0;\nset layout.layoutType=\"RECTILINEAR\";\nset layout.zoom=0;\nset legend.attribute=\"label\";\nset legend.fontSize=10.0;\nset legend.isShown=false;\nset legend.significantDigits=4;\nset nodeBars.barWidth=4.0;\nset nodeBars.displayAttribute=null;\nset nodeBars.isShown=false;\nset nodeLabels.colorAttribute=\"User selection\";\nset nodeLabels.displayAttribute=\"Node ages\";\nset nodeLabels.fontName=\"sansserif\";\nset nodeLabels.fontSize=9;\nset nodeLabels.fontStyle=0;\nset nodeLabels.isShown=false;\nset nodeLabels.significantDigits=4;\nset nodeShape.colourAttribute=\"User selection\";\nset nodeShape.isShown=false;\nset nodeShape.minSize=0.0;\nset nodeShape.scaleType=Area;\nset nodeShape.shapeType=Circle;\nset nodeShape.size=25.0;\nset nodeShape.sizeAttribute=\"label\";\nset polarLayout.alignTipLabels=false;\nset polarLayout.angularRange=0;\nset polarLayout.rootAngle=0;\nset polarLayout.rootLength=100;\nset polarLayout.showRoot=true;\nset radialLayout.spread=0.0;\nset rectilinearLayout.alignTipLabels=false;\nset rectilinearLayout.curvature=0;\nset rectilinearLayout.rootLength=100;\nset scale.offsetAge=0.0;\nset scale.rootAge=1.0;\nset scale.scaleFactor=1.0;\nset scale.scaleRoot=false;\nset scaleAxis.automaticScale=true;\nset scaleAxis.fontSize=8.0;\nset scaleAxis.isShown=false;\nset scaleAxis.lineWidth=1.0;\nset scaleAxis.majorTicks=1.0;\nset scaleAxis.origin=0.0;\nset scaleAxis.reverseAxis=false;\nset scaleAxis.showGrid=true;\nset scaleBar.automaticScale=true;\nset scaleBar.fontSize=10.0;\nset scaleBar.isShown=false;\nset scaleBar.lineWidth=1.0;\nset scaleBar.scaleRange=2.0;\nset tipLabels.colorAttribute=\"User selection\";\nset tipLabels.displayAttribute=\"Names\";\nset tipLabels.fontName=\"Arial\";\nset tipLabels.fontSize=9.;\nset tipLabels.fontStyle=0;\nset tipLabels.isShown=false;\nset tipLabels.significantDigits=4;\nset trees.order=false;\nset trees.orderType=\"decreasing\";\nset trees.rooting=false;\nset trees.rootingType=\"User Selection\";\nset trees.transform=false;\nset trees.transformType=\"cladogram\";\nend;\n";
         
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
+    /*
     public int extractDraftTreeForNodeId(String [] args) throws MultipleHitsException, TaxonNotFoundException {
         if (args.length != 4 & args.length != 5 & args.length != 6) {
             System.out.println("arguments should be rootottId outFileName graphdbfolder (optional:labels=UIDs [T|F]) (optional:labelinternal=T [T|F])");
@@ -2670,6 +2673,7 @@ public class MainRunner {
         
         return 0;
     }
+    */
     
     public int extractDraftTreeByName(String [] args) throws MultipleHitsException, TaxonNotFoundException {
         if (args.length < 4) {
@@ -2835,6 +2839,7 @@ public class MainRunner {
     
     
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
+    /*
     public int extractDraftTreeForOttidJSON(String [] args) throws MultipleHitsException, TaxonNotFoundException{
         // open the graph
         String graphname = args[3];
@@ -2860,9 +2865,10 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command
+    /*
     public int deleteDraftTree(String [] args) {
         GraphImporter gi = null;
         if (args.length != 2) {
@@ -2878,9 +2884,10 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
+    /*
     public int makePrunedBipartsTestFiles(String [] args) {
         if (args.length != 4) {
             System.out.println("arguments should be randomseed ntips graphdbfolder");
@@ -2937,7 +2944,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     // check if tree is already in the graph
     // @returns true is new to graph, false if already present
@@ -4037,7 +4044,9 @@ public class MainRunner {
                 cmdReturnCode = mr.extractDraftTreeByName(args);
             } else if (command.compareTo("synthesisinfo") == 0) {
                 cmdReturnCode = mr.getSynthesisInfo(args);
-            } else if (command.compareTo("extractdrafttree_ottid") == 0) {
+            } 
+            /*
+            else if (command.compareTo("extractdrafttree_ottid") == 0) {
                 cmdReturnCode = mr.extractDraftTreeForOttId(args);
             } else if (command.compareTo("extractdrafttree_ottid_relidmap") == 0) {
                 cmdReturnCode = mr.extractDraftTreeForOttIdRelIDMap(args);
@@ -4047,7 +4056,9 @@ public class MainRunner {
                 cmdReturnCode = mr.extractDraftTreeForOttidJSON(args);
             } else if (command.compareTo("extractdrafttree_nodeid") == 0) {
                 cmdReturnCode = mr.extractDraftTreeForNodeId(args);
-            } else if (command.compareTo("extractdraftsubtreeforottids") == 0) {
+            } 
+            */
+            else if (command.compareTo("extractdraftsubtreeforottids") == 0) {
                 cmdReturnCode = mr.extractDraftSubTreeForOttIDs(args);
             } else if (command.compareTo("extracttaxonomysubtreeforottids") == 0) {
                 cmdReturnCode = mr.extractTaxonomySubTreeForOttIDs(args);
@@ -4059,11 +4070,11 @@ public class MainRunner {
             } else if (command.equals("nodeinfo")) {
                 cmdReturnCode = mr.nodeInfo(args);
             // testing functions
-            } else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
-                cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
             } 
             /*
-            else if (command.compareTo("pgloadind") == 0) {
+            else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
+                cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
+            } else if (command.compareTo("pgloadind") == 0) {
                 cmdReturnCode = mr.pg_loading_ind_studies(args);
             } 
             */

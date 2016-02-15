@@ -2,13 +2,11 @@ package opentree;
 
 import java.util.HashSet;
 import java.util.NoSuchElementException;
-
 import opentree.constants.GeneralConstants;
 import opentree.constants.GraphProperty;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
-
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.graphdb.GraphDatabaseAgent;
@@ -382,6 +380,7 @@ public abstract class GraphBase {
      * Removes the synthetic tree from the graph.
      * @param source
      */
+    /*
     public void deleteSynthesisTree() {
         System.out.println("deleting synthetic tree from db...");
 
@@ -425,7 +424,7 @@ public abstract class GraphBase {
             nodesToRemove.close();
         }
     }
-    
+    */
     /**
      * Just initialize the standard GoL indexes used for searching.
      */
