@@ -110,7 +110,6 @@ public class tree_of_life extends ServerPlugin {
                 draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
                 
                 if (returnStudyList) {
-                    
                     Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
                     draftTreeInfo.put("sources", Arrays.asList((String[]) meta.getProperty("sources")));
                     
@@ -154,27 +153,32 @@ public class tree_of_life extends ServerPlugin {
         @Parameter(name = "ott_ids", optional = true)
         long[] ottIds,
         
-        @Description("Synthetic tree identifier")
+        @Description("Synthetic tree identifier (defaults to most recent).")
         @Parameter(name = "tree_id", optional = true)
-        String[] treeID,
+        String treeID,
         
         @Description("A set of open tree node ids")
         @Parameter(name = "ot_node_ids", optional = true)
-        String otNodeIDs
+        String[] otNodeIDs
         
         ) throws IllegalArgumentException {
 
         if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
             throw new IllegalArgumentException("You must supply at least one node_id or ott_id.");
         }
-
+        
+        // keep this one
         ArrayList<Node> tips = new ArrayList<Node>();
-
+        
+        // no longer dealing with longs
         ArrayList<Long> invalidNodesIds = new ArrayList<Long>();
         ArrayList<Long> invalidOttIds = new ArrayList<Long>();
         ArrayList<Long> nodeIdsNotInSynth = new ArrayList<Long>();
         ArrayList<Long> ottIdsNotInSynth = new ArrayList<Long>();
-
+        
+        // store results in ArrayList<String> instead:
+        //ArrayList<String> 
+        
         GraphExplorer ge = new GraphExplorer(graphDb);
 
         // *** provided nodeIds MUST be in the synthesis tree
@@ -215,7 +219,9 @@ public class tree_of_life extends ServerPlugin {
                 }
             }
         }
-
+        
+        
+        
         if (tips.size() < 1) {
             throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ids provided.");
         } else {
@@ -290,7 +296,15 @@ public class tree_of_life extends ServerPlugin {
 
         @Description("OTT ids indicating nodes to be used as tips in the induced tree")
         @Parameter(name = "ott_ids", optional = true)
-        long[] ottIds
+        long[] ottIds,
+        
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID,
+        
+        @Description("A set of open tree node ids")
+        @Parameter(name = "ot_node_ids", optional = true)
+        String[] otNodeIDs
         
         ) throws IllegalArgumentException {
         
@@ -383,10 +397,13 @@ public class tree_of_life extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation subtree (@Source GraphDatabaseService graphDb,
         
-        @Description("The identifier for the synthesis tree. We currently only support a single draft tree "
-            + "in the db at a time, so this argument is superfluous and may be safely ignored.")
+        @Description("Synthetic tree identifier (defaults to most recent).")
         @Parameter(name = "tree_id", optional = true)
         String treeID,
+        
+        @Description("A set of open tree node ids")
+        @Parameter(name = "ot_node_ids", optional = true)
+        String[] otNodeIDs,
         
         @Description("The node id of the node in the tree that should serve as the root of the tree returned. This "
             + "argument may not be used in combination with `ott_id`.")

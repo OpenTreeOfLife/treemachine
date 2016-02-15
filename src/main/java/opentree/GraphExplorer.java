@@ -4030,8 +4030,8 @@ public class GraphExplorer extends GraphBase {
         // this basically replaces (neo4j) nodeid from before
         jNd.assocObject("ot_node_id", nd.getProperty("ot_node_id"));
         
-        if (nd.hasProperty("uniqname")) {
-            jNd.assocObject("uniqname", nd.getProperty("uniqname"));
+        if (nd.hasProperty("unique_name")) {
+            jNd.assocObject("unique_name", nd.getProperty("unique_name"));
         }
         if (nd.hasProperty("tax_source")) {
             String tSrc = (String) nd.getProperty("tax_source");

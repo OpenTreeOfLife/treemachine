@@ -103,7 +103,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     serializer.putNumber("n_leaves", 0);
                 }
                 
-                String [] optProperties = {"uniqname", "tax_rank", "ott_id", "ot_node_id"};
+                String [] optProperties = {"unique_name", "tax_rank", "ott_id", "ot_node_id"};
                 for (String optPropertyName : optProperties) {
                     if (inNode.getObject(optPropertyName) != null) {
                         serializer.putString(optPropertyName, (String) inNode.getObject(optPropertyName));
@@ -182,8 +182,8 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
         if (nd.hasProperty("name")) {
             nodeInfoMap.put("name", nd.getProperty("name"));
         }
-        if (nd.hasProperty("uniqname")) {
-            nodeInfoMap.put("uniqname", nd.getProperty("uniqname"));
+        if (nd.hasProperty("unique_name")) {
+            nodeInfoMap.put("unique_name", nd.getProperty("unique_name"));
         }
         if (nd.hasProperty("tax_source")) {
             String tSrc = (String) nd.getProperty("tax_source");

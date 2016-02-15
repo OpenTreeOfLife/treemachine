@@ -225,7 +225,7 @@ public class IngestSynthesisData extends GraphBase {
             String name = null;
             String rank = null;
             String srce = null;
-            String uniqname = null;
+            String unique_name = null;
             String flag = null; // don't want to keep
             
             try {
@@ -234,7 +234,7 @@ public class IngestSynthesisData extends GraphBase {
                 name = st.nextToken().trim();
                 rank = st.nextToken().trim();
                 srce = st.nextToken().trim();
-                uniqname = st.nextToken().trim();
+                unique_name = st.nextToken().trim();
                 flag = st.nextToken().trim();
             } catch (NoSuchElementException ex) {
                 throw new NoSuchElementException("The taxonomy file appears to be missing some fields.");
@@ -243,7 +243,7 @@ public class IngestSynthesisData extends GraphBase {
             taxonInfo.put("name", name);
             taxonInfo.put("rank", rank);
             taxonInfo.put("srce", srce);
-            taxonInfo.put("uniqname", uniqname);
+            taxonInfo.put("unique_name", unique_name);
             taxonInfo.put("tid", tid);
 
             String ottID = "ott" + tid;
@@ -383,7 +383,7 @@ public class IngestSynthesisData extends GraphBase {
             newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
             newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, taxDat.get("rank"));
             newGraphNode.setProperty(NodeProperty.TAX_SOURCE.propertyName, taxDat.get("srce"));
-            String uName = taxDat.get("uniqname");
+            String uName = taxDat.get("unique_name");
             if ("".equals(uName)) {
                 uName = taxDat.get("name");
             }

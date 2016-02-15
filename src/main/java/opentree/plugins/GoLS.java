@@ -53,9 +53,28 @@ public class GoLS extends ServerPlugin {
         "3) rank, and 4) nodeId. Also returns the nodeIds of the query taxa, the query target (treeSource), and any unmatched nodeIds/ottIds.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getMRCA(@Source GraphDatabaseService graphDb,
-            @Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
-            @Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds,
-            @Description("Tree source (either 'taxonomy' or 'synth'") @Parameter(name = "treeSource", optional = false) String treeSource) throws MultipleHitsException, TaxonNotFoundException {
+            
+           @Description("Synthetic tree identifier (defaults to most recent).")
+            @Parameter(name = "tree_id", optional = true)
+            String treeID,
+            
+            @Description("A set of open tree node ids")
+            @Parameter(name = "ot_node_ids", optional = true)
+            String[] otNodeIDs,
+            
+            @Description("A set of node ids")
+            @Parameter(name = "nodeIds", optional = true)
+            long[] nodeIds,
+            
+            @Description("A set of ott ids")
+            @Parameter(name = "ottIds", optional = true)
+            long[] ottIds,
+            
+            @Description("Tree source (either 'taxonomy' or 'synth'")
+            @Parameter(name = "treeSource",
+            optional = false
+            
+            ) String treeSource) throws MultipleHitsException, TaxonNotFoundException {
         
         boolean taxonomyOnly = true;
         
@@ -164,6 +183,15 @@ public class GoLS extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeSubtreeForNodes(
             @Source GraphDatabaseService graphDb,
+            
+            @Description("Synthetic tree identifier (defaults to most recent).")
+            @Parameter(name = "tree_id", optional = true)
+            String treeID,
+            
+            @Description("A set of open tree node ids")
+            @Parameter(name = "ot_node_ids", optional = true)
+            String[] otNodeIDs,
+            
             @Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
             @Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
         
@@ -207,10 +235,14 @@ public class GoLS extends ServerPlugin {
     @Description("Return a JSON obj that represents the error and warning messages associated with attempting to ingest a NexSON blob")
     @PluginTarget (GraphDatabaseService.class)
     public Representation getStudyIngestMessagesForNexSON(
-            @Source GraphDatabaseService graphDbs,
-            @Description("The ottId of the node to use as the root for synthesis. If omitted then the root of all life is used.")
-            @Parameter(name = "nexsonBlob", optional = true) String nexsonBlob)
-            throws Exception {
+        @Source GraphDatabaseService graphDbs,
+        
+        @Description("The ottId of the node to use as the root for synthesis. If omitted then the root of all life is used.")
+        @Parameter(name = "nexsonBlob", optional = true)
+        String nexsonBlob)
+        
+        throws Exception {
+        
         GraphDatabaseAgent graphDb = new GraphDatabaseAgent(graphDbs);
         ByteArrayInputStream inpStream = new ByteArrayInputStream(nexsonBlob.getBytes("UTF-8"));
         BufferedReader nexsonContentBR = new BufferedReader(new InputStreamReader(inpStream));
@@ -300,7 +332,14 @@ public class GoLS extends ServerPlugin {
     // is this used? if so, will need to be updated i.e. which synth tree?
     @Description("Returns a list of the synthesis tree source information")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb) throws TaxonNotFoundException, MultipleHitsException {
+    public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb,
+        
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID
+        
+        ) throws TaxonNotFoundException, MultipleHitsException {
+        
         GraphExplorer ge = new GraphExplorer(graphDb);
         ArrayList<String> sourceList = new ArrayList<String>();
         try {
