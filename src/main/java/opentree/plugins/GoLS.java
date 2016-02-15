@@ -150,38 +150,32 @@ public class GoLS extends ServerPlugin {
             res.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
             res.put("nearest_taxon_mrca_ot_node_id", mrta.getProperty("ot_node_id"));
             
-            // not using taxonomy mrca anymore
-            /*
-            else {
-                vals.put("mrca_name", mrca.getProperty(NodeProperty.NAME.propertyName));
-                vals.put("mrca_unique_name", mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-                vals.put("mrca_rank", mrca.getProperty(NodeProperty.TAX_RANK.propertyName));
-                vals.put("mrca_ott_id", mrca.getProperty(NodeProperty.TAX_UID.propertyName));
-            }
-            */
             ge.shutdownDB();
             return OTRepresentationConverter.convert(res);
         }
     }
     
     
-    // is this being used?
-    @Description("Get a subtree of the draft tree with tips corresponding to the set of nodes identified by the query"
-            + "input. Accepts any combination of node ids and ott ids as input.")
+    // is this being used? jim doesn't think so
+    /*
+    @Description("Get a subtree of the draft tree with tips corresponding to the set "
+        + "of ot_node_idss identified by the query input.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeSubtreeForNodes(
-            @Source GraphDatabaseService graphDb,
-            
-            @Description("Synthetic tree identifier (defaults to most recent).")
-            @Parameter(name = "tree_id", optional = true)
-            String treeID,
-            
-            @Description("A set of open tree node ids")
-            @Parameter(name = "ot_node_ids", optional = true)
-            String[] otNodeIDs,
-            
-            @Description("A set of node ids") @Parameter(name = "nodeIds", optional = true) long[] nodeIds,
-            @Description("A set of ott ids") @Parameter(name = "ottIds", optional = true) long[] ottIds) throws MultipleHitsException, TaxonNotFoundException {
+    public Representation getDraftTreeSubtreeForNodes(@Source GraphDatabaseService graphDb,
+
+        @Description("Synthetic tree identifier (defaults to most recent).")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID,
+
+        @Description("A set of open tree node ids")
+        @Parameter(name = "ot_node_ids", optional = false)
+        String[] otNodeIDs,
+
+        @Description("A set of node ids")
+        @Parameter(name = "nodeIds", optional = true)
+        long[] nodeIds
+        
+        ) throws MultipleHitsException, TaxonNotFoundException {
         
         if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
             throw new IllegalArgumentException("You must supply at least one node or ott id.");
@@ -198,15 +192,6 @@ public class GoLS extends ServerPlugin {
                 }
             }
         }
-        
-        if (ottIds != null && ottIds.length > 0) {
-            for (long ottId : ottIds) {
-                Node n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
-                if (n != null) {
-                    tips.add(n);
-                }
-            }
-        }
 
         if (tips.size() < 1) {
             throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node and/or ott ids provided.");
@@ -217,7 +202,7 @@ public class GoLS extends ServerPlugin {
             return OTRepresentationConverter.convert(vals);
         }
     }
-    
+    */
     
     
 
@@ -248,52 +233,8 @@ public class GoLS extends ServerPlugin {
     }
     
     
-    // is this used?
-    @Description("Returns the version of the taxonomy used in the construction of a draft "
-        + "synthesis tree (defaults to the most recent tree).")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation getTaxonomyVersion (@Source GraphDatabaseService graphDb,
-        
-        @Description("Synthetic tree identifier")
-        @Parameter(name = "tree_id", optional = true)
-        String treeID
-        
-        ) {
-
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        Node meta = null;
-        String taxVersion = "";
-        String synthTreeID = null;
-        
-        HashMap<String, Object> taxonomyInfo = new HashMap<>();
-        
-        if (treeID != null) {
-            synthTreeID = treeID;
-        }
-        try {
-            if (synthTreeID != null) {
-                meta = ge.getSynthesisMetaNodeByName(synthTreeID);
-                // invalid treeid
-                if (meta == null) {
-                    ge.shutdownDB();
-                    String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
-                        + synthTreeID + "'.";
-                    throw new IllegalArgumentException(ret);
-                }
-            } else {
-                // default to most recent
-                meta = ge.getMostRecentSynthesisMetaNode();
-                synthTreeID = (String) meta.getProperty("tree_id");
-            }
-            taxVersion = (String)meta.getProperty("taxonomy_version");
-            taxonomyInfo.put("taxonomy_version", taxVersion);
-            taxonomyInfo.put("tree_id", synthTreeID);
-            
-        } finally {
-            ge.shutdownDB();
-        }
-        return OTRepresentationConverter.convert(taxonomyInfo);
-    }
+    
+    
     
     
     
@@ -405,9 +346,56 @@ public class GoLS extends ServerPlugin {
     }
     
     
+    // not currently used (Jim Allman)
+    @Description("Returns the version of the taxonomy used in the construction of a draft "
+        + "synthesis tree (defaults to the most recent tree).")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation getTaxonomyVersion (@Source GraphDatabaseService graphDb,
+        
+        @Description("Synthetic tree identifier")
+        @Parameter(name = "tree_id", optional = true)
+        String treeID
+        
+        ) {
+
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        Node meta = null;
+        String taxVersion = "";
+        String synthTreeID = null;
+        
+        HashMap<String, Object> taxonomyInfo = new HashMap<>();
+        
+        if (treeID != null) {
+            synthTreeID = treeID;
+        }
+        try {
+            if (synthTreeID != null) {
+                meta = ge.getSynthesisMetaNodeByName(synthTreeID);
+                // invalid treeid
+                if (meta == null) {
+                    ge.shutdownDB();
+                    String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
+                        + synthTreeID + "'.";
+                    throw new IllegalArgumentException(ret);
+                }
+            } else {
+                // default to most recent
+                meta = ge.getMostRecentSynthesisMetaNode();
+                synthTreeID = (String) meta.getProperty("tree_id");
+            }
+            taxVersion = (String)meta.getProperty("taxonomy_version");
+            taxonomyInfo.put("taxonomy_version", taxVersion);
+            taxonomyInfo.put("tree_id", synthTreeID);
+            
+        } finally {
+            ge.shutdownDB();
+        }
+        return OTRepresentationConverter.convert(taxonomyInfo);
+    }
     
     
     // is this used? if so, will need to be updated i.e. which synth tree?
+    // tree_of_life/about is better (i.e. a superset)
     @Description("Returns a list of the synthesis tree source information")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb,
@@ -516,7 +504,7 @@ public class GoLS extends ServerPlugin {
     
     // ============================== arbor interoperability services ==================================
     
-    // is this being used? who to ask?
+    // *** TODO: is this being used? who to ask? ***
     @Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree. Temporary, for interoperability testing with the arbor project.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeChildNodesForNodeID(

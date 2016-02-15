@@ -82,9 +82,9 @@ public class tree_of_life extends ServerPlugin {
             }
             graphInfo.put("synth_trees", trees);
         } else {
+            ge.shutdownDB();
             throw new IllegalArgumentException("Could not find any draft synthetic trees in the graph.");
         }
-        ge.shutdownDB();
 
         return OTRepresentationConverter.convert(graphInfo);
     }
@@ -118,7 +118,7 @@ public class tree_of_life extends ServerPlugin {
         
         if (qNode == null) {
             ge.shutdownDB();
-            String ret = "Could not find a graph node corresponding to the 'node_id' arg: '"
+            String ret = "Could not find a graph node corresponding to the 'ot_node_id' arg: '"
                 + otNodeID + "'.";
             throw new IllegalArgumentException(ret);
         }
@@ -499,8 +499,9 @@ public class tree_of_life extends ServerPlugin {
     }
     
     
-    @Description("Return a complete subtree of the draft tree descended from some specified node. The node to use as the "
-        + "start node may be specified using *either* a node id or an ott id, **but not both**. If the specified node "
+    @Description("Return a complete subtree of the draft tree descended from some specified node. "
+        + "The draft tree version is specified by the `tree_id` arg (defaults to most recent). "
+        + "The node to use as the start node must specified using an ot node id. If the specified node "
         + "is not in the synthetic tree (or is entirely absent from the graph), an error will be returned.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation subtree (@Source GraphDatabaseService graphDb,
@@ -509,76 +510,23 @@ public class tree_of_life extends ServerPlugin {
         @Parameter(name = "tree_id", optional = true)
         String treeID,
         
-        @Description("A set of open tree node ids")
-        @Parameter(name = "ot_node_ids", optional = true)
-        String[] otNodeIDs,
-        
-        @Description("The node id of the node in the tree that should serve as the root of the tree returned. This "
-            + "argument may not be used in combination with `ott_id`.")
-        @Parameter(name = "node_id", optional = true)
-        Long subtreeNodeId,
-        
-        @Description("The ott id of the node in the tree that should serve as the root of the tree returned. This "
-            + "argument may not be used in combination with `node_id`.")
-        @Parameter(name = "ott_id", optional = true)
-        Long subtreeOttId
+        @Description("The ot node id of the node in the tree that should serve as the "
+            + "root of the tree returned.")
+        @Parameter(name = "ot_node_id", optional = false)
+        String otNodeID
         
         ) throws TreeNotFoundException, IllegalArgumentException {
         
         GraphExplorer ge = new GraphExplorer(graphDb);
-        HashMap<String, Object> responseMap = new HashMap<String, Object>();
+        HashMap<String, Object> responseMap = new HashMap<>();
 
         // set default param values
         long startNodeID = -1;
         Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
-        String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value; // don't use this.
+        //String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value; // don't use this.
         
-        // get start node
-        if (subtreeNodeId != null && subtreeOttId != null) {
-            throw new IllegalArgumentException("Provide only one \"node_id\" or \"ott_id\" argument.");
-        }
-        if (subtreeNodeId != null) {
-            startNodeID = subtreeNodeId;
-        } else if (subtreeOttId != null) {
-            try {
-                startNodeID = ge.findGraphTaxNodeByUID(String.valueOf(subtreeOttId)).getId();
-            } catch (MultipleHitsException e) {
-                
-            } catch (TaxonNotFoundException e) {
-                
-            }
-            if (startNodeID == -1) {
-                throw new IllegalArgumentException("Invalid \"ott_id\" argument.");
-            }
-        } else {
-            throw new IllegalArgumentException("Must provide a \"node_id\" or \"ott_id\" argument to indicate the location of the root "
-                + "node of the subtree.");
-        }
-        
-        // check that startNode is indeed in the synthetic tree
-        Node n = graphDb.getNodeById(startNodeID);
-        if (n == null) {
-            if (subtreeNodeId != null) {
-                throw new IllegalArgumentException("Invalid \"node_id\" argument.");
-            } else {
-                throw new IllegalArgumentException("Invalid \"ott_id\" argument.");
-            }
-        } else {
-            if (!ge.nodeIsInSyntheticTree(n)) {
-                if (subtreeNodeId != null) {
-                    throw new IllegalArgumentException("Provided \"node_id\" is in the graph, but not part of the current synthetic tree.");
-                } else {
-                    throw new IllegalArgumentException("Provided \"ott_id\" is in the graph, but not part of the current synthetic tree.");
-                }
-            }
-        }
-        
-        // check that the returned tree is not too large
-        Integer numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
-        if (numMRCA > maxNumTips) {
-            throw new IllegalArgumentException("Requested tree is larger than currently allowed by this service (" + maxNumTips 
-                + " tips). For larger trees, please download the full tree directly from: http://files.opentreeoflife.org/trees/");
-        }
+        String synthTreeID = null;
+        String rootNodeID = otNodeID;
         
         // synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
         if (treeID != null) {
@@ -586,8 +534,47 @@ public class tree_of_life extends ServerPlugin {
             if (synthTreeIDs.contains(treeID)) {
                 synthTreeID = treeID;
             } else {
-                throw new IllegalArgumentException("Unrecognized \"tree_id\" argument. Leave blank to default to the current synthetic tree.");
+                ge.shutdownDB();
+                String ret = "Unrecognized \"tree_id\" argument. Leave blank to default "
+                    + "to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
             }
+        } else {
+            // default to most recent
+            Node meta = ge.getMostRecentSynthesisMetaNode();
+            synthTreeID = (String) meta.getProperty("tree_id");
+        }
+        
+        try {
+            startNodeID = ge.findGraphNodeByOTTNodeID(rootNodeID).getId();
+        } catch (MultipleHitsException e) {
+        } catch (TaxonNotFoundException e) {
+        }
+        
+        if (startNodeID == -1) {
+            ge.shutdownDB();
+            String ret = "Could not find any graph nodes corresponding to the arg `ot_node_id` provided.";
+            throw new IllegalArgumentException(ret);
+        }
+        
+        // check that startNode is indeed in the synthetic tree
+        Node n = graphDb.getNodeById(startNodeID);
+        if (!ge.nodeIsInSyntheticTree(n, synthTreeID)) {
+            ge.shutdownDB();
+            String ret = "Queried `ot_node_id`: " + rootNodeID + " is in the graph, but "
+                + "not in the draft tree: " + synthTreeID;
+            throw new IllegalArgumentException(ret);
+        }
+        
+        // check that the returned tree is not too large
+        Integer numMRCA = ge.getNumTipDescendants(n, synthTreeID);
+        
+        if (numMRCA > maxNumTips) {
+            ge.shutdownDB();
+            String ret = "Requested tree is larger than currently allowed by this service "
+                + "(" + maxNumTips + " tips). For larger trees, please download the full "
+                + "tree directly from: http://files.opentreeoflife.org/trees/";
+            throw new IllegalArgumentException(ret);
         }
         
         // get the subtree for export

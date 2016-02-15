@@ -1734,81 +1734,6 @@ public class GraphExplorer extends GraphBase {
      * @param startNode
      * @param taxRootNode
      */
-    private void addMissingChildrenToDraftTree(Node startNode, Node taxRootNode) {
-        
-        // will hold nodes from the taxonomy to check
-        //    LinkedList<Node> taxNodes = new LinkedList<Node>();
-        
-        // to be stored as the 'supporting_sources' property of newly created rels
-        String[] supportingSources = new String[1];
-        supportingSources[0] = "taxonomy";
-        
-        // walk taxonomy and save nodes in postorder, WHY? just going to traverse like normal without saving
-        TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
-        // for (Node taxChild : TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRootNode).nodes()) {
-        //   taxNodes.add(0, taxChild);
-        //}
-        
-        // walk taxa from tips down
-        for (Node taxNode :  TAXCHILDOF_TRAVERSAL.breadthFirst().traverse(taxRootNode).nodes()) {
-            if (taxNode.hasRelationship(Direction.INCOMING, RelType.TAXCHILDOF) == false) {
-                // only consider taxa that are not tips
-                continue;
-            }
-            
-            System.out.println(taxNode.getProperty("name"));
-            
-            LinkedList<Node> nodesToAdd = new LinkedList<Node>();
-            ArrayList<Node> nodesInTree = new ArrayList<Node>();
-            
-            // get all external descendants of this taxon, remember if they're in the tree or not
-            for (long cid : (long[]) taxNode.getProperty("mrca")) {
-                Node childNode = graphDb.getNodeById(cid);
-                //    String childName = GeneralUtils.cleanName((String) childNode.getProperty("name"));
-                
-                // `knownIdsInTree` should be populated during synthesis
-                if (knownIdsInTree.contains(cid)) {
-                    //    namesInTree.add(childName);
-                    nodesInTree.add(childNode);
-                    //    System.out.println("name in tree: " + name);
-                } else {
-                    //    taxaToAddNamesNodesMap.put(childName, childNode);
-                    nodesToAdd.add(childNode);
-                }
-            }
-            
-            // find the mrca of the names in the tree
-            Node mrca = null;
-            //    if (namesInTree.size() > 0) {
-            if (nodesInTree.size() > 0) {
-                mrca = getLICAForDraftTreeNodes(nodesInTree);
-                //    System.out.println("found mrca: " + mrca);
-            } else {
-                //    System.out.println("zero names in tree!");
-                continue;
-            }
-            
-            // TODO: CURRENTLY THERE ARE SCREWY THINGS HAPPENING WITH GENERA GETTING LUMPED INTO
-            // FAMILIES. NEED TO FIX!
-            
-            // add any children that are not already in tree
-            for (Node childNode : nodesToAdd) {
-                System.out.println("attempting to add child: " + childNode.getProperty("name") + " " + childNode);
-                Relationship newRel = childNode.createRelationshipTo(mrca, RelType.SYNTHCHILDOF);
-                synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
-                newRel.setProperty("name", DRAFTTREENAME);
-                newRel.setProperty("supporting_sources", supportingSources);
-                knownIdsInTree.add(childNode.getId());
-            }
-        }
-    }
-    
-    
-    /**
-     * Used to add missing external nodes to the draft tree stored in the graph.
-     * @param startNode
-     * @param taxRootNode
-     */
     private void addMissingChildrenToDraftTreeWhile (Node startNode, Node taxRootNode) {
         // to be stored as the 'supporting_sources' property of newly created rels
         String[] supportingSources = new String[1];
@@ -1936,122 +1861,6 @@ public class GraphExplorer extends GraphBase {
                         taxaleft.remove(cid);
                     }
                 }
-                
-              // this should work, but creates unsupported nodes
-//          } else if (nodesInTree.size() == 1) {
-                /*
-                Possible complication: source trees dispute monophyly of 'A', but all but 1 tree are rejected in synth
-                only one tip from 'A', 'A1', is in the synth tree, but attachs to taxa of 'B'
-                need to: 
-                1. delete synth rel between 'A1' and 'B', while recording supporting sources
-                2. route 'A1' through 'A'
-                3. reproduce original synth rel between 'A' and 'B', and add supporting sources
-                4. add new synth rel for unsampled taxon to 'A'
-                5. bulk add any remaining unsampled taxa, preserving taxonomic nestedness
-                */
-
-                // tip that is in the tree. if we've gotten this far, ptaxNode is not in the tree (but should be)
-                // want: node below ptaxNode where diverges
-/*                            
-                Node sampledTaxon = nodesInTree.get(0);
-                Node departureNode = null; // this will be the place where a rel will be replaced
-                boolean done = false;
-                Node curNode = sampledTaxon;
-                while (!done) {
-                    Node curParent = curNode.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
-                    if (curParent.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
-                        curNode = curParent;
-                    } else {
-                        departureNode = curNode;
-                        done = true;
-                        break;
-                    }
-                }
-                
-                System.out.println("\tNode " + ((String)taxNode.getProperty("name")) + " has only 1 sister taxon: "
-                    + ((String)sampledTaxon.getProperty("name")) + " present in the synthetic tree, but it doesn't pass through parent node "
-                    + ((String)ptaxNode.getProperty("name")));
-                
-                Relationship origRel = departureNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
-                Node origAttach = origRel.getEndNode();
-                
-                if (ptaxNode.getId() == origAttach.getId()) {
-                    System.out.println("\tWell, I don't know how this is possible...");
-                } else {
-                    System.out.println("\tReplacing rel: " + origRel);
-                
-                    String[] sources = (String[]) origRel.getProperty(RelProperty.SUPPORTING_SOURCES.propertyName);
-                    synthRelIndex.remove(origRel, "draftTreeID", DRAFTTREENAME);
-                    origRel.delete();
-                
-                    // replacement relationship: attach parent taxon to original placement
-                    if (origAttach.hasProperty("name")) {
-                        System.out.println("\tAdding rel from " + ((String)ptaxNode.getProperty("name")) + " to node: " + ((String)origAttach.getProperty("name")));
-                    } else {
-                        System.out.println("\tAdding rel from " + ((String)ptaxNode.getProperty("name")) + " to node: " + origAttach);
-                    }
-                    Relationship replaceOriginalRel = ptaxNode.createRelationshipTo(origAttach, RelType.SYNTHCHILDOF);
-                    synthRelIndex.add(replaceOriginalRel, "draftTreeID", DRAFTTREENAME);
-                    replaceOriginalRel.setProperty("name", DRAFTTREENAME);
-                    replaceOriginalRel.setProperty("supporting_sources", sources);
-                
-                    // add rel in path from sampledTaxon to parent
-                    // sampledTaxon may be nested taxonomically; want to preserve that structure
-                    done = false;
-                    curNode = sampledTaxon;
-                    while (!done) {
-                        Node curParent = curNode.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
-                        if (!curNode.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
-                            System.out.println("\tAdding rel from " + ((String)curNode.getProperty("name")) + " to node: " + ((String)curParent.getProperty("name")));
-                            Relationship completeRel = curNode.createRelationshipTo(curParent, RelType.SYNTHCHILDOF);
-                            synthRelIndex.add(completeRel, "draftTreeID", DRAFTTREENAME);
-                            completeRel.setProperty("name", DRAFTTREENAME);
-                            completeRel.setProperty("supporting_sources", supportingSources);
-                        }
-                        curNode = curParent;
-                        if (curNode.getId() == ptaxNode.getId()) {
-                            done = true;
-                            break;
-                        }
-                    }
-                    
-                    // add new taxon to parent
-                    System.out.println("\tAdding rel from " + ((String)taxNode.getProperty("name")) + " to node: " + ((String)ptaxNode.getProperty("name")));
-                    Relationship newRel = taxNode.createRelationshipTo(ptaxNode, RelType.SYNTHCHILDOF);
-                    synthRelIndex.add(newRel, "draftTreeID", DRAFTTREENAME);
-                    newRel.setProperty("name", DRAFTTREENAME);
-                    newRel.setProperty("supporting_sources", supportingSources);
-                    knownIdsInTree.add(taxNode.getId());
-                    
-                    // bulk add any remaining unsampled taxa, as there is no chance for conflict
-                    System.out.println("\tAttempting to add ALL " + ((long[])ptaxNode.getProperty("mrca")).length + " unsampled descendant nodes of " + ((String)ptaxNode.getProperty("name")) + "...");
-                    for (long cid : (long[]) ptaxNode.getProperty("mrca")) {
-                        Node curChild = graphDb.getNodeById(cid);
-                        if (!curChild.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
-                            System.out.println("\tCurrent node: " + ((String)curChild.getProperty("name")));
-                        }
-                        done = false;
-                        while (!done) {
-                            Node curParent = curChild.getSingleRelationship(RelType.TAXCHILDOF,Direction.OUTGOING).getEndNode();
-                            if (!curChild.hasRelationship(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
-                                Relationship cleanupRel = curChild.createRelationshipTo(curParent, RelType.SYNTHCHILDOF);
-                                synthRelIndex.add(cleanupRel, "draftTreeID", DRAFTTREENAME);
-                                cleanupRel.setProperty("name", DRAFTTREENAME);
-                                cleanupRel.setProperty("supporting_sources", supportingSources);
-                                System.out.println("\t\tAdding rel from " + ((String)curChild.getProperty("name")) + " to " + ((String)curParent.getProperty("name")));
-                            }
-                            if (curParent.getId() == ptaxNode.getId()) {
-                                done = true;
-                                break;
-                            } else {
-                                curChild = curParent;
-                            }
-                        }
-                        knownIdsInTree.add(cid);
-                        taxaleft.remove(cid);
-                    }
-                }
-*/
             } else {
 
                 // ptaxNode has no descendants in the synthetic tree
@@ -2090,22 +1899,7 @@ public class GraphExplorer extends GraphBase {
     
     // ====================================== extracting Synthetic trees from the db ==========================================
     
-    /**
-     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
-     * External function that uses the ottid to find the root node in the db.
-     * 
-     * @param nodeId
-     * @throws OttIdNotFoundException 
-     */
-    public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
-        
-        // empty parameters for initial recursion
-        System.out.println("Attempting to extract draft tree name: '" + DRAFTTREENAME + "'");
-        JadeNode parentJadeNode = null;
-        Relationship incomingRel = null;
-        
-        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, DRAFTTREENAME));
-    }
+    
     
     // extract a specific synthetic tree by name
     // if startNode is null, will return the whole tree (if present)
@@ -2148,6 +1942,25 @@ public class GraphExplorer extends GraphBase {
         return new JadeTree(extractStoredSyntheticTreeRecurMap(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, rellist));
     }
     
+    
+    /**
+     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
+     * External function that uses the ottid to find the root node in the db.
+     * 
+     * @param nodeId
+     * @throws OttIdNotFoundException 
+     */
+    public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
+        
+        // empty parameters for initial recursion
+        System.out.println("Attempting to extract draft tree name: '" + synthTreeName + "'");
+        JadeNode parentJadeNode = null;
+        Relationship incomingRel = null;
+        
+        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, synthTreeName));
+    }
+    
+    
     /**
      * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
      * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
@@ -2181,7 +1994,6 @@ public class GraphExplorer extends GraphBase {
                     }
                 }
             }
-            
         }
         curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
         
@@ -2192,8 +2004,8 @@ public class GraphExplorer extends GraphBase {
                 for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
                     
                     if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
-                        curNode.assocObject("supporting_sources", (String [] ) synthChildRel.getProperty("supporting_sources"));
-                        if (verbose) System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
+                        //curNode.assocObject("supporting_sources", (String [] ) synthChildRel.getProperty("supporting_sources"));
+                        //if (verbose) System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
                         done = true;
                     }
                 }
@@ -2228,6 +2040,10 @@ public class GraphExplorer extends GraphBase {
         
         return curNode;
     }
+    
+    
+    
+    
     
     /**
      * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
@@ -3978,11 +3794,6 @@ public class GraphExplorer extends GraphBase {
         if (nd.hasProperty("name")) {
             jNd.setName((String) nd.getProperty("name"));
         }
-        // don't want node id anymore
-        /*
-        final long nid = nd.getId();
-        jNd.assocObject("nodeid", nid);
-        */
         
         // this basically replaces (neo4j) nodeid from before
         jNd.assocObject("ot_node_id", nd.getProperty("ot_node_id"));
@@ -4002,17 +3813,22 @@ public class GraphExplorer extends GraphBase {
             jNd.assocObject("ott_id", nd.getProperty("tax_uid"));
         }
         
-        // num descendants stored in rel, since it may change depending on taxonomy, 
-        // filtering, sampling, etc.
+        jNd.assocObject("tip_descendants", getNumTipDescendants(nd, treeID));
+    }
+    
+    
+    public Integer getNumTipDescendants (Node nd, String treeID) {
+        Integer numTips = null;
         if (nd.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
             for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
                 if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
                     if (rel.hasProperty("tip_descendants")) {
-                        jNd.assocObject("tip_descendants", rel.getProperty("tip_descendants"));
+                        numTips = (Integer) rel.getProperty("tip_descendants");
                     }
                 }
             }
         }
+        return numTips;
     }
     
     
@@ -4106,5 +3922,8 @@ public class GraphExplorer extends GraphBase {
         }
         return mrca;
     }
+    
+    
+    
 }
 
