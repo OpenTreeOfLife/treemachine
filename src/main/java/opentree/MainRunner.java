@@ -3531,6 +3531,7 @@ public class MainRunner {
      * @return
      * @throws Exception
      */
+    /*
     public int mapcompat(String [] args) throws Exception {
         boolean test = false;
         String graphname = args[1];
@@ -3549,7 +3550,7 @@ public class MainRunner {
         ge.shutdownDB();
         return 0;
     }
-    
+    */
     
     public int nodeInfo(String [] args) {
         if (args.length != 3) {
@@ -4065,9 +4066,13 @@ public class MainRunner {
                 cmdReturnCode = mr.pg_loading_ind_studies_newick(args);
             } else if (command.compareTo("pgdelind") == 0) {
                 cmdReturnCode = mr.pg_delete_ind_study(args);
-            } else if (command.compareTo("mapcompat") == 0) {
+            } 
+            /*
+            else if (command.compareTo("mapcompat") == 0) {
                 cmdReturnCode = mr.mapcompat(args);
-            } else if (command.compareTo("gettaxonomy") == 0) {
+            } 
+            */
+            else if (command.compareTo("gettaxonomy") == 0) {
                 cmdReturnCode = mr.getTaxonomyVersion(args);
             }  else if (command.compareTo("taxtree") == 0) {
                 cmdReturnCode = mr.getTaxonomyTreeExport(args);

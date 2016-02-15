@@ -1130,6 +1130,7 @@ public class GraphExplorer extends GraphBase {
      * better synthesis (or possibly other analyses)
      * @param treeid
      */
+    /*
     public void mapcompat(String treeid, boolean test) {
         // initialize db access variables
         Transaction tx = null;
@@ -1320,7 +1321,7 @@ public class GraphExplorer extends GraphBase {
         }
         rootnodes.close();
     }
-    
+    */
     
     /**
      * The synthesis method for creating the draft tree. Uses the refactored synthesis classes. This will store the synthesized
