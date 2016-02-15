@@ -13,7 +13,7 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about -H 'Co
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"study_list":false}'
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/synthtrees
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/draft_trees
 
 # node_info moved from 'graph'
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/node_info -H "content-type:application/json" -d '{"ot_node_id":"ott81461"}'

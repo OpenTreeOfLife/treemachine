@@ -22,7 +22,8 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 public class graph extends ServerPlugin {
     
     // Don't deprecate: can use to list synthetic trees available
-    @Description("Returns summary information about the draft synthetic tree(s) "
+    /*
+    @Description("Returns brief summary information about the draft synthetic tree(s) "
         + "currently contained within the graph database.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation about (@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
@@ -54,7 +55,7 @@ public class graph extends ServerPlugin {
 
         return OTRepresentationConverter.convert(graphInfo);
     }
-    
+    */
     
     // TODO: Possibility of replacing tip label ottids with names?!?
     @Description("Returns a processed source tree (corresponding to a tree in some [study](#studies)) used "

@@ -31,13 +31,58 @@ public class tree_of_life extends ServerPlugin {
     // temporary for testing
     @Description("Returns list of existing synth tree ids.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation synthtrees (@Source GraphDatabaseService graphDb) {
+    public Representation foo (@Source GraphDatabaseService graphDb) {
         // grab existing synth tree ids
         GraphExplorer ge = new GraphExplorer(graphDb);
         ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs(); // these are sorted
         ge.shutdownDB();
         
         return OTRepresentationConverter.convert(synthTreeIDs);
+    }
+    
+    
+    @Description("Returns brief summary information about the draft synthetic tree(s) "
+        + "currently contained within the graph database.")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation draft_trees (@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
+
+        HashMap<String, Object> graphInfo = new HashMap<>();
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+        
+        if (synthTreeIDs.size() > 0) {
+            graphInfo.put("num_synth_trees", synthTreeIDs.size());
+            LinkedList<HashMap<String, Object>> trees = new LinkedList<>();
+            
+            // trying not to hardcode things here; arrays make it difficult
+            for (String treeID : synthTreeIDs) {
+                HashMap<String, Object> draftTreeInfo = new HashMap<>();
+                Node meta = ge.getSynthesisMetaNodeByName(treeID);
+                
+                draftTreeInfo.put("tree_id", treeID);
+                draftTreeInfo.put("date_completed", meta.getProperty("date_completed"));
+                draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
+                
+                // root node info
+                draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
+                draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
+                
+                // tree constituents
+                draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
+                draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
+                draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
+                draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
+                
+                trees.add(draftTreeInfo);
+            }
+            graphInfo.put("synth_trees", trees);
+        } else {
+            throw new IllegalArgumentException("Could not find any draft synthetic trees in the graph.");
+        }
+        ge.shutdownDB();
+
+        return OTRepresentationConverter.convert(graphInfo);
     }
     
     
