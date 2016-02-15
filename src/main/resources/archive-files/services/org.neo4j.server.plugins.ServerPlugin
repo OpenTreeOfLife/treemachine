@@ -1,5 +1,4 @@
 opentree.plugins.GetSASJsons
 opentree.plugins.GoLS
-opentree.plugins.PhylografterUpdater
 opentree.plugins.graph
-opentree.plugins.tree_of_life
+opentree.plugins.tree_of_life_v3

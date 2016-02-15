@@ -1,0 +1,67 @@
+## build as (using version 6 of example files):
+java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar ingestsynth labelled_supertree.v6.tre annotations.v6.json taxonomy.v2.9dra
+ft12.tsv TEST.db
+
+
+## working calls (run local):
+
+
+## tree_of_life_v3
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"study_list":false}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/draft_trees
+
+# node_info moved from 'graph' (class was deprecated)
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ot_node_id":"ott81461"}'
+
+# Gavia subtree
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
+
+curl -v -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
+
+
+
+## 'v1' services
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeID
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
+
+## some nodes for testing
+# Aves (taxonomy): ott81461
+# Root node id (neo4j): 2659019
+
+# Aves
+curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","max_depth":"3","ot_node_id":"ott81461"}'
+
+# Galloanserae
+curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","max_depth":"3","ot_node_id":"ott5839486"}'
+
+# mrca of chicken and dipper; should be Neognathae
+curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
+
+
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForOTNodeID -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
+
+# NOTE: replaced GoLS services "getDraftTreeForottId" and "getDraftTreeForNodeID" with "getDraftTreeForOTNodeID"
+
+## test call deplyed on test.opentreeoflife.org
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about -H "content-type:application/json"
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about
+
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForOTNodeID -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about
+
+
+curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"ot_node_id":"ott803675"}'
+
+
+
+
+

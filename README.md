@@ -1,11 +1,19 @@
 [![Build Status](https://secure.travis-ci.org/OpenTreeOfLife/treemachine.png)](http://travis-ci.org/OpenTreeOfLife/treemachine)
 
-opentree-treemachine
+treemachine-LITE
 ===============
+Description
+---------------
+treemachine-LITE is a pared-down version of the original treemachine which was used to generate synthetic phylogenetic 
+trees for the [Open Tree of Life project](http://opentreeoflife.org/). Synthetic analyses are now performed by other tools. 
+The role of treemachine-LITE is simply to construct a neo4j database which is used to serve such trees.
+
 Installation
 ---------------
-treemachine is managed by Maven v.3 (including the dependencies). In order to compile and build treemachine, it is easiest to let Maven v.3 do the hard work.
+### Dependencies
+treemachine-LITE is managed by Maven v.3 (including the dependencies). In order to compile and build treemachine-LITE, it is easiest to let Maven v.3 do the hard work.
 
+**maven**
 On Linux you can install Maven v.3 with:
 ```
 sudo apt-get install maven
@@ -14,78 +22,64 @@ On Mac OS, Maven v.3 can be installed with [Homebrew](http://brew.sh):
 ```
 brew install maven
 ```
-Once Maven v.3 is installed, the treemachine dependencies themselves can be installed.
+**jade and ot-base**
+Once Maven v.3 is installed, the treemachine-LITE dependencies themselves can be installed using the script 'mvn_install_dependencies.sh'
 
-### Jade
-Navigate to where you would like to put the [jade repo](https://github.com/FePhyFoFum/jade), and execute the following:
+**neo4j**
+The DB constructed by treemachine-lite is meant to be server by neo4j. We are currently using v1.9.5. This can be 
+found in the `deps` directory of this repo. Simply decompress the archive:
 ```
-git clone git@github.com:FePhyFoFum/jade.git
-cd jade
-sh mvn_install.sh
+tar -xvzf neo4j-community-1.9.5.tgz
 ```
-### ot-base
-Now, navigate to where you would like to put the [ot-base repo](https://github.com/OpenTreeOfLife/ot-base), and execute the following:
-```
-git clone git@github.com:OpenTreeOfLife/ot-base.git
-cd ot-base
-sh mvn_install.sh
-```
-### treemachine
-With all of the dependencies installed, we are free to acquire and compile treemachine itself. Navigate to where you would like to put treemachine, and execute the following:
+whereever you like. Make sure that this directory lies in your path.
+
+### treemachine-LITE
+With all of the dependencies installed, we are free to acquire and compile treemachine-LITE itself. Navigate to where you would like to put treemachine-LITE, and execute the following:
 ```
 git clone git@github.com:OpenTreeOfLife/treemachine.git
 cd treemachine
-sh mvn_cmdline.sh
+git checkout tm-lite
 ```	
-This will compile a jar file in the target directory that has commands for constructing and synthesizing the graph from the command line. 
+This will compile a jar file in the target directory that has commands for constructing the graph from the command line 
+(see below). 
 
-If you would rather use the neo4j server and the plugins that are written for interacting with the graph over REST calls, you will compile the server plugins. To compile and package what is necessary for the server plugins
+To compile the server plugins for interacting with the graph over REST calls, do:
 ```
 sh mvn_serverplugins.sh
-```	
-The compilation of the server plugins will delete the treemachine jar in the target directory. You can rebuild either just by running those scripts again.
+```
+NOTE: the compilation of the server plugins will delete the treemachine-LITE jar in the target directory. You can rebuild either just by running those scripts again.
 
 Usage
 --------------
-To see the help message run:
+### Constructing a DB
+Constructing a DB is accomplished by the following. First, compile the jar file in the target directory that has commands 
+for constructing the graph:
 ```
-java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar -h
+sh mvn_cmdline.sh
 ```
-See below for an example of adding information to a database. More examples are being added to the treemachine wiki https://github.com/OpenTreeOfLife/treemachine/wiki. 
+To build the DB, type:
 
-### Quickstart
-There is an example script that will load the ncbi taxonomy that is in the examples directory as well as two trees. It does this with two commands inittax and addnewick.
+```
+java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar ingestsynth newick_tree json_annotations tsv_taxonomy DB_name
+```
+where `newick_tree` and `json_annotations` are outputs from the synthesis procedure, `tsv_taxonomy` is the taxonomy.tsv 
+file from the [Open Tree of Life Taxonomy (OTT)](https://tree.opentreeoflife.org/about/taxonomy-version/), and 
+`DB_name` is the name for the generated DB.
 
-### Using the neo4j server
-There are a number of ways to visualize the content in the database. One way to do so is with the neo4j server. You do not need the server to load content or run analyses. However, it does off one way of visualizing the database. This requires having the full neo4j installation from http://neo4j.org/download  Note that the file $(NEO4J_HOME)/conf/neo4j-server.properties will have to be modified slightly. Typically, you'll just have to put the full path of the db directory that you are using with the opentree-treemachine as the value for the org.neo4j.server.database.location setting.
+### Serving a DB with Neo4j
+To compile the server plugins for interacting with the graph over 
+[REST calls](https://github.com/OpenTreeOfLife/opentree/wiki/Open-Tree-of-Life-APIs-v3), do:
+```
+sh mvn_serverplugins.sh
+```
+NOTE: the compilation of the server plugins will delete the treemachine-LITE jar in the target directory. You can rebuild either just by running those scripts again.
 
+Before starting neo4j, file $(NEO4J_HOME)/conf/neo4j-server.properties will have to be modified slightly. Typically, 
+you'll just have to put the full path of the DB directory constructed by treemachine-LITE as the value for the 
+`org.neo4j.server.database.location` setting.
 
-After you have loaded content into your db, you can run the neo4j http server
-with the command:
+After you have loaded content into your db, you can run the neo4j http server with the command:
 ```
 neo4j start
-```	
-### Taxonomy Loading
-The taxonomy should have the format
-uid	|	parent_uid	|	name	|	rank	|	sourceinfo	|	uniqname	|	flags	|	
-It can have 1 header line and the white space is a single tab.
+```
 
-The code has been refactored to have only one taxonomy (the preferred taxonomy). Loading multiple taxonomies has been moved to taxomachine.
-
-As an example of usage to load the snapshot of OTToL into test.db:
-```
-wget https://bitbucket.org/blackrim/avatol-taxonomies/downloads/ottol_dumpv1_w_preottol_ids_uniqunames.tar.gz
-tar xf ottol_dumpv1_w_preottol_ids_uniqunames.tar.gz
-java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar inittax ottol_dump_w_uniquenames_preottol_ids ottol_dump.synonyms test.db
-```
-To load a tree:
-```
-java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar addtree ex.nexson rosids WangEtAl2009-studyid-15 test.db
-```
-An older description on loading the taxonomies for the full ToL at 
-https://docs.google.com/document/d/1J82ZvgqMwv9Y43SqSGcw1ZjqWEPHaFQww5deuFFV7Js/edit
-
-### Credits/Attribution
-The (non-essential) program scripts/compare_normalized_original_names_in_taxonomy.py
-uses a function from http://en.wikipedia.org/wiki/Levenshtein_distance That code is
-released under the CC-SA (http://creativecommons.org/licenses/by-sa/3.0/)
