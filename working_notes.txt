@@ -19,7 +19,7 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/draft_trees
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/node_info -H "content-type:application/json" -d '{"ot_node_id":"ott81461"}'
 
 ## graph; to be deprecated
-curl -X POST http://localhost:7474/db/data/ext/graph/graphdb/about
+#curl -X POST http://localhost:7474/db/data/ext/graph/graphdb/about
 
 # moved to tree_of_life
 #curl -X POST http://localhost:7474/db/data/ext/graph/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"ott81461"}'
