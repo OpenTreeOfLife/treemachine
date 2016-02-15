@@ -1,30 +1,22 @@
 package opentree;
 
-import gnu.trove.set.hash.TLongHashSet;
-
-import jade.deprecated.JSONMessageLogger;
+import gnu.trove.set.hash.TLongHashSet;;
 import jade.deprecated.MessageLogger;
-
 import jade.tree.Tree;
 import jade.tree.TreeNode;
 import jade.tree.*;
-//import jade.tree.TreeParseException;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
 import jade.tree.deprecated.TreeReader;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.Reader;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,21 +26,16 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
-
-import opentree.addanalyses.TreeComparator;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.exceptions.TreeIngestException;
 import opentree.testing.TreeUtils;
-
 import org.apache.commons.lang3.StringUtils;
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.Traversal;
-
 import org.opentree.exceptions.DataFormatException;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.StoredEntityNotFoundException;
@@ -59,22 +46,41 @@ import org.opentree.tag.treeimport.BipartOracle;
 import org.opentree.tag.treeimport.SubsetTreesUtility;
 import org.opentree.utils.GeneralUtils;
 
-//import org.json.simple.*;
-import org.json.simple.JSONValue;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
-import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import scala.actors.threadpool.Arrays;
-
 public class MainRunner {
-    //static Logger _LOG = Logger.getLogger(MainRunner.class);
     
+    public int ingestSynthesisData(String [] args) throws FileNotFoundException, TaxonNotFoundException, TreeIngestException, IOException {
+        if (args.length != 5) {
+            System.out.println("arguments should be: newickFile jsonFile tsvFile graphName");
+            return 1;
+        }
+        
+        String newickFile = args[1];
+        String jsonFile   = args[2];
+        String taxFile    = args[3]; // taxonomy.tsv from ott
+        String graphName  = args[4];
+        
+        boolean isNewGraph = true;
+        
+        if (new File(graphName).exists()) {
+            isNewGraph = false;
+        }
+        
+        if (!new File(newickFile).exists()) {
+            System.err.println("Could not open the newick file '" + newickFile + "'. Exiting...");
+            return -1;
+        }
+        if (!new File(jsonFile).exists()) {
+            System.err.println("Could not open the json file '" + jsonFile + "'. Exiting...");
+            return -1;
+        }
+        
+        IngestSynthesisData tl = new IngestSynthesisData(graphName);
+        tl.buildDB(newickFile, jsonFile, taxFile, isNewGraph);
+
+        return 0;
+    }
+    
+    /*
     // @returns 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
     public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
         if (args.length < 4) {
@@ -116,64 +122,9 @@ public class MainRunner {
         }
         return 0;
     }
+    */
     
-    
-    
-    
-    
-    
-    public int ingestSynthesisData(String [] args) throws FileNotFoundException, TaxonNotFoundException, TreeIngestException, IOException {
-        if (args.length != 5) {
-            System.out.println("arguments should be: newickFile jsonFile tsvFile graphName");
-            return 1;
-        }
-        
-        String newickFile = args[1];
-        String jsonFile   = args[2];
-        String taxFile    = args[3]; // taxonomy.tsv from ott
-        String graphName  = args[4];
-        
-        boolean isNewGraph = true;
-        
-        if (new File(graphName).exists()) {
-            isNewGraph = false;
-        }
-        // don't want this; want to be able to host multiple trees in one DB
-        // check if graph already exists. abort if it does to prevent overwriting.
-        /*
-        if (new File(graphName).exists()) {
-            System.err.println("Graph database '" + graphName + "' already exists. Exiting...");
-            return -1;
-        }
-        */
-        
-        if (!new File(newickFile).exists()) {
-            System.err.println("Could not open the newick file '" + newickFile + "'. Exiting...");
-            return -1;
-        }
-        if (!new File(jsonFile).exists()) {
-            System.err.println("Could not open the json file '" + jsonFile + "'. Exiting...");
-            return -1;
-        }
-        
-        IngestSynthesisData tl = new IngestSynthesisData(graphName);
-        tl.buildDB(newickFile, jsonFile, taxFile, isNewGraph);
-        
-        /*
-        System.out.println("Initializing ott taxonomy '" + ottVersion + "' from '" + taxFile + "' with synonyms in '"
-                + synFile + "' to graphDB '" + graphName + "'.");
-        
-        IngestSynthesisData tl = new IngestSynthesisData(graphName);
-        try {
-            tl.addInitialTaxonomyTableIntoGraph(taxFile, synFile, ottVersion);
-        } finally {
-            tl.shutdownDB();
-        }
-        */
-        return 0;
-    }
-        
-    
+    /*
     public int getmdn(String [] args) {
         
         if (args.length != 3) {
@@ -321,185 +272,6 @@ public class MainRunner {
         return 0;
     }
     
-    public int goo (String [] args) {
-        
-        String fileName = args[1];
-        JSONParser jsonParser = new JSONParser();
-        JSONObject jsonObject = null;
-        
-        try {
-            FileReader fileReader = new FileReader(fileName);
-            jsonObject = (JSONObject) jsonParser.parse(fileReader);
-            fileReader.close();
-        } catch (FileNotFoundException e) {
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
-        }
-        
-        Map<String, Object> baseProperties = new HashMap<>();
-        Iterator baseIter = jsonObject.entrySet().iterator();
-        while (baseIter.hasNext()) {
-            Map.Entry entry = (Map.Entry)baseIter.next();
-            
-            if (!(entry.getValue() instanceof JSONObject) && !(entry.getValue() instanceof JSONArray)) {
-                System.out.println("Dealing with simple property: " + entry.getKey());
-                baseProperties.put((String) entry.getKey(), entry.getValue());
-            } else if (entry.getValue() instanceof JSONArray) {
-                System.out.println("Property '" + entry.getKey() + "' is an array.");
-            }
-            /*
-            if (entry.getValue() instanceof String) {
-                System.out.println(entry.getKey() + " is of class String.");
-            } else if (entry.getValue() instanceof Long) {
-                System.out.println(entry.getKey() + " is of class Long.");
-            }
-            */
-            //System.out.println("Value of '" + entry.getKey() + " is of class: " + entry.getValue().getClass());
-        }
-        
-        System.out.println("baseProperties is of length: " + baseProperties.size());
-        
-        /*
-        String date = (String) jsonObject.get("date_completed");
-        System.out.println("Date: " + date);
-        long num_tips = (long) jsonObject.get("num_tips");
-        System.out.println("num_tips: " + num_tips);
-        */
-        
-        // Filtered flags //
-        List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
-        System.out.println("flagList is of size: " + flagList.size() + ".");
-        System.out.println("flagList: " + flagList);
-        
-        
-        String[] feeoo = flagList.toArray(new String[flagList.size()]);
-        System.out.println("flagList: " + Arrays.toString(feeoo));
-
-        // Source IDs (properties in sourceIDMap below) //
-        List<String> sourceList = (ArrayList<String>) jsonObject.get("sources");
-        System.out.println("sourceList is of size: " + sourceList.size() + ".");
-
-        JSONObject nodes = (JSONObject) jsonObject.get("nodes");
-        System.out.println("Nodes length: " + nodes.size());
-        //System.out.println("Node keys: " + nodes.keySet());
-
-
-        // Soure ID Map //
-        HashMap<String, HashMap<String, String> > sourceMap = new HashMap<>();
-        JSONObject sourceIDMap = (JSONObject) jsonObject.get("source_id_map");
-
-        System.out.println("source_id_map length: " + sourceIDMap.size());
-        //System.out.println("source_id_map is of class: " + sourceIDMap.getClass());
-        //System.out.println("source_id_map toJSONString: " + sourceIDMap.toJSONString());
-        //System.out.println("source_id_map toString: " + sourceIDMap.toString());
-        
-        
-        Iterator srcIter = sourceIDMap.keySet().iterator();
-        
-        while (srcIter.hasNext()) {
-            String srcID = (String) srcIter.next();
-            JSONObject indSrc = (JSONObject) sourceIDMap.get(srcID);
-            HashMap<String, String> srcProps = new HashMap <>();
-            Iterator iter = indSrc.entrySet().iterator();
-            String res0 = "";
-            String res = "study_id:" + indSrc.get("study_id");
-            res += "&tree_id:" + indSrc.get("tree_id");
-            res += "&git_sha:" + indSrc.get("git_sha");
-            while (iter.hasNext()) {
-                Map.Entry entry = (Map.Entry)iter.next();
-                //System.out.println("    Key: " + entry.getKey() + "; value: " + entry.getValue());
-                //System.out.println("      Value is of class: " + entry.getValue().getClass());
-                srcProps.put((String) entry.getKey(), (String) entry.getValue());
-                
-                if (res0 == "") {
-                    res0 = entry.getKey() + ":" + (String) entry.getValue();
-                } else {
-                    res0 += "&" + entry.getKey() + ":" + (String) entry.getValue();
-                }
-                
-            }
-            System.out.println("Source '" + srcID + "' has " + srcProps.size() + " properties.");
-            System.out.println("Original: " + indSrc.toJSONString());
-            System.out.println("    " + res0);
-            System.out.println("    " + res);
-            System.out.println("    " + indSrc.toString());
-            sourceMap.put(srcID, srcProps);
-        }
-        
-        System.out.println("tree_id = " + jsonObject.get("tree_id"));
-        
-
-        //Set<String> glurp = nodes.keySet();
-        boolean doit = false;
-        if (doit) {
-            System.out.println("Node keys: ");
-            Iterator j = nodes.keySet().iterator();
-            while (j.hasNext()) {
-                String temp = (String) j.next();
-                System.out.println(temp);
-                JSONObject terp = (JSONObject) nodes.get(temp);
-                
-                //System.out.println("  terp = " + terp);
-
-                Iterator it = terp.entrySet().iterator();
-
-                while (it.hasNext()) {
-                    Map.Entry entry = (Map.Entry)it.next();
-                    System.out.println("  " + entry.getKey() + ":");
-                    //System.out.println("  " + entry.getKey() + ": value: " + entry.getValue());
-                    List<String> floo = (ArrayList<String>) jsonObject.get(entry.getKey());
-                    
-                    JSONArray msg = (JSONArray) terp.get(entry.getKey());
-                    
-                    //System.out.println("    " + entry.getKey() + " is of class: " + msg.getClass() +
-                    //    " and of length: " + msg.size());
-                    
-                    for (int i=0; i < msg.size(); i++) {
-                        JSONArray foo = (JSONArray) msg.get(i);
-                        System.out.println("    " + foo.get(0) + ", " + foo.get(1));
-                    }
-                }
-            }
-        }
-        JSONObject terp = (JSONObject) nodes.get("mrcaott115048ott550672");
-        System.out.println("terp: " + terp.toString());
-        System.out.println("terp is of size: " + terp.size());
-        
-        HashMap<String, String> res = getAnnotations(terp);
-        for (Map.Entry<String, String> entry : res.entrySet()) {
-            System.out.println(entry.getKey() + " : " + entry.getValue());
-        }
-        /*
-        Iterator it = terp.entrySet().iterator();
-
-        while (it.hasNext()) {
-            Map.Entry entry = (Map.Entry)it.next();
-            JSONArray msg = (JSONArray) terp.get(entry.getKey());
-            
-            System.out.println("  " + entry.getKey() + " (size: " + msg.size() + "):");
-            //System.out.println("  " + entry.getKey() + ": value: " + entry.getValue());
-            
-            String res = "";
-            String[] res1 = new String[msg.size()];
-            
-            for (int i=0; i < msg.size(); i++) {
-                JSONArray foo = (JSONArray) msg.get(i);
-                System.out.println("    " + foo.get(0) + ", " + foo.get(1));
-                if (res != "") {
-                    res += ",";
-                }
-                res += foo.get(0) + ":" + foo.get(1);
-                res1[i] = foo.get(0) + ":" + foo.get(1);
-            }
-            System.out.println("    " + entry.getKey() + ": " + res);
-            System.out.println("    " + entry.getKey() + ": " + msg.toString());
-            System.out.println("    " + entry.getKey() + ": " + res1);
-            
-            System.out.println("    " + entry.getKey() + ": " + Arrays.toString(res1));
-        }
-        */
-        return 0;
-    }
     
     public HashMap<String, String> getAnnotations (JSONObject indNodeInfo) {
         HashMap<String, String> res = new HashMap<>();
@@ -519,19 +291,7 @@ public class MainRunner {
         }
         return res;
     }
-    
-    
-    public void parseSynthJSON (String filename) {
-        BufferedReader br = null;
-        
-        try {
-            br = new BufferedReader(new FileReader(filename));
-        } catch (FileNotFoundException e) {
-        }
-        
-        JSONObject all = (JSONObject)JSONValue.parse(br);  
-    }
-    
+    */
     
     
     /*
@@ -895,6 +655,7 @@ public class MainRunner {
      * @throws Exception 
      * @returns 0 for success, 1 for error, 2 for error with a request that the generic help be displayed
     */
+    /*
     public int graphImporterParser(String [] args) throws Exception {
         
         if (args.length != 6) {
@@ -1050,7 +811,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     /**
      * 
@@ -2508,6 +2269,7 @@ public class MainRunner {
      * 
      * checktaxhier - takes a tree with ottid
      */
+    /*
     public int treeUtilsDB(String [] args) {
         if (args.length != 3) {
             System.out.println("arguments should be treefile graphdbfolder");
@@ -2597,7 +2359,7 @@ public class MainRunner {
         }
         return (success ? 0 : -1);
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
     public int synthesizeDraftTreeWithListForTaxUID(String [] args) throws Exception {
@@ -3193,6 +2955,7 @@ public class MainRunner {
      * 3. optionally taxa can be "mapped deeper"
      * Args are: nexson_filename, treeid, graph.db
      */
+    /*
     public int processtree(String [] args) throws Exception {
         if (args.length != 5 & args.length != 6) {
             System.out.println("the argument has to be: nexson_filename treeid graphdb out_directory (optional: <mapdeeper[T|F]>)");
@@ -3325,7 +3088,8 @@ public class MainRunner {
         }
         return 0;
     }
-
+    */
+    /*
     public static int loadPhylografterStudy(GraphDatabaseAgent graphDb, 
                                             BufferedReader nexsonContentBR, String treeid, String SHA,
                                             MessageLogger messageLogger,
@@ -3439,7 +3203,7 @@ public class MainRunner {
         nexsonContentBR.close();
         return 0;
     }
-
+    */
     
     /*
      * Use this to load trees from nexson into the graph from a file
@@ -3450,6 +3214,7 @@ public class MainRunner {
      * arguments are 
      * database filename treeid (test)
      */
+    /*
     public int pg_loading_ind_studies(String [] args) throws Exception {
         boolean test = false;
         GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
@@ -3527,7 +3292,7 @@ public class MainRunner {
         graphDb.shutdownDb();
         return rc;
     }
-    
+    */
     
     public int pg_loading_ind_studies_newick(String [] args) throws Exception {
         boolean test = false;
@@ -4011,7 +3776,7 @@ public class MainRunner {
         return 0;
     }
     
-    
+    /*
     // Runs tree comparison analyses
     public int treeCompare(String [] args){
         //1 = graphdb, 2 = nexson, 3 = treeid
@@ -4030,8 +3795,9 @@ public class MainRunner {
         graphDb.shutdownDb();
         return 0;
     }
+    */
     
-    
+    /*
     // Runs tree comparison analyses on taxonomy tree
     public int taxCompare(String [] args){
         //1 = graphdb, 2 = nexson, 3 = treeid
@@ -4050,6 +3816,7 @@ public class MainRunner {
         graphDb.shutdownDb();
         return 0;
     }
+    */
     
     // TODO: update
     public static void printShortHelp() {
@@ -4189,13 +3956,18 @@ public class MainRunner {
         try {
             MainRunner mr = new MainRunner();
             
+            /*
             if (command.compareTo("inittax") == 0) {
                 cmdReturnCode = mr.taxonomyLoadParser(args);
-            } else if (command.compareTo("addnewick") == 0
+            } 
+            */
+            /*
+            else if (command.compareTo("addnewick") == 0
                     || command.compareTo("addnewickTNRS") == 0
                             ||command.compareTo("addnexson") == 0) {
                 cmdReturnCode = mr.graphImporterParser(args);
-            } else if (command.compareTo("argusjson") == 0) {
+            */
+            if (command.compareTo("argusjson") == 0) {
                 cmdReturnCode = mr.graphArgusJSON(args);
             } else if (command.compareTo("jsgol") == 0
                     || command.compareTo("fulltree") == 0
@@ -4243,11 +4015,13 @@ public class MainRunner {
                 cmdReturnCode = mr.treeUtils(args);
             } else if (command.compareTo("converttaxonomy") == 0) {
                 cmdReturnCode = mr.convertTaxonomy(args);
-            } else if (command.compareTo("labeltax") == 0
+            } /*else if (command.compareTo("labeltax") == 0
                     || command.compareTo("checktax") == 0 
                     || command.compareTo("checktaxhier") == 0) {
                 cmdReturnCode = mr.treeUtilsDB(args);
-            } else if (command.compareTo("synthesizedrafttree") == 0) {
+            }
+            */
+            else if (command.compareTo("synthesizedrafttree") == 0) {
                 cmdReturnCode = mr.synthesizeDraftTree(args);
             } else if (command.compareTo("synthesizedrafttreelist_ottid") == 0) {
                 cmdReturnCode = mr.synthesizeDraftTreeWithListForTaxUID(args);
@@ -4281,9 +4055,13 @@ public class MainRunner {
             // testing functions
             } else if (command.compareTo("makeprunedbipartstestfiles") == 0) {
                 cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
-            } else if (command.compareTo("pgloadind") == 0) {
+            } 
+            /*
+            else if (command.compareTo("pgloadind") == 0) {
                 cmdReturnCode = mr.pg_loading_ind_studies(args);
-            } else if (command.compareTo("pgloadindnew") == 0) {
+            } 
+            */
+            else if (command.compareTo("pgloadindnew") == 0) {
                 cmdReturnCode = mr.pg_loading_ind_studies_newick(args);
             } else if (command.compareTo("pgdelind") == 0) {
                 cmdReturnCode = mr.pg_delete_ind_study(args);
@@ -4299,19 +4077,27 @@ public class MainRunner {
                 cmdReturnCode = mr.loadOTT(args);
             } else if (command.compareTo("nodestatus") == 0) {
                 cmdReturnCode = mr.getNodeStatus(args);
-            } else if (command.compareTo("treecomp") == 0) {
+            } 
+            /*
+            else if (command.compareTo("treecomp") == 0) {
                 cmdReturnCode = mr.treeCompare(args);
             } else if (command.compareTo("taxcomp") == 0) {
                 cmdReturnCode = mr.taxCompare(args);
-            } else if (command.compareTo("filtertreesforload") == 0) {
+            } 
+            */
+            else if (command.compareTo("filtertreesforload") == 0) {
                 cmdReturnCode = mr.filterTreesForLoad(args);
             } else if (command.compareTo("testsynth") == 0) {
                 cmdReturnCode = mr.testsynth(args);
             } else if (command.compareTo("sinksynth") == 0) {
                 cmdReturnCode = mr.sinkSynth(args);
-            } else if (command.compareTo("processtree") == 0) {
+            } 
+            /*
+            else if (command.compareTo("processtree") == 0) {
                 cmdReturnCode = mr.processtree(args);
-            } else if (command.compareTo("subprobcoverage") == 0) {
+            } 
+            */
+            else if (command.compareTo("subprobcoverage") == 0) {
                 cmdReturnCode = mr.labelSubprobCoverage(args);
             } else if (command.compareTo("processsubprobs") == 0) {
                 cmdReturnCode = mr.processSubproblems(args);
@@ -4319,7 +4105,10 @@ public class MainRunner {
                 
             } else if (command.compareTo("ingestsynth") == 0) {
                 cmdReturnCode = mr.ingestSynthesisData(args);
-            } else if (command.compareTo("goo") == 0) {
+            } 
+            
+            /*
+            else if (command.compareTo("goo") == 0) {
                 cmdReturnCode = mr.goo(args);
             } else if (command.compareTo("getmdn") == 0) {
                 cmdReturnCode = mr.getmdn(args);
@@ -4332,7 +4121,7 @@ public class MainRunner {
             } else if (command.compareTo("getmapn") == 0) {
                 cmdReturnCode = mr.getmapn(args);
             }
-            
+            */
             
             
             

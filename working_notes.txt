@@ -50,6 +50,18 @@ curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForOTNod
 
 ## test call deplyed on test.opentreeoflife.org
 
-curl -X POST https://test.opentreeoflife.org/v2/tree_of_life_v3/about -H "content-type:application/json"
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about -H "content-type:application/json"
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about
+
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForOTNodeID -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about
+
+
+curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"ot_node_id":"ott803675"}'
+
+
+
 
 

@@ -3262,6 +3262,7 @@ public class GraphExplorer extends GraphBase {
     
     
     // ================================= methods for trees ====================================
+    /*
     public void labelInternalNodesTax(JadeTree tree, MessageLogger logger) {
         //first get the unequivocal ones
         ArrayList<JadeNode> nds = tree.getRoot().getTips();
@@ -3284,7 +3285,7 @@ public class GraphExplorer extends GraphBase {
         ArrayList<JadeTree> al = new ArrayList<JadeTree> ();
         al.add(tree);
         try {
-            PhylografterConnector.fixNamesFromTrees(al,graphDb,false, logger);
+            PhylografterConnector.fixNamesFromTrees(al, graphDb, false, logger);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -3306,7 +3307,7 @@ public class GraphExplorer extends GraphBase {
             }
         }
     }
-    
+    */
     
     // ================================= methods needing work ====================================
     
