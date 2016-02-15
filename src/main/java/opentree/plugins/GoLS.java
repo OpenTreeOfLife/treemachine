@@ -55,7 +55,7 @@ public class GoLS extends ServerPlugin {
         
         ) throws MultipleHitsException, TaxonNotFoundException {
         
-        ArrayList<Node> tips = new ArrayList<Node>();
+        ArrayList<Node> tips = new ArrayList<>();
         ArrayList<String> matchedNodes = new ArrayList<>();
         ArrayList<String> unmatchedNodes = new ArrayList<>();
         ArrayList<String> nodesNotInTree = new ArrayList<>();
@@ -141,7 +141,6 @@ public class GoLS extends ServerPlugin {
                     }
                 }  
             }
-            
             res.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
             res.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
             res.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
@@ -258,9 +257,6 @@ public class GoLS extends ServerPlugin {
             return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
         }
     }
-    
-    
-    
     
     
     @Description("Returns a newick string of the draft tree specified by the optional arg "

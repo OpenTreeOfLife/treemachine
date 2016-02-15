@@ -21,7 +21,7 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/node_info -H
 # Gavia subtree
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
 
-
+curl -v -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
 
 
 
@@ -45,6 +45,10 @@ curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Conte
 
 
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForOTNodeID -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
+
+# NOTE: replaced GoLS services "getDraftTreeForottId" and "getDraftTreeForNodeID" with "getDraftTreeForOTNodeID"
+
+## test call deplyed on test.opentreeoflife.org
 
 
 
