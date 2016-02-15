@@ -3,14 +3,11 @@ package opentree.plugins;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 
 import jade.deprecated.JSONMessageLogger;
 import jade.tree.deprecated.JadeTree;
@@ -19,12 +16,9 @@ import opentree.GraphExplorer;
 import opentree.MainRunner;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
-import opentree.constants.GeneralConstants;
 
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
-
-import opentree.exceptions.TreeIngestException;
 
 import org.opentree.exceptions.TreeNotFoundException;
 import org.neo4j.graphdb.Direction;
@@ -39,7 +33,6 @@ import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.ArgusonRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
-import org.opentree.properties.OTVocabularyPredicate;
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 // Graph of Life Services 

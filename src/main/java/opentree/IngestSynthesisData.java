@@ -14,10 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import static opentree.GraphBase.sourceRelIndex;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.exceptions.TreeIngestException;
@@ -31,7 +27,6 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opentree.graphdb.GraphDatabaseAgent;
-import scala.actors.threadpool.Arrays;
 
 public class IngestSynthesisData extends GraphBase {
     

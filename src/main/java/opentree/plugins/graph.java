@@ -121,6 +121,29 @@ public class graph extends ServerPlugin {
         return OTRepresentationConverter.convert(responseMap);
     }
     
+    // fetch the processed input source tree newick from files.opentree.org
+    public String getSourceTree(String source, String synTreeID) {
+        String tree = null;
+        
+        // synTreeID will be of format: "opentree4.0"
+        String version = synTreeID.replace("opentree", "");
+        
+        String urlbase = "http://files.opentreeoflife.org/preprocessed/v"
+            + version + "/trees/" + source + ".tre";
+        System.out.println("Looking up study: " + urlbase);
+
+        try {
+            URL phurl = new URL(urlbase);
+            URLConnection conn = (URLConnection) phurl.openConnection();
+            conn.connect();
+            try (BufferedReader un = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                tree = un.readLine();
+            }
+            return tree;
+        } catch (Exception e) {
+        }
+        return tree;
+    }
     
     /*
     @Description("Returns summary information about a node in the graph. The node "
@@ -189,30 +212,5 @@ public class graph extends ServerPlugin {
         return OTRepresentationConverter.convert(nodeIfo);
     }
     */
-
-
-    // fetch the processed input source tree newick from files.opentree.org
-    public String getSourceTree(String source, String synTreeID) {
-        String tree = null;
-        
-        // synTreeID will be of format: "opentree4.0"
-        String version = synTreeID.replace("opentree", "");
-        
-        String urlbase = "http://files.opentreeoflife.org/preprocessed/v"
-            + version + "/trees/" + source + ".tre";
-        System.out.println("Looking up study: " + urlbase);
-
-        try {
-            URL phurl = new URL(urlbase);
-            URLConnection conn = (URLConnection) phurl.openConnection();
-            conn.connect();
-            try (BufferedReader un = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                tree = un.readLine();
-            }
-            return tree;
-        } catch (Exception e) {
-        }
-        return tree;
-    }
     
 }

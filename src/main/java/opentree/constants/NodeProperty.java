@@ -33,7 +33,7 @@ public enum NodeProperty {
     
     // ===== Taxonomy nodes
     NAME ("name", String.class, "The taxonomic name of this node. Generally used only for taxonomy nodes..."),
-    NAME_UNIQUE ("uniqname", String.class, "A unique identifier made using taxonomic information. Used only for taxonomy nodes."),
+    NAME_UNIQUE ("unique_name", String.class, "A unique identifier made using taxonomic information. Used only for taxonomy nodes."),
     TAX_UID ("tax_uid", String.class, "The OTT uid of the node. Used only for taxonomy nodes."),
     // don't need this
     TAX_PARENT_UID ("tax_parent_uid", String.class, "The UID of the taxonomic parent of this node. Used for taxonomy nodes."),
