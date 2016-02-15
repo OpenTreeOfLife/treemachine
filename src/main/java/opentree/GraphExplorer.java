@@ -2862,11 +2862,13 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSourceByTreeID(String treeID, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = graphDb.getNodeById(subtreeNodeID);
         Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
+    */
     
     /**
      * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
@@ -2877,12 +2879,14 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSource(String sourcename, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = graphDb.getNodeById(subtreeNodeID);
         Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
-
+    */
+    
     /**
      * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
      * 
@@ -2892,11 +2896,13 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSource(String sourcename, int maxDepth) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeSourceName(sourcename);
         Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
+    */
     
     /**
      * @returns the source tree with the specified treeID
@@ -2904,12 +2910,13 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSourceByTreeID(String treeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeID(treeID);
         Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
-    
+    */
     
     
     // just get the stored original newick string (rather than reconstructing it). mostly for testing pruposes.
@@ -2927,7 +2934,7 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
-    
+    /*
     private JadeTree reconstructSourceTreeHelper(Node metadataNode, Node rootnode, int maxDepth) {
         JadeNode root = new JadeNode();
 //        System.out.println("Hiya!");
@@ -3055,6 +3062,7 @@ public class GraphExplorer extends GraphBase {
         tree.setHasBranchLengths(printlengths);
         return tree;
     }
+    */
     
     public static boolean hasIncomingRel(Node subtreeRoot, RelType relType, String treeID) {
         for (Relationship rel : subtreeRoot.getRelationships(Direction.INCOMING, relType)) {

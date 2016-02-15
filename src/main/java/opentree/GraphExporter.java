@@ -4,9 +4,7 @@ package opentree;
 import gnu.trove.set.hash.TLongHashSet;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
-
 import org.opentree.utils.GeneralUtils;
-
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -15,14 +13,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.LinkedList;
-//import java.util.Iterator;
 import java.util.Stack;
-
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
-//import opentree.RelTypes;
 import opentree.constants.RelType;
-
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphdb.GraphDatabaseService;

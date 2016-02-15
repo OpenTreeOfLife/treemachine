@@ -1216,6 +1216,7 @@ public class MainRunner {
     
     
     // @returns 0 for success, 1 for poorly formed command
+    /*
     public int sourceTreeExplorer(String [] args) throws TreeNotFoundException {
         String sourcename = null;
         String graphname = null;
@@ -1271,7 +1272,7 @@ public class MainRunner {
         }
         return 0;
     }
-
+    */
     
     /// @returns 0 for success, 1 for poorly formed command
     public int listSources(String [] args) {
@@ -3992,11 +3993,15 @@ public class MainRunner {
                 cmdReturnCode = mr.graphListPruner(args);
             } else if (command.compareTo("loadtrees") == 0) {
                 cmdReturnCode = mr.loadTreeAnalysis(args);
-            } else if (command.compareTo("sourceexplorer") == 0
+            } 
+            /*
+            else if (command.compareTo("sourceexplorer") == 0
                     || command.equalsIgnoreCase("sourcepruner")
                     || command.equalsIgnoreCase("sourceexplorer_inf_mono")) {
                 cmdReturnCode = mr.sourceTreeExplorer(args);
-            } else if (command.compareTo("listsources") == 0
+            } 
+            */
+            else if (command.compareTo("listsources") == 0
                     || command.compareTo("getsourcetreeids") == 0) {
                 cmdReturnCode = mr.listSources(args);
             } else if (command.compareTo("listsynthtrees") == 0) { 

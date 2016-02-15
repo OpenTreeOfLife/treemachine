@@ -1,4 +1,5 @@
 package opentree;
+
 import java.lang.UnsupportedOperationException;
 import java.util.Collections;
 import java.util.HashSet;
@@ -6,9 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Stack;
-
 import opentree.constants.RelType;
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
