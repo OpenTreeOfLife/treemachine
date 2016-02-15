@@ -12,7 +12,6 @@ import java.util.Arrays;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
-import opentree.constants.GeneralConstants;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
@@ -30,7 +29,7 @@ import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
 
 // Graph of Life Services 
-public class tree_of_life extends ServerPlugin {
+public class tree_of_life_v3 extends ServerPlugin {
     
     @Description("Returns brief summary information about the draft synthetic tree(s) "
         + "currently contained within the graph database.")

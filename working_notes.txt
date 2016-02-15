@@ -6,22 +6,22 @@ ft12.tsv TEST.db
 ## working calls (run local):
 
 
-## tree_of_life
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about
+## tree_of_life_v3
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"study_list":false}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"study_list":false}'
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/draft_trees
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/draft_trees
 
 # node_info moved from 'graph' (class was deprecated)
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/node_info -H "content-type:application/json" -d '{"ot_node_id":"ott81461"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ot_node_id":"ott81461"}'
 
 # Gavia subtree
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/subtree -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
 
-curl -v -X POST http://localhost:7474/db/data/ext/tree_of_life/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
+curl -v -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
 
 
 
@@ -50,6 +50,6 @@ curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForOTNod
 
 ## test call deplyed on test.opentreeoflife.org
 
-
+curl -X POST https://test.opentreeoflife.org/v2/tree_of_life_v3/about -H "content-type:application/json"
 
 
