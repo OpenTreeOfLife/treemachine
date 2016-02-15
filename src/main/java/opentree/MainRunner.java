@@ -1330,6 +1330,7 @@ public class MainRunner {
     
     // Report which taxonomy (e.g. version of OTT) was used to initialize the graph
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
+    /*
     public int getTaxonomyVersion(String [] args) {
         String graphname;
         
@@ -1354,7 +1355,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
 
     public int getTaxonomyTreeExport(String [] args) {
         if (args.length != 4) {
@@ -2108,6 +2109,7 @@ public class MainRunner {
     /*
      * this is to run after joseph's synth to sink the lost clades
      */
+    /*
     private int sinkSynth(String [] args){
         if(args.length != 3){
             System.out.println("ottid db");
@@ -2121,12 +2123,14 @@ public class MainRunner {
         gdb.shutdownDb();
         return 0;
     }
+    */
     
     /**
      * this will check to make sure that we have all the branches in a tree supported
      * @param args
      * @return
      */
+    /*
     private int testsynth(String[] args) {
         if (args.length != 4) {
             System.out.println("synthtreefile sourcetreefilename db");
@@ -2174,6 +2178,7 @@ public class MainRunner {
         gdb.shutdownDb();
         return 0;
     }
+    */
     
     /**
      * this will just fill out the ncbi counts
@@ -4070,11 +4075,12 @@ public class MainRunner {
             /*
             else if (command.compareTo("mapcompat") == 0) {
                 cmdReturnCode = mr.mapcompat(args);
+            } else if (command.compareTo("gettaxonomy") == 0) {
+                cmdReturnCode = mr.getTaxonomyVersion(args);
             } 
             */
-            else if (command.compareTo("gettaxonomy") == 0) {
-                cmdReturnCode = mr.getTaxonomyVersion(args);
-            }  else if (command.compareTo("taxtree") == 0) {
+            
+            else if (command.compareTo("taxtree") == 0) {
                 cmdReturnCode = mr.getTaxonomyTreeExport(args);
             } else if (command.compareTo("getmrca") == 0) {
                 cmdReturnCode = mr.getMRCA(args);
@@ -4092,13 +4098,13 @@ public class MainRunner {
             */
             else if (command.compareTo("filtertreesforload") == 0) {
                 cmdReturnCode = mr.filterTreesForLoad(args);
-            } else if (command.compareTo("testsynth") == 0) {
+            } 
+            /*
+            else if (command.compareTo("testsynth") == 0) {
                 cmdReturnCode = mr.testsynth(args);
             } else if (command.compareTo("sinksynth") == 0) {
                 cmdReturnCode = mr.sinkSynth(args);
-            } 
-            /*
-            else if (command.compareTo("processtree") == 0) {
+            } else if (command.compareTo("processtree") == 0) {
                 cmdReturnCode = mr.processtree(args);
             } 
             */

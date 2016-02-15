@@ -1,18 +1,11 @@
 package opentree.plugins;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import jade.deprecated.JSONMessageLogger;
 import jade.tree.deprecated.JadeTree;
 import opentree.GraphBase;
 import opentree.GraphExplorer;
-import opentree.MainRunner;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import org.opentree.exceptions.MultipleHitsException;

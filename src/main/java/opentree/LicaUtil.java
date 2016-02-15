@@ -1,16 +1,10 @@
 package opentree;
 
 import jade.tree.deprecated.JadeNode;
-
-import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Iterator;
-
 import gnu.trove.list.array.TLongArrayList;
-import opentree.constants.GeneralConstants;
 import opentree.constants.RelType;
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
