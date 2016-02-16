@@ -214,7 +214,7 @@ public class GraphExplorer extends GraphBase {
             }
             if (graphPathToRoot.size() < 1) {
                 String ret = "The node " + curTip + " does not seem to be in the draft tree.";
-                ret += "; `ot_nde_id` is: " + curTip.getProperty("ot_node_id");
+                ret += "; `node_id` is: " + curTip.getProperty("ot_node_id");
                 throw new UnsupportedOperationException(ret);
             }
             treeTipRootPathMap.put(curTip, graphPathToRoot);
@@ -293,7 +293,7 @@ public class GraphExplorer extends GraphBase {
             }
             if (graphPathToRoot.size() < 1) {
                 String ret = "The node " + curTip + " does not seem to be in the draft tree.";
-                ret += "; `ot_nde_id` is: " + curTip.getProperty("ot_node_id");
+                ret += "; `node_id` is: " + curTip.getProperty("ot_node_id");
                 throw new UnsupportedOperationException(ret);
             }
             treeTipRootPathMap.put(curTip, graphPathToRoot);
@@ -1560,49 +1560,7 @@ public class GraphExplorer extends GraphBase {
     }
     */
     
-    /**
-     * Return a List<Node> containing the nodes on the path to the root along the draft tree branches. Will be screwy
-     * if there are multiple draft tree branches bearing the current draft tree name.
-     * 
-     * @param startNode
-     * @return path to root
-     */
-    private List<Long> getDraftTreePathToRoot(Node startNode) {
-        
-        ArrayList<Long> path = new ArrayList<Long>();
-        
-        // testing
-        //    System.out.println("getting path to root");
-        
-        Node curParent = startNode;
-        boolean atRoot = false;
-        while (!atRoot) {
-            
-            // testing
-            //    System.out.println("looking for parents of " + curParent.toString());
-            
-            Iterable<Relationship> parentRels = curParent.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING);
-            atRoot = true; // assume we have hit the root until proven otherwise
-            for (Relationship m : parentRels) {
-                
-                // testing
-                //    System.out.println("current rel name = " + m.getProperty("name") + "; drafttreename = " + DRAFTTREENAME);
-                
-                if (String.valueOf(m.getProperty("name")).equals(DRAFTTREENAME)) {
-                    
-                    atRoot = false; // if we found an acceptable relationship to a parent then we're not done yet
-                    curParent = m.getEndNode();
-                    
-                    // testing
-                    //    System.out.println("found a parent! " + curParent.toString());
-                    
-                    path.add(curParent.getId());
-                    break;
-                }
-            }
-        }
-        return path;
-    }
+    
     
     
     /**
@@ -1611,6 +1569,7 @@ public class GraphExplorer extends GraphBase {
      * @param descNodes
      * @return licaNode
      */
+    /*
     private Node getLICAForDraftTreeNodes(Iterable<Node> descNodes) {
         
         if (!descNodes.iterator().hasNext()) {
@@ -1663,7 +1622,7 @@ public class GraphExplorer extends GraphBase {
         // return the lica
         return graphDb.getNodeById(referencePathNodeIds.get(i));
     }
-    
+    */
     
     /**
      * Used to add missing external nodes to the draft tree stored in the graph.
@@ -3460,6 +3419,34 @@ public class GraphExplorer extends GraphBase {
     }
     */
     
+    /**
+     * Return a List<Node> containing the nodes on the path to the root along the draft tree branches
+     * 
+     * @param startNode graph node
+     * @param treeID synthetic tree identifier
+     * @return path to root
+     */
+    /*
+    public List<Node> getDraftTreePathToRoot(Node startNode, String treeID) {
+        ArrayList<Node> path = new ArrayList<>();
+        Node curParent = startNode;
+        boolean atRoot = false;
+        while (!atRoot) {
+            Iterable<Relationship> parentRels = curParent.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING);
+            atRoot = true; // assume we have hit the root until proven otherwise
+            for (Relationship m : parentRels) {
+                if (String.valueOf(m.getProperty("name")).equals(treeID)) {
+                    atRoot = false; // if we found an acceptable relationship to a parent then we're not done yet
+                    curParent = m.getEndNode();
+                    path.add(curParent);
+                    break;
+                }
+            }
+        }
+        return path;
+    }
+    */
+    
     // ================================= current methods ====================================
     
     
@@ -3602,7 +3589,7 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    private List<Node> getPathToRoot (Node startNode, RelType relType, String nameToFilterBy) {
+    public List<Node> getPathToRoot (Node startNode, RelType relType, String nameToFilterBy) {
         ArrayList<Node> path = new ArrayList<>();
         Node curNode = startNode;
         while (true) {
@@ -3635,6 +3622,7 @@ public class GraphExplorer extends GraphBase {
         }
         return inTree;
     }
+    
     
     // annotations are stored in outgoing rels
     // this works for a single node
@@ -3795,7 +3783,7 @@ public class GraphExplorer extends GraphBase {
         }
         
         // this basically replaces (neo4j) nodeid from before
-        jNd.assocObject("ot_node_id", nd.getProperty("ot_node_id"));
+        jNd.assocObject("node_id", nd.getProperty("ot_node_id"));
         
         if (nd.hasProperty("unique_name")) {
             jNd.assocObject("unique_name", nd.getProperty("unique_name"));
@@ -3811,7 +3799,6 @@ public class GraphExplorer extends GraphBase {
         if (nd.hasProperty("tax_uid")) {
             jNd.assocObject("ott_id", nd.getProperty("tax_uid"));
         }
-        
         jNd.assocObject("tip_descendants", getNumTipDescendants(nd, treeID));
     }
     
@@ -3831,20 +3818,33 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    // return a map of all taxonomic information stored at node
+    // if not a taxonomy node, map will just be the node_id
     public HashMap<String, Object> getNodeTaxInfo (Node n) {
         
         HashMap<String, Object> results = new HashMap<>();
+        /*
         String name = "";
         String uniqueName = "";
         String rank = "";
         Long ottId = null;
-        String nodeID = String.valueOf(n.getProperty(NodeProperty.OT_NODE_ID.propertyName));
+        //String nodeID = String.valueOf(n.getProperty(NodeProperty.OT_NODE_ID.propertyName));
+        */
+        results.put("node_id", n.getProperty(NodeProperty.OT_NODE_ID.propertyName));
         
         if (n.hasProperty(NodeProperty.NAME.propertyName)) {
+            results.put("name", n.getProperty(NodeProperty.NAME.propertyName));
+            results.put("unique_name", n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+            results.put("rank", n.getProperty(NodeProperty.TAX_RANK.propertyName));
+            results.put("ott_id", n.getProperty(NodeProperty.TAX_UID.propertyName));
+            
+            
+            /*
             name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
             uniqueName = String.valueOf(n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
             rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
             ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
+            */
             
             // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
             String taxStr = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
@@ -3852,7 +3852,7 @@ public class GraphExplorer extends GraphBase {
             results.put("tax_sources", taxSources);
         }
         
-        results.put("ot_node_id", nodeID);
+        /*
         results.put("name", name);
         results.put("unique_name", uniqueName);
         results.put("rank", rank);
@@ -3861,10 +3861,12 @@ public class GraphExplorer extends GraphBase {
         } else {
             results.put("ott_id", "null"); // services cannot have null values
         }
+        */
         return results;
     }
     
     
+    // basically parse the source string into component
     public HashMap<String, String> getSourceMapIndSource (String source, String treeID) {
         HashMap<String, String> res = stringToMap((String) getSourceMapNodeByName(treeID).getProperty(source));
         return res;
@@ -3872,7 +3874,6 @@ public class GraphExplorer extends GraphBase {
     
     
     public HashMap<String, String> stringToMap (String source) {
-        
         HashMap<String, String> res = new HashMap<>();
         /// format will be: git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree1,study_id:ot_157
         String [] props = source.split(",");
@@ -3921,6 +3922,7 @@ public class GraphExplorer extends GraphBase {
         }
         return mrca;
     }
+    
     
     
     

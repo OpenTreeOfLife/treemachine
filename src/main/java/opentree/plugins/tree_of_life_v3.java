@@ -2,6 +2,7 @@ package opentree.plugins;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.LinkedList;
 import jade.tree.deprecated.JadeTree;
 import java.io.BufferedReader;
@@ -18,7 +19,6 @@ import org.opentree.exceptions.TreeNotFoundException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
@@ -100,7 +100,16 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Description("The `ott_id` of the node of interest. This argument may not be "
             + "combined with `node_id`.")
         @Parameter(name = "ott_id", optional = true)
-        Long ottID
+        Long ottID,
+        
+        @Description("Include the ancestral lineage of the node in the draft tree. If "
+            + "this argument is `true`, then a list of all the ancestors of this node "
+            + "in the draft tree, down to the root of the tree itself, will be included "
+            + "in the results. Higher list indices correspond to more incluive (i.e. "
+            + "deeper) ancestors, with the immediate parent of the specified node "
+            + "occupying position 0 in the list.")
+        @Parameter(name = "include_lineage", optional = true)
+        Boolean includeLineage
         
         ) throws IllegalArgumentException, TaxonNotFoundException {
         
@@ -114,26 +123,10 @@ public class tree_of_life_v3 extends ServerPlugin {
             throw new IllegalArgumentException(ret);
         }
         
-        //String nodeId = otNodeID;
-        
         Node qNode = null;
         String synthTreeID = null; // will loop if there are multiple
         
         GraphExplorer ge = new GraphExplorer(graphDb);
-        
-        /*
-        try {
-            qNode = ge.findGraphNodeByOTTNodeID(nodeId);
-        } catch (TaxonNotFoundException e) {
-        }
-        
-        if (qNode == null) {
-            ge.shutdownDB();
-            String ret = "Could not find a graph node corresponding to the 'ot_node_id' arg: '"
-                + otNodeID + "'.";
-            throw new IllegalArgumentException(ret);
-        }
-        */
         
         if (ottID != null) {
             Node n = null;
@@ -162,6 +155,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         
+        // get all taxonomic information
         nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
         
         // loop over all synth trees this node is in
@@ -185,6 +179,17 @@ public class tree_of_life_v3 extends ServerPlugin {
                     }
                 }
                 treeInfo.put("source_id_map", sourceMap);
+                
+                if (includeLineage != null && includeLineage == true) {
+                    LinkedList<HashMap<String, Object>> lineage = new LinkedList<>();
+                    List<Node> nodeList = ge.getPathToRoot(qNode, RelType.SYNTHCHILDOF, synthTreeID);
+
+                    for (Node cn : nodeList) {
+                        HashMap<String, Object> info = ge.getNodeTaxInfo(cn);
+                        lineage.add(info);
+                    }
+                    nodeIfo.put("draft_tree_lineage", lineage);
+                }
                 nodeIfo.put(synthTreeID, treeInfo);
             }
         }
@@ -254,7 +259,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
                 draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
                 draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
-                draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
+                draftTreeInfo.put("root_node_id", meta.getProperty("root_ot_node_id"));
                 
                 if (returnSourceList) {
                     Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
