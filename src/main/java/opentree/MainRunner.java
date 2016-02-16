@@ -4115,14 +4115,9 @@ public class MainRunner {
                 cmdReturnCode = mr.getMRCA(args);
             } else if (command.compareTo("loadott") == 0) {
                 cmdReturnCode = mr.loadOTT(args);
-            } 
-            */
-            
-            else if (command.compareTo("nodestatus") == 0) {
+            } else if (command.compareTo("nodestatus") == 0) {
                 cmdReturnCode = mr.getNodeStatus(args);
-            } 
-            /*
-            else if (command.compareTo("treecomp") == 0) {
+            } else if (command.compareTo("treecomp") == 0) {
                 cmdReturnCode = mr.treeCompare(args);
             } else if (command.compareTo("taxcomp") == 0) {
                 cmdReturnCode = mr.taxCompare(args);
