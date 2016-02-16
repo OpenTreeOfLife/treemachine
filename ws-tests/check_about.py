@@ -39,6 +39,7 @@ def check_about(parameters):
         if not isinstance(value, typo):
             if value == None:
                 sys.stderr.write('{} missing\n'.format(name))
+                print result.keys()
             else:
                 sys.stderr.write('{} is {} which is not a {}\n'.format(name, value, typo))
                 lose()
@@ -84,14 +85,20 @@ def check_about(parameters):
             lose()
     else:
         sources = check_parameter_type(u'sources', list)
+        metas = check_parameter_type(u'source_id_map', list)
         if sources != None:
             for source in sources:
-                if (isinstance(source, dict) and
-                    u'study_id' in source and
-                    u'tree_id' in source):
+                if not isinstance(source, str):
+                    sys.stderr.write('ill-formed source: {} should be a string\n'.format(source))
+                    lose()
+                    break
+            for meta in metas:
+                if (isinstance(meta, dict) and
+                    u'study_id' in meta and
+                    u'tree_id' in meta):
                     True
                 else:
-                    sys.stderr.write('ill-formed source: {} should be {}"study_id": ..., "tree_id": ...{}\n'.format(source, '{', '}'))
+                    sys.stderr.write('ill-formed meta: {} should be {}"study_id": ..., "tree_id": ...{}\n'.format(source, '{', '}'))
                     lose()
-
+                    break
     sys.exit(code[0])
