@@ -113,8 +113,6 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         ) throws IllegalArgumentException, TaxonNotFoundException {
         
-        HashMap<String, Object> nodeIfo = new HashMap<>();
-        
         if (nodeID == null && ottID == null) {
             String ret = "Must provide a \"node_id\" or \"ott_id\" argument.";
             throw new IllegalArgumentException(ret);
@@ -122,6 +120,8 @@ public class tree_of_life_v3 extends ServerPlugin {
             String ret = "Provide only one \"node_id\" or \"ott_id\" argument.";
             throw new IllegalArgumentException(ret);
         }
+        
+        HashMap<String, Object> nodeIfo = new HashMap<>();
         
         Node qNode = null;
         String synthTreeID = null; // will loop if there are multiple
@@ -137,7 +137,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (n != null) {
                 qNode = n;
             } else {
-                String ret = "Could not find any graph nodes corresponding to the ott_id provided.";
+                String ret = "Could not find any graph nodes corresponding to the `ott_id` provided.";
                 throw new TaxonNotFoundException(ret);
             }
 
@@ -150,7 +150,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (n != null) {
                 qNode = n;
             } else {
-                String ret = "Could not find any graph nodes corresponding to the node id provided.";
+                String ret = "Could not find any graph nodes corresponding to the `node_id` provided.";
                 throw new TaxonNotFoundException(ret);
             }
         }
@@ -534,8 +534,8 @@ public class tree_of_life_v3 extends ServerPlugin {
     
     @Description("Return a complete subtree of the draft tree descended from some specified node. "
         + "The draft tree version is specified by the `synth_id` arg (defaults to most recent). "
-        + "The node to use as the start node must specified using an ot node id. If the specified node "
-        + "is not in the synthetic tree (or is entirely absent from the graph), an error will be returned.")
+        + "The node to use as the start node must specified using *either* a node id or an ott id, "
+        + "**but not both**. If the specified node is not found an error will be returned.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation subtree (@Source GraphDatabaseService graphDb,
         
@@ -543,20 +543,35 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "synth_id", optional = true)
         String treeID,
         
-        @Description("The ot node id of the node in the tree that should serve as the "
-            + "root of the tree returned.")
-        @Parameter(name = "ot_node_id", optional = false)
-        String otNodeID
+        @Description("The `node_id` of the node of interest. This argument may not be "
+            + "combined with `ott_id`.")
+        @Parameter(name = "node_id", optional = true)
+        String nodeID,
         
-        ) throws TreeNotFoundException, IllegalArgumentException {
+        @Description("The `ott_id` of the node of interest. This argument may not be "
+            + "combined with `node_id`.")
+        @Parameter(name = "ott_id", optional = true)
+        Long ottID
+        
+        ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException {
+        
+        if (nodeID == null && ottID == null) {
+            String ret = "Must provide a \"node_id\" or \"ott_id\" argument.";
+            throw new IllegalArgumentException(ret);
+        } else if (nodeID != null && ottID != null) {
+            String ret = "Provide only one \"node_id\" or \"ott_id\" argument.";
+            throw new IllegalArgumentException(ret);
+        }
+        
+        HashMap<String, Object> responseMap = new HashMap<>();
         
         GraphExplorer ge = new GraphExplorer(graphDb);
-        HashMap<String, Object> responseMap = new HashMap<>();
-
-        Node startNode = null;
-        Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
+        
+        Node qNode = null;
         String synthTreeID = null;
-        String rootNodeID = otNodeID;
+        
+        Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
+        //String rootNodeID = null;
         
         // synthetic tree identifier. check against synth meta index
         if (treeID != null) {
@@ -575,41 +590,61 @@ public class tree_of_life_v3 extends ServerPlugin {
             synthTreeID = (String) meta.getProperty("tree_id");
         }
         
-        try {
-            startNode = ge.findGraphNodeByOTTNodeID(rootNodeID);
-        } catch (MultipleHitsException e) {
-        } catch (TaxonNotFoundException e) {
-        }
-        
-        if (startNode == null) {
-            ge.shutdownDB();
-            String ret = "Could not find any graph nodes corresponding to the arg `ot_node_id` provided.";
-            throw new IllegalArgumentException(ret);
-        }
-        
-        // check that startNode is indeed in the synthetic tree
-        if (!ge.nodeIsInSyntheticTree(startNode, synthTreeID)) {
-            ge.shutdownDB();
-            String ret = "Queried `ot_node_id`: " + rootNodeID + " is in the graph, but "
-                + "not in the draft tree: " + synthTreeID;
-            throw new IllegalArgumentException(ret);
+        if (ottID != null) {
+            Node n = null;
+            try {
+                n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
+            } catch (TaxonNotFoundException e) {
+            }
+            if (n != null) {
+                qNode = n;
+            } else {
+                String ret = "Could not find any graph nodes corresponding to the `ott_id` provided.";
+                throw new TaxonNotFoundException(ret);
+            }
+            // check that startNode is indeed in the synthetic tree
+            if (!ge.nodeIsInSyntheticTree(qNode, synthTreeID)) {
+                ge.shutdownDB();
+                String ret = "Queried `ott_id`: " + ottID + " is in the graph, but "
+                    + "not in the draft tree: " + synthTreeID;
+                throw new IllegalArgumentException(ret);
+            }
+        } else if (nodeID != null) {
+            Node n = null;
+            try {
+                n = ge.findGraphNodeByOTTNodeID(nodeID);
+            } catch (TaxonNotFoundException e) {
+            }
+            if (n != null) {
+                qNode = n;
+            } else {
+                String ret = "Could not find any graph nodes corresponding to the `node_id` provided.";
+                throw new TaxonNotFoundException(ret);
+            }
+            // check that startNode is indeed in the synthetic tree
+            if (!ge.nodeIsInSyntheticTree(qNode, synthTreeID)) {
+                ge.shutdownDB();
+                String ret = "Queried `node_id`: " + nodeID + " is in the graph, but "
+                    + "not in the draft tree: " + synthTreeID;
+                throw new IllegalArgumentException(ret);
+            }
         }
         
         // check that the returned tree is not too large
-        Integer numMRCA = ge.getNumTipDescendants(startNode, synthTreeID);
+        Integer numMRCA = ge.getNumTipDescendants(qNode, synthTreeID);
         
         if (numMRCA > maxNumTips) {
             ge.shutdownDB();
-            String ret = "Requested tree is larger than currently allowed by this service "
-                + "(" + maxNumTips + " tips). For larger trees, please download the full "
-                + "tree directly from: http://files.opentreeoflife.org/trees/";
+            String ret = "Requested tree (" + numMRCA + " tip) is larger than currently "
+                + "allowed by this service (" + maxNumTips + " tips). For larger trees, "
+                + "please download the full tree directly from: http://files.opentreeoflife.org/trees/";
             throw new IllegalArgumentException(ret);
         }
         
         // get the subtree for export
         JadeTree tree = null;
         try {
-            tree = ge.extractDraftTreeByName(startNode, synthTreeID);
+            tree = ge.extractDraftTreeByName(qNode, synthTreeID);
         } finally {
             ge.shutdownDB();
         }
