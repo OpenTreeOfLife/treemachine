@@ -15,19 +15,26 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/draft_trees
 
-# node_info moved from 'graph' (class was deprecated)
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ot_node_id":"ott81461"}'
+## node_info moved from 'graph' (class was deprecated)
+# using node_id
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"ott81461"}'
+# using ott_id
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461}'
+# using both (not allowed)
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "node_id":"ott81461"}'
 
 # Gavia subtree
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"ot_node_ids":["ott501678","ott666104","ott316878","ott102710","ott536234","ott810751","ott81461"]}'
 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott292466", "ott501678", "ott267845"]}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott501678", "ott267845"], "ott_ids":[292466,10101010]}'
 
 
 #501678,666104,316878,102710,536234

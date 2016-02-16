@@ -18,6 +18,7 @@ import org.opentree.exceptions.TreeNotFoundException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
@@ -84,26 +85,43 @@ public class tree_of_life_v3 extends ServerPlugin {
     // list indices correspond to more incluive (i.e. deeper) ancestors, with the 
     // immediate parent of the specified node occupying position 0 in the list."
     @Description("Returns summary information about a node in the graph. The node "
-        + "of interest may be specified using its `ott_node_id`. If the specified "
-        + "node is not in the graph, an exception will be thrown.")
+        + "of interest may be specified using *either* a `node_id`, or an `ott_id`, "
+        + "**but not both**. If the specified node is not in the graph, an exception "
+        + "will be thrown.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation node_info (
         @Source GraphDatabaseService graphDb,
         
-        @Description("The `ot_node_id` of the node of interest.")
-        @Parameter(name = "ot_node_id", optional = false)
-        String otNodeID
+        @Description("The `node_id` of the node of interest. This argument may not be "
+            + "combined with `ott_id`.")
+        @Parameter(name = "node_id", optional = true)
+        String nodeID,
+        
+        @Description("The `ott_id` of the node of interest. This argument may not be "
+            + "combined with `node_id`.")
+        @Parameter(name = "ott_id", optional = true)
+        Long ottID
         
         ) throws IllegalArgumentException, TaxonNotFoundException {
         
         HashMap<String, Object> nodeIfo = new HashMap<>();
         
-        String nodeId = otNodeID;
+        if (nodeID == null && ottID == null) {
+            String ret = "Must provide a \"node_id\" or \"ott_id\" argument.";
+            throw new IllegalArgumentException(ret);
+        } else if (nodeID != null && ottID != null) {
+            String ret = "Provide only one \"node_id\" or \"ott_id\" argument.";
+            throw new IllegalArgumentException(ret);
+        }
+        
+        //String nodeId = otNodeID;
+        
         Node qNode = null;
-        String synthTreeID = null;
+        String synthTreeID = null; // will loop if there are multiple
         
         GraphExplorer ge = new GraphExplorer(graphDb);
         
+        /*
         try {
             qNode = ge.findGraphNodeByOTTNodeID(nodeId);
         } catch (TaxonNotFoundException e) {
@@ -114,6 +132,34 @@ public class tree_of_life_v3 extends ServerPlugin {
             String ret = "Could not find a graph node corresponding to the 'ot_node_id' arg: '"
                 + otNodeID + "'.";
             throw new IllegalArgumentException(ret);
+        }
+        */
+        
+        if (ottID != null) {
+            Node n = null;
+            try {
+                n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
+            } catch (TaxonNotFoundException e) {
+            }
+            if (n != null) {
+                qNode = n;
+            } else {
+                String ret = "Could not find any graph nodes corresponding to the ott_id provided.";
+                throw new TaxonNotFoundException(ret);
+            }
+
+        } else if (nodeID != null) {
+            Node n = null;
+            try {
+                n = ge.findGraphNodeByOTTNodeID(nodeID);
+            } catch (TaxonNotFoundException e) {
+            }
+            if (n != null) {
+                qNode = n;
+            } else {
+                String ret = "Could not find any graph nodes corresponding to the node id provided.";
+                throw new TaxonNotFoundException(ret);
+            }
         }
         
         nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
