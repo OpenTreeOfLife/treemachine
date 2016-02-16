@@ -217,7 +217,7 @@ public class tree_of_life_v3 extends ServerPlugin {
 
         GraphExplorer ge = new GraphExplorer(graphDb);
         HashMap<String, Object> draftTreeInfo = new HashMap<>();
-        Boolean returnSourceList = true; // default to true for now
+        Boolean returnSourceList = false;
         String synthTreeID = null;
         Node meta = null;
         
