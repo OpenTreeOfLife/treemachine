@@ -29,7 +29,8 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
 
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"ot_node_ids":["ott501678","ott666104","ott316878","ott102710","ott536234","ott810751","ott81461"]}'
+## not currently working
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"node_ids":["ott501678","ott666104","ott316878","ott102710","ott536234","ott810751","ott81461"]}'
 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott292466", "ott501678", "ott267845"]}'

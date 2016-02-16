@@ -286,11 +286,14 @@ public class tree_of_life_v3 extends ServerPlugin {
     }
 
     
-    @Description("Get the MRCA of a set of ot_node_ids. MRCA is calculated on a specific synthetic "
-        + "given by the optional `synth_id` arg (defaults to most current draft tree). Returns the "
-        + "following information about the MRCA: 1) name, 2) ott_id, 3) rank, and 4) ot_node_id. "
-        + "Also returns the matched query nodes, and any nodes unmatched because they are 1) not "
-        + "found in the graph, or 2) are valid nodes but not in the focal synthetic tree.")
+    @Description("Get the MRCA of a set of nodes on a specific synthetic tree given "
+        + "by the optional `synth_id` arg (defaults to most current draft tree). Accepts "
+        + "any combination of node ids and ott ids as input. Returns information about "
+        + "the most recent common ancestor (MRCA) node as well as the most recent "
+        + "taxonomic ancestor (MRTA) node (the smallest taxon in the synthetic tree that "
+        + "encompasses the query; the MRCA and MRTA may be the same node). Both node ids and "
+        + "ott ids that are not in the synthetic tree are dropped from the MRCA calculation. "
+        + "Returns any unmatched node ids / ott ids.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation mrca (@Source GraphDatabaseService graphDb,
         
@@ -421,7 +424,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             mrtaInfo.put("name", mrta.getProperty(NodeProperty.NAME.propertyName));
             mrtaInfo.put("unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
             mrtaInfo.put("rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-            mrtaInfo.put("ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
+            mrtaInfo.put("ott_id", Long.valueOf((String) mrta.getProperty(NodeProperty.TAX_UID.propertyName)));
             mrtaInfo.put("node_id", mrta.getProperty("ot_node_id"));
             
             res.put("nearest_taxon", mrtaInfo);

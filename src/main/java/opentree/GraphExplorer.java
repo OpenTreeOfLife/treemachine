@@ -3836,7 +3836,7 @@ public class GraphExplorer extends GraphBase {
             results.put("name", n.getProperty(NodeProperty.NAME.propertyName));
             results.put("unique_name", n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
             results.put("rank", n.getProperty(NodeProperty.TAX_RANK.propertyName));
-            results.put("ott_id", n.getProperty(NodeProperty.TAX_UID.propertyName));
+            results.put("ott_id", Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName)));
             
             
             /*
