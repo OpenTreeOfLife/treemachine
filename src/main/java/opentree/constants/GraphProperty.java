@@ -13,8 +13,7 @@ public enum GraphProperty {
 	GRAPH_ROOT_NODE_NAME ("graphRootNodeName", String.class, "The value of the `name` property of the root node of the graph."),
 	GRAPH_ROOT_NODE_ID ("graphRootNodeId", String.class, "The neo4j node id of the root node of the graph. Used to gain access to that node."),
 	GRAPH_ROOT_NODE_TAXONOMY ("graphRootNodeTaxonomy", String.class, "The version of the taxonomy used to initialize the graph.");
-	
-
+        
 	public String propertyName;
 	public final Class<?> type;
 	public final String description;

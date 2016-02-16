@@ -2,13 +2,10 @@ package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TLongHashSet;
-import jade.deprecated.MessageLogger;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.TreeReader;
-
 import org.opentree.utils.GeneralUtils;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -16,7 +13,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,35 +21,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
-import java.util.StringTokenizer;
-
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
-import opentree.constants.SourceProperty;
-
 import org.opentree.bitarray.ImmutableCompactLongSet;
-import org.opentree.bitarray.TLongBitArray;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
-
 import opentree.synthesis.DraftTreePathExpander;
-import opentree.synthesis.RankedSynthesisExpander;
-import opentree.synthesis.RankedSynthesisSubproblemExpander;
-import opentree.synthesis.SynthesisExpander;
-import opentree.synthesis.SynthesisExpander.Verbosity;
-import opentree.synthesis.conflictresolution.RankResolutionMethod;
-import opentree.synthesis.conflictresolution.RelationshipConflictResolver;
-import opentree.synthesis.conflictresolution.TreeMakingBandB;
-import opentree.synthesis.filtering.RelationshipFilter;
-import opentree.synthesis.filtering.SetComparison;
-import opentree.synthesis.filtering.FilterCriterion;
-import opentree.synthesis.filtering.Directive;
-import opentree.synthesis.filtering.SourcePropertySetTest;
-import opentree.synthesis.ranking.RelationshipRanker;
-import opentree.synthesis.ranking.SourcePropertyPrioritizedRankingCriterion;
-
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -61,17 +36,10 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.Traversal;
-import org.neo4j.server.plugins.Source;
-import org.neo4j.server.rest.repr.OTRepresentationConverter;
-import org.neo4j.server.rest.repr.Representation;
-
-import scala.actors.threadpool.Arrays;
-
 import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class GraphExplorer extends GraphBase {
@@ -254,7 +222,7 @@ public class GraphExplorer extends GraphBase {
         return treeTipRootPathMap;
     }
     
-    
+    /*
     public Node getTaxonomyMRCA(Iterable<Node> nodeset) {
         Node mrca = null;
         ArrayList<Node> holder = null;
@@ -288,7 +256,7 @@ public class GraphExplorer extends GraphBase {
         }
         return mrca;
     }
-    
+    */
     
     /**
      * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
@@ -347,8 +315,8 @@ public class GraphExplorer extends GraphBase {
             return mrca;
         } else {
             //treeTipRootPathMap = getTreeTipRootPathTaxonomyMap(tips);
-            Node mrca = getTaxonomyMRCA(tips); // redirect to new method
-            return mrca;
+            //Node mrca = getTaxonomyMRCA(tips); // redirect to new method
+            return null;
         }
     }
     
@@ -1332,6 +1300,7 @@ public class GraphExplorer extends GraphBase {
      * @param test this will just run through the motions but won't store the synthesis 
      * @throws Exception 
      */
+    /*
     public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds, boolean test) throws Exception {
         
         // build the list of ids, have to use generic objects. not used currently
@@ -1369,7 +1338,7 @@ public class GraphExplorer extends GraphBase {
         }
         
         String tempSynthTreeName = DRAFTTREENAME;
-    /*
+    
         int jj = 0;
         while (!done) {
             String terp = tempSynthTreeName;
@@ -1386,7 +1355,7 @@ public class GraphExplorer extends GraphBase {
             }
             jj++;
         }
-    */
+    
         // define the synthesis protocol
         SynthesisExpander draftSynthesisMethod = new SynthesisExpander();
         
@@ -1553,9 +1522,7 @@ public class GraphExplorer extends GraphBase {
             TLongArrayList deadnodes = new TLongArrayList(draftSynthesisMethod.getDeadNodes());
             // System.out.println("dead nodes " + deadnodes);
             // should do this cleaner
-            /*
-             * This cleans up dead nodes
-             */
+            //This cleans up dead nodes
             System.out.println("cleaning dead nodes");
             TLongHashSet vd = new TLongHashSet();
             int actual = 0;
@@ -1591,9 +1558,7 @@ public class GraphExplorer extends GraphBase {
                 }
             }
             System.out.println("number of actual deadnodes:" + actual);
-            /*
-             * end the cleaning
-             */
+            // end the cleaning
             
             System.out.println("Synthesis traversal complete. Results:\n");
             System.out.println("\n" + draftSynthesisMethod.getReport());
@@ -1606,7 +1571,7 @@ public class GraphExplorer extends GraphBase {
             tx.finish();
         }
 
-        //* ============================== add missing children
+        // ============================== add missing children
         tx = graphDb.beginTx();
         try {
             // uncommented for testing with new synth method
@@ -1618,12 +1583,12 @@ public class GraphExplorer extends GraphBase {
         } finally {
             tx.finish();
         }
-        // ============================== end add missing children */
+        // ============================== end add missing children
 
         System.out.println("exiting the sythesis");
         return true;
     }
-    
+    */
     
     /**
      * Return a List<Node> containing the nodes on the path to the root along the draft tree branches. Will be screwy
@@ -1735,6 +1700,7 @@ public class GraphExplorer extends GraphBase {
      * @param startNode
      * @param taxRootNode
      */
+    /*
     private void addMissingChildrenToDraftTreeWhile (Node startNode, Node taxRootNode) {
         // to be stored as the 'supporting_sources' property of newly created rels
         String[] supportingSources = new String[1];
@@ -1896,7 +1862,7 @@ public class GraphExplorer extends GraphBase {
             }
         }
     }
-    
+    */
     
     // ====================================== extracting Synthetic trees from the db ==========================================
     
@@ -2370,6 +2336,7 @@ public class GraphExplorer extends GraphBase {
      * @param useBranchAndBound
      * @param syntheticTreeName
      */
+    /*
     @Deprecated
     public JadeTree graphSynthesis(Node startNode, boolean useTaxonomy, boolean useBranchAndBound, String syntheticTreeName) {
         
@@ -2395,7 +2362,7 @@ public class GraphExplorer extends GraphBase {
         // return the tree wrapped in a JadeTree object
         return new JadeTree(root);
     }
-    
+    */
     
     /**
      * This is the preorder function for constructing a newick tree based ONLY on decisions using actual graph properties (e.g. number of tips, etc.),
@@ -2415,6 +2382,7 @@ public class GraphExplorer extends GraphBase {
      * @return JadeNode containing the synthetic tree hierarchy
      */
     // TODO: need to be able to ignore taxonomy
+    /*
     @Deprecated
     private JadeNode graphSynthesisRecur(Node curGraphNode, Node parentGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String altName, boolean useTaxonomy,
             boolean useBranchAndBound, boolean recordSyntheticRels, String synthTreeName) {
@@ -2533,11 +2501,8 @@ public class GraphExplorer extends GraphBase {
             total += storedmrcas.get(nd).size();
         }
         
-        /*
-         * If the totalmrcas is not complete then we search for a more complete one despite lower scores
-         * 
-         * This is a specific knapsack problem
-         */
+        // If the totalmrcas is not complete then we search for a more complete one despite lower scores
+        //This is a specific knapsack problem
         if (totalmrcas - total != 0) {
             System.out.println("more extensive search needed, some tips may be missing");
             System.out.println("before: " + totalmrcas + " " + total);
@@ -2556,7 +2521,7 @@ public class GraphExplorer extends GraphBase {
                 for (Integer i : testindices) {
                     temptestnodes.add(testnodesal.get(i));
                 }
-            }/* else {
+            } else {
                 System.out.println("Exhaustive Pairs");
                 TreeMakingExhaustivePairs tmep = new TreeMakingExhaustivePairs();
                 ArrayList<Long> testnodesal = new ArrayList<Long>(originaltest);
@@ -2564,7 +2529,7 @@ public class GraphExplorer extends GraphBase {
                 for (Integer i : testindices) {
                     temptestnodes.add(testnodesal.get(i));
                 }
-            }*/
+            }
             for (Long nd : temptestnodes) {
                 ntotal += storedmrcas.get(nd).size();
             }
@@ -2591,6 +2556,7 @@ public class GraphExplorer extends GraphBase {
         
         return null;
     }
+    */
     
     // ========================== Methods for re-adding missing children to synthetic trees/subgraphs =============================
     

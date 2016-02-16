@@ -430,18 +430,31 @@ public class GoLS extends ServerPlugin {
     // *** TODO: is this being used? who to ask? ***
     @Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree. Temporary, for interoperability testing with the arbor project.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeChildNodesForNodeID(
-            @Source GraphDatabaseService graphDb,
-            @Description("The Neo4j node id of the node to be used as the root for the tree.")
-            @Parameter(name = "nodeID", optional = false) Long nodeID) {
+    public Representation getDraftTreeChildNodesForNodeID(@Source GraphDatabaseService graphDb,
+        
+        @Description("The Neo4j node id of the node to be used as the root for the tree.")
+        @Parameter(name = "nodeID", optional = false)
+        Long nodeID
+        
+        ) {
                 
         Node startNode = graphDb.getNodeById(nodeID);
         HashSet<Long> childIds = new HashSet<Long>();
+        String synthTreeID = null;
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        try {
+            Node meta = ge.getMostRecentSynthesisMetaNode();
+            synthTreeID = (String) meta.getProperty("tree_id");
+        } finally {
+            ge.shutdownDB();
+        }
         
         for (Relationship synthChildRel : startNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
             
             // *** will have to fix the following if we still need it
-            if (GraphBase.DRAFTTREENAME.equals(String.valueOf(synthChildRel.getProperty("name"))))    {
+            if (synthTreeID.equals(String.valueOf(synthChildRel.getProperty("name"))))    {
                 childIds.add(synthChildRel.getStartNode().getId());
             }
         }

@@ -2,7 +2,6 @@ package opentree;
 
 import gnu.trove.set.hash.TLongHashSet;;
 import jade.deprecated.MessageLogger;
-import jade.tree.Tree;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
@@ -13,14 +12,11 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -39,7 +35,6 @@ import org.opentree.exceptions.StoredEntityNotFoundException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
 import org.opentree.graphdb.GraphDatabaseAgent;
-import org.opentree.tag.treeimport.SubsetTreesUtility;
 import org.opentree.utils.GeneralUtils;
 
 public class MainRunner {
@@ -299,6 +294,7 @@ public class MainRunner {
      *  Will create a DB called 'ott_v[ottVersion].db' e.g. 'ott_v2.8draft5.db'
     */
     // @returns 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
+    /*
     public int loadOTT(String [] args) throws FileNotFoundException, TaxonNotFoundException {
         if (args.length != 2 && args.length != 3) {
             System.out.println("arguments should be: ott_directory [graph_name (defaults to 'ott_v[ottVersion].db'])");
@@ -369,7 +365,7 @@ public class MainRunner {
         
         return 0;
     }
-    
+    */
     
     /*
      * Get the MRCA of a set of nodes. MRCA is calculated from the treeSource, which may be 'taxonomy' or 'synth' (the current
@@ -612,6 +608,7 @@ public class MainRunner {
     
     
     /// @returns 0 for success, 1 for poorly formed command
+    /*
     public int graphReloadTrees(String [] args) throws Exception {
         GraphImporter gi = null;
         if (args.length != 2) {
@@ -627,7 +624,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command
     public int graphDeleteTrees(String [] args) {
@@ -886,6 +883,7 @@ public class MainRunner {
      * @throws TaxonNotFoundException
      * @throws MultipleHitsException 
      */
+    /*
     public int graphExplorerParser(String [] args) throws TaxonNotFoundException, MultipleHitsException {
         GraphExplorer gi = null;
         GraphExporter ge = null;
@@ -1036,7 +1034,7 @@ public class MainRunner {
             return 2;
         }
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command
     /*
@@ -2364,6 +2362,7 @@ public class MainRunner {
     */
     
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
+    /*
     public int synthesizeDraftTreeWithListForTaxUID(String [] args) throws Exception {
 
         // open the graph
@@ -2378,9 +2377,10 @@ public class MainRunner {
         // do the synth
         return synthesizeDraftTreeWithListForNodeId(args);
     }
-    
+    */
 
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
+    /*
     public int synthesizeDraftTreeWithListForNodeId(String [] args) throws Exception {
         
         boolean test = false; 
@@ -2420,9 +2420,10 @@ public class MainRunner {
         }
         return (success ? 0 : -1);
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
+    /*
     public int synthesizeDraftTree(String [] args) throws Exception {
         boolean test = false;
         if (args.length != 3) {
@@ -2457,7 +2458,7 @@ public class MainRunner {
         }
         return (success ? 0 : -1);
     }
-    
+    */
 
     public int getSynthesisInfo(String [] args) {
         boolean success = true;
@@ -3304,6 +3305,7 @@ public class MainRunner {
     }
     */
     
+    /*
     public int pg_loading_ind_studies_newick(String [] args) throws Exception {
         boolean test = false;
         GraphDatabaseAgent graphDb = new GraphDatabaseAgent(args[1]);
@@ -3359,8 +3361,9 @@ public class MainRunner {
         graphDb.shutdownDb();
         return rc;
     }
+    */
     
-    
+    /*
     public static int loadNewickStudy(GraphDatabaseAgent graphDb, 
             JadeTree tree, String treeid,
             MessageLogger messageLogger,
@@ -3414,7 +3417,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     /**
      * this takes a file with trees and loads them against the taxonomy
@@ -3427,6 +3430,7 @@ public class MainRunner {
      * @param args
      * @return
      */
+    /*
     public int filterTreesForLoad(String[] args) throws Exception {
         if (args.length != 4) {
             System.out.println("arguments should be: filename subset[CSV] graphdbfolder");
@@ -3470,8 +3474,7 @@ public class MainRunner {
                         if(sourceAvail)
                             sourceForTrees.put(tt, source);
                     }
-                }
-                /*} else { // nexson
+                }} else { // nexson
                 System.out.println("Reading nexson file...");
                 for (JadeTree tree : NexsonReader.readNexson(filename, true, messageLogger)) {
                     if (tree == null) {
@@ -3481,7 +3484,7 @@ public class MainRunner {
                         treeCounter++;
                     }
                 }
-            }*/
+            }
             br.close();
         } catch (FileNotFoundException e) {
             //e.printStackTrace();
@@ -3504,7 +3507,7 @@ public class MainRunner {
         
         return 0;
     }
-    
+    */
     
     /**
      * arguments are:
@@ -3980,11 +3983,15 @@ public class MainRunner {
             */
             if (command.compareTo("argusjson") == 0) {
                 cmdReturnCode = mr.graphArgusJSON(args);
-            } else if (command.compareTo("jsgol") == 0
+            } 
+            /*
+            else if (command.compareTo("jsgol") == 0
                     || command.compareTo("fulltree") == 0
                     || command.compareTo("fulltree_sources") == 0) {
                 cmdReturnCode = mr.graphExplorerParser(args);
-            } else if (command.compareTo("mrpdump") == 0) {
+            } 
+            */
+            else if (command.compareTo("mrpdump") == 0) {
                 cmdReturnCode = mr.mrpDumpParser(args);
             } else if (command.compareTo("fulltreelist") == 0) {
                 cmdReturnCode = mr.graphListPruner(args);
@@ -4013,9 +4020,13 @@ public class MainRunner {
                 cmdReturnCode = mr.graphExplorerBiparts(args);
             } else if (command.compareTo("mapsupport") == 0) {
                 cmdReturnCode = mr.graphExplorerMapSupport(args);
-            } else if (command.compareTo("reprocess") == 0) {
+            } 
+            /*
+            else if (command.compareTo("reprocess") == 0) {
                 cmdReturnCode = mr.graphReloadTrees(args);
-            } else if (command.compareTo("deletetrees") == 0) {
+            } 
+            */
+            else if (command.compareTo("deletetrees") == 0) {
                 cmdReturnCode = mr.graphDeleteTrees(args);
             } else if (command.compareTo("csvdump") == 0) {
                 cmdReturnCode = mr.csvDumpParser(args);
@@ -4034,15 +4045,15 @@ public class MainRunner {
                     || command.compareTo("checktax") == 0 
                     || command.compareTo("checktaxhier") == 0) {
                 cmdReturnCode = mr.treeUtilsDB(args);
-            }
-            */
-            else if (command.compareTo("synthesizedrafttree") == 0) {
+            } else if (command.compareTo("synthesizedrafttree") == 0) {
                 cmdReturnCode = mr.synthesizeDraftTree(args);
             } else if (command.compareTo("synthesizedrafttreelist_ottid") == 0) {
                 cmdReturnCode = mr.synthesizeDraftTreeWithListForTaxUID(args);
             } else if (command.compareTo("synthesizedrafttreelist_nodeid") == 0) {
                 cmdReturnCode = mr.synthesizeDraftTreeWithListForNodeId(args);
-            } else if (command.compareTo("extractdrafttree_name") == 0) {
+            } 
+            */
+            else if (command.compareTo("extractdrafttree_name") == 0) {
                 cmdReturnCode = mr.extractDraftTreeByName(args);
             } else if (command.compareTo("synthesisinfo") == 0) {
                 cmdReturnCode = mr.getSynthesisInfo(args);
@@ -4078,11 +4089,12 @@ public class MainRunner {
                 cmdReturnCode = mr.makePrunedBipartsTestFiles(args);
             } else if (command.compareTo("pgloadind") == 0) {
                 cmdReturnCode = mr.pg_loading_ind_studies(args);
+            } else if (command.compareTo("pgloadindnew") == 0) {
+                cmdReturnCode = mr.pg_loading_ind_studies_newick(args);
             } 
             */
-            else if (command.compareTo("pgloadindnew") == 0) {
-                cmdReturnCode = mr.pg_loading_ind_studies_newick(args);
-            } else if (command.compareTo("pgdelind") == 0) {
+            
+            else if (command.compareTo("pgdelind") == 0) {
                 cmdReturnCode = mr.pg_delete_ind_study(args);
             } 
             /*
@@ -4097,9 +4109,14 @@ public class MainRunner {
                 cmdReturnCode = mr.getTaxonomyTreeExport(args);
             } else if (command.compareTo("getmrca") == 0) {
                 cmdReturnCode = mr.getMRCA(args);
-            } else if (command.compareTo("loadott") == 0) {
+            } 
+            /*
+            else if (command.compareTo("loadott") == 0) {
                 cmdReturnCode = mr.loadOTT(args);
-            } else if (command.compareTo("nodestatus") == 0) {
+            } 
+            */
+            
+            else if (command.compareTo("nodestatus") == 0) {
                 cmdReturnCode = mr.getNodeStatus(args);
             } 
             /*
@@ -4107,12 +4124,9 @@ public class MainRunner {
                 cmdReturnCode = mr.treeCompare(args);
             } else if (command.compareTo("taxcomp") == 0) {
                 cmdReturnCode = mr.taxCompare(args);
-            } 
-            */
-            else if (command.compareTo("filtertreesforload") == 0) {
+            } else if (command.compareTo("filtertreesforload") == 0) {
                 cmdReturnCode = mr.filterTreesForLoad(args);
             } 
-            /*
             else if (command.compareTo("testsynth") == 0) {
                 cmdReturnCode = mr.testsynth(args);
             } else if (command.compareTo("sinksynth") == 0) {

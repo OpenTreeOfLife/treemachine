@@ -1,13 +1,9 @@
 package opentree.plugins;
 
-import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
-import opentree.GraphExplorer;
 import opentree.GraphExporter;
-
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.server.plugins.*;
 
