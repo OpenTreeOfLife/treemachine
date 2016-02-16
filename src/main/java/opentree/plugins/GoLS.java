@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import jade.tree.deprecated.JadeTree;
-import opentree.GraphBase;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
@@ -87,7 +86,7 @@ public class GoLS extends ServerPlugin {
             } catch (TaxonNotFoundException e) {}
             if (n != null) {
                 // need to check if taxon is in the relevant synthetic tree
-                if (ge.nodeIsInSyntheticTree(n, treeID)) {
+                if (ge.nodeIsInSyntheticTree(n, synthTreeID)) {
                     tips.add(n);
                     matchedNodes.add(nodeId);
                 } else {
@@ -100,7 +99,8 @@ public class GoLS extends ServerPlugin {
         }
 
         if (tips.size() < 1) {
-            String ret = "Could not find any graph nodes corresponding to the arg `ot_node_ids` provided.";
+            String ret = "Could not find any graph nodes corresponding to the arg "
+                + "`ot_node_ids` provided.";
             throw new IllegalArgumentException(ret);
         } else {
             HashMap<String, Object> res = new HashMap<String, Object>();
@@ -124,7 +124,7 @@ public class GoLS extends ServerPlugin {
                 boolean done = false;
                 while (!done) {
                     for (Relationship rel : mrta.getRelationships(RelType.SYNTHCHILDOF, Direction.INCOMING)) {
-                        if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                        if (String.valueOf(rel.getProperty("name")).equals(synthTreeID)) {
                             mrta = rel.getStartNode();
                             if (mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
                                 done = true;
@@ -273,7 +273,7 @@ public class GoLS extends ServerPlugin {
         GraphExplorer ge = new GraphExplorer(graphDb);
         Node startNode = null;
         
-        // synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
+        // synthetic tree identifier. check against synth meta index
         if (treeID != null) {
             ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
             if (synthTreeIDs.contains(treeID)) {
@@ -356,8 +356,8 @@ public class GoLS extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeID (@Source GraphDatabaseService graphDb) {
 
-        GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-        GraphExplorer ge = new GraphExplorer(gdb);
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
         HashMap<String, Object> draftTreeInfo = null;
         Node meta = null;
         
@@ -428,7 +428,9 @@ public class GoLS extends ServerPlugin {
     // ============================== arbor interoperability services ==================================
     
     // *** TODO: is this being used? who to ask? ***
-    @Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated node in the draft tree. Temporary, for interoperability testing with the arbor project.")
+    @Description("returns the ids of the immediate SYNTHCHILDOF children of the indidcated "
+        + "node in the draft tree. Temporary, for interoperability testing with the arbor "
+        + "project.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeChildNodesForNodeID(@Source GraphDatabaseService graphDb,
         

@@ -33,7 +33,6 @@ import org.opentree.exceptions.DataFormatException;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.StoredEntityNotFoundException;
 import org.opentree.exceptions.TaxonNotFoundException;
-import org.opentree.exceptions.TreeNotFoundException;
 import org.opentree.graphdb.GraphDatabaseAgent;
 import org.opentree.utils.GeneralUtils;
 
@@ -374,6 +373,7 @@ public class MainRunner {
         3) rank, and 4) nodeId. Also returns the nodeIDs of the query taxa, and the query target (treeSource)
      */
     // @returns 0 for success, 1 for poorly formed command
+    /*
     public int getMRCA(String [] args) throws MultipleHitsException, TaxonNotFoundException {
         
         if (args.length != 4) {
@@ -462,7 +462,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     /*
      * Get information about a node. Is it:
@@ -812,6 +812,7 @@ public class MainRunner {
      * @return 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
      * @throws TaxonNotFoundException
      */
+    /*
     public int graphArgusJSON(String [] args) throws TreeNotFoundException, TaxonNotFoundException {
         GraphExplorer ge = null;
         if (args[0].compareTo("argusjson") == 0) {
@@ -874,7 +875,7 @@ public class MainRunner {
             return 2;
         }
     }
-    
+    */
     
     /**
      * 
@@ -1164,6 +1165,7 @@ public class MainRunner {
     
     
     /// @returns 0 for success, 1 for poorly formed command
+    /*
     public int graphListPruner(String [] args) throws TaxonNotFoundException, MultipleHitsException {
         if (args.length != 4) {
             System.out.println("arguments should be: name preferredsource graphdbfolder");
@@ -1208,7 +1210,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     // @returns 0 for success, 1 for poorly formed command
     /*
@@ -1270,6 +1272,7 @@ public class MainRunner {
     */
     
     /// @returns 0 for success, 1 for poorly formed command
+    /*
     public int listSources(String [] args) {
         boolean listIDs = false;
         String graphname;
@@ -1300,7 +1303,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command
     public int listSynthTrees(String [] args) {
@@ -2797,7 +2800,7 @@ public class MainRunner {
         return 0;
     }
     
-    
+    /*
     public int extractTaxonomySubTreeForOttIDs(String [] args) throws MultipleHitsException, TaxonNotFoundException {
         if (args.length != 4) {
             System.out.println("arguments should be tipOTTid1,tipOTTid2,... outFileName graphdbfolder");
@@ -2835,7 +2838,7 @@ public class MainRunner {
         
         return 0;
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
     /*
@@ -3973,42 +3976,36 @@ public class MainRunner {
             /*
             if (command.compareTo("inittax") == 0) {
                 cmdReturnCode = mr.taxonomyLoadParser(args);
-            } 
-            */
-            /*
-            else if (command.compareTo("addnewick") == 0
+            } else if (command.compareTo("addnewick") == 0
                     || command.compareTo("addnewickTNRS") == 0
                             ||command.compareTo("addnexson") == 0) {
                 cmdReturnCode = mr.graphImporterParser(args);
-            */
-            if (command.compareTo("argusjson") == 0) {
+            } else if (command.compareTo("argusjson") == 0) {
                 cmdReturnCode = mr.graphArgusJSON(args);
-            } 
-            /*
-            else if (command.compareTo("jsgol") == 0
+            } else if (command.compareTo("jsgol") == 0
                     || command.compareTo("fulltree") == 0
                     || command.compareTo("fulltree_sources") == 0) {
                 cmdReturnCode = mr.graphExplorerParser(args);
             } 
             */
-            else if (command.compareTo("mrpdump") == 0) {
+            if (command.compareTo("mrpdump") == 0) {
                 cmdReturnCode = mr.mrpDumpParser(args);
-            } else if (command.compareTo("fulltreelist") == 0) {
-                cmdReturnCode = mr.graphListPruner(args);
-            } 
+            }
             /*
-            else if (command.compareTo("loadtrees") == 0) {
+            else if (command.compareTo("fulltreelist") == 0) {
+                cmdReturnCode = mr.graphListPruner(args);
+            } else if (command.compareTo("loadtrees") == 0) {
                 cmdReturnCode = mr.loadTreeAnalysis(args);
             } else if (command.compareTo("sourceexplorer") == 0
                     || command.equalsIgnoreCase("sourcepruner")
                     || command.equalsIgnoreCase("sourceexplorer_inf_mono")) {
                 cmdReturnCode = mr.sourceTreeExplorer(args);
-            } 
-            */
-            else if (command.compareTo("listsources") == 0
+            } else if (command.compareTo("listsources") == 0
                     || command.compareTo("getsourcetreeids") == 0) {
                 cmdReturnCode = mr.listSources(args);
-            } else if (command.compareTo("listsynthtrees") == 0) { 
+            } 
+            */
+            else if (command.compareTo("listsynthtrees") == 0) { 
                 cmdReturnCode = mr.listSynthTrees(args);
             } else if (command.compareTo("exporttodot") == 0) {
                 cmdReturnCode = mr.dotGraphExporter(args);
@@ -4073,9 +4070,13 @@ public class MainRunner {
             */
             else if (command.compareTo("extractdraftsubtreeforottids") == 0) {
                 cmdReturnCode = mr.extractDraftSubTreeForOttIDs(args);
-            } else if (command.compareTo("extracttaxonomysubtreeforottids") == 0) {
+            } 
+            /*
+            else if (command.compareTo("extracttaxonomysubtreeforottids") == 0) {
                 cmdReturnCode = mr.extractTaxonomySubTreeForOttIDs(args);
-            } else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
+            } 
+            */
+            else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
                 cmdReturnCode = mr.extractDraftSubTreeForNodeIDs(args);
             // not sure where this should live
             } else if (command.compareTo("nexson2newick") == 0) {
@@ -4107,11 +4108,11 @@ public class MainRunner {
             
             else if (command.compareTo("taxtree") == 0) {
                 cmdReturnCode = mr.getTaxonomyTreeExport(args);
-            } else if (command.compareTo("getmrca") == 0) {
-                cmdReturnCode = mr.getMRCA(args);
             } 
             /*
-            else if (command.compareTo("loadott") == 0) {
+            else if (command.compareTo("getmrca") == 0) {
+                cmdReturnCode = mr.getMRCA(args);
+            } else if (command.compareTo("loadott") == 0) {
                 cmdReturnCode = mr.loadOTT(args);
             } 
             */

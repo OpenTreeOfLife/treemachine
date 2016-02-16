@@ -25,11 +25,9 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 
 /**
@@ -45,20 +43,22 @@ public class GraphExporter extends GraphBase {
 
     public static final String[] GRAPHVIZ_COLORS = {"orangered2","mediumorchid3","lightskyblue2","deeppink4","plum1","darkkhaki","olivedrab1","lightyellow4","lavender","ivory1","dodgerblue4","slateblue3","paleturquoise4","gold3","beige","mistyrose","forestgreen","indianred","purple","chartreuse","violetred2","hotpink1","mistyrose4","palevioletred","olivedrab4","maroon4","darkorchid2","mistyrose1","navy","snow3","salmon2","seashell2","maroon1","bisque1","lightskyblue4","dodgerblue","darkslategray4","darkslategray3","gold","dodgerblue3","ghostwhite","magenta1","cornsilk2","indianred4","seashell4","palegreen2","whitesmoke","rosybrown","slateblue","antiquewhite","cornsilk4","cyan","darkseagreen","mediumspringgreen","antiquewhite4","springgreen2","lightsteelblue3","thistle2","steelblue2","skyblue","paleturquoise3","seagreen3","skyblue2","ivory4","black","goldenrod1","slategray","khaki1","thistle1","powderblue","blueviolet","navyblue","red3","pink","ivory2","gold1","aliceblue","royalblue2","blue3","magenta4","mistyrose2","pink3","burlywood","moccasin","goldenrod2","sienna1","lightsalmon4","yellowgreen","white","none","peachpuff2","royalblue1","palevioletred4","transparent","coral4","mediumorchid2","plum","lightcyan4","deepskyblue3","hotpink3","darkorchid1","snow","palegreen1","lightblue3","lightblue2","chartreuse4","coral1","darkviolet","rosybrown1","darkseagreen4","steelblue1","coral2","darkslategrey","burlywood3","lightyellow1","lightsteelblue2","tan4","hotpink4","cadetblue4","slateblue4","darkorange3","plum4","rosybrown4","darkorange2","brown","pink2","navajowhite3","lightpink1","slategray4","deepskyblue2","lightgoldenrodyellow","navajowhite1","chocolate2","snow1","antiquewhite2","lightsteelblue4","gold4","lightsalmon","orange4","orange3","khaki4","darkslategray2","darkslategray1","cadetblue","skyblue3","khaki3","salmon1","aquamarine","maroon3","darkseagreen1","purple2","steelblue3","dodgerblue1","lemonchiffon2","azure2","gainsboro","cornsilk","darkseagreen3","plum2","darkolivegreen","crimson","seashell3","lightyellow3","bisque2","cadetblue2","darkgreen","papayawhip","seagreen1","floralwhite","darkolivegreen3","deeppink1","lightgoldenrod","slateblue2","deeppink2","royalblue3","lightslateblue","antiquewhite3","yellow","dodgerblue2","lightpink3","violet","deeppink","darkgoldenrod2","rosybrown3","mediumturquoise","lemonchiffon4","olivedrab","orangered4","linen","steelblue4","lightsalmon2","chartreuse2","seagreen","thistle3","royalblue","darkgoldenrod4","darksalmon","darkorchid4","lightsalmon1","violetred3","red","lightcyan2","seashell","orangered","darkgoldenrod1","lavenderblush","lightcoral","springgreen","orangered3","lightblue1","mintcream","aquamarine2","mediumblue","chocolate3","darkgoldenrod","lightsalmon3","tan1","indianred2","orchid4","saddlebrown","paleturquoise1","chocolate","bisque4","darkturquoise","tan2","slateblue1","chartreuse3","blue2","lightseagreen","coral3","lavenderblush4","slategray1","limegreen","wheat1","rosybrown2","springgreen4","salmon","azure3","ivory","wheat4","slategrey","darkgoldenrod3","lightskyblue1","lightyellow2","orchid3","blue4","aquamarine4","yellow1","thistle4","lightsteelblue","lightskyblue3","lightcyan","chocolate4","lightslategrey","lavenderblush2","darkolivegreen4","dimgray","wheat3","lightsteelblue1","snow4","cyan3","cyan4","springgreen3","magenta2","wheat2","orchid2","lightblue4","snow2","azure","orchid1","blue","lightslategray","seagreen2","red2","brown1","bisque3","palevioletred3","darkslategray","navajowhite4","lightgray","salmon3","gold2","violetred","orangered1","darkorange1","mediumpurple4","orchid","tomato2","peachpuff","burlywood1","pink1","dimgrey","mediumorchid4","mistyrose3","goldenrod","palegreen","darkorchid","lavenderblush3","sienna3","palegreen4","darkorchid3","darkolivegreen2","lightyellow","deepskyblue4","sandybrown","seagreen4","turquoise2","deepskyblue","paleturquoise2","palegoldenrod","peru","sienna2","lightpink4","navajowhite","violetred1","deepskyblue1","firebrick3","cyan2","burlywood2","lightpink","mediumorchid1","lightcyan3","burlywood4","olivedrab3","skyblue4","cornflowerblue","lemonchiffon1","palegreen3","lightcyan1","pink4","indianred3","slategray3","hotpink","sienna4","indianred1","skyblue1","lightgoldenrod3","chartreuse1","lawngreen","invis","turquoise1","azure4","turquoise3","thistle","darkseagreen2","tomato4","navajowhite2","peachpuff4","yellow3","magenta","lemonchiffon3","slategray2","springgreen1","mediumvioletred","deeppink3","darkolivegreen1","azure1","indigo","turquoise4","orange","peachpuff3","tomato1","firebrick1","lightgoldenrod4","hotpink2","seashell1","ivory3","lavenderblush1","palevioletred1","darkorange4","maroon","steelblue","coral","bisque","royalblue4","palevioletred2","mediumpurple2","maroon2","mediumpurple","mediumaquamarine","orange1","aquamarine1","lightgoldenrod2","turquoise","sienna","khaki2","lightblue","cadetblue3","antiquewhite1","midnightblue","mediumslateblue","violetred4","firebrick4","lightgoldenrod1","brown2","brown4","blanchedalmond","purple1","cadetblue1","red4","purple4","mediumpurple3","aquamarine3","blue1","tomato","plum3","magenta3","peachpuff1","lightgrey","orange2","cornsilk1","chocolate1","cornsilk3","yellow2","firebrick","tan3","yellow4","goldenrod3","darkslateblue","tan","lightpink2","brown3","mediumorchid","lightskyblue","red1","purple3","tomato3","goldenrod4","salmon4","oldlace","khaki","mediumseagreen","firebrick2","olivedrab2","lemonchiffon","mediumpurple1","darkorange","cyan1","paleturquoise","wheat"};
     
-    private SpeciesEvaluator se;
+    //private SpeciesEvaluator se;
     private ChildNumberEvaluator cne;
-    private TaxaListEvaluator tle;
+    //private TaxaListEvaluator tle;
 
     public GraphExporter(String graphname) {
         super(graphname);
         finishInitialization();
     }
-
+    
+    /*
     public GraphExporter(EmbeddedGraphDatabase embeddedGraph) {
         super(embeddedGraph);
         finishInitialization();
     }
-
+    */
+    
     public GraphExporter(GraphDatabaseService gdb) {
         super(gdb);
         finishInitialization();
@@ -67,8 +67,8 @@ public class GraphExporter extends GraphBase {
     private void finishInitialization() {
         cne = new ChildNumberEvaluator();
         cne.setChildThreshold(100);
-        se = new SpeciesEvaluator();
-        tle = new TaxaListEvaluator();
+        //se = new SpeciesEvaluator();
+        //tle = new TaxaListEvaluator();
     }
 
     public void writeGraphDot(String taxname, String outfile, boolean useTaxonomy) 
@@ -636,8 +636,7 @@ public class GraphExporter extends GraphBase {
      * 
      * need to be guided by some source in order to walk a particular tree works like , "altparents": [{"name": "Adoxaceae",nodeid:"nodeid"},
      * {"name":"Caprifoliaceae",nodeid:"nodeid"}]
-     */
-
+     */ /*
     public void writeJSONWithAltParentsToFile(String taxname)
                 throws TaxonNotFoundException {
         Node firstNode = findTaxNodeByName(taxname);
@@ -657,6 +656,7 @@ public class GraphExporter extends GraphBase {
             e.printStackTrace();
         }
     }
+    */
 
     /*
      * Used for creating a JSON string with a dominant tree, but with alternative parents noted. For now the dominant source is hardcoded for testing. This
@@ -771,6 +771,7 @@ public class GraphExporter extends GraphBase {
      * 
      * Should work with taxonomy or with the graph and determines this based on relationships around the node
      */
+    /*
     public String constructJSONAltRels(Node firstNode,
                                        String domsource, 
                                        ArrayList<Long> altrels,
@@ -831,7 +832,7 @@ public class GraphExporter extends GraphBase {
                     /*
                      * just for last ditch efforts if(pf.findSinglePath(rel.getEndNode(), firstNode) != null || visited.contains(rel.getEndNode())){ preferred =
                      * rel; }
-                     */
+                     
                 }
             }
             if (keep == null) {
@@ -939,6 +940,7 @@ public class GraphExporter extends GraphBase {
         ret += ",{\"domsource\":\"" + sourcename + "\"}]\n";
         return ret;
     }
+    */
 
     // ====================================== extracting Synthetic trees from the db ==========================================
 
