@@ -13,6 +13,8 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about -H 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"source_list":false}'
 
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"source_list":true}'
+
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/draft_trees
 
 ## node_info moved from 'graph' (class was deprecated)

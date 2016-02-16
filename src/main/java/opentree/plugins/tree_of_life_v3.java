@@ -221,8 +221,8 @@ public class tree_of_life_v3 extends ServerPlugin {
         String synthTreeID = null;
         Node meta = null;
         
-        if (source_list != null && source_list == false) {
-            returnSourceList = false;
+        if (source_list != null && source_list == true) {
+            returnSourceList = true;
         }
         if (treeID != null) {
             synthTreeID = treeID;
