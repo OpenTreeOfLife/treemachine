@@ -3450,6 +3450,7 @@ public class GraphExplorer extends GraphBase {
     }
     
     // is the node in the current synthetic tree?
+    /*
     public boolean nodeIsInSyntheticTree (Node startNode) {
         boolean inTree = false;
         if (startNode.hasRelationship(RelType.SYNTHCHILDOF)) {
@@ -3457,7 +3458,7 @@ public class GraphExplorer extends GraphBase {
         }
         return inTree;
     }
-    
+    */
     
     // ================================= current methods ====================================
     

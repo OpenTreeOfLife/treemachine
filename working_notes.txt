@@ -9,9 +9,9 @@ ft12.tsv TEST.db
 ## tree_of_life_v3
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1"}'
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"study_list":false}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"source_list":false}'
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/draft_trees
 
@@ -21,32 +21,36 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info
 # Gavia subtree
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"ot_node_ids":["ott501678","ott666104","ott316878","ott102710","ott536234","ott810751","ott81461"]}'
 
-501678,666104,316878,102710,536234
-(((Stellula_calliope_ott536234)Stellula_ott501678,Dendroica_ott666104),(Perdix_ott102710,Clangula_ott316878))Neognathae_ott241846
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott292466", "ott501678", "ott267845"]}'
+
+
+#501678,666104,316878,102710,536234
+#(((Stellula_calliope_ott536234)Stellula_ott501678,Dendroica_ott666104),(Perdix_ott102710,Clangula_ott316878))Neognathae_ott241846
 
 
 ## 'v1' (GoLS) services
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeID
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion
-curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1"}'
 
 ## some nodes for testing
 # Aves (taxonomy): ott81461
 # Root node id (neo4j): 2659019
 
 # Aves
-curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","max_depth":"3","ot_node_id":"ott81461"}'
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","max_depth":"3","ot_node_id":"ott81461"}'
 
 # Galloanserae
-curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","max_depth":"3","ot_node_id":"ott5839486"}'
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","max_depth":"3","ot_node_id":"ott5839486"}'
 
 # mrca of chicken and dipper; should be Neognathae
-curl -v -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1","ot_node_ids":["ott267845", "ott153563"]}'
 
 
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForOTNodeID -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
@@ -67,6 +71,20 @@ curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about
 curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"ot_node_id":"ott803675"}'
 
 
+
+{
+  "mrca_node_id" : "mrcaott123ott456",
+  “nearest_taxon”: {"node_id" : "ott34567",  # v2: an int
+          "unique_name" : "Neognathae",
+          "ott_id" : 241846,
+          "name" : "Neognathae",
+          "rank" : "superorder"},
+ 
+  "synth_id" : "opentree4.0",
+             
+  "node_ids_not_in_tree" : [ ],
+  "ott_ids_not_in_tree" : [ ]
+}
 
 
 

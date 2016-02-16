@@ -11,7 +11,7 @@ curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about
 
 curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about -H 'Content-Type: application/json' --data-binary '{"tree_id":"opentree4.1"}'
 
-curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about  -H 'Content-Type: application/json' --data-binary '{"study_list":false}'
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about  -H 'Content-Type: application/json' --data-binary '{"source_list":false}'
 
 curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/draft_trees
 

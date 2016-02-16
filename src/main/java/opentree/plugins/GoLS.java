@@ -22,7 +22,6 @@ import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.ArgusonRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
-import org.opentree.graphdb.GraphDatabaseAgent;
 
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
@@ -30,7 +29,7 @@ public class GoLS extends ServerPlugin {
     // TODO: not doing taxonomy MRCA anymore, as entire taxonomy is not ingested
     // refactor as synth-only; need to know which synth tree (default = most recent)
     @Description("Get the MRCA of a set of ot_node_ids. MRCA is calculated on a specific synthetic "
-        + "given by the optional `tree_id` arg (defaults to most current draft tree). Returns the "
+        + "given by the optional `synth_id` arg (defaults to most current draft tree). Returns the "
         + "following information about the MRCA: 1) name, 2) ott_id, 3) rank, and 4) ot_node_id. "
         + "Also returns the matched query nodes, and any nodes unmatched because they are 1) not "
         + "found in the graph, or 2) are valid nodes but not in the focal synthetic tree.")
@@ -38,7 +37,7 @@ public class GoLS extends ServerPlugin {
     public Representation getMRCA(@Source GraphDatabaseService graphDb,
         
         @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "tree_id", optional = true)
+        @Parameter(name = "synth_id", optional = true)
         String treeID,
 
         @Description("A set of open tree node ids")
@@ -64,7 +63,7 @@ public class GoLS extends ServerPlugin {
                 synthTreeID = treeID;
             } else {
                 ge.shutdownDB();
-                String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
+                String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
                 throw new IllegalArgumentException(ret);
             }
@@ -106,7 +105,7 @@ public class GoLS extends ServerPlugin {
             HashMap<String, Object> res = new HashMap<String, Object>();
             Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
             
-            res.put("tree_id", synthTreeID);
+            res.put("synth_id", synthTreeID);
             res.put("mrca_ot_node_id", mrca.getProperty("ot_node_id"));
             res.put("matched_nodes", matchedNodes);
             
@@ -146,9 +145,9 @@ public class GoLS extends ServerPlugin {
     }
     
     
-    @Description("Returns a synthetic tree identified by arg `tree_id` (defaults to the "
+    @Description("Returns a synthetic tree identified by arg `synth_id` (defaults to the "
         + "most recent version). If format is \"newick\" then return JSON will "
-        + "have two fields: newick and tree_id. If format = \"arguson\" then the return "
+        + "have two fields: newick and synth_id. If format = \"arguson\" then the return "
         + "object will be the form of JSON expected by argus. The returned tree will be "
         + "truncated to a depth specified by arg `max_depth` (default is 5).")
     @PluginTarget(GraphDatabaseService.class)
@@ -156,7 +155,7 @@ public class GoLS extends ServerPlugin {
         
         @Description("The identifier for the synthetic tree (e.g. \"opentree4.0\") "
             + "(default is most current synthetic tree).")
-        @Parameter(name = "tree_id", optional = true)
+        @Parameter(name = "synth_id", optional = true)
         String treeID,
         
         @Description("The name of the return format (default is newick).")
@@ -196,7 +195,7 @@ public class GoLS extends ServerPlugin {
                 synthTreeID = treeID;
             } else {
                 ge.shutdownDB();
-                String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
+                String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
                 throw new IllegalArgumentException(ret);
             }
@@ -244,7 +243,7 @@ public class GoLS extends ServerPlugin {
 
         if (emitNewick) {
             responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
-            responseMap.put("tree_id", synthTreeID);
+            responseMap.put("synth_id", synthTreeID);
             return OTRepresentationConverter.convert(responseMap);
         } else { // emit arguson
             return ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(tree.getRoot());
@@ -253,12 +252,12 @@ public class GoLS extends ServerPlugin {
     
     
     @Description("Returns a newick string of the draft tree specified by the optional arg "
-        + "`tree_id` (defaults to most current) for the node identified by `ot_node_id`.")
+        + "`synth_id` (defaults to most current) for the node identified by `ot_node_id`.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeForOTNodeID(@Source GraphDatabaseService graphDb,
         
         @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "tree_id", optional = true)
+        @Parameter(name = "synth_id", optional = true)
         String treeID,
         
         @Description("The Neo4j node id of the node to be used as the root for the tree.")
@@ -280,7 +279,7 @@ public class GoLS extends ServerPlugin {
                 synthTreeID = treeID;
             } else {
                 ge.shutdownDB();
-                String ret = "Unrecognized \"tree_id\" argument. Leave blank to default "
+                String ret = "Unrecognized \"synth_id\" argument. Leave blank to default "
                     + "to the current synthetic tree.";
                 throw new IllegalArgumentException(ret);
             }
@@ -313,7 +312,7 @@ public class GoLS extends ServerPlugin {
 
         HashMap<String, String> response = new HashMap<String, String>();
         response.put("tree", tree.getRoot().getNewick(false));
-        response.put("tree_id", synthTreeID);
+        response.put("synth_id", synthTreeID);
         
         return OTRepresentationConverter.convert(response);
     }
@@ -329,7 +328,7 @@ public class GoLS extends ServerPlugin {
     public Representation getSynthesisSourceList (@Source GraphDatabaseService graphDb,
         
         @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "tree_id", optional = true)
+        @Parameter(name = "synth_id", optional = true)
         String treeID
         
         ) throws TaxonNotFoundException, MultipleHitsException {
@@ -364,7 +363,7 @@ public class GoLS extends ServerPlugin {
         try {
             meta = ge.getMostRecentSynthesisMetaNode();
             draftTreeInfo = new HashMap<String, Object>();
-            draftTreeInfo.put("tree_id", meta.getProperty("tree_id"));
+            draftTreeInfo.put("synth_id", meta.getProperty("tree_id"));
             draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
             draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
             draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
@@ -383,7 +382,7 @@ public class GoLS extends ServerPlugin {
     public Representation getTaxonomyVersion (@Source GraphDatabaseService graphDb,
         
         @Description("Synthetic tree identifier")
-        @Parameter(name = "tree_id", optional = true)
+        @Parameter(name = "synth_id", optional = true)
         String treeID
         
         ) {
@@ -404,7 +403,7 @@ public class GoLS extends ServerPlugin {
                 // invalid treeid
                 if (meta == null) {
                     ge.shutdownDB();
-                    String ret = "Could not find a synthetic tree corresponding to the 'tree_id' arg: '"
+                    String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                         + synthTreeID + "'.";
                     throw new IllegalArgumentException(ret);
                 }
@@ -415,7 +414,7 @@ public class GoLS extends ServerPlugin {
             }
             taxVersion = (String)meta.getProperty("taxonomy_version");
             taxonomyInfo.put("taxonomy_version", taxVersion);
-            taxonomyInfo.put("tree_id", synthTreeID);
+            taxonomyInfo.put("synth_id", synthTreeID);
             
         } finally {
             ge.shutdownDB();

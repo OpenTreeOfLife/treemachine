@@ -473,6 +473,7 @@ public class MainRunner {
      * 5. Others?!?
     */
     // @returns 0 for success, 1 for poorly formed command
+    /*
     public int getNodeStatus(String [] args) {
         
         if (args.length != 3) {
@@ -546,7 +547,7 @@ public class MainRunner {
         }
         return 0;
     }
-    
+    */
     
     private static void getMRPmatrix(JadeTree tree, GraphDatabaseAgent graphDb) {
         

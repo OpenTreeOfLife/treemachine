@@ -7,12 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import opentree.constants.RelProperty;
 import opentree.constants.RelType;
-import org.opentree.utils.GeneralUtils;
-import org.opentree.graphdb.GraphDatabaseAgent;
 import org.neo4j.graphdb.Node;
-import opentree.constants.SourceProperty;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Relationship;
 
@@ -113,8 +109,6 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     HashMap<String, Object> tsMap = (HashMap<String, Object>) inNode.getObject("tax_sources");
                     serializer.putMapping("tax_sources", GeneralizedMappingRepresentation.getMapRepresentation(tsMap));
                 }
-                
-                
                 
                 // add in metadata for pathToRoot (requested by jimallman)
                 List<Node> pathToRoot = (List<Node>) inNode.getObject("path_to_root");
