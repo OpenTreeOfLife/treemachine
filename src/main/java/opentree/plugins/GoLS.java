@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import jade.tree.deprecated.JadeTree;
+import java.util.Arrays;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
@@ -316,7 +317,7 @@ public class GoLS extends ServerPlugin {
         try {
             Node meta = ge.getMostRecentSynthesisMetaNode();
             if (meta != null){
-                String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
+                String [] sourcePrimList = (String []) meta.getProperty("sources");
                 for (int i = 0; i < sourcePrimList.length; i++){
                     sourceList.add(sourcePrimList[i]);
                 }
