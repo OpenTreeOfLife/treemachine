@@ -13,10 +13,12 @@ curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about -H 'Content-T
 
 curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about  -H 'Content-Type: application/json' --data-binary '{"source_list":false}'
 
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about  -H 'Content-Type: application/json' --data-binary '{"source_list":true}'
+
 curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/draft_trees
 
 # node_info moved from 'graph' (class was deprecated)
-curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/node_info -H "content-type:application/json" -d '{"ot_node_id":"ott81461"}'
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/node_info -H "content-type:application/json" -d '{"node_id":"ott81461"}'
 
 # Gavia subtree
 curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/subtree -H "content-type:application/json" -d '{"ot_node_id":"ott803675"}'
