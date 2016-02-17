@@ -1857,6 +1857,8 @@ public class GraphExplorer extends GraphBase {
                     }
                 }
             }
+        } else {
+            curNode.setName((String) curGraphNode.getProperty("ot_node_id"));
         }
         curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
         
@@ -1900,7 +1902,7 @@ public class GraphExplorer extends GraphBase {
         for (Relationship synthChildRel : synthChildRels) {
             extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
         }
-        
+
         return curNode;
     }
     
