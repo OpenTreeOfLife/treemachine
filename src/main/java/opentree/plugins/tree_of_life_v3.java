@@ -77,13 +77,6 @@ public class tree_of_life_v3 extends ServerPlugin {
     }
     
     
-    // TODO:
-    // used to have `include_lineage` arg. optional, default was false:
-    // "Include the ancestral lineage of the node in the draft tree. If this argument 
-    // is `true`, then a list of all the ancestors of this node in the draft tree, 
-    // down to the root of the tree itself, will be included in the results. Higher 
-    // list indices correspond to more incluive (i.e. deeper) ancestors, with the 
-    // immediate parent of the specified node occupying position 0 in the list."
     @Description("Returns summary information about a node in the graph. The node "
         + "of interest may be specified using *either* a `node_id`, or an `ott_id`, "
         + "**but not both**. If the specified node is not in the graph, an exception "
@@ -156,12 +149,16 @@ public class tree_of_life_v3 extends ServerPlugin {
         }
         
         // get all taxonomic information
-        nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
+        HashMap<String, Object> taxInfo = ge.getNodeTaxInfo(qNode);
+        // includes node_id, which apparently should not be here
+        nodeIfo.put("node_id", taxInfo.get("node_id"));
+        taxInfo.remove("node_id");
+        nodeIfo.put("taxon", taxInfo);
         
         
         // Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
         
-        // loop over all synth trees this node is in
+        // loop over all synth trees this node is in. for the moment, there will only be one (well, ready for more...)
         if (qNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
             for (Relationship rel : qNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
                 HashMap<String, Object> treeInfo = new HashMap<>();
@@ -191,9 +188,10 @@ public class tree_of_life_v3 extends ServerPlugin {
                         HashMap<String, Object> info = ge.getNodeTaxInfo(cn);
                         lineage.add(info);
                     }
-                    nodeIfo.put("draft_tree_lineage", lineage);
+                    treeInfo.put("draft_tree_lineage", lineage);
                 }
-                nodeIfo.put(synthTreeID, treeInfo);
+                treeInfo.put("synth_id", synthTreeID);
+                nodeIfo.put("synth_data", treeInfo);
             }
         }
         ge.shutdownDB();

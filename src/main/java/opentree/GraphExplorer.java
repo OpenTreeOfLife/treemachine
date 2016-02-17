@@ -3823,13 +3823,6 @@ public class GraphExplorer extends GraphBase {
     public HashMap<String, Object> getNodeTaxInfo (Node n) {
         
         HashMap<String, Object> results = new HashMap<>();
-        /*
-        String name = "";
-        String uniqueName = "";
-        String rank = "";
-        Long ottId = null;
-        //String nodeID = String.valueOf(n.getProperty(NodeProperty.OT_NODE_ID.propertyName));
-        */
         results.put("node_id", n.getProperty(NodeProperty.OT_NODE_ID.propertyName));
         
         if (n.hasProperty(NodeProperty.NAME.propertyName)) {
@@ -3838,30 +3831,11 @@ public class GraphExplorer extends GraphBase {
             results.put("rank", n.getProperty(NodeProperty.TAX_RANK.propertyName));
             results.put("ott_id", Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName)));
             
-            
-            /*
-            name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
-            uniqueName = String.valueOf(n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-            rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
-            ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
-            */
-            
             // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
             String taxStr = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
             HashMap<String, String> taxSources = stringToMap(taxStr);
             results.put("tax_sources", taxSources);
         }
-        
-        /*
-        results.put("name", name);
-        results.put("unique_name", uniqueName);
-        results.put("rank", rank);
-        if (ottId != null) {
-            results.put("ott_id", ottId);
-        } else {
-            results.put("ott_id", "null"); // services cannot have null values
-        }
-        */
         return results;
     }
     

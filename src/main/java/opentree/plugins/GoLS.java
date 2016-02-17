@@ -162,9 +162,9 @@ public class GoLS extends ServerPlugin {
         @Parameter(name = "format", optional = true)
         String format,
         
-        @Description("The ot node id of the node in the tree that should serve as the "
+        @Description("The node id of the node in the tree that should serve as the "
             + "root of the tree returned.")
-        @Parameter(name = "ot_node_id", optional = true)
+        @Parameter(name = "node_id", optional = true)
         String otNodeID,
         
         @Description("An integer controlling the max number of edges between the leaves and "
