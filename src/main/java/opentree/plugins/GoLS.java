@@ -299,7 +299,7 @@ public class GoLS extends ServerPlugin {
     
     // ============================== deprecate service below?  ==================================
     
-    // is this used? if so, will need to be updated i.e. which synth tree?
+    // is this used?
     // tree_of_life/about is better (i.e. a superset)
     @Description("Returns a list of the synthesis tree source information")
     @PluginTarget(GraphDatabaseService.class)
