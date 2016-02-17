@@ -21,4 +21,5 @@ Probs
 # test stuff
 *.db
 *-out
-
+.out_test*
+*~
