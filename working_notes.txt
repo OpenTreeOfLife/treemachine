@@ -71,7 +71,7 @@ curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 
 
 # mrca of chicken and dipper; should be Neognathae
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
-
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","ott_ids":[267845, 153563]}'
 
 curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForNodeID -H "content-type:application/json" -d '{"node_id":"ott803675"}'
 

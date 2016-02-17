@@ -331,21 +331,23 @@ public class tree_of_life_v3 extends ServerPlugin {
         }
         
         // node_ids
-        for (String nodeId : nodeIDs) {
-            Node n = null;
-            try {
-                n = ge.findGraphNodeByOTTNodeID(nodeId);
-            } catch (TaxonNotFoundException e) {}
-            if (n != null) {
-                // need to check if taxon is in the relevant synthetic tree
-                if (ge.nodeIsInSyntheticTree(n, synthTreeID)) {
-                    tips.add(n);
+        if (nodeIDs != null && nodeIDs.length > 0) {
+            for (String nodeId : nodeIDs) {
+                Node n = null;
+                try {
+                    n = ge.findGraphNodeByOTTNodeID(nodeId);
+                } catch (TaxonNotFoundException e) {}
+                if (n != null) {
+                    // need to check if taxon is in the relevant synthetic tree
+                    if (ge.nodeIsInSyntheticTree(n, synthTreeID)) {
+                        tips.add(n);
+                    } else {
+                        nodesIDsNotInTree.add(nodeId);
+                    }
                 } else {
+                    // could not find node at all
                     nodesIDsNotInTree.add(nodeId);
                 }
-            } else {
-                // could not find node at all
-                nodesIDsNotInTree.add(nodeId);
             }
         }
         

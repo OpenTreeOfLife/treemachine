@@ -38,17 +38,25 @@ public class GoLS extends ServerPlugin {
         @Description("Synthetic tree identifier (defaults to most recent).")
         @Parameter(name = "synth_id", optional = true)
         String synthID,
-
-        @Description("A set of open tree node ids")
-        @Parameter(name = "node_ids", optional = false)
-        String[] otNodeIDs
         
-        ) throws MultipleHitsException, TaxonNotFoundException {
+        @Description("A set of open tree node ids")
+        @Parameter(name = "node_ids", optional = true)
+        String[] nodeIDs,
+        
+        @Description("A set of ott ids")
+        @Parameter(name = "ott_ids", optional = true)
+        long[] ottIDs
+        
+        ) throws IllegalArgumentException {
         
         ArrayList<Node> tips = new ArrayList<>();
-        ArrayList<String> matchedNodes = new ArrayList<>();
-        ArrayList<String> unmatchedNodes = new ArrayList<>();
-        ArrayList<String> nodesNotInTree = new ArrayList<>();
+        ArrayList<Long> ottIdsNotInTree = new ArrayList<>();
+        ArrayList<String> nodesIDsNotInTree = new ArrayList<>();
+        
+        if ((nodeIDs == null || nodeIDs.length < 1) && (ottIDs == null || ottIDs.length < 1)) {
+            String ret = "You must supply at least one node_id or ott_id.";
+            throw new IllegalArgumentException(ret);
+        }
         
         String synthTreeID = null;
         
@@ -67,22 +75,43 @@ public class GoLS extends ServerPlugin {
             synthTreeID = ge.getMostRecentSynthTreeID();
         }
         
-        for (String nodeId : otNodeIDs) {
-            Node n = null;
-            try {
-                n = ge.findGraphNodeByOTTNodeID(nodeId);
-            } catch (TaxonNotFoundException e) {}
-            if (n != null) {
-                // need to check if taxon is in the relevant synthetic tree
-                if (ge.nodeIsInSyntheticTree(n, synthTreeID)) {
-                    tips.add(n);
-                    matchedNodes.add(nodeId);
+        // node_ids
+        if (nodeIDs != null && nodeIDs.length > 0) {
+            for (String nodeId : nodeIDs) {
+                Node n = null;
+                try {
+                    n = ge.findGraphNodeByOTTNodeID(nodeId);
+                } catch (TaxonNotFoundException e) {}
+                if (n != null) {
+                    // need to check if taxon is in the relevant synthetic tree
+                    if (ge.nodeIsInSyntheticTree(n, synthTreeID)) {
+                        tips.add(n);
+                    } else {
+                        nodesIDsNotInTree.add(nodeId);
+                    }
                 } else {
-                    nodesNotInTree.add(nodeId);
+                    // could not find node at all
+                    nodesIDsNotInTree.add(nodeId);
                 }
-            } else {
-                // could not find node at all
-                unmatchedNodes.add(nodeId);
+            }
+        }
+        
+        // ott_ids
+        if (ottIDs != null && ottIDs.length > 0) {
+            for (long ottId : ottIDs) {
+                Node n = null;
+                try {
+                    n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
+                } catch (TaxonNotFoundException e) {}
+                if (n != null) {
+                    if (ge.nodeIsInSyntheticTree(n, synthTreeID)) {
+                        tips.add(n);
+                    } else { 
+                        ottIdsNotInTree.add(ottId);
+                    }
+                } else {
+                    ottIdsNotInTree.add(ottId);
+                }
             }
         }
 
@@ -91,19 +120,17 @@ public class GoLS extends ServerPlugin {
                 + "`node_ids` provided.";
             throw new IllegalArgumentException(ret);
         } else {
-            HashMap<String, Object> res = new HashMap<String, Object>();
+            HashMap<String, Object> res = new HashMap<>();
             Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
             
             res.put("synth_id", synthTreeID);
-            res.put("mrca_node_id", mrca.getProperty("ot_node_id"));
-            res.put("matched_nodes", matchedNodes);
+            res.put("node_id", mrca.getProperty("ot_node_id"));
             
-            if (!unmatchedNodes.isEmpty()) {
-                res.put("unmatched_node_ids", unmatchedNodes);
+            if (!ottIdsNotInTree.isEmpty()) {
+                res.put("ott_ids_not_in_tree", ottIdsNotInTree);
             }
-            // good nodes, but not in the tree of interest
-            if (!nodesNotInTree.isEmpty()) {
-                res.put("nodes_not_in_tree", nodesNotInTree);
+            if (!nodesIDsNotInTree.isEmpty()) {
+                res.put("node_ids_not_in_tree", nodesIDsNotInTree);
             }
             
             // now attempt to find the most recent taxonomic ancestor (in tree)
@@ -122,12 +149,14 @@ public class GoLS extends ServerPlugin {
                     }
                 }  
             }
-            res.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
-            res.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-            res.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-            res.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
-            res.put("nearest_taxon_mrca_node_id", mrta.getProperty("ot_node_id"));
+            HashMap<String, Object> mrtaInfo = new HashMap<>();
+            mrtaInfo.put("name", mrta.getProperty(NodeProperty.NAME.propertyName));
+            mrtaInfo.put("unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+            mrtaInfo.put("rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
+            mrtaInfo.put("ott_id", Long.valueOf((String) mrta.getProperty(NodeProperty.TAX_UID.propertyName)));
+            mrtaInfo.put("node_id", mrta.getProperty("ot_node_id"));
             
+            res.put("nearest_taxon", mrtaInfo);
             ge.shutdownDB();
             return OTRepresentationConverter.convert(res);
         }
