@@ -25,7 +25,7 @@ import opentree.constants.RelType;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
-import opentree.synthesis.DraftTreePathExpander;
+import opentree.DraftTreePathExpander;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -3907,7 +3907,8 @@ public class GraphExplorer extends GraphBase {
                 }
             } else { // first pass. get full path to root. ideally we would get the shortest path...
                 ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
-                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID)).traverse(curNode).nodes()) {
+                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                        .traverse(curNode).nodes()) {
                     graphPathToRoot.add(0, m);
                 }
                 holder = graphPathToRoot;
