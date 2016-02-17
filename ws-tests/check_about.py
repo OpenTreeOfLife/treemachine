@@ -1,9 +1,10 @@
 # This module is imported by two test_about.py files
 
+import sys, os
+from opentreetesting import test_http_json_method, config
+
 def check_about(parameters):
 
-    import sys, os
-    from opentreetesting import test_http_json_method, config
     DOMAIN = config('host', 'apihost')
     SUBMIT_URI = DOMAIN + '/v3/tree_of_life/about'
     test, result, _ = test_http_json_method(SUBMIT_URI, "POST",
@@ -12,7 +13,6 @@ def check_about(parameters):
                                               return_bool_data=True)
     if not test:
         sys.exit(1)
-
 
     """ Doc says:
     "synth_id" : "opentree4.1",
@@ -33,7 +33,6 @@ def check_about(parameters):
 
     code = [0]
     def lose(): code[0] = 1
-
     def check_parameter_type(name, typo):
         value = result.get(name)
         if not isinstance(value, typo):
