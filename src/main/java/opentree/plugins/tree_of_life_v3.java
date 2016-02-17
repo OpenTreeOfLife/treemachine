@@ -158,6 +158,9 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get all taxonomic information
         nodeIfo.putAll(ge.getNodeTaxInfo(qNode));
         
+        
+        // Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
+        
         // loop over all synth trees this node is in
         if (qNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
             for (Relationship rel : qNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
@@ -394,7 +397,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
             
             res.put("synth_id", synthTreeID);
-            res.put("mrca_node_id", mrca.getProperty("ot_node_id"));
+            res.put("node_id", mrca.getProperty("ot_node_id"));
             
             if (!ottIdsNotInTree.isEmpty()) {
                 res.put("ott_ids_not_in_tree", ottIdsNotInTree);
