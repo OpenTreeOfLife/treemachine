@@ -41,7 +41,7 @@ public class GoLS extends ServerPlugin {
         String treeID,
 
         @Description("A set of open tree node ids")
-        @Parameter(name = "ot_node_ids", optional = false)
+        @Parameter(name = "node_ids", optional = false)
         String[] otNodeIDs
         
         ) throws MultipleHitsException, TaxonNotFoundException {
@@ -254,14 +254,14 @@ public class GoLS extends ServerPlugin {
     @Description("Returns a newick string of the draft tree specified by the optional arg "
         + "`synth_id` (defaults to most current) for the node identified by `ot_node_id`.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation getDraftTreeForOTNodeID(@Source GraphDatabaseService graphDb,
+    public Representation getDraftTreeForNodeID(@Source GraphDatabaseService graphDb,
         
         @Description("Synthetic tree identifier (defaults to most recent).")
         @Parameter(name = "synth_id", optional = true)
         String treeID,
         
         @Description("The Neo4j node id of the node to be used as the root for the tree.")
-        @Parameter(name = "ot_node_id", optional = false)
+        @Parameter(name = "node_id", optional = false)
         String otNodeID
     
         ) {
