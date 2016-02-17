@@ -645,7 +645,8 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get the subtree for export
         JadeTree tree = null;
         try {
-            tree = ge.extractDraftTreeByName(qNode, synthTreeID);
+            //tree = ge.extractDraftTreeByName(qNode, synthTreeID);
+            tree = ge.extractDraftTree(qNode, synthTreeID);
         } finally {
             ge.shutdownDB();
         }

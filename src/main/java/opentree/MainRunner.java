@@ -2702,7 +2702,7 @@ public class MainRunner {
         }
         
         JadeTree synthTree = null;
-        synthTree = ge.extractDraftTreeByName(firstNode, synthName);
+        synthTree = ge.extractDraftTree(firstNode, synthName);
 
         if (synthTree == null) {
             return -1;
@@ -2722,7 +2722,7 @@ public class MainRunner {
         return 0;
     }
     
-    
+    /*
     public int extractDraftSubTreeForNodeIDs(String [] args) throws MultipleHitsException {
         if (args.length != 4) {
             System.out.println("arguments should be nodeId1,nodeId2,... outFileName graphdbfolder");
@@ -2760,7 +2760,7 @@ public class MainRunner {
         
         return 0;
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
     public int extractDraftSubTreeForOttIDs(String [] args) throws MultipleHitsException, TaxonNotFoundException {
@@ -2775,7 +2775,7 @@ public class MainRunner {
         String graphname = args[3];
         GraphExplorer ge = new GraphExplorer(graphname);
 
-        ArrayList<Node> tipNodes = new ArrayList<Node>();
+        ArrayList<Node> tipNodes = new ArrayList<>();
         for (String OTTid : OTTids) {
 //            System.out.println(OTTid);
             Node tip = ge.findGraphTaxNodeByUID(OTTid);
@@ -4076,12 +4076,13 @@ public class MainRunner {
             /*
             else if (command.compareTo("extracttaxonomysubtreeforottids") == 0) {
                 cmdReturnCode = mr.extractTaxonomySubTreeForOttIDs(args);
-            } 
-            */
-            else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
+            } else if (command.compareTo("extractdraftsubtreefornodeids") == 0) {
                 cmdReturnCode = mr.extractDraftSubTreeForNodeIDs(args);
+            }
             // not sure where this should live
-            } else if (command.compareTo("nexson2newick") == 0) {
+            */
+            
+            else if (command.compareTo("nexson2newick") == 0) {
                 cmdReturnCode = mr.nexson2newick(args);
             } else if (command.equals("nodeinfo")) {
                 cmdReturnCode = mr.nodeInfo(args);

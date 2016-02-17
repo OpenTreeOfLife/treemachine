@@ -41,11 +41,14 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
 
 
-## not currently working
+## working
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"node_ids":["ott501678","ott666104","ott316878","ott102710","ott536234","ott810751","ott81461"]}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"node_ids":["ott501678","ott666104","ott316878"], "ott_ids":[102710,536234,810751,81461,501678]}'
 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott292466", "ott501678", "ott267845"]}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845]}'
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott501678", "ott267845"], "ott_ids":[292466,10101010]}'
 
@@ -105,6 +108,8 @@ curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSynthesisSourceLi
   "node_ids_not_in_tree" : [ ],
   "ott_ids_not_in_tree" : [ ]
 }
+
+java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar extractdraftsubtreeforottids 267845,153563,803675 terp.tre TEST.db
 
 
 

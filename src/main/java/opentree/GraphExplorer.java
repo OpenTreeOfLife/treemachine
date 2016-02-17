@@ -866,7 +866,7 @@ public class GraphExplorer extends GraphBase {
                 }
             }
             // get all the childids even if they aren't in the tree, this is the postorder part
-            HashSet<Long> childndids = new HashSet<Long>();
+            HashSet<Long> childndids = new HashSet<>();
             
             // System.out.println(inode.getNewick(false));
             for (int i = 0; i < inode.getChildCount(); i++) {
@@ -1759,10 +1759,37 @@ public class GraphExplorer extends GraphBase {
     
     // ====================================== extracting Synthetic trees from the db ==========================================
     
+    /**
+     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
+     * External function that uses the ottid to find the root node in the db.
+     * 
+     * This includes mapping the relationships based on a list that is input
+     * 
+     * @param startNode
+     * @param synthTreeName
+     * @param rellist
+     * @throws OttIdNotFoundException 
+     */
+    /*
+    public JadeTree extractDraftTreeMap(Node startNode, String synthTreeName, HashMap<Long,Integer> rellist) {
+        
+        // empty parameters for initial recursion
+        JadeNode parentJadeNode = null;
+        Relationship incomingRel = null;
+        
+        return new JadeTree(extractStoredSyntheticTreeRecurMap(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, rellist));
+    }
+    */
     
     
     // extract a specific synthetic tree by name
     // if startNode is null, will return the whole tree (if present)
+    /**
+     * @param startNode
+     * @param synthTreeName
+     * @return JadeTree
+     */
+    /*
     public JadeTree extractDraftTreeByName(Node startNode, String synthTreeName) {
         
         // empty parameters for initial recursion
@@ -1780,35 +1807,17 @@ public class GraphExplorer extends GraphBase {
         
         return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, synthTreeName));
     }
-
+    */
+    
+    // i think these two fuctions are identical
     
     /**
      * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
      * External function that uses the ottid to find the root node in the db.
-     * 
-     * This includes mapping the relationships based on a list that is input
      * 
      * @param startNode
      * @param synthTreeName
-     * @param rellist
-     * @throws OttIdNotFoundException 
-     */
-    public JadeTree extractDraftTreeMap(Node startNode, String synthTreeName, HashMap<Long,Integer> rellist) {
-        
-        // empty parameters for initial recursion
-        JadeNode parentJadeNode = null;
-        Relationship incomingRel = null;
-        
-        return new JadeTree(extractStoredSyntheticTreeRecurMap(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, rellist));
-    }
-    
-    
-    /**
-     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
-     * External function that uses the ottid to find the root node in the db.
-     * 
-     * @param nodeId
-     * @throws OttIdNotFoundException 
+     * @return JadeTree
      */
     public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
         
@@ -1831,12 +1840,6 @@ public class GraphExplorer extends GraphBase {
         
         JadeNode curNode = new JadeNode();
         
-        // testing
-        //System.out.println("child graph node: " + curGraphNode.getId());
-        //if (parentJadeNode != null) {
-        //    System.out.println("parent jade node: " + parentJadeNode.toString());
-        //}
-        
         // set the names for the newick string
         if (curGraphNode.hasProperty("name")) {
             if (nodeIsTerminal(curGraphNode)) {
@@ -1846,7 +1849,7 @@ public class GraphExplorer extends GraphBase {
                     curNode.setName(getOttName(curGraphNode));
                 }
             } else {
-                if (newickLabelInternalNodes) {
+                if (newickLabelInternalNodes) { // this is where internal node labels would go
                     if (newickLabelsAreIDs) {
                         curNode.setName(("ott").concat(String.valueOf(curGraphNode.getProperty("tax_uid"))));
                     } else {
@@ -3264,11 +3267,11 @@ public class GraphExplorer extends GraphBase {
     */
     
     public boolean nodeIsTerminal(Node n) {
-            boolean terminal = false;
-            if (!n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
-                terminal = true;
-            }
-            return terminal;
+        boolean terminal = false;
+        if (!n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
+            terminal = true;
+        }
+        return terminal;
     }
     
     public int getNumberSynthesisTips(Node startNode) {
@@ -3318,6 +3321,7 @@ public class GraphExplorer extends GraphBase {
     }
     
     // From a given node, return all taxonomic descendants which are tips
+    /*
     public ArrayList<Node> getTaxonomyDescendantTips(Node startNode) {
             ArrayList<Node> tips = new ArrayList<Node>();
             TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
@@ -3328,38 +3332,43 @@ public class GraphExplorer extends GraphBase {
             }
             return tips;
     }
-        
+    */
+    
     // From a given node, return all taxonomic descendants which are tips
+    /*
     public ArrayList<Node> getSynthesisDescendantTips(Node startNode) {
-            ArrayList<Node> tips = new ArrayList<Node>();
-            HashSet<Node> tipSet = new HashSet<Node>();
-            TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
-            for (Node curnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
-                if (curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING) == false) { // tip
-                    tips.add(curnode);
-                    tipSet.add(curnode);
-                }
+        ArrayList<Node> tips = new ArrayList<Node>();
+        HashSet<Node> tipSet = new HashSet<Node>();
+        TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
+        for (Node curnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
+            if (curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING) == false) { // tip
+                tips.add(curnode);
+                tipSet.add(curnode);
             }
-            System.out.println("Counted " + tipSet.size() + " unique tips.");
-            return tips;
+        }
+        System.out.println("Counted " + tipSet.size() + " unique tips.");
+        return tips;
     }
+    */
     
     // unlike above, this looks at STREE support (including taxonomy), not sources from synthesis alone
+    /*
     public ArrayList<String> getSupportingTreeSources (Node startNode) {
-            HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
-            if (startNode.hasRelationship(RelType.STREECHILDOF, Direction.OUTGOING)) {
-                for (Relationship rel : startNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
-                    if (rel.hasProperty("source")) {
-                        sourceSet.add((String) rel.getProperty(RelProperty.SOURCE.propertyName));
-                    }
+        HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
+        if (startNode.hasRelationship(RelType.STREECHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : startNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
+                if (rel.hasProperty("source")) {
+                    sourceSet.add((String) rel.getProperty(RelProperty.SOURCE.propertyName));
                 }
             }
-            if (startNode.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
-                sourceSet.add("taxonomy");
-            }
-            ArrayList<String> sources = new ArrayList<String>(sourceSet);
-            return sources;
+        }
+        if (startNode.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
+            sourceSet.add("taxonomy");
+        }
+        ArrayList<String> sources = new ArrayList<String>(sourceSet);
+        return sources;
     }
+    */
     
     // not useful: assumes only 1 such node, assumes hardcoded constant
     public Node getSynthesisMetaNode() {
@@ -3411,8 +3420,48 @@ public class GraphExplorer extends GraphBase {
     }
     */
     
-    // ================================= current methods ====================================
-    
+    /**
+     * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
+     * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
+     * won't record the path.
+     * 
+     * @param tips
+     * @param stopNode
+     * @return
+     */
+    // verbose is used because plugins call this code
+    /*
+    private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips, Node stopNode, String treeID) {
+        
+        if (stopNode != null) {
+            if (verbose) System.out.println("Setting stop node to " + stopNode);
+        }
+        // TODO: check if there is only 1 tip, and if it is the same as the mrca. if so, throw UnsupportedOperationException
+        // TODO: probably more efficient to use neo4j paths directly instead of java collections to hold the paths
+        HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<>();
+        // populate the tip hash with the paths to the root of the tree
+        for (Node curTip : tips) { 
+            ArrayList<Node> graphPathToRoot = new ArrayList<>();
+            for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                    .traverse(curTip).nodes()) {
+                // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
+                if (stopNode != null && m.equals(stopNode)) {
+                    //System.out.println("found stop node " + stopNode);
+                    break;
+                }
+                graphPathToRoot.add(0, m);
+            }
+            if (graphPathToRoot.size() < 1) {
+                String ret = "The node " + curTip + " does not seem to be in the draft tree.";
+                ret += "; `node_id` is: " + curTip.getProperty("ot_node_id");
+                throw new UnsupportedOperationException(ret);
+            }
+            treeTipRootPathMap.put(curTip, graphPathToRoot);
+        }
+        
+        return treeTipRootPathMap;
+    }
+    */
     
     // Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
     // Doesn't calculate all paths.
@@ -3423,6 +3472,7 @@ public class GraphExplorer extends GraphBase {
      * @param nodeset
      * @return
      */
+    /*
     public Node getDraftTreeMRCA (Iterable<Node> nodeset) {
         Node mrca = null;
         ArrayList<Node> holder = null;
@@ -3455,9 +3505,16 @@ public class GraphExplorer extends GraphBase {
         }
         return mrca;
     }
+    */
     
+    
+    // ================================= current methods ====================================
     
     // check if user-provided synth_id is in the db
+    /**
+     * @param treeID is the synthetic tree 'tree_id' identifier
+     * @return true if in tree, false if not
+     */
     public boolean checkValidSynthTreeID (String treeID) {
         boolean good = false;
         Node test = getSynthesisMetaNodeByName(treeID);
@@ -3470,15 +3527,15 @@ public class GraphExplorer extends GraphBase {
     
     // synth tree ids are returned sorted, so assumes a certain numbering scheme
     public ArrayList<String> getSynthTreeIDs () {
-        HashSet<String> trees = new HashSet<String>();
+        HashSet<String> trees = new HashSet<>();
         IndexHits<Node> hits  = synthMetaIndex.query("name", "*");
         for (Node hit : hits) {
-            if (hit.hasProperty("tree_id")) { // temp
+            if (hit.hasProperty("tree_id")) {
                 trees.add((String) hit.getProperty("tree_id"));
             }
         }
         hits.close();
-        ArrayList<String> synthTreeList = new ArrayList<String>(trees);
+        ArrayList<String> synthTreeList = new ArrayList<>(trees);
         Collections.sort(synthTreeList);
         return (synthTreeList);
     }
@@ -3534,7 +3591,7 @@ public class GraphExplorer extends GraphBase {
     // TODO: update to allow multiple synth trees
     // return all sources used in the construction of a synthetic tree
     public ArrayList<String> getSynthesisSourceList () {
-        ArrayList<String> sourceList = new ArrayList<String>();
+        ArrayList<String> sourceList = new ArrayList<>();
         
         Node meta = getSynthesisMetaNode();
         if (meta != null) {
@@ -3561,28 +3618,6 @@ public class GraphExplorer extends GraphBase {
     public JadeTree reconstructSyntheticTree (String treeID, String startOTNodeID, int maxDepth) throws TaxonNotFoundException {
         Node rootnode = findGraphNodeByOTTNodeID(startOTNodeID);
         return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
-    }
-    
-    
-    public List<Node> getPathToRoot (Node startNode, RelType relType, String nameToFilterBy) {
-        ArrayList<Node> path = new ArrayList<>();
-        Node curNode = startNode;
-        while (true) {
-            Node nextNode = null;
-            Iterable<Relationship> parentRels = curNode.getRelationships(relType, Direction.OUTGOING);
-            for (Relationship m : parentRels) {
-                if (String.valueOf(m.getProperty("name")).equals(nameToFilterBy)) {
-                    nextNode = m.getEndNode();
-                    break;
-                }
-            }
-            if (nextNode != null) {
-                path.add(nextNode);
-                curNode = nextNode;
-            } else {
-                return path;
-            }
-        }
     }
     
     
@@ -3662,7 +3697,7 @@ public class GraphExplorer extends GraphBase {
         addCorePropertiesToJadeNode(root, rootnode, treeID);
         
         List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
-        root.assocObject("path_to_root", pathToRoot); // TODO: add supported by sources to this
+        root.assocObject("path_to_root", pathToRoot);
         root.assocObject("treeID", treeID);
         
         HashMap<String, Object> rootProps = getSynthMetadataAndUniqueSources(rootnode, 
@@ -3822,6 +3857,7 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    // lots of stuff stored like this bc neo4j cannot have nested properties
     public HashMap<String, String> stringToMap (String source) {
         HashMap<String, String> res = new HashMap<>();
         /// format will be: git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree1,study_id:ot_157
@@ -3834,6 +3870,202 @@ public class GraphExplorer extends GraphBase {
         }
         return res;
     }
+    
+    
+    
+    
+    
+    // all nodes confirmed to be in specified tree before coming here
+    /*
+    public JadeNode getInducedSubtree (List<Node> tips, String treeID) {
+        
+        verbose = true;
+        if (tips.size() < 2) {
+            throw new UnsupportedOperationException("Cannot extract a tree with < 2 tips.");
+        }
+        // get the mrca on specified tree.
+        // *** should check if the mrca is equal to one of the query nodes
+        Node mrca = getDraftTreeMRCA(tips, treeID);
+        if (verbose) {
+            System.out.println("\nIdentified mrca: " + mrca + " (" + mrca.getProperty("ot_node_id") + ") "
+                + mrca.getProperty("name") + "\n");
+        }
+        // get all the paths from the tips to the mrca
+        // order returned is from root to tip, but does not include root
+        //Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = getTreeTipRootPathMap(tips, mrca, treeID);
+        //Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = foo(tips, treeID);
+        Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = null;
+        /*
+        if (verbose) {
+            for (Node tipNode : treeTipToMRCAPathMap.keySet()) {
+                System.out.println("Node " + tipNode.getProperty("name") + tipNode + ": ");
+                System.out.println("\t" + treeTipToMRCAPathMap.get(tipNode));
+            }
+        }
+        HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<>();
+        HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<>();
+        HashMap<JadeNode, LinkedList<Node>> treeTipGraphMRCADescendantsMap = new HashMap<>();
+        
+        // check here if node is ancestral to another i.e. not a tip
+        for (Node tipNode : treeTipToMRCAPathMap.keySet()) {
+            JadeNode treeTip = new JadeNode();
+            treeTip.assocObject("graphNode", tipNode);
+            treeTip.setName(getOttName(tipNode));
+            graphNodeTreeNodeMap.put(tipNode, treeTip);
+            treeNodeGraphNodeMap.put(treeTip, tipNode);
+            
+            // add this node's MRCA descendants to the hashmap
+            // not using 'mrca' property anymore
+            LinkedList<Node> tipDescendants = new LinkedList<>();
+            for (long nid : (long[]) tipNode.getProperty("mrca")) {
+                tipDescendants.add(graphDb.getNodeById(nid));
+            }
+            treeTipGraphMRCADescendantsMap.put(treeTip, tipDescendants);
+        }
+        // initialize containers
+        HashMap<JadeNode, LinkedList<JadeNode>> treeNodeTreeTipDescendantsMap = new HashMap<>();
+        LinkedList<JadeNode> stack = new LinkedList<>();
+        
+        // set start conditions (add root to stack)
+        JadeNode root = new JadeNode();
+        stack.add(root);
+        if (verbose) System.out.println("Adding root node to stack");
+        treeNodeTreeTipDescendantsMap.put(root, new LinkedList<>(graphNodeTreeNodeMap.values()));
+        
+        while (stack.size() > 0) {
+            if (verbose) System.out.println(stack.size() + " nodes in stack");
+            //System.out.println("current topology: \n" + root.getNewick(false) + "\n");
+            JadeNode treeNode = stack.remove(0);
+            //System.out.println("processing node from stack named '" + treeNode.getName() + "'");
+            // get all the children of the tree leaves (which may be deep graph nodes)
+            LinkedList<Node> allDescendantGraphTips = new LinkedList<>();
+            for (JadeNode treeTip : treeNodeTreeTipDescendantsMap.get(treeNode)) {
+                //System.out.println(treeTip.getName());
+                allDescendantGraphTips.addAll(treeTipGraphMRCADescendantsMap.get(treeTip));
+            }
+            // get the mrca from the graph and record it
+            //    Node graphNode = LicaUtil.getDraftTreeLICA(allDescendantGraphTips);
+            //Node graphNode = getDraftTreeMRCA(allDescendantGraphTips);
+            // replace for specific tree
+            Node graphNode = getDraftTreeMRCA(allDescendantGraphTips, treeID);
+            treeNode.assocObject("graphNode", graphNode);
+            if (graphNode.hasProperty("name")) {    // *** this is where non-taxon node labels would go
+                treeNode.setName(getOttName(graphNode));
+            }
+            // testing
+            if (verbose) System.out.println("Inferred node mapping in graph is " + graphNode + " name = '" + treeNode.getName() + "'");
+            
+            // make a container to hold mrca tipsets for nodes to be added as children of this tree node
+            HashMap<Node, LinkedList<JadeNode>> childNodeTreeTipDescendantsMap = new HashMap<>();
+            // for each leaf descendant of the current node
+            for (JadeNode curDescendantTreeNode : treeNodeTreeTipDescendantsMap.get(treeNode)) {
+                // testing
+                if (verbose) System.out.println("\tdescendant " + curDescendantTreeNode.getName());
+                Node curDescendantGraphNode = treeNodeGraphNodeMap.get(curDescendantTreeNode);
+                // get the deepest remaining ancestor of this leaf, if none remain then use the current node
+                Node curDeepestAncestor = null;
+                if (treeTipToMRCAPathMap.get(curDescendantGraphNode).size() > 0) {
+                    // remove this ancestor so we don't see it again
+                    curDeepestAncestor = treeTipToMRCAPathMap.get(curDescendantGraphNode).remove(0);
+                } else {
+                    curDeepestAncestor = (Node) treeNode.getObject("graphNode");
+                }
+                // testing
+               /*String ancestorName = "";
+                if (curDeepestAncestor.hasProperty("name")) {
+                    ancestorName = (String) curDeepestAncestor.getProperty("name");
+                    System.out.println("\t\tdeepest remaining ancestor: " + ancestorName);
+                }
+                // make a new entry in the nodes to be added if we haven't seen this ancestor yet
+                if (! childNodeTreeTipDescendantsMap.containsKey(curDeepestAncestor)) {
+                    //    System.out.println("\t\tthis ancestor is new.");
+                    childNodeTreeTipDescendantsMap.put(curDeepestAncestor, new LinkedList<>());
+                }
+                // queue this leaf to be added under the appropriate ancestor
+                //System.out.println("\t\tadding " + curDescendantTreeNode.getName() + " to ancestor " + ancestorName);
+                childNodeTreeTipDescendantsMap.get(curDeepestAncestor).add(curDescendantTreeNode);
+            }
+            // if this is a knuckle with more than one child
+            if (childNodeTreeTipDescendantsMap.size() == 1) {
+                Node onlyDescendant = childNodeTreeTipDescendantsMap.keySet().iterator().next();
+                if (childNodeTreeTipDescendantsMap.get(onlyDescendant).size() > 1) {
+                    if (verbose) System.out.println("\tthe current node has only one child (name='" + treeNode.getName() + "') with multiple descendants. the child will be replace the parent and be reprocessed.");
+                    stack.add(0, treeNode);
+                    continue;
+                }
+            }
+            // for each child node in the set to be added
+            for (Entry<Node, LinkedList<JadeNode>> childToAdd : childNodeTreeTipDescendantsMap.entrySet()) {
+                LinkedList<JadeNode> childTreeTipDescendants = childToAdd.getValue();
+                //    System.out.println("childTreeTipDescendants");
+                //    System.out.println(Arrays.toString(childTreeTipDescendants.toArray()));
+                // if this is a knuckle with only one descendant, just add that descendant to the current tree node
+                if (childTreeTipDescendants.size() == 1) {
+                    treeNode.addChild(childTreeTipDescendants.get(0));
+                    continue;
+                }
+                // there is more than one descendant, so make a new tree node to be added to cur tree node
+                Node childGraphNode = childToAdd.getKey();
+                JadeNode childTreeNode = new JadeNode();
+                //System.out.println("\tmaking a new tree node to be added as a child of tree node named " + treeNode.getName());
+                childTreeNode.assocObject("graphNode", childGraphNode);
+                if (childGraphNode.hasProperty("name")) {
+                    childTreeNode.setName(getOttName(childGraphNode));
+                }
+                // if there are exactly two descendants, add them as children of this child and move on
+                if (childTreeTipDescendants.size() == 2) {
+                    for (JadeNode treeTip : childTreeTipDescendants) {
+                        childTreeNode.addChild(treeTip);
+                    }
+                    // if there are more than two descendants
+                } else {
+                    //System.out.println("\t" + treeNode.getName() + " has more than two children, checking if it is a polytomy");
+                    //System.out.println("treeTipRootPathMap");
+                    //System.out.println(Arrays.toString(treeTipRootPathMap.keySet().toArray()));
+                    Node graphNodeForTip = treeNodeGraphNodeMap.get(childTreeTipDescendants.get(0));
+                    // get the *shallowest* ancestor for an arbitrary descendant of this child
+                    ArrayList<Node> startNodeAncestors = treeTipToMRCAPathMap.get(graphNodeForTip);
+                    Node startShallowestAncestor = null;
+                    //System.out.println("startNodeAncestors");
+                    //System.out.println(Arrays.toString(startNodeAncestors.toArray()));
+                    if (startNodeAncestors.size() > 0) {
+                        startShallowestAncestor = startNodeAncestors.get(startNodeAncestors.size() - 1);
+                    }
+                    // if all the descendants have the same *shallowest* ancestor, then this is a polytomy
+                    boolean isPolytomy = true;
+                    for (JadeNode treeTip : childTreeTipDescendants) {
+                        Node graphTip = treeNodeGraphNodeMap.get(treeTip);
+                        ArrayList<Node> curAncestors = treeTipToMRCAPathMap.get(graphTip);
+                        Node curShallowestAncestor = curAncestors.get(curAncestors.size() - 1);
+                        if (! startShallowestAncestor.equals(curShallowestAncestor)) {
+                            // if this isn't a polytomy, then we need to resolve it, so add it to the stack
+                            //System.out.println("\tThis node is not a polytomy");
+                            //System.out.println("\t\tadding node '" + childTreeNode.getName() + "' to the stack");
+                            stack.add(0, childTreeNode);
+                            treeNodeTreeTipDescendantsMap.put(childTreeNode, childTreeTipDescendants);
+                            isPolytomy = false;
+                            break;
+                        }
+                    }
+                    // if this child is a polytomy, add all its children
+                    if (isPolytomy) {
+                        //System.out.println("\tthis node is a polytomy, all its descendants will be added to the tree");
+                        for (JadeNode treeTip : childTreeTipDescendants) {
+                            //System.out.println("adding node " + treeTip.getName() + " to tree");
+                            childTreeNode.addChild(treeTip);
+                        }
+                    }
+                }
+                treeNode.addChild(childTreeNode);
+            }
+        }
+        if (verbose) System.out.println("\n" + root.getNewick(false) + "\n");
+        return root;
+    }
+    */
+    
+    
+    
     
     
     // Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
@@ -3855,7 +4087,7 @@ public class GraphExplorer extends GraphBase {
                     }
                 }
             } else { // first pass. get full path to root. ideally we would get the shortest path...
-                ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
+                ArrayList<Node> graphPathToRoot = new ArrayList<>();
                 for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
                         .traverse(curNode).nodes()) {
                     graphPathToRoot.add(0, m);
@@ -3874,252 +4106,127 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    
+    
     // all nodes confirmed to be in specified tree before coming here
-    public JadeNode getInducedSubtree (List<Node> tips, String treeID) {
+    public JadeNode getInducedSubtree (List<Node> nodeset, String treeID) {
         
-        if (tips.size() < 2) {
+        if (nodeset.size() < 2) {
             throw new UnsupportedOperationException("Cannot extract a tree with < 2 tips.");
         }
         
-        // get the mrca on specified tree.
-        // *** should check if the mrca is equal to one of the query nodes
-        Node mrca = getDraftTreeMRCA(tips, treeID);
+        HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<>();
         
-        if (verbose) System.out.println("identified mrca " + mrca);
+        Node mrca = getDraftTreeMRCA(nodeset, treeID);
         
-        // get all the paths from the tips to the mrca
-        Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = getTreeTipRootPathMap(tips, mrca);
+        // only want nodes along the path that are mrcas of the query
+        HashSet<Node> uniqueMRCAs = new HashSet<>();
         
-        HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<>();
-        HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<>();
-        HashMap<JadeNode, LinkedList<Node>> treeTipGraphMRCADescendantsMap = new HashMap<>();
-        
-        for (Node tipNode : treeTipToMRCAPathMap.keySet()) {
-            
-            JadeNode treeTip = new JadeNode();
-            treeTip.assocObject("graphNode", tipNode);
-            treeTip.setName(getOttName(tipNode));
-            
-            graphNodeTreeNodeMap.put(tipNode, treeTip);
-            treeNodeGraphNodeMap.put(treeTip, tipNode);
-            
-            // add this node's MRCA descendants to the hashmap
-            LinkedList<Node> tipDescendants = new LinkedList<>();
-            for (long nid : (long[]) tipNode.getProperty("mrca")) {
-                tipDescendants.add(graphDb.getNodeById(nid));
+        // populate the tip hash with the paths to the root of the tree
+        for (Node curTip : nodeset) { 
+            // queries (mostly terminals, probably) all need to retained, obviously
+            uniqueMRCAs.add(curTip);
+            ArrayList<Node> graphPathToRoot = new ArrayList<>();
+            for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                    .traverse(curTip).nodes()) {
+                // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
+                if (mrca != null && m.equals(mrca)) {
+                    //System.out.println("found stop node " + stopNode);
+                    graphPathToRoot.add(m); // want to record mrca node
+                    break;
+                }
+                graphPathToRoot.add(m); // don't want it reversed as in previous function
             }
-            treeTipGraphMRCADescendantsMap.put(treeTip, tipDescendants);
-        }
-        
-        // initialize containers
-        HashMap<JadeNode, LinkedList<JadeNode>> treeNodeTreeTipDescendantsMap = new HashMap<>();
-        LinkedList<JadeNode> stack = new LinkedList<>();
-        
-        // set start conditions (add root to stack)
-        JadeNode root = new JadeNode();
-        stack.add(root);
-        if (verbose) System.out.println("adding root node to stack");
-        treeNodeTreeTipDescendantsMap.put(root, new LinkedList<>(graphNodeTreeNodeMap.values()));
-        
-        while (stack.size() > 0) {
-            if (verbose) System.out.println(stack.size() + " nodes in stack");
-            //System.out.println("current topology: \n" + root.getNewick(false) + "\n");
-            
-            JadeNode treeNode = stack.remove(0);
-            //System.out.println("processing node from stack named '" + treeNode.getName() + "'");
-            
-            // get all the children of the tree leaves (which may be deep graph nodes)
-            LinkedList<Node> allDescendantGraphTips = new LinkedList<>();
-            for (JadeNode treeTip : treeNodeTreeTipDescendantsMap.get(treeNode)) {
-                //System.out.println(treeTip.getName());
-                allDescendantGraphTips.addAll(treeTipGraphMRCADescendantsMap.get(treeTip));
+            if (graphPathToRoot.size() < 1) { // probably not possible (nodes have to be in tree, at least 2)
+                String ret = "The node " + curTip + " does not seem to be in the draft tree.";
+                ret += "; `node_id` is: " + curTip.getProperty("ot_node_id");
+                throw new UnsupportedOperationException(ret);
             }
-            
-            // get the mrca from the graph and record it
-            //    Node graphNode = LicaUtil.getDraftTreeLICA(allDescendantGraphTips);
-            Node graphNode = getDraftTreeMRCA(allDescendantGraphTips);
-            treeNode.assocObject("graphNode", graphNode);
-            if (graphNode.hasProperty("name")) {
-                treeNode.setName(getOttName(graphNode));
-            }
-            
-            // testing
-            if (verbose) System.out.println("inferred node mapping in graph is " + graphNode + " name = '" + treeNode.getName() + "'");
-            
-            // make a container to hold mrca tipsets for nodes to be added as children of this tree node
-            HashMap<Node, LinkedList<JadeNode>> childNodeTreeTipDescendantsMap = new HashMap<>();
-            
-            // for each leaf descendant of the current node
-            for (JadeNode curDescendantTreeNode : treeNodeTreeTipDescendantsMap.get(treeNode)) {
-                // testing
-                if (verbose) System.out.println("\tdescendant " + curDescendantTreeNode.getName());
-                
-                Node curDescendantGraphNode = treeNodeGraphNodeMap.get(curDescendantTreeNode);
-                
-                // get the deepest remaining ancestor of this leaf, if none remain then use the current node
-                Node curDeepestAncestor = null;
-                
-                if (treeTipToMRCAPathMap.get(curDescendantGraphNode).size() > 0) {
-                    // remove this ancestor so we don't see it again
-                    curDeepestAncestor = treeTipToMRCAPathMap.get(curDescendantGraphNode).remove(0);
-                } else {
-                    curDeepestAncestor = (Node) treeNode.getObject("graphNode");
-                }
-                
-                // testing
-                /*
-                String ancestorName = "";
-                if (curDeepestAncestor.hasProperty("name")) {
-                    ancestorName = (String) curDeepestAncestor.getProperty("name");
-                    System.out.println("\t\tdeepest remaining ancestor: " + ancestorName);
-                }
-                 */
-                // make a new entry in the nodes to be added if we haven't seen this ancestor yet
-                if (! childNodeTreeTipDescendantsMap.containsKey(curDeepestAncestor)) {
-                    //    System.out.println("\t\tthis ancestor is new.");
-                    childNodeTreeTipDescendantsMap.put(curDeepestAncestor, new LinkedList<>());
-                }
-                
-                // queue this leaf to be added under the appropriate ancestor
-                //System.out.println("\t\tadding " + curDescendantTreeNode.getName() + " to ancestor " + ancestorName);
-                childNodeTreeTipDescendantsMap.get(curDeepestAncestor).add(curDescendantTreeNode);
-            }
-            
-            // if this is a knuckle with more than one child
-            if (childNodeTreeTipDescendantsMap.size() == 1) {
-                Node onlyDescendant = childNodeTreeTipDescendantsMap.keySet().iterator().next();
-                if (childNodeTreeTipDescendantsMap.get(onlyDescendant).size() > 1) {
-                    if (verbose) System.out.println("\tthe current node has only one child (name='" + treeNode.getName() + "') with multiple descendants. the child will be replace the parent and be reprocessed.");
-                    stack.add(0, treeNode);
-                    continue;
-                }
-            }
-            
-            // for each child node in the set to be added
-            for (Entry<Node, LinkedList<JadeNode>> childToAdd : childNodeTreeTipDescendantsMap.entrySet()) {
-                
-                LinkedList<JadeNode> childTreeTipDescendants = childToAdd.getValue();
-                
-                //    System.out.println("childTreeTipDescendants");
-                //    System.out.println(Arrays.toString(childTreeTipDescendants.toArray()));
-                
-                // if this is a knuckle with only one descendant, just add that descendant to the current tree node
-                if (childTreeTipDescendants.size() == 1) {
-                    treeNode.addChild(childTreeTipDescendants.get(0));
-                    continue;
-                }
-                
-                // there is more than one descendant, so make a new tree node to be added to cur tree node
-                Node childGraphNode = childToAdd.getKey();
-                JadeNode childTreeNode = new JadeNode();
-                
-                //System.out.println("\tmaking a new tree node to be added as a child of tree node named " + treeNode.getName());
-                childTreeNode.assocObject("graphNode", childGraphNode);
-                if (childGraphNode.hasProperty("name")) {
-                    childTreeNode.setName(getOttName(childGraphNode));
-                }
-                
-                // if there are exactly two descendants, add them as children of this child and move on
-                if (childTreeTipDescendants.size() == 2) {
-                    for (JadeNode treeTip : childTreeTipDescendants) {
-                        childTreeNode.addChild(treeTip);
-                    }
-                    
-                    // if there are more than two descendants
-                } else {
-                    
-                    //System.out.println("\t" + treeNode.getName() + " has more than two children, checking if it is a polytomy");
-                    //                    System.out.println("treeTipRootPathMap");
-                    //                    System.out.println(Arrays.toString(treeTipRootPathMap.keySet().toArray()));
-                    
-                    Node graphNodeForTip = treeNodeGraphNodeMap.get(childTreeTipDescendants.get(0));
-                    
-                    // get the *shallowest* ancestor for an arbitrary descendant of this child
-                    ArrayList<Node> startNodeAncestors = treeTipToMRCAPathMap.get(graphNodeForTip);
-                    Node startShallowestAncestor = null;
-                    
-                    //    System.out.println("startNodeAncestors");
-                    //    System.out.println(Arrays.toString(startNodeAncestors.toArray()));
-                    
-                    if (startNodeAncestors.size() > 0) {
-                        startShallowestAncestor = startNodeAncestors.get(startNodeAncestors.size() - 1);
-                    }
-                    
-                    // if all the descendants have the same *shallowest* ancestor, then this is a polytomy
-                    boolean isPolytomy = true;
-                    for (JadeNode treeTip : childTreeTipDescendants) {
-                        
-                        Node graphTip = treeNodeGraphNodeMap.get(treeTip);
-                        
-                        ArrayList<Node> curAncestors = treeTipToMRCAPathMap.get(graphTip);
-                        Node curShallowestAncestor = curAncestors.get(curAncestors.size() - 1);
-                        
-                        if (! startShallowestAncestor.equals(curShallowestAncestor)) {
-                            // if this isn't a polytomy, then we need to resolve it, so add it to the stack
-                            //System.out.println("\tThis node is not a polytomy");
-                            //System.out.println("\t\tadding node '" + childTreeNode.getName() + "' to the stack");
-                            stack.add(0, childTreeNode);
-                            treeNodeTreeTipDescendantsMap.put(childTreeNode, childTreeTipDescendants);
-                            isPolytomy = false;
+            // collect pairwise mrcas here instead of looping again
+            if (!treeTipRootPathMap.isEmpty()) {
+                for (Node n : treeTipRootPathMap.keySet()) {
+                    ArrayList<Node> existingNodes = treeTipRootPathMap.get(n);
+                    for (int i = 0; i < graphPathToRoot.size(); i++) { // only record first match
+                        if (existingNodes.contains(graphPathToRoot.get(i))) {
+                            uniqueMRCAs.add(graphPathToRoot.get(i));
                             break;
                         }
                     }
-                    
-                    // if this child is a polytomy, add all its children
-                    if (isPolytomy) {
-                        //    System.out.println("\tthis node is a polytomy, all its descendants will be added to the tree");
-                        for (JadeNode treeTip : childTreeTipDescendants) {
-                            //        System.out.println("adding node " + treeTip.getName() + " to tree");
-                            childTreeNode.addChild(treeTip);
-                        }
-                    }
                 }
-                treeNode.addChild(childTreeNode);
+            }
+            treeTipRootPathMap.put(curTip, graphPathToRoot);
+        }
+        
+        // remove from each path any node not in the mrca set
+        for (ArrayList<Node> value : treeTipRootPathMap.values()) {
+            value.retainAll(uniqueMRCAs);
+        }
+        
+        HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<>();
+        HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<>();
+        HashSet<Node> addedNodes = new HashSet<>();
+        
+        JadeNode root = new JadeNode(); // add names, etc.
+        root.assocObject("graphNode", mrca);
+        if (mrca.hasProperty("name")) {
+            root.setName(getOttName(mrca));
+        }
+        addedNodes.add(mrca); // collect processed graph nodes
+        graphNodeTreeNodeMap.put(mrca, root);
+        treeNodeGraphNodeMap.put(root, mrca);
+        
+        // build the root
+        for (ArrayList<Node> futureTreeNodes : treeTipRootPathMap.values()) {
+            Node curGraphParent = mrca;
+            Collections.reverse(futureTreeNodes); // ack. do want it in the other order. fix later
+            for (int i = 0; i < futureTreeNodes.size(); i++) {
+                Node workingGraphNode = futureTreeNodes.get(i);
+                if (!addedNodes.contains(workingGraphNode)) { // skip existing nodes
+                    JadeNode childTreeNode = new JadeNode();
+                    childTreeNode.assocObject("graphNode", workingGraphNode);
+                    if (workingGraphNode.hasProperty("name")) {
+                        childTreeNode.setName(getOttName(workingGraphNode));
+                    }
+                    // add child node to current parent
+                    JadeNode parent = graphNodeTreeNodeMap.get(curGraphParent);
+                    parent.addChild(childTreeNode);
+                    addedNodes.add(workingGraphNode);
+                    graphNodeTreeNodeMap.put(workingGraphNode, childTreeNode);
+                    treeNodeGraphNodeMap.put(childTreeNode, workingGraphNode);
+                }
+                curGraphParent = workingGraphNode;
             }
         }
         
-        if (verbose) System.out.println("\n" + root.getNewick(false) + "\n");
+        System.out.println("\n" + root.getNewick(false) + ";\n");
         
         return root;
     }
     
     
-    /**
-     * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
-     * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
-     * won't record the path.
-     * 
-     * @param tips
-     * @param stopNode
-     * @return
-     */
-    // verbose is used because plugins call this code
-    private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips, Node stopNode) {
-        
-        if (stopNode != null) {
-            if (verbose) System.out.println("setting stop node to " + stopNode);
-        }
-        // TODO: check if there is only 1 tip, and if it is the same as the mrca. if so, throw UnsupportedOperationException
-        // TODO: probably more efficient to use neo4j paths directly instead of java collections to hold the paths
-        HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<>();
-        // populate the tip hash with the paths to the root of the tree
-        for (Node curTip : tips) { 
-            ArrayList<Node> graphPathToRoot = new ArrayList<>();
-            for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curTip).nodes()) {
-                if (stopNode != null && m.equals(stopNode)) { // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
-                    //System.out.println("found stop node " + stopNode);
+    
+    
+    
+    
+    public List<Node> getPathToRoot (Node startNode, RelType relType, String nameToFilterBy) {
+        ArrayList<Node> path = new ArrayList<>();
+        Node curNode = startNode;
+        while (true) {
+            Node nextNode = null;
+            Iterable<Relationship> parentRels = curNode.getRelationships(relType, Direction.OUTGOING);
+            for (Relationship m : parentRels) {
+                if (String.valueOf(m.getProperty("name")).equals(nameToFilterBy)) {
+                    nextNode = m.getEndNode();
                     break;
                 }
-                graphPathToRoot.add(0, m);
             }
-            if (graphPathToRoot.size() < 1) {
-                String ret = "The node " + curTip + " does not seem to be in the draft tree.";
-                ret += "; `node_id` is: " + curTip.getProperty("ot_node_id");
-                throw new UnsupportedOperationException(ret);
+            if (nextNode != null) {
+                path.add(nextNode);
+                curNode = nextNode;
+            } else {
+                return path;
             }
-            treeTipRootPathMap.put(curTip, graphPathToRoot);
         }
-        return treeTipRootPathMap;
     }
 }
 
