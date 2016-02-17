@@ -532,6 +532,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     }
     
     
+    // TODO: add relevant sources; need design input
     @Description("Return a complete subtree of the draft tree descended from some specified node. "
         + "The draft tree version is specified by the `synth_id` arg (defaults to most recent). "
         + "The node to use as the start node must specified using *either* a node id or an ott id, "

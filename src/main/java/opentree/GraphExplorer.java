@@ -3797,7 +3797,7 @@ public class GraphExplorer extends GraphBase {
             jNd.assocObject("tax_rank", nd.getProperty("tax_rank"));
         }
         if (nd.hasProperty("tax_uid")) {
-            jNd.assocObject("ott_id", nd.getProperty("tax_uid"));
+            jNd.assocObject("ott_id", Long.valueOf((String) nd.getProperty("tax_uid")));
         }
         jNd.assocObject("tip_descendants", getNumTipDescendants(nd, treeID));
     }

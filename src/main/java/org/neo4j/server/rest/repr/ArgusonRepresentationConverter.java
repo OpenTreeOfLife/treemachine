@@ -1,7 +1,6 @@
 package org.neo4j.server.rest.repr;
 
 import jade.tree.deprecated.JadeNode;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -77,8 +76,8 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 } else {
                     serializer.putString("name", "");
                 }
-                if (inNode.getObject("ot_node_id") != null) {
-                    serializer.putString("ot_node_id", (String) inNode.getObject("ot_node_id"));
+                if (inNode.getObject("node_id") != null) {
+                    serializer.putString("node_id", (String) inNode.getObject("node_id"));
                 }
                 ArrayList<Representation> children = new ArrayList<Representation>();
                 for (int i = 0; i < inNode.getChildCount(); i++) {
@@ -99,7 +98,11 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                     serializer.putNumber("n_leaves", 0);
                 }
                 
-                String [] optProperties = {"unique_name", "tax_rank", "ott_id", "ot_node_id"};
+                if (inNode.getObject("ott_id") != null) {
+                    serializer.putNumber("ott_id", (Long) inNode.getObject("ott_id"));
+                }
+                
+                String [] optProperties = {"unique_name", "tax_rank", "node_id"};
                 for (String optPropertyName : optProperties) {
                     if (inNode.getObject(optPropertyName) != null) {
                         serializer.putString(optPropertyName, (String) inNode.getObject(optPropertyName));
@@ -188,10 +191,10 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
             nodeInfoMap.put("tax_rank", nd.getProperty("tax_rank"));
         }
         if (nd.hasProperty("tax_uid")) {
-            nodeInfoMap.put("ott_id", nd.getProperty("tax_uid"));
+            nodeInfoMap.put("ott_id", Long.valueOf((String) nd.getProperty("tax_uid")));
         }
         if (nd.hasProperty("ot_node_id")) {
-            nodeInfoMap.put("ot_node_id", nd.getProperty("ot_node_id"));
+            nodeInfoMap.put("node_id", nd.getProperty("ot_node_id"));
         }
         
         HashMap<String, Object> md = getSynthMetadata(nd, treeID);
