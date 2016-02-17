@@ -26,8 +26,6 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 // Graph of Life Services 
 public class GoLS extends ServerPlugin {
     
-    // TODO: not doing taxonomy MRCA anymore, as entire taxonomy is not ingested
-    // refactor as synth-only; need to know which synth tree (default = most recent)
     @Description("Get the MRCA of a set of node_ids. MRCA is calculated on a specific synthetic "
         + "given by the optional `synth_id` arg (defaults to most current draft tree). Returns the "
         + "following information about the MRCA: 1) name, 2) ott_id, 3) rank, and 4) node_id. "
@@ -38,7 +36,7 @@ public class GoLS extends ServerPlugin {
         
         @Description("Synthetic tree identifier (defaults to most recent).")
         @Parameter(name = "synth_id", optional = true)
-        String treeID,
+        String synthID,
 
         @Description("A set of open tree node ids")
         @Parameter(name = "node_ids", optional = false)
@@ -55,27 +53,17 @@ public class GoLS extends ServerPlugin {
         
         GraphExplorer ge = new GraphExplorer(graphDb);
         
-        ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs(); // these are sorted
-        
-        // synthetic tree identifier. check against synth meta index
-        if (treeID != null) {
-            if (synthTreeIDs.contains(treeID)) {
-                synthTreeID = treeID;
-            } else {
+        // get synthetic tree identifier
+        if (synthID != null) {
+            synthTreeID = synthID;
+            if (!ge.checkValidSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
                 throw new IllegalArgumentException(ret);
             }
         } else { // default to most recent
-            if (!synthTreeIDs.isEmpty()) {
-                synthTreeID = synthTreeIDs.get(synthTreeIDs.size() - 1);
-            } else { // no synth trees in graph
-                ge.shutdownDB();
-                HashMap<String, Object> responseMap = new HashMap<String, Object>();
-                responseMap.put("error", "No synthetic trees found.");
-                return OTRepresentationConverter.convert(responseMap);
-            }
+            synthTreeID = ge.getMostRecentSynthTreeID();
         }
         
         for (String nodeId : otNodeIDs) {
@@ -156,7 +144,7 @@ public class GoLS extends ServerPlugin {
         @Description("The identifier for the synthetic tree (e.g. \"opentree4.0\") "
             + "(default is most current synthetic tree).")
         @Parameter(name = "synth_id", optional = true)
-        String treeID,
+        String synthID,
         
         @Description("The name of the return format (default is newick).")
         @Parameter(name = "format", optional = true)
@@ -189,24 +177,17 @@ public class GoLS extends ServerPlugin {
         GraphExplorer ge = new GraphExplorer(graphDb);
         ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs(); // these are sorted
         
-        // synthetic tree identifier. check against synth meta index
-        if (treeID != null) {
-            if (synthTreeIDs.contains(treeID)) {
-                synthTreeID = treeID;
-            } else {
+        // get synthetic tree identifier
+        if (synthID != null) {
+            synthTreeID = synthID;
+            if (!ge.checkValidSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
                 throw new IllegalArgumentException(ret);
             }
         } else { // default to most recent
-            if (!synthTreeIDs.isEmpty()) {
-                synthTreeID = synthTreeIDs.get(synthTreeIDs.size() - 1);
-            } else { // no synth trees in graph
-                ge.shutdownDB();
-                responseMap.put("error", "No synthetic trees found.");
-                return OTRepresentationConverter.convert(responseMap);
-            }
+            synthTreeID = ge.getMostRecentSynthTreeID();
         }
         
         meta = ge.getSynthesisMetaNodeByName(synthTreeID);
@@ -258,7 +239,7 @@ public class GoLS extends ServerPlugin {
         
         @Description("Synthetic tree identifier (defaults to most recent).")
         @Parameter(name = "synth_id", optional = true)
-        String treeID,
+        String synthID,
         
         @Description("The Neo4j node id of the node to be used as the root for the tree.")
         @Parameter(name = "node_id", optional = false)
@@ -272,21 +253,17 @@ public class GoLS extends ServerPlugin {
         GraphExplorer ge = new GraphExplorer(graphDb);
         Node startNode = null;
         
-        // synthetic tree identifier. check against synth meta index
-        if (treeID != null) {
-            ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
-            if (synthTreeIDs.contains(treeID)) {
-                synthTreeID = treeID;
-            } else {
+        // get synthetic tree identifier
+        if (synthID != null) {
+            synthTreeID = synthID;
+            if (!ge.checkValidSynthTreeID(synthID)) {
                 ge.shutdownDB();
-                String ret = "Unrecognized \"synth_id\" argument. Leave blank to default "
-                    + "to the current synthetic tree.";
+                String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
+                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
                 throw new IllegalArgumentException(ret);
             }
-        } else {
-            // default to most recent
-            Node meta = ge.getMostRecentSynthesisMetaNode();
-            synthTreeID = (String) meta.getProperty("tree_id");
+        } else { // default to most recent
+            synthTreeID = ge.getMostRecentSynthTreeID();
         }
         
         try {
@@ -329,7 +306,7 @@ public class GoLS extends ServerPlugin {
         
         @Description("Synthetic tree identifier (defaults to most recent).")
         @Parameter(name = "synth_id", optional = true)
-        String treeID
+        String synthID
         
         ) throws TaxonNotFoundException, MultipleHitsException {
         
@@ -358,10 +335,9 @@ public class GoLS extends ServerPlugin {
         GraphExplorer ge = new GraphExplorer(graphDb);
         
         HashMap<String, Object> draftTreeInfo = null;
-        Node meta = null;
         
         try {
-            meta = ge.getMostRecentSynthesisMetaNode();
+            Node meta = ge.getMostRecentSynthesisMetaNode();
             draftTreeInfo = new HashMap<String, Object>();
             draftTreeInfo.put("synth_id", meta.getProperty("tree_id"));
             draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
@@ -383,35 +359,30 @@ public class GoLS extends ServerPlugin {
         
         @Description("Synthetic tree identifier")
         @Parameter(name = "synth_id", optional = true)
-        String treeID
+        String synthID
         
         ) {
 
         GraphExplorer ge = new GraphExplorer(graphDb);
-        Node meta = null;
         String taxVersion = "";
         String synthTreeID = null;
         
         HashMap<String, Object> taxonomyInfo = new HashMap<>();
         
-        if (treeID != null) {
-            synthTreeID = treeID;
+        // get synthetic tree identifier
+        if (synthID != null) {
+            synthTreeID = synthID;
+            if (!ge.checkValidSynthTreeID(synthID)) {
+                ge.shutdownDB();
+                String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
+                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
+            }
+        } else { // default to most recent
+            synthTreeID = ge.getMostRecentSynthTreeID();
         }
         try {
-            if (synthTreeID != null) {
-                meta = ge.getSynthesisMetaNodeByName(synthTreeID);
-                // invalid treeid
-                if (meta == null) {
-                    ge.shutdownDB();
-                    String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
-                        + synthTreeID + "'.";
-                    throw new IllegalArgumentException(ret);
-                }
-            } else {
-                // default to most recent
-                meta = ge.getMostRecentSynthesisMetaNode();
-                synthTreeID = (String) meta.getProperty("tree_id");
-            }
+            Node meta = ge.getSynthesisMetaNodeByName(synthTreeID);
             taxVersion = (String)meta.getProperty("taxonomy_version");
             taxonomyInfo.put("taxonomy_version", taxVersion);
             taxonomyInfo.put("synth_id", synthTreeID);
@@ -433,7 +404,7 @@ public class GoLS extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeChildNodesForNodeID(@Source GraphDatabaseService graphDb,
         
-        @Description("The Neo4j node id of the node to be used as the root for the tree.")
+        @Description("The open tree node id of the node to be used as the root for the tree.")
         @Parameter(name = "nodeID", optional = false)
         Long nodeID
         

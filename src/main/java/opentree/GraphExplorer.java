@@ -3459,7 +3459,7 @@ public class GraphExplorer extends GraphBase {
      * @param nodeset
      * @return
      */
-    public Node getDraftTreeMRCA(Iterable<Node> nodeset) {
+    public Node getDraftTreeMRCA (Iterable<Node> nodeset) {
         Node mrca = null;
         ArrayList<Node> holder = null;
         int index = 10000000;
@@ -3490,6 +3490,17 @@ public class GraphExplorer extends GraphBase {
             }
         }
         return mrca;
+    }
+    
+    
+    // check if user-provided synth_id is in the db
+    public boolean checkValidSynthTreeID (String treeID) {
+        boolean good = false;
+        Node test = getSynthesisMetaNodeByName(treeID);
+        if (test != null) {
+            good = true;
+        }
+        return good;
     }
     
     
@@ -3863,7 +3874,7 @@ public class GraphExplorer extends GraphBase {
     
     // Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
     // Doesn't calculate all paths.
-    public Node getDraftTreeMRCA(Iterable<Node> nodeset, String treeID) {
+    public Node getDraftTreeMRCA (Iterable<Node> nodeset, String treeID) {
         Node mrca = null;
         ArrayList<Node> holder = null;
         int index = 10000000;
