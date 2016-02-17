@@ -531,7 +531,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 res.put("node_ids_not_in_tree", nodesIDsNotInTree);
             }
             
-            res.put("newick", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
+            res.put("newick", ge.getInducedSubtree(tips, synthTreeID).getNewick(false) + ";");
             return OTRepresentationConverter.convert(res);
         }
     }

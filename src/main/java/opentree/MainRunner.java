@@ -2785,7 +2785,8 @@ public class MainRunner {
             }
         }
         
-        JadeNode synthTreeRootNode = ge.extractDraftSubtreeForTipNodes(tipNodes);
+        String treeID = "opentree4.1";
+        JadeNode synthTreeRootNode = ge.getInducedSubtree(tipNodes, treeID);
 
         PrintWriter outFile = null;
         try {
