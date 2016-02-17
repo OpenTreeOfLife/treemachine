@@ -133,7 +133,6 @@ public class tree_of_life_v3 extends ServerPlugin {
                 String ret = "Could not find any graph nodes corresponding to the `ott_id` provided.";
                 throw new TaxonNotFoundException(ret);
             }
-
         } else if (nodeID != null) {
             Node n = null;
             try {
@@ -160,6 +159,11 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         // loop over all synth trees this node is in. for the moment, there will only be one (well, ready for more...)
         if (qNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            
+    // NOTE:
+    // this will behave as expected if there is only 1 tree in the graph
+    // when multiple trees are finally served this will need to be reverted to earlier version
+    
             for (Relationship rel : qNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
                 HashMap<String, Object> treeInfo = new HashMap<>();
                 
