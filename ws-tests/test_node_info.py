@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+<<<<<<< HEAD
 import sys, os
 from opentreetesting import test_http_json_method, config
 DOMAIN = config('host', 'apihost')
@@ -18,3 +19,7 @@ if taxonName != TEST_NAME:
     errstr = 'Expected taxon name {} but not found in \n{}\n'
     sys.stderr.write(errstr.format(TEST_NAME,result))
     sys.exit(1)
+=======
+from check_node_info import check_node_info
+check_node_info({u'node_id': u'ott901642'})
+>>>>>>> origin/tm-lite-test-harness
