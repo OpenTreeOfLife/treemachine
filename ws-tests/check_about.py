@@ -33,49 +33,49 @@ def check_about(parameters):
 
     code = [0]
     def lose(): code[0] = 1
-    def check_parameter_type(name, typo):
+    def check_result_type(name, typo):
         value = result.get(name)
         if not isinstance(value, typo):
             if value == None:
                 sys.stderr.write('{} missing\n'.format(name))
                 print result.keys()
             else:
-                sys.stderr.write('{} is {} which is not a {}\n'.format(name, value, typo))
+                sys.stderr.write('{} is not a {}\n'.format(name, typo))
                 lose()
             return None
         return value
 
-    check_parameter_type(u'root_node_id', unicode)
+    check_result_type(u'root_node_id', unicode)
 
-    num_source_trees = check_parameter_type(u'num_source_trees', int)
+    num_source_trees = check_result_type(u'num_source_trees', int)
     if num_source_trees != None and num_source_trees < 2:
         sys.stderr.write('not very many source trees: {}\n'.format(num_source_trees))
         lose()
 
-    check_parameter_type(u'date_completed', unicode)
+    check_result_type(u'date_completed', unicode)
 
-    num_tips = check_parameter_type(u'num_tips', int)
+    num_tips = check_result_type(u'num_tips', int)
     if num_tips != None and num_tips < 3:
         sys.stderr.write('not very many tips: {}\n'.format(num_tips))
         lose()
 
-    check_parameter_type(u'taxonomy_version', unicode)
+    check_result_type(u'taxonomy_version', unicode)
 
-    num_source_trees = check_parameter_type(u'num_source_trees', int)
+    num_source_trees = check_result_type(u'num_source_trees', int)
     if num_source_trees != None and num_source_trees < 2:
         sys.stderr.write('not very trees: {}\n'.format(num_source_trees))
         lose()
 
-    num_source_studies = check_parameter_type(u'num_source_studies', int)
+    num_source_studies = check_result_type(u'num_source_studies', int)
     if num_source_studies != None and num_source_studies < 2:
         sys.stderr.write('not very studies: {}\n'.format(num_source_studies))
         lose()
 
-    check_parameter_type(u'filtered_flags', list)
+    check_result_type(u'filtered_flags', list)
 
     if u'root_ott_id' in result:
-        check_parameter_type(u'root_ott_id', int)
-        check_parameter_type(u'root_taxon_name', unicode)
+        check_result_type(u'root_ott_id', int)
+        check_result_type(u'root_taxon_name', unicode)
 
     source_list = parameters.get(u'source_list')
     if source_list == None or not source_list:
@@ -83,21 +83,25 @@ def check_about(parameters):
             sys.stderr.write('source_list false but there are sources in result: {}\n'.format(source_list))
             lose()
     else:
-        sources = check_parameter_type(u'sources', list)
-        metas = check_parameter_type(u'source_id_map', list)
+        sources = check_result_type(u'sources', list)
+        metas = check_result_type(u'source_id_map', dict)
         if sources != None:
             for source in sources:
-                if not isinstance(source, str):
+                if not isinstance(source, unicode):
                     sys.stderr.write('ill-formed source: {} should be a string\n'.format(source))
                     lose()
                     break
-            for meta in metas:
-                if (isinstance(meta, dict) and
+        if metas != None:
+            for label in metas.keys():
+                meta = metas[label]
+                if label == u'taxonomy':
+                    True
+                elif (isinstance(meta, dict) and
                     u'study_id' in meta and
                     u'tree_id' in meta):
                     True
                 else:
-                    sys.stderr.write('ill-formed meta: {} should be {}"study_id": ..., "tree_id": ...{}\n'.format(source, '{', '}'))
+                    sys.stderr.write('ill-formed meta: {} should be {}"study_id": ..., "tree_id": ...{}\n'.format(meta, '{', '}'))
                     lose()
                     break
     sys.exit(code[0])
