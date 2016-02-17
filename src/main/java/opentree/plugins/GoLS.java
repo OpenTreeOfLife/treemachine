@@ -28,9 +28,9 @@ public class GoLS extends ServerPlugin {
     
     // TODO: not doing taxonomy MRCA anymore, as entire taxonomy is not ingested
     // refactor as synth-only; need to know which synth tree (default = most recent)
-    @Description("Get the MRCA of a set of ot_node_ids. MRCA is calculated on a specific synthetic "
+    @Description("Get the MRCA of a set of node_ids. MRCA is calculated on a specific synthetic "
         + "given by the optional `synth_id` arg (defaults to most current draft tree). Returns the "
-        + "following information about the MRCA: 1) name, 2) ott_id, 3) rank, and 4) ot_node_id. "
+        + "following information about the MRCA: 1) name, 2) ott_id, 3) rank, and 4) node_id. "
         + "Also returns the matched query nodes, and any nodes unmatched because they are 1) not "
         + "found in the graph, or 2) are valid nodes but not in the focal synthetic tree.")
     @PluginTarget(GraphDatabaseService.class)
@@ -99,18 +99,18 @@ public class GoLS extends ServerPlugin {
 
         if (tips.size() < 1) {
             String ret = "Could not find any graph nodes corresponding to the arg "
-                + "`ot_node_ids` provided.";
+                + "`node_ids` provided.";
             throw new IllegalArgumentException(ret);
         } else {
             HashMap<String, Object> res = new HashMap<String, Object>();
             Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
             
             res.put("synth_id", synthTreeID);
-            res.put("mrca_ot_node_id", mrca.getProperty("ot_node_id"));
+            res.put("mrca_node_id", mrca.getProperty("ot_node_id"));
             res.put("matched_nodes", matchedNodes);
             
             if (!unmatchedNodes.isEmpty()) {
-                res.put("unmatched_ot_node_ids", unmatchedNodes);
+                res.put("unmatched_node_ids", unmatchedNodes);
             }
             // good nodes, but not in the tree of interest
             if (!nodesNotInTree.isEmpty()) {
@@ -137,7 +137,7 @@ public class GoLS extends ServerPlugin {
             res.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
             res.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
             res.put("nearest_taxon_mrca_ott_id", mrta.getProperty(NodeProperty.TAX_UID.propertyName));
-            res.put("nearest_taxon_mrca_ot_node_id", mrta.getProperty("ot_node_id"));
+            res.put("nearest_taxon_mrca_node_id", mrta.getProperty("ot_node_id"));
             
             ge.shutdownDB();
             return OTRepresentationConverter.convert(res);
@@ -252,7 +252,7 @@ public class GoLS extends ServerPlugin {
     
     
     @Description("Returns a newick string of the draft tree specified by the optional arg "
-        + "`synth_id` (defaults to most current) for the node identified by `ot_node_id`.")
+        + "`synth_id` (defaults to most current) for the node identified by `node_id`.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation getDraftTreeForNodeID(@Source GraphDatabaseService graphDb,
         
@@ -297,13 +297,13 @@ public class GoLS extends ServerPlugin {
         
         if (startNode == null) {
             ge.shutdownDB();
-            String ret = "Could not find any graph nodes corresponding to the arg `ot_node_id` provided.";
+            String ret = "Could not find any graph nodes corresponding to the arg `node_id` provided.";
             throw new IllegalArgumentException(ret);
         }
         
         if (!ge.nodeIsInSyntheticTree(startNode, synthTreeID)) {
             ge.shutdownDB();
-            String ret = "Queried `ot_node_id`: " + rootNodeID + " is in the graph, but "
+            String ret = "Queried `node_id`: " + rootNodeID + " is in the graph, but "
                 + "not in the draft tree: " + synthTreeID;
             throw new IllegalArgumentException(ret);
         }
@@ -367,7 +367,7 @@ public class GoLS extends ServerPlugin {
             draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
             draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
             draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
-            draftTreeInfo.put("root_ot_node_id", meta.getProperty("root_ot_node_id"));
+            draftTreeInfo.put("root_node_id", meta.getProperty("root_ot_node_id"));
         } finally {
             ge.shutdownDB();
         }
