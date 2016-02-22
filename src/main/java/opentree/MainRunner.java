@@ -24,6 +24,9 @@ import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.exceptions.TreeIngestException;
 import org.apache.commons.lang3.StringUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
@@ -50,9 +53,25 @@ public class MainRunner {
         String graphName  = args[4];
         
         boolean isNewGraph = true;
+        boolean multiTreeAllowed = false;
         
         if (new File(graphName).exists()) {
             isNewGraph = false;
+            if (!isNewGraph) {
+                if (!multiTreeAllowed) {
+                    String ret = "\nError: you are trying to add a synth tree to an existing graph. "
+                        + "That is currently not desired behaviour. Try with a new graph.";
+                    System.out.println(ret);
+                    return 1;
+                } else {
+                    if (checkDuplicateTree(graphName, jsonFile)) {
+                        String ret = "Error: trying to add a tree that "
+                            + "is already in the graph. Exiting.";
+                        System.out.println(ret);
+                        System.exit(1);
+                    }
+                }
+            }
         }
         
         if (!new File(newickFile).exists()) {
@@ -68,6 +87,31 @@ public class MainRunner {
         tl.buildDB(newickFile, jsonFile, taxFile, isNewGraph);
 
         return 0;
+    }
+    
+    public boolean checkDuplicateTree (String graphName, String jsonFile) {
+        boolean duplicate = false;
+        // graph exists. check if trying to ingest same tree
+        
+        // first get synth tree name
+        JSONObject jsonObject = null;
+        JSONParser jsonParser = new JSONParser();
+        try {
+            FileReader fileReader = new FileReader(jsonFile);
+            jsonObject = (JSONObject) jsonParser.parse(fileReader);
+            fileReader.close();
+        } catch (IOException | ParseException e) {
+        }
+        String synthTreeName = (String) jsonObject.get("tree_id");
+        
+        // now, check if already in graph
+        GraphExplorer ge = new GraphExplorer(graphName);
+        if (ge.checkExistingSynthTreeID(synthTreeName)) {
+            duplicate = true;
+            System.out.println("\nError: tree '" + synthTreeName + "' already in graph.");
+        }
+        ge.shutdownDB();
+        return duplicate;
     }
     
     /*
@@ -548,7 +592,7 @@ public class MainRunner {
         return 0;
     }
     */
-    
+    /*
     private static void getMRPmatrix(JadeTree tree, GraphDatabaseAgent graphDb) {
         
         HashMap<JadeNode,StringBuffer> taxastart = new HashMap<JadeNode,StringBuffer>();
@@ -606,7 +650,7 @@ public class MainRunner {
             System.out.print("\n");
         }
     }
-    
+    */
     
     /// @returns 0 for success, 1 for poorly formed command
     /*

@@ -233,7 +233,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
@@ -324,7 +324,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
@@ -466,7 +466,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
@@ -581,7 +581,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
@@ -696,7 +696,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";

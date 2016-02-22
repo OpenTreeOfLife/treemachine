@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import jade.tree.deprecated.JadeTree;
-import java.util.Arrays;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
@@ -65,7 +64,7 @@ public class GoLS extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
@@ -210,7 +209,7 @@ public class GoLS extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
@@ -286,7 +285,7 @@ public class GoLS extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
@@ -402,7 +401,7 @@ public class GoLS extends ServerPlugin {
         // get synthetic tree identifier
         if (synthID != null) {
             synthTreeID = synthID;
-            if (!ge.checkValidSynthTreeID(synthID)) {
+            if (!ge.checkExistingSynthTreeID(synthID)) {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";

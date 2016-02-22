@@ -111,5 +111,9 @@ curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSynthesisSourceLi
 
 java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar extractdraftsubtreeforottids 267845,153563,803675 terp.tre TEST.db
 
-
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+{
+  "newick" : "(Gavia_stellata_ott1057044,((Gavia_arctica_ott1085739,Gavia_pacifica_ott651474),(Gavia_immer_ott1057518,Gavia_adamsii_ott90560)))Gavia_ott803675;",
+  "synth_id" : "opentree4.1"
+}
 

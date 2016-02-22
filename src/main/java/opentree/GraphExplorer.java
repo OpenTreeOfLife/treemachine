@@ -3517,7 +3517,7 @@ public class GraphExplorer extends GraphBase {
      * @param treeID is the synthetic tree 'tree_id' identifier
      * @return true if in tree, false if not
      */
-    public boolean checkValidSynthTreeID (String treeID) {
+    public boolean checkExistingSynthTreeID (String treeID) {
         boolean good = false;
         Node test = getSynthesisMetaNodeByName(treeID);
         if (test != null) {
