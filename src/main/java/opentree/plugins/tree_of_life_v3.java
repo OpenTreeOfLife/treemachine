@@ -253,15 +253,17 @@ public class tree_of_life_v3 extends ServerPlugin {
             draftTreeInfo.put("date_completed", meta.getProperty("date_completed"));
             draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
 
-            // root node info
-            draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
-            draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
-
+            // root node info - collect into separate object
+            HashMap<String, Object> rootInfo = new HashMap<>();
+            rootInfo.put("name", meta.getProperty("root_taxon_name"));
+            rootInfo.put("ott_id", meta.getProperty("root_ott_id"));
+            rootInfo.put("node_id", meta.getProperty("root_ot_node_id"));
+            draftTreeInfo.put("root", rootInfo);
+            
             // tree constituents
             draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
             draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
             draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
-            draftTreeInfo.put("root_node_id", meta.getProperty("root_ot_node_id"));
 
             if (returnSourceList) {
                 Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
