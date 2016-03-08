@@ -211,7 +211,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     public Representation about (@Source GraphDatabaseService graphDb,
         
         @Description("Return a list of source studies.")
-        @Parameter(name = "source_list", optional = true)
+        @Parameter(name = "include_source_list", optional = true)
         Boolean source_list,
         
         @Description("Synthetic tree identifier (defaults to most recent).")
