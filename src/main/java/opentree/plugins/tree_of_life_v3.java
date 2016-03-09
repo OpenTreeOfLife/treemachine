@@ -258,7 +258,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             rootInfo.put("name", meta.getProperty("root_taxon_name"));
             rootInfo.put("ott_id", meta.getProperty("root_ott_id"));
             rootInfo.put("node_id", meta.getProperty("root_ot_node_id"));
-            draftTreeInfo.put("root", rootInfo);
+            draftTreeInfo.put("root_node", rootInfo);
             
             // tree constituents
             draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
