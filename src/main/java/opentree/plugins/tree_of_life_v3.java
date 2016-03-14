@@ -130,11 +130,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
 
             // root node info - collect into separate object ('blob')
-            Node root = ge.findGraphNodeByOTTNodeID((String)meta.getProperty("root_ot_node_id"));
-            //HashMap<String, Object> rootInfo = new HashMap<>();
-            
-            
-            HashMap<String, Object> rootInfo = ge.getNodeBlob(root, synthTreeID);
+            HashMap<String, Object> rootInfo = ge.getNodeBlob((String)meta.getProperty("root_ot_node_id"), synthTreeID);
             // have to do this separately, as for all other nodes this is stored in outgoing rel
             rootInfo.put("num_tips", meta.getProperty("num_tips"));
             draftTreeInfo.put("root", rootInfo);
@@ -236,11 +232,11 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         
-        nodeIfo.put("node_id", qNode.getProperty("ot_node_id"));
+        //nodeIfo.put("node_id", qNode.getProperty("ot_node_id"));
         
         // get all taxonomic information
-        HashMap<String, Object> taxInfo = ge.getTaxonBlob(qNode);
-        nodeIfo.put("taxon", taxInfo);
+        //HashMap<String, Object> taxInfo = ge.getTaxonBlob(qNode);
+        //nodeIfo.put("taxon", taxInfo);
         
         
         // Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
@@ -255,9 +251,10 @@ public class tree_of_life_v3 extends ServerPlugin {
             for (Relationship rel : qNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
                 HashMap<String, Object> treeInfo = new HashMap<>();
                 
-                int nTips = (int) rel.getProperty("tip_descendants");
                 synthTreeID = (String) rel.getProperty("name");
-                treeInfo.put("tip_descendants", nTips);
+                
+                HashMap<String, Object> nodeBlob = ge.getNodeBlob(qNode, synthTreeID);
+                nodeIfo.putAll(nodeBlob);
                 
                 HashMap<String, Object> props = ge.getSynthMetadata(qNode, synthTreeID);
                 treeInfo.putAll(props);
@@ -283,7 +280,9 @@ public class tree_of_life_v3 extends ServerPlugin {
                     treeInfo.put("lineage", lineage);
                 }
                 treeInfo.put("synth_id", synthTreeID);
-                nodeIfo.put("synth_data", treeInfo);
+                nodeIfo.putAll(treeInfo);
+                
+                //nodeIfo.put("synth_data", treeInfo);
             }
         }
         ge.shutdownDB();

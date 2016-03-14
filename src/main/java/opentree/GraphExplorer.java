@@ -3832,6 +3832,14 @@ public class GraphExplorer extends GraphBase {
     
     
     
+    public HashMap<String, Object> getNodeBlob (String nodeID, String treeID) throws TaxonNotFoundException {
+        Node qnode = findGraphNodeByOTTNodeID(nodeID);
+        HashMap<String, Object> results = getNodeBlob(qnode, treeID);
+        return results;
+    }
+    
+    
+    
     // TODO: add in support
     public HashMap<String, Object> getNodeBlob (Node n, String treeID) {
         
