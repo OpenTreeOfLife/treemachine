@@ -3831,8 +3831,26 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    // return a map of all taxonomic information stored at node
-    public HashMap<String, Object> getNodeTaxInfo (Node n) {
+    
+    // TODO: add in support
+    public HashMap<String, Object> getNodeBlob (Node n, String treeID) {
+        
+        HashMap<String, Object> results = new HashMap<>();
+        
+        results.put("node_id", n.getProperty("ot_node_id"));
+        if (n.hasProperty("name")) {
+            results.put("taxon", getTaxonBlob(n));
+        }
+        results.put("num_tips", getNumTipDescendants(n, treeID));
+        
+        
+        return results;
+    }
+    
+    
+    
+    // return a map of all taxonomic information stored at node. a 'blob'
+    public HashMap<String, Object> getTaxonBlob (Node n) {
         
         HashMap<String, Object> results = new HashMap<>();
         
