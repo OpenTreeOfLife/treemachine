@@ -10,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -3831,11 +3832,9 @@ public class GraphExplorer extends GraphBase {
     
     
     // return a map of all taxonomic information stored at node
-    // if not a taxonomy node, map will just be the node_id
     public HashMap<String, Object> getNodeTaxInfo (Node n) {
         
         HashMap<String, Object> results = new HashMap<>();
-        results.put("node_id", n.getProperty(NodeProperty.OT_NODE_ID.propertyName));
         
         if (n.hasProperty(NodeProperty.NAME.propertyName)) {
             results.put("name", n.getProperty(NodeProperty.NAME.propertyName));
@@ -3843,10 +3842,10 @@ public class GraphExplorer extends GraphBase {
             results.put("rank", n.getProperty(NodeProperty.TAX_RANK.propertyName));
             results.put("ott_id", Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName)));
             
+            // taxonomic sources
             // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
-            String taxStr = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
-            HashMap<String, String> taxSources = stringToMap(taxStr);
-            results.put("tax_sources", taxSources);
+            List<String> taxList = new ArrayList<>(Arrays.asList(String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName)).split(",")));
+            results.put("tax_sources", taxList);
         }
         return results;
     }
