@@ -33,7 +33,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     
     // not currently advertized, but should be
     @Description("Returns brief summary information about the draft synthetic tree(s) "
-        + "currently contained within the graph database.")
+        + "currently contained within the graph database.") 
     @PluginTarget(GraphDatabaseService.class)
     public Representation draft_trees (@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
 
@@ -75,6 +75,95 @@ public class tree_of_life_v3 extends ServerPlugin {
 
         return OTRepresentationConverter.convert(graphInfo);
     }
+    
+    
+    
+    // NEW: add treeid as a optional argument, default to most recent
+    @Description("Returns summary information about the most recent draft tree of life, "
+        + "including information about the list of source "
+        + "trees and the taxonomy used to build it.")
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation about (@Source GraphDatabaseService graphDb,
+        
+//        @Description("Synthetic tree identifier (defaults to most recent).")
+//        @Parameter(name = "synth_id", optional = true)
+//        String synthID,
+        
+        @Description("Return a list of source studies.")
+        @Parameter(name = "include_source_list", optional = true)
+        Boolean source_list
+        
+        ) throws TaxonNotFoundException, MultipleHitsException {
+
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        HashMap<String, Object> draftTreeInfo = new HashMap<>();
+        Boolean returnSourceList = false;
+        String synthTreeID = null;
+        
+        if (source_list != null && source_list == true) {
+            returnSourceList = true;
+        }
+        
+        // temporary, for hiding the multitree stuff
+        String synthID = null;
+        
+        // get synthetic tree identifier
+        if (synthID != null) {
+            synthTreeID = synthID;
+            if (!ge.checkExistingSynthTreeID(synthID)) {
+                ge.shutdownDB();
+                String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
+                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
+            }
+        } else { // default to most recent
+            synthTreeID = ge.getMostRecentSynthTreeID();
+        }
+        
+        try {
+            // Most information will come from the synthesis metadata node
+            Node meta = ge.getSynthesisMetaNodeByName(synthTreeID);
+            
+            // general info
+            draftTreeInfo.put("synth_id", synthTreeID);
+            draftTreeInfo.put("date_created", meta.getProperty("date_completed"));
+            draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
+
+            // root node info - collect into separate object ('blob')
+            Node root = ge.findGraphNodeByOTTNodeID((String)meta.getProperty("root_ot_node_id"));
+            //HashMap<String, Object> rootInfo = new HashMap<>();
+            
+            
+            HashMap<String, Object> rootInfo = ge.getNodeBlob(root, synthTreeID);
+            // have to do this separately, as for all other nodes this is stored in outgoing rel
+            rootInfo.put("num_tips", meta.getProperty("num_tips"));
+            draftTreeInfo.put("root", rootInfo);
+            
+            // tree constituents
+            //draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
+            draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
+            draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
+
+            if (returnSourceList) {
+                Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
+                draftTreeInfo.put("sources", Arrays.asList((String[]) meta.getProperty("sources")));
+
+                HashMap<String, Object> sourceMap = new HashMap<>();
+                for (String key : sourceMapNode.getPropertyKeys()) {
+                    HashMap<String, String> formatSource = ge.stringToMap((String) sourceMapNode.getProperty(key));
+                    sourceMap.put(key, formatSource);
+                }
+                draftTreeInfo.put("source_id_map", sourceMap);
+            }
+            draftTreeInfo.put("filtered_flags", Arrays.asList((String[]) meta.getProperty("filtered_flags")));
+                
+        } finally {
+            ge.shutdownDB();
+        }
+        return OTRepresentationConverter.convert(draftTreeInfo);
+    }
+    
+    
     
     
     @Description("Returns summary information about a node in the graph. The node "
@@ -147,11 +236,10 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         
+        nodeIfo.put("node_id", qNode.getProperty("ot_node_id"));
+        
         // get all taxonomic information
-        HashMap<String, Object> taxInfo = ge.getNodeTaxInfo(qNode);
-        // includes node_id, which apparently should not be here
-        nodeIfo.put("node_id", taxInfo.get("node_id"));
-        taxInfo.remove("node_id");
+        HashMap<String, Object> taxInfo = ge.getTaxonBlob(qNode);
         nodeIfo.put("taxon", taxInfo);
         
         
@@ -189,10 +277,10 @@ public class tree_of_life_v3 extends ServerPlugin {
                     List<Node> nodeList = ge.getPathToRoot(qNode, RelType.SYNTHCHILDOF, synthTreeID);
 
                     for (Node cn : nodeList) {
-                        HashMap<String, Object> info = ge.getNodeTaxInfo(cn);
-                        lineage.add(info);
+                        HashMap<String, Object> indTaxInfo = ge.getTaxonBlob(cn);
+                        lineage.add(indTaxInfo);
                     }
-                    treeInfo.put("draft_tree_lineage", lineage);
+                    treeInfo.put("lineage", lineage);
                 }
                 treeInfo.put("synth_id", synthTreeID);
                 nodeIfo.put("synth_data", treeInfo);
@@ -203,86 +291,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     }
     
     
-    // NEW: add treeid as a optional argument, default to most recent
-    @Description("Returns summary information about a draft tree of life (by default "
-        + "the most recent version), including information about the list of source "
-        + "trees and the taxonomy used to build it.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation about (@Source GraphDatabaseService graphDb,
-        
-        @Description("Return a list of source studies.")
-        @Parameter(name = "include_source_list", optional = true)
-        Boolean source_list,
-        
-        @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "synth_id", optional = true)
-        String synthID
-        
-        ) throws TaxonNotFoundException, MultipleHitsException {
-
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        HashMap<String, Object> draftTreeInfo = new HashMap<>();
-        Boolean returnSourceList = false;
-        String synthTreeID = null;
-        //Node meta = null;
-        
-        if (source_list != null && source_list == true) {
-            returnSourceList = true;
-        }
-        
-        // get synthetic tree identifier
-        if (synthID != null) {
-            synthTreeID = synthID;
-            if (!ge.checkExistingSynthTreeID(synthID)) {
-                ge.shutdownDB();
-                String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
-                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
-            }
-        } else { // default to most recent
-            synthTreeID = ge.getMostRecentSynthTreeID();
-        }
-        
-        
-        try {
-            // Most information will come from the synthesis metadata node
-            Node meta = ge.getSynthesisMetaNodeByName(synthTreeID);
-            
-            // general info
-            draftTreeInfo.put("synth_id", synthTreeID);
-            draftTreeInfo.put("date_completed", meta.getProperty("date_completed"));
-            draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
-
-            // root node info - collect into separate object
-            HashMap<String, Object> rootInfo = new HashMap<>();
-            rootInfo.put("name", meta.getProperty("root_taxon_name"));
-            rootInfo.put("ott_id", meta.getProperty("root_ott_id"));
-            rootInfo.put("node_id", meta.getProperty("root_ot_node_id"));
-            draftTreeInfo.put("root_node", rootInfo);
-            
-            // tree constituents
-            draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
-            draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
-            draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
-
-            if (returnSourceList) {
-                Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
-                draftTreeInfo.put("sources", Arrays.asList((String[]) meta.getProperty("sources")));
-
-                HashMap<String, Object> sourceMap = new HashMap<>();
-                for (String key : sourceMapNode.getPropertyKeys()) {
-                    HashMap<String, String> formatSource = ge.stringToMap((String) sourceMapNode.getProperty(key));
-                    sourceMap.put(key, formatSource);
-                }
-                draftTreeInfo.put("source_id_map", sourceMap);
-            }
-            draftTreeInfo.put("filtered_flags", Arrays.asList((String[]) meta.getProperty("filtered_flags")));
-                
-        } finally {
-            ge.shutdownDB();
-        }
-        return OTRepresentationConverter.convert(draftTreeInfo);
-    }
+    
 
     
     @Description("Get the MRCA of a set of nodes on a specific synthetic tree given "
