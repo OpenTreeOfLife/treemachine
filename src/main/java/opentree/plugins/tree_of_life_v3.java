@@ -446,7 +446,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "ott_ids", optional = true)
         long[] ottIDs,
         
-        @Description("Label format. Valid formats: `name`, `id`, or `name_and_id`")
+        @Description("Label format. Valid formats: `name`, `id`, or `name_and_id` (default)")
         @Parameter(name = "label_format", optional = true)
         String labFormat
         
@@ -564,9 +564,9 @@ public class tree_of_life_v3 extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation subtree (@Source GraphDatabaseService graphDb,
         
-        @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "synth_id", optional = true)
-        String synthID,
+//        @Description("Synthetic tree identifier (defaults to most recent).")
+//        @Parameter(name = "synth_id", optional = true)
+//        String synthID,
         
         @Description("The `node_id` of the node of interest. This argument may not be "
             + "combined with `ott_id`.")
@@ -576,7 +576,11 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Description("The `ott_id` of the node of interest. This argument may not be "
             + "combined with `node_id`.")
         @Parameter(name = "ott_id", optional = true)
-        Long ottID
+        Long ottID,
+        
+        @Description("Label format. Valid formats: `name`, `id`, or `name_and_id` (default)")
+        @Parameter(name = "label_format", optional = true)
+        String labFormat
         
         ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException {
         
@@ -589,6 +593,10 @@ public class tree_of_life_v3 extends ServerPlugin {
         }
         
         HashMap<String, Object> responseMap = new HashMap<>();
+        String labelFormat = null;
+        
+        // temporary, for hiding the multitree stuff
+        String synthID = null;
         
         GraphExplorer ge = new GraphExplorer(graphDb);
         
@@ -596,6 +604,19 @@ public class tree_of_life_v3 extends ServerPlugin {
         String synthTreeID = null;
         
         Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
+        
+        
+        if (labFormat == null) {
+            labelFormat = "name_and_id";
+        } else {
+            if (!labFormat.matches("name|id|name_and_id")) {
+                String ret = "Invalid 'label_format' arg: '" + labFormat + "'. "
+                    + "Valid formats: `name`, `id`, or `name_and_id` (default).";
+                throw new IllegalArgumentException(ret);
+            } else {
+                labelFormat = labFormat;
+            }
+        }
         
         // get synthetic tree identifier
         if (synthID != null) {
@@ -664,8 +685,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get the subtree for export
         JadeTree tree = null;
         try {
-            //tree = ge.extractDraftTreeByName(qNode, synthTreeID);
-            tree = ge.extractDraftTree(qNode, synthTreeID);
+            tree = ge.extractDraftTree(qNode, synthTreeID, labelFormat);
         } finally {
             ge.shutdownDB();
         }

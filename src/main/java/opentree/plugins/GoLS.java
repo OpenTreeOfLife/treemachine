@@ -314,7 +314,8 @@ public class GoLS extends ServerPlugin {
             throw new IllegalArgumentException(ret);
         }
         
-        JadeTree tree = ge.extractDraftTree(startNode, synthTreeID);
+        String labelFormat = "name_and_id";
+        JadeTree tree = ge.extractDraftTree(startNode, synthTreeID, labelFormat);
 
         HashMap<String, String> response = new HashMap<String, String>();
         response.put("tree", tree.getRoot().getNewick(false));

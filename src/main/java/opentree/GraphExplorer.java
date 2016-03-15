@@ -55,9 +55,11 @@ public class GraphExplorer extends GraphBase {
         verbose = false;
     }
     
+    /*
     public void setNewickLabelsToIDs() {
         newickLabelsAreIDs = true;
     }
+    */
     
     public void turnOffInternalNewickLabels() {
         newickLabelInternalNodes = false;
@@ -1797,106 +1799,6 @@ public class GraphExplorer extends GraphBase {
     }
     */
     
-    // i think these two fuctions are identical
-    
-    /**
-     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
-     * External function that uses the ottid to find the root node in the db.
-     * 
-     * @param startNode
-     * @param synthTreeName
-     * @return JadeTree
-     */
-    public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
-        
-        // empty parameters for initial recursion
-        System.out.println("Attempting to extract draft tree name: '" + synthTreeName + "'");
-        JadeNode parentJadeNode = null;
-        Relationship incomingRel = null;
-        
-        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, synthTreeName));
-    }
-    
-    
-    /**
-     * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
-     * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
-     * 
-     * @param nodeId
-     */
-    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName) {
-        
-        JadeNode curNode = new JadeNode();
-        
-        // set the names for the newick string
-        if (curGraphNode.hasProperty("name")) {
-            if (nodeIsTerminal(curGraphNode)) {
-                if (newickLabelsAreIDs) {
-                    curNode.setName(("ott").concat(String.valueOf(curGraphNode.getProperty("tax_uid"))));
-                } else {
-                    curNode.setName(getOttName(curGraphNode));
-                }
-            } else {
-                if (newickLabelInternalNodes) { // this is where internal node labels would go
-                    if (newickLabelsAreIDs) {
-                        curNode.setName(("ott").concat(String.valueOf(curGraphNode.getProperty("tax_uid"))));
-                    } else {
-                        curNode.setName(getOttName(curGraphNode));
-                    }
-                }
-            }
-        } else {
-            curNode.setName((String) curGraphNode.getProperty("ot_node_id"));
-        }
-        curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
-        
-        // add the current node to the tree we're building
-        if (parentJadeNode != null) {
-            boolean done = false;
-            while (!done) {
-                for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
-                    
-                    if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
-                        //curNode.assocObject("supporting_sources", (String [] ) synthChildRel.getProperty("supporting_sources"));
-                        //if (verbose) System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
-                        done = true;
-                    }
-                }
-                //if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")) {
-                //    curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
-                //}
-            }
-            parentJadeNode.addChild(curNode);
-            if (incomingRel.hasProperty("branch_length")) {
-                curNode.setBL((Double) incomingRel.getProperty("branch_length"));
-            }
-        }
-        
-        // get the immediate synth children of the current node
-        LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
-        for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
-            
-            //System.out.println("Current rel name = " + String.valueOf(synthChildRel.getProperty("name")));
-            
-            // TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
-            if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
-                // currently just filtering on name
-                synthChildRels.add(synthChildRel);
-                //System.out.println("Current rel matches synth tree '" + synthTreeName + "'");
-            }
-        }
-        
-        // recursively add the children to the tree we're building
-        for (Relationship synthChildRel : synthChildRels) {
-            extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
-        }
-
-        return curNode;
-    }
-    
-    
-    
-    
     
     /**
      * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
@@ -1906,6 +1808,7 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param nodeId
      */
+    /*
     private JadeNode extractStoredSyntheticTreeRecurMap(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName, HashMap<Long,Integer> rellist) {
         
         JadeNode curNode = new JadeNode();
@@ -1964,7 +1867,7 @@ public class GraphExplorer extends GraphBase {
         
         return curNode;
     }
-    
+    */
     
     // =============================== Synthesis methods using source metadata decisions ONLY ===============================
     
@@ -3519,6 +3422,21 @@ public class GraphExplorer extends GraphBase {
     }
     */
     
+    /*
+    // appends '_ottNNNNN' to name, and ensures it is newick-compliant
+    public String getOttName (Node curNode) {
+        String name;
+        try {
+            name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+        } catch(Exception e) {
+            name = String.valueOf(curNode.getProperty("name"));
+        }
+        // make name newick-valid
+        name = GeneralUtils.newickName(name);
+        return name;
+    }
+    */
+    
     // ================================= current methods ====================================
     
     // check if user-provided synth_id is in the db
@@ -3807,6 +3725,79 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    
+    /**
+     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
+     * External function that uses the ottid to find the root node in the db.
+     * 
+     * @param startNode
+     * @param synthTreeName
+     * @param labelFormat
+     * @return JadeTree
+     */
+    public JadeTree extractDraftTree (Node startNode, String synthTreeName, String labelFormat) {
+        
+        // empty parameters for initial recursion
+        System.out.println("Attempting to extract draft tree name: '" + synthTreeName + "'");
+        JadeNode parentJadeNode = null;
+        Relationship incomingRel = null;
+        
+        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, synthTreeName, labelFormat));
+    }
+    
+    
+    /**
+     * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
+     * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
+     */
+    private JadeNode extractStoredSyntheticTreeRecur (Node curGraphNode, JadeNode parentJadeNode,
+        Relationship incomingRel, String synthTreeName, String labelFormat) {
+        
+        JadeNode curNode = new JadeNode();
+        
+        // set the names for the newick string
+        curNode.setName(getNodeLabel(curGraphNode, labelFormat));
+        curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+        
+        // add the current node to the tree we're building
+        if (parentJadeNode != null) {
+            boolean done = false;
+            while (!done) {
+                // better way to do this:
+                // for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID)).traverse(curTip).nodes())
+                for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
+                    if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
+                        done = true;
+                    }
+                }
+            }
+            parentJadeNode.addChild(curNode);
+            if (incomingRel.hasProperty("branch_length")) {
+                curNode.setBL((Double) incomingRel.getProperty("branch_length"));
+            }
+        }
+        
+        // get the immediate synth children of the current node
+        LinkedList<Relationship> synthChildRels = new LinkedList<>();
+        for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+            
+            // TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
+            if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
+                // currently just filtering on name
+                synthChildRels.add(synthChildRel);
+                //System.out.println("Current rel matches synth tree '" + synthTreeName + "'");
+            }
+        }
+        // recursively add the children to the tree we're building
+        for (Relationship synthChildRel : synthChildRels) {
+            extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName, labelFormat);
+        }
+        return curNode;
+    }
+    
+    
+    
+    
     public Integer getNumTipDescendants (Node nd, String treeID) {
         Integer numTips = null;
         if (nd.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
@@ -3822,12 +3813,14 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    
     public HashMap<String, Object> getNodeBlob (String nodeID, String treeID) throws TaxonNotFoundException {
         Node qnode = findGraphNodeByOTTNodeID(nodeID);
         HashMap<String, Object> results = getNodeBlob(qnode, treeID);
         return results;
     }
+    
+    
+    
     
     
     
@@ -3930,7 +3923,6 @@ public class GraphExplorer extends GraphBase {
     
     public Node getDraftTreeMRTA (Node startNode, String treeID) {
         Node mrta = null;
-        
         for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
                         .traverse(startNode).nodes()) {
             if (m.hasProperty(NodeProperty.TAX_UID.propertyName)) {
@@ -3942,34 +3934,23 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    
-    
-    // appends '_ottNNNNN' to name, and ensures it is newick-compliant
-    public String getOttName (Node curNode) {
-        String name;
-    
-        try {
-            name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
-        } catch(Exception e) {
-            name = String.valueOf(curNode.getProperty("name"));
-        }
-        // make name newick-valid
-        name = GeneralUtils.newickName(name);
-        return name;
-    }
-    
-    
     // valid label formats are: `name`, `id`, or `name_and_id`
     public String getNodeLabel (Node curNode, String labelFormat) {
         String name = "";
-        if ("name".equals(labelFormat)) {
-            name = String.valueOf(curNode.getProperty("name"));
-        } else if ("id".equals(labelFormat)) {
-            name = "ott" + String.valueOf(curNode.getProperty("tax_uid"));
-        } else if ("name_and_id".equals(labelFormat)) {
-            name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+        
+        // taxonomy node
+        if (curNode.hasProperty("name")) {
+            if ("name".equals(labelFormat)) {
+                name = String.valueOf(curNode.getProperty("name"));
+            } else if ("id".equals(labelFormat)) {
+                name = String.valueOf(curNode.getProperty("ot_node_id"));
+            } else if ("name_and_id".equals(labelFormat)) {
+                name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+            }
+        } else {
+            name = String.valueOf(curNode.getProperty("ot_node_id"));
         }
-        // make name newick-valid
+        // make name newick-compliant
         name = GeneralUtils.newickName(name);
         return name;
     }
@@ -3999,7 +3980,6 @@ public class GraphExplorer extends GraphBase {
                     .traverse(curTip).nodes()) {
                 // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
                 if (mrca != null && m.equals(mrca)) {
-                    //System.out.println("found stop node " + stopNode);
                     graphPathToRoot.add(m); // want to record mrca node
                     break;
                 }
@@ -4035,15 +4015,10 @@ public class GraphExplorer extends GraphBase {
         
         JadeNode root = new JadeNode(); // add names, etc.
         root.assocObject("graphNode", mrca);
-        if (mrca.hasProperty("name")) {
-            // use labelFormat here
-            root.setName(getNodeLabel(mrca, labelFormat));
-        } else {
-            root.setName((String) mrca.getProperty("ot_node_id"));
-        }
+        
+        root.setName(getNodeLabel(mrca, labelFormat));
         addedNodes.add(mrca); // collect processed graph nodes
         graphNodeTreeNodeMap.put(mrca, root);
-        //treeNodeGraphNodeMap.put(root, mrca);
         
         // build the root
         for (ArrayList<Node> futureTreeNodes : treeTipRootPathMap.values()) {
@@ -4054,24 +4029,16 @@ public class GraphExplorer extends GraphBase {
                 if (!addedNodes.contains(workingGraphNode)) { // skip existing nodes
                     JadeNode childTreeNode = new JadeNode();
                     childTreeNode.assocObject("graphNode", workingGraphNode);
-                    if (workingGraphNode.hasProperty("name")) {
-                        childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat));
-                        //childTreeNode.setName(getOttName(workingGraphNode));
-                    } else {
-                        childTreeNode.setName((String) workingGraphNode.getProperty("ot_node_id"));
-                    }
+                    childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat));
                     // add child node to current parent
                     JadeNode parent = graphNodeTreeNodeMap.get(curGraphParent);
                     parent.addChild(childTreeNode);
                     addedNodes.add(workingGraphNode);
                     graphNodeTreeNodeMap.put(workingGraphNode, childTreeNode);
-                    //treeNodeGraphNodeMap.put(childTreeNode, workingGraphNode);
                 }
                 curGraphParent = workingGraphNode;
             }
         }
-        //System.out.println("\n" + root.getNewick(false) + ";\n");
-        
         return root;
     }
     

@@ -2747,7 +2747,8 @@ public class MainRunner {
         }
         
         JadeTree synthTree = null;
-        synthTree = ge.extractDraftTree(firstNode, synthName);
+        String labelFormat = "name_and_id";
+        synthTree = ge.extractDraftTree(firstNode, synthName, labelFormat);
 
         if (synthTree == null) {
             return -1;
