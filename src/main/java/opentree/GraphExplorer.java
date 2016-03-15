@@ -3937,6 +3937,23 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    public Node getDraftTreeMRTA (Node startNode, String treeID) {
+        Node mrta = null;
+        
+        for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                        .traverse(startNode).nodes()) {
+            if (m.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+                mrta = m;
+                break;
+            }
+        }
+        return mrta;
+    }
+    
+    
+    
+    
+    
     // all nodes confirmed to be in specified tree before coming here
     // completely new version. seems to handle knuckles well
     // TODO: associate synthesis data

@@ -54,14 +54,45 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_s
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"node_ids":["ott501678","ott666104","ott316878"], "ott_ids":[102710,536234,810751,81461,501678]}'
 
 
+
+
+
+
+
+
+
+# mrca
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott292466", "ott501678", "ott267845"]}'
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845]}'
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott501678", "ott267845"], "ott_ids":[292466,10101010]}'
 
 
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "include_lineage":true}'
+
+
 #501678,666104,316878,102710,536234
 #(((Stellula_calliope_ott536234)Stellula_ott501678,Dendroica_ott666104),(Perdix_ott102710,Clangula_ott316878))Neognathae_ott241846
+
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+{
+  "newick" : "(Gavia_stellata_ott1057044,((Gavia_arctica_ott1085739,Gavia_pacifica_ott651474)mrcaott651474ott1085739,(Gavia_immer_ott1057518,Gavia_adamsii_ott90560)mrcaott90560ott1057518)mrcaott90560ott651474)Gavia_ott803675;",
+  "synth_id" : "opentree4.1"
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 'v1' (GoLS) services

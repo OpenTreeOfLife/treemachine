@@ -304,9 +304,9 @@ public class tree_of_life_v3 extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation mrca (@Source GraphDatabaseService graphDb,
         
-        @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "synth_id", optional = true)
-        String synthID,
+//        @Description("Synthetic tree identifier (defaults to most recent).")
+//        @Parameter(name = "synth_id", optional = true)
+//        String synthID,
         
         @Description("A set of open tree node ids")
         @Parameter(name = "node_ids", optional = true)
@@ -330,6 +330,9 @@ public class tree_of_life_v3 extends ServerPlugin {
         String synthTreeID = null;
         
         GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        // temporary, for hiding the multitree stuff
+        String synthID = null;
         
         // get synthetic tree identifier
         if (synthID != null) {
@@ -393,7 +396,11 @@ public class tree_of_life_v3 extends ServerPlugin {
             Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
             
             res.put("synth_id", synthTreeID);
-            res.put("node_id", mrca.getProperty("ot_node_id"));
+            
+            HashMap<String, Object> mrcaInfo = ge.getNodeBlob(mrca, synthTreeID);
+            res.put("mrca", mrcaInfo);
+            
+            //res.put("node_id", mrca.getProperty("ot_node_id"));
             
             if (!ottIdsNotInTree.isEmpty()) {
                 res.put("ott_ids_not_in_tree", ottIdsNotInTree);
@@ -402,30 +409,14 @@ public class tree_of_life_v3 extends ServerPlugin {
                 res.put("node_ids_not_in_tree", nodesIDsNotInTree);
             }
             
-            // now attempt to find the most recent taxonomic ancestor (in tree)
-            Node mrta = mrca;
-            if (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
-                boolean done = false;
-                while (!done) {
-                    for (Relationship rel : mrta.getRelationships(RelType.SYNTHCHILDOF, Direction.INCOMING)) {
-                        if (String.valueOf(rel.getProperty("name")).equals(synthTreeID)) {
-                            mrta = rel.getStartNode();
-                            if (mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
-                                done = true;
-                                break;
-                            }
-                        }
-                    }
-                }  
+            // now attempt to find the most recent taxonomic ancestor (in tree), if mrca is not a taxon
+            if (!mrca.hasProperty("name")) {
+                Node mrta = ge.getDraftTreeMRTA(mrca, synthTreeID);
+
+                HashMap<String, Object> mrtaInfo = ge.getTaxonBlob(mrta);
+                res.put("nearest_taxon", mrtaInfo);
             }
-            HashMap<String, Object> mrtaInfo = new HashMap<>();
-            mrtaInfo.put("name", mrta.getProperty(NodeProperty.NAME.propertyName));
-            mrtaInfo.put("unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-            mrtaInfo.put("rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-            mrtaInfo.put("ott_id", Long.valueOf((String) mrta.getProperty(NodeProperty.TAX_UID.propertyName)));
-            mrtaInfo.put("node_id", mrta.getProperty("ot_node_id"));
             
-            res.put("nearest_taxon", mrtaInfo);
             ge.shutdownDB();
             return OTRepresentationConverter.convert(res);
         }
