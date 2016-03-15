@@ -105,19 +105,6 @@ public class GraphExplorer extends GraphBase {
      * meaning deep and imprecise) assignment of "lost child" taxa.
      */
     
-    // appends '_ottNNNNN' to name, and ensures it is newick-compliant
-    public String getOttName (Node curNode) {
-        String name;
-    
-        try {
-         name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
-        } catch(Exception e) {
-            name = String.valueOf(curNode.getProperty("name"));
-        }
-        // make name newick-valid
-        name = GeneralUtils.newickName(name);
-        return (name);
-    }
 
     /* --------------------- end info: collapsing children based on taxonomy ---------------------- */
     
@@ -3269,6 +3256,7 @@ public class GraphExplorer extends GraphBase {
     }
     */
     
+    // this will have had to check that the node is taxonomic beforehand
     public boolean nodeIsTerminal(Node n) {
         boolean terminal = false;
         if (!n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
@@ -3277,6 +3265,7 @@ public class GraphExplorer extends GraphBase {
         return terminal;
     }
     
+    /*
     public int getNumberSynthesisTips(Node startNode) {
         int tcount = 0;
         int ncount = 0;
@@ -3322,6 +3311,7 @@ public class GraphExplorer extends GraphBase {
         System.out.println("number of edges supported both by tax and tree: " + bothtaxtree);
         return tcount;
     }
+    */
     
     // From a given node, return all taxonomic descendants which are tips
     /*
@@ -3373,6 +3363,7 @@ public class GraphExplorer extends GraphBase {
     }
     */
     
+    /*
     // not useful: assumes only 1 such node, assumes hardcoded constant
     public Node getSynthesisMetaNode() {
         IndexHits<Node> hits = synthMetaIndex.query("name", DRAFTTREENAME);
@@ -3383,7 +3374,7 @@ public class GraphExplorer extends GraphBase {
         hits.close();
         return nd;
     }
-    
+    */
     // is the node in the current synthetic tree?
     /*
     public boolean nodeIsInSyntheticTree (Node startNode) {
@@ -3510,6 +3501,23 @@ public class GraphExplorer extends GraphBase {
     }
     */
     
+    /*
+        // TODO: update to allow multiple synth trees
+    // return all sources used in the construction of a synthetic tree
+    public ArrayList<String> getSynthesisSourceList () {
+        ArrayList<String> sourceList = new ArrayList<>();
+        
+        Node meta = getSynthesisMetaNode();
+        if (meta != null) {
+            String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
+            // sourceList.addAll(java.util.Arrays.asList(sourcePrimList));
+            for (int i = 0; i < sourcePrimList.length; i++) {
+                sourceList.add(sourcePrimList[i]);
+            }
+        }
+        return (sourceList);
+    }
+    */
     
     // ================================= current methods ====================================
     
@@ -3588,23 +3596,6 @@ public class GraphExplorer extends GraphBase {
         String treeid = getMostRecentSynthTreeID();
         Node nd = getSynthesisMetaNodeByName(treeid);
         return nd;
-    }
-    
-    
-    // TODO: update to allow multiple synth trees
-    // return all sources used in the construction of a synthetic tree
-    public ArrayList<String> getSynthesisSourceList () {
-        ArrayList<String> sourceList = new ArrayList<>();
-        
-        Node meta = getSynthesisMetaNode();
-        if (meta != null) {
-            String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
-            // sourceList.addAll(java.util.Arrays.asList(sourcePrimList));
-            for (int i = 0; i < sourcePrimList.length; i++) {
-                sourceList.add(sourcePrimList[i]);
-            }
-        }
-        return (sourceList);
     }
     
     
@@ -3953,18 +3944,45 @@ public class GraphExplorer extends GraphBase {
     
     
     
+    // appends '_ottNNNNN' to name, and ensures it is newick-compliant
+    public String getOttName (Node curNode) {
+        String name;
+    
+        try {
+            name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+        } catch(Exception e) {
+            name = String.valueOf(curNode.getProperty("name"));
+        }
+        // make name newick-valid
+        name = GeneralUtils.newickName(name);
+        return name;
+    }
+    
+    
+    // valid label formats are: `name`, `id`, or `name_and_id`
+    public String getNodeLabel (Node curNode, String labelFormat) {
+        String name = "";
+        if ("name".equals(labelFormat)) {
+            name = String.valueOf(curNode.getProperty("name"));
+        } else if ("id".equals(labelFormat)) {
+            name = "ott" + String.valueOf(curNode.getProperty("tax_uid"));
+        } else if ("name_and_id".equals(labelFormat)) {
+            name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+        }
+        return name;
+    }
+    
     
     // all nodes confirmed to be in specified tree before coming here
     // completely new version. seems to handle knuckles well
     // TODO: associate synthesis data
-    public JadeNode getInducedSubtree (List<Node> nodeset, String treeID) {
+    public JadeNode getInducedSubtree (List<Node> nodeset, String treeID, String labelFormat) {
         
         if (nodeset.size() < 2) {
             throw new UnsupportedOperationException("Cannot extract a tree with < 2 tips.");
         }
         
         HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<>();
-        
         Node mrca = getDraftTreeMRCA(nodeset, treeID);
         
         // only want nodes along the path that are mrcas of the query
@@ -4011,13 +4029,13 @@ public class GraphExplorer extends GraphBase {
         }
         
         HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<>();
-        //HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<>();
         HashSet<Node> addedNodes = new HashSet<>();
         
         JadeNode root = new JadeNode(); // add names, etc.
         root.assocObject("graphNode", mrca);
         if (mrca.hasProperty("name")) {
-            root.setName(getOttName(mrca));
+            // use labelFormat here
+            root.setName(getNodeLabel(mrca, labelFormat));
         } else {
             root.setName((String) mrca.getProperty("ot_node_id"));
         }
@@ -4035,7 +4053,8 @@ public class GraphExplorer extends GraphBase {
                     JadeNode childTreeNode = new JadeNode();
                     childTreeNode.assocObject("graphNode", workingGraphNode);
                     if (workingGraphNode.hasProperty("name")) {
-                        childTreeNode.setName(getOttName(workingGraphNode));
+                        childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat));
+                        //childTreeNode.setName(getOttName(workingGraphNode));
                     } else {
                         childTreeNode.setName((String) workingGraphNode.getProperty("ot_node_id"));
                     }

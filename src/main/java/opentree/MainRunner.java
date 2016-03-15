@@ -2507,7 +2507,8 @@ public class MainRunner {
         return (success ? 0 : -1);
     }
     */
-
+    
+    /*
     public int getSynthesisInfo(String [] args) {
         boolean success = true;
         if (args.length != 2 && args.length != 3) {
@@ -2537,7 +2538,7 @@ public class MainRunner {
         System.out.println(ge.getNumberSynthesisTips(startnode));
         return (success ? 0 : -1);
     }
-    
+    */
     
     // gets graph nodeid from ottid
     /// @returns 0 for success, 1 for poorly formed command, -1 for failure
@@ -2830,7 +2831,8 @@ public class MainRunner {
         }
         
         String treeID = "opentree4.1";
-        JadeNode synthTreeRootNode = ge.getInducedSubtree(tipNodes, treeID);
+        String labFormat = "name_and_id";
+        JadeNode synthTreeRootNode = ge.getInducedSubtree(tipNodes, treeID, labFormat);
 
         PrintWriter outFile = null;
         try {
@@ -4098,11 +4100,11 @@ public class MainRunner {
             */
             else if (command.compareTo("extractdrafttree_name") == 0) {
                 cmdReturnCode = mr.extractDraftTreeByName(args);
-            } else if (command.compareTo("synthesisinfo") == 0) {
-                cmdReturnCode = mr.getSynthesisInfo(args);
             } 
             /*
-            else if (command.compareTo("extractdrafttree_ottid") == 0) {
+            else if (command.compareTo("synthesisinfo") == 0) {
+                cmdReturnCode = mr.getSynthesisInfo(args);
+            } else if (command.compareTo("extractdrafttree_ottid") == 0) {
                 cmdReturnCode = mr.extractDraftTreeForOttId(args);
             } else if (command.compareTo("extractdrafttree_ottid_relidmap") == 0) {
                 cmdReturnCode = mr.extractDraftTreeForOttIdRelIDMap(args);

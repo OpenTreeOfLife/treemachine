@@ -293,8 +293,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     
 
     
-    @Description("Get the MRCA of a set of nodes on a specific synthetic tree given "
-        + "by the optional `synth_id` arg (defaults to most current draft tree). Accepts "
+    @Description("Get the MRCA of a set of nodes on a the most current draft tree. Accepts "
         + "any combination of node ids and ott ids as input. Returns information about "
         + "the most recent common ancestor (MRCA) node as well as the most recent "
         + "taxonomic ancestor (MRTA) node (the smallest taxon in the synthetic tree that "
@@ -409,7 +408,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 res.put("node_ids_not_in_tree", nodesIDsNotInTree);
             }
             
-            // now attempt to find the most recent taxonomic ancestor (in tree), if mrca is not a taxon
+            // now find the most recent taxonomic ancestor (in tree), if mrca is not a taxon
             if (!mrca.hasProperty("name")) {
                 Node mrta = ge.getDraftTreeMRTA(mrca, synthTreeID);
 
@@ -424,22 +423,20 @@ public class tree_of_life_v3 extends ServerPlugin {
     
     
     @Description("Return a tree with tips corresponding to the nodes identified in the "
-        + "input set, that is consistent with topology of the draft tree identified by "
-        + " the optional `synth_id` arg (defaults to most current draft tree). This tree "
-        + "is equivalent to the minimal subtree induced on the draft tree by the set of "
-        + "identified nodes. Nodes ids that do not correspond to any found nodes in the "
+        + "input set, that is consistent with topology of the most current draft tree. This "
+        + "tree is equivalent to the minimal subtree induced on the draft tree by the set "
+        + "of identified nodes. Nodes ids that do not correspond to any found nodes in the "
         + "graph, or which are in the graph but are absent from the particualr synthetic "
         + "tree, will be identified in the output (but will of course not be present in "
         + "the resulting induced tree). Branch lengths are not currently returned, and "
         + "the leaf labels of the tree may either be taxonomic names or (for nodes not "
-        + "corresponding directly to named taxa) node ids.\n\n**WARNING: there is currently a known bug if any of the input nodes is the "
-        + "parent of another, the returned tree may be incorrect.** Please avoid this input case.")
+        + "corresponding directly to named taxa) node ids.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation induced_subtree (@Source GraphDatabaseService graphDb,
         
-        @Description("Synthetic tree identifier (defaults to most recent).")
-        @Parameter(name = "synth_id", optional = true)
-        String synthID,
+//        @Description("Synthetic tree identifier (defaults to most recent).")
+//        @Parameter(name = "synth_id", optional = true)
+//        String synthID,
         
         @Description("A set of open tree node ids")
         @Parameter(name = "node_ids", optional = true)
@@ -447,22 +444,42 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         @Description("A set of ott ids")
         @Parameter(name = "ott_ids", optional = true)
-        long[] ottIDs
+        long[] ottIDs,
+        
+        @Description("Label format. Valid formats: `name`, `id`, or `name_and_id`")
+        @Parameter(name = "label_format", optional = true)
+        String labFormat
         
         ) throws IllegalArgumentException {
         
         ArrayList<Node> tips = new ArrayList<>();
         ArrayList<Long> ottIdsNotInTree = new ArrayList<>();
         ArrayList<String> nodesIDsNotInTree = new ArrayList<>();
+        String labelFormat = null;
         
         if ((nodeIDs == null || nodeIDs.length < 1) && (ottIDs == null || ottIDs.length < 1)) {
             String ret = "You must supply at least one node_id or ott_id.";
             throw new IllegalArgumentException(ret);
         }
         
+        if (labFormat == null) {
+            labelFormat = "name_and_id";
+        } else {
+            if (!labFormat.matches("name|id|name_and_id")) {
+                String ret = "Invalid 'label_format' arg: '" + labFormat + "'. "
+                    + "Valid formats: `name`, `id`, or `name_and_id` (default).";
+                throw new IllegalArgumentException(ret);
+            } else {
+                labelFormat = labFormat;
+            }
+        }
+        
         String synthTreeID = null;
         
         GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        // temporary, for hiding the multitree stuff
+        String synthID = null;
         
         // get synthetic tree identifier
         if (synthID != null) {
@@ -532,7 +549,8 @@ public class tree_of_life_v3 extends ServerPlugin {
                 res.put("node_ids_not_in_tree", nodesIDsNotInTree);
             }
             
-            res.put("newick", ge.getInducedSubtree(tips, synthTreeID).getNewick(false) + ";");
+            
+            res.put("newick", ge.getInducedSubtree(tips, synthTreeID, labelFormat).getNewick(false) + ";");
             return OTRepresentationConverter.convert(res);
         }
     }
