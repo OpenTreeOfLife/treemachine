@@ -3969,6 +3969,8 @@ public class GraphExplorer extends GraphBase {
         } else if ("name_and_id".equals(labelFormat)) {
             name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
         }
+        // make name newick-valid
+        name = GeneralUtils.newickName(name);
         return name;
     }
     
