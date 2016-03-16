@@ -542,7 +542,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         } else {
             HashMap<String, Object> res = new HashMap<>();
             
-            res.put("synth_id", synthTreeID);
+            //res.put("synth_id", synthTreeID);
             if (!ottIdsNotInTree.isEmpty()) {
                 res.put("ott_ids_not_in_tree", ottIdsNotInTree);
             }
