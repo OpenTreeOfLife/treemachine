@@ -126,6 +126,7 @@ node_blob_fields = [field(u'node_id', check_string),
                     field(u'num_tips', check_integer),
                     opt_field(u'supported_by', check_single_support_blob),
                     opt_field(u'resolves', check_single_support_blob),
+                    opt_field(u'resolved_by', check_multi_support_blob),
                     opt_field(u'conflicts_with', check_multi_support_blob),
                     opt_field(u'partial_path_of', check_single_support_blob),
                     opt_field(u'terminal', check_single_support_blob)]
