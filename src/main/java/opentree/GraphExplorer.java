@@ -3546,6 +3546,42 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    // return a map of all taxonomic information stored at node. a 'blob'
+    public HashMap<String, Object> getTaxonBlob (Node n) {
+        
+        HashMap<String, Object> results = new HashMap<>();
+        
+        if (n.hasProperty(NodeProperty.NAME.propertyName)) {
+            results.put("name", n.getProperty(NodeProperty.NAME.propertyName));
+            results.put("unique_name", n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+            results.put("rank", n.getProperty(NodeProperty.TAX_RANK.propertyName));
+            results.put("ott_id", Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName)));
+            
+            // taxonomic sources
+            // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
+            List<String> taxList = new ArrayList<>(Arrays.asList(String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName)).split(",")));
+            results.put("tax_sources", taxList);
+        }
+        return results;
+    }
+    
+    
+    // TODO: add in support
+    public HashMap<String, Object> getNodeBlob (Node n, String treeID) {
+        
+        HashMap<String, Object> results = new HashMap<>();
+        
+        results.put("node_id", n.getProperty("ot_node_id"));
+        if (n.hasProperty("name")) {
+            results.put("taxon", getTaxonBlob(n));
+        }
+        results.put("num_tips", getNumTipDescendants(n, treeID));
+        
+        
+        return results;
+    }
+    
+    
     // annotations are stored in outgoing rels
     // this works for a single node
     public HashMap<String, Object> getSynthMetadata (Node curNode, String treeID) {
@@ -3796,8 +3832,6 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    
-    
     public Integer getNumTipDescendants (Node nd, String treeID) {
         Integer numTips = null;
         if (nd.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
@@ -3816,47 +3850,6 @@ public class GraphExplorer extends GraphBase {
     public HashMap<String, Object> getNodeBlob (String nodeID, String treeID) throws TaxonNotFoundException {
         Node qnode = findGraphNodeByOTTNodeID(nodeID);
         HashMap<String, Object> results = getNodeBlob(qnode, treeID);
-        return results;
-    }
-    
-    
-    
-    
-    
-    
-    // TODO: add in support
-    public HashMap<String, Object> getNodeBlob (Node n, String treeID) {
-        
-        HashMap<String, Object> results = new HashMap<>();
-        
-        results.put("node_id", n.getProperty("ot_node_id"));
-        if (n.hasProperty("name")) {
-            results.put("taxon", getTaxonBlob(n));
-        }
-        results.put("num_tips", getNumTipDescendants(n, treeID));
-        
-        
-        return results;
-    }
-    
-    
-    
-    // return a map of all taxonomic information stored at node. a 'blob'
-    public HashMap<String, Object> getTaxonBlob (Node n) {
-        
-        HashMap<String, Object> results = new HashMap<>();
-        
-        if (n.hasProperty(NodeProperty.NAME.propertyName)) {
-            results.put("name", n.getProperty(NodeProperty.NAME.propertyName));
-            results.put("unique_name", n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-            results.put("rank", n.getProperty(NodeProperty.TAX_RANK.propertyName));
-            results.put("ott_id", Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName)));
-            
-            // taxonomic sources
-            // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
-            List<String> taxList = new ArrayList<>(Arrays.asList(String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName)).split(",")));
-            results.put("tax_sources", taxList);
-        }
         return results;
     }
     
