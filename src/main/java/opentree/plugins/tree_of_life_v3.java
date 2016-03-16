@@ -395,7 +395,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             HashMap<String, Object> res = new HashMap<>();
             Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
             
-            res.put("synth_id", synthTreeID);
+            //res.put("synth_id", synthTreeID);
             
             HashMap<String, Object> mrcaInfo = ge.getNodeBlob(mrca, synthTreeID);
             res.put("mrca", mrcaInfo);
