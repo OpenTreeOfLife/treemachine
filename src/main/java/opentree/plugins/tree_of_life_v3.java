@@ -95,6 +95,21 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         ) throws TaxonNotFoundException, MultipleHitsException {
 
+        return OTRepresentationConverter.convert(doAbout(graphDb, source_list));
+    }
+
+    // There is no practical way to invoke a PluginTarget from
+    // ordinary Java code, so all the work of the API methods is done
+    // by 'doXXX' helper methods.  (There are a couple of reasons to
+    // call them from Java, such as implementing GET methods using the
+    // unmanaged plugin interface.)
+
+    // I'm not keen on the doXXX naming convention but couldn't come
+    // up with something better. -JAR
+
+    public HashMap<String, Object> doAbout(GraphDatabaseService graphDb, Boolean source_list)
+        throws TaxonNotFoundException, MultipleHitsException {
+
         GraphExplorer ge = new GraphExplorer(graphDb);
         HashMap<String, Object> draftTreeInfo = new HashMap<>();
         Boolean returnSourceList = false;
@@ -156,7 +171,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         } finally {
             ge.shutdownDB();
         }
-        return OTRepresentationConverter.convert(draftTreeInfo);
+        return draftTreeInfo;
     }
     
     
@@ -191,6 +206,14 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         ) throws IllegalArgumentException, TaxonNotFoundException {
         
+        return OTRepresentationConverter.convert(doNodeInfo(graphDb, nodeID, ottID, includeLineage));
+    }
+
+    public HashMap<String, Object> doNodeInfo(GraphDatabaseService graphDb,
+                                              String nodeID,
+                                              Long ottID,
+                                              Boolean includeLineage)
+        throws IllegalArgumentException, TaxonNotFoundException {
         if (nodeID == null && ottID == null) {
             String ret = "Must provide a \"node_id\" or \"ott_id\" argument.";
             throw new IllegalArgumentException(ret);
@@ -287,7 +310,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         ge.shutdownDB();
-        return OTRepresentationConverter.convert(nodeIfo);
+        return nodeIfo;
     }
     
     
@@ -317,7 +340,15 @@ public class tree_of_life_v3 extends ServerPlugin {
         long[] ottIDs
         
         ) throws IllegalArgumentException {
+
+        return OTRepresentationConverter.convert(doMrca(graphDb, nodeIDs, ottIDs));
         
+    }
+
+    public HashMap<String, Object> doMrca(GraphDatabaseService graphDb,
+                                          String[] nodeIDs,
+                                          long[] ottIDs)
+    {
         ArrayList<Node> tips = new ArrayList<>();
         ArrayList<Long> ottIdsNotInTree = new ArrayList<>();
         ArrayList<String> nodesIDsNotInTree = new ArrayList<>();
@@ -418,7 +449,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
             
             ge.shutdownDB();
-            return OTRepresentationConverter.convert(res);
+            return res;
         }
     }
     
@@ -451,8 +482,17 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "label_format", optional = true)
         String labFormat
         
-        ) throws IllegalArgumentException {
-        
+        ) throws IllegalArgumentException
+    {
+        return OTRepresentationConverter.convert(doInducedSubtree(graphDb, nodeIDs, ottIDs, labFormat));
+    }
+
+    public HashMap<String, Object> doInducedSubtree(GraphDatabaseService graphDb,
+                                                    String[] nodeIDs,
+                                                    long[] ottIDs,
+                                                    String labFormat)
+        throws IllegalArgumentException
+    {
         ArrayList<Node> tips = new ArrayList<>();
         ArrayList<Long> ottIdsNotInTree = new ArrayList<>();
         ArrayList<String> nodesIDsNotInTree = new ArrayList<>();
@@ -552,7 +592,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             
             
             res.put("newick", ge.getInducedSubtree(tips, synthTreeID, labelFormat).getNewick(false) + ";");
-            return OTRepresentationConverter.convert(res);
+            return res;
         }
     }
     
@@ -583,8 +623,17 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "label_format", optional = true)
         String labFormat
         
-        ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException {
-        
+        ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
+    {
+        return OTRepresentationConverter.convert(doSubtree(graphDb, nodeID, ottID, labFormat));
+    }
+
+    public HashMap<String, Object> doSubtree(GraphDatabaseService graphDb,
+                                             String nodeID,
+                                             Long ottID,
+                                             String labFormat)
+        throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
+    {
         if (nodeID == null && ottID == null) {
             String ret = "Must provide a \"node_id\" or \"ott_id\" argument.";
             throw new IllegalArgumentException(ret);
@@ -693,7 +742,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
         //responseMap.put("synth_id", synthTreeID);
-        return OTRepresentationConverter.convert(responseMap);
+        return responseMap;
     }
     
     
