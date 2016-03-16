@@ -260,7 +260,7 @@ public class GoLS extends ServerPlugin {
         }
     }
     
-    
+    /*
     @Description("Returns a newick string of the draft tree specified by the optional arg "
         + "`synth_id` (defaults to most current) for the node identified by `node_id`.")
     @PluginTarget(GraphDatabaseService.class)
@@ -323,7 +323,7 @@ public class GoLS extends ServerPlugin {
         
         return OTRepresentationConverter.convert(response);
     }
-    
+    */
     
     
     // ============================== deprecate service below?  ==================================

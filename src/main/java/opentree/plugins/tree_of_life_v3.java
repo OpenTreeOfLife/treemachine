@@ -258,7 +258,8 @@ public class tree_of_life_v3 extends ServerPlugin {
                 
                 HashMap<String, Object> props = ge.getSynthMetadata(qNode, synthTreeID);
                 treeInfo.putAll(props);
-                // todo: source to meta map
+                
+                // source to meta map
                 HashMap<String, Object> sourceMap = new HashMap<>();
                 for (String key : props.keySet()) {
                     HashMap<String, Object> ind = (HashMap<String, Object>) props.get(key);
@@ -279,7 +280,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                     }
                     treeInfo.put("lineage", lineage);
                 }
-                treeInfo.put("synth_id", synthTreeID);
+                //treeInfo.put("synth_id", synthTreeID);
                 nodeIfo.putAll(treeInfo);
                 
                 //nodeIfo.put("synth_data", treeInfo);
