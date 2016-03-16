@@ -692,7 +692,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         }
         
         responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
-        responseMap.put("synth_id", synthTreeID);
+        //responseMap.put("synth_id", synthTreeID);
         return OTRepresentationConverter.convert(responseMap);
     }
     
