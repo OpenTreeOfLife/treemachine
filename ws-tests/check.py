@@ -40,6 +40,13 @@ def check_string(x, where):
         print '** expected string but got', x, where
         return False
 
+def check_boolean(x, where):
+    if x == True or x == False:
+        return True
+    else:
+        print '** expected boolean but got', x, where
+        return False
+
 def check_source_id(x, where):
     if not isinstance(x, unicode):
         print '** expected string (source id) but got', x, where
