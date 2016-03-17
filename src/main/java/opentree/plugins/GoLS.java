@@ -204,7 +204,6 @@ public class GoLS extends ServerPlugin {
         
         // grab existing synth tree ids
         GraphExplorer ge = new GraphExplorer(graphDb);
-        ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs(); // these are sorted
         
         // get synthetic tree identifier
         if (synthID != null) {
