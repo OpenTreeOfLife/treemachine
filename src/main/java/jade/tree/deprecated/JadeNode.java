@@ -32,8 +32,8 @@ public class JadeNode {
         //this.number = 0;
         this.name = "";
         this.parent = null;
-        this.children = new ArrayList<JadeNode> ();
-        this.assoc = new ArrayList<NodeObject>();
+        this.children = new ArrayList<> ();
+        this.assoc = new ArrayList<>();
     }
     
     public JadeNode(JadeNode parent) {
@@ -43,8 +43,8 @@ public class JadeNode {
         //this.number = 0;
         this.name = "";
         this.parent = parent;
-        this.children = new ArrayList<JadeNode> ();
-        this.assoc = new ArrayList<NodeObject>();
+        this.children = new ArrayList<> ();
+        this.assoc = new ArrayList<>();
     }
     
     public JadeNode(double BL, String name, JadeNode parent) {
@@ -54,10 +54,9 @@ public class JadeNode {
         //this.number = number;
         this.name = name;
         this.parent = parent;
-        this.children = new ArrayList<JadeNode> ();
-        this.assoc = new ArrayList<NodeObject>();
+        this.children = new ArrayList<> ();
+        this.assoc = new ArrayList<>();
     }
-
 
     /* ---------------------------- begin node iterators --------------------------------*/
 
@@ -70,10 +69,8 @@ public class JadeNode {
                 addDescendants(c, children, order);
             }
             children.add(n);
-
         } else if (order == NodeOrder.POSTORDER) {
             children.add(n);
-
             for (JadeNode c : n.children){
                 addDescendants(c, children, order);
             }
@@ -81,14 +78,13 @@ public class JadeNode {
     }
     
     public Iterable<JadeNode> getDescendants(NodeOrder order) {
-        
-        LinkedList<JadeNode> nodes = new LinkedList<JadeNode>();
+        LinkedList<JadeNode> nodes = new LinkedList<>();
         addDescendants(this, nodes, order);
         return nodes;
     }
     
     public Iterable<JadeNode> getDescendantLeaves(NodeOrder order) {
-        LinkedList<JadeNode> leaves = new LinkedList<JadeNode>();
+        LinkedList<JadeNode> leaves = new LinkedList<>();
         for (JadeNode descendant : getDescendants(order)) {
             if (descendant.isExternal()) {
                 leaves.add(descendant);
@@ -126,7 +122,6 @@ public class JadeNode {
     public void setParent(JadeNode p) {this.parent = p;}
     
     //public int getNumber() {return this.number;}
-    
     //public void setNumber(int n) {this.number = n;}
     
     public double getBL() {return this.BL;}
@@ -229,7 +224,7 @@ public class JadeNode {
         Object hc = this.getObject("haschild");
         if (hc != null) {
             int nc = (Integer)this.getObject("numchild");
-            if(nc > this.getChildCount()){
+            if (nc > this.getChildCount()) {
                 ret.append(", \"notcomplete\": 1");
             }
         }
@@ -241,22 +236,23 @@ public class JadeNode {
 //            ret.append(", \"supportedBy\": ");
 //            JSONExporter.writeStringArrayAsJSON(ret, (String []) sup);
             int sz = 0;
-            for (int i=0;i<((String []) sup).length;i++){
-                if ((((String []) sup)[i]).equals("taxonomy"))
+            for (int i=0;i<((String []) sup).length;i++) {
+                if ((((String []) sup)[i]).equals("taxonomy")) {
                     continue;
-                else
+                } else {
                     sz++;
+                }
             }
             ret.append(", \"size\": "+sz);
         }
         Object relid = this.getObject("relid");
-        if(relid != null){
+        if (relid != null) {
             ret.append(", \"relid\": "+relid);
         }
-        if(this.getObject("nodeID") != null){
+        if (this.getObject("nodeID") != null) {
             ret.append(", \"id\":"+this.getObject("nodeID"));
         }
-        if(this.getObject("onlygbif") != null){
+        if (this.getObject("onlygbif") != null) {
             ret.append(", \"jgbif\": 1");
         }
         ret.append("}");
@@ -287,7 +283,7 @@ public class JadeNode {
      */
     public int getTipCount() {
         int count = 0;
-        Stack<JadeNode> nodes = new Stack<JadeNode>();
+        Stack<JadeNode> nodes = new Stack<>();
         nodes.push(this);
         while (nodes.isEmpty() == false) {
             JadeNode jt = nodes.pop();

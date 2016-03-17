@@ -1,22 +1,17 @@
 package opentree;
 
-import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.set.hash.TLongHashSet;
-import jade.deprecated.MessageLogger;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.TreeReader;
-
 import org.opentree.utils.GeneralUtils;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,35 +20,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
-import java.util.StringTokenizer;
-
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
-import opentree.constants.SourceProperty;
-
-import org.opentree.bitarray.ImmutableCompactLongSet;
-import org.opentree.bitarray.TLongBitArray;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
-
-import opentree.synthesis.DraftTreePathExpander;
-import opentree.synthesis.RankedSynthesisExpander;
-import opentree.synthesis.RankedSynthesisSubproblemExpander;
-import opentree.synthesis.SynthesisExpander;
-import opentree.synthesis.SynthesisExpander.Verbosity;
-import opentree.synthesis.conflictresolution.RankResolutionMethod;
-import opentree.synthesis.conflictresolution.RelationshipConflictResolver;
-import opentree.synthesis.conflictresolution.TreeMakingBandB;
-import opentree.synthesis.filtering.RelationshipFilter;
-import opentree.synthesis.filtering.SetComparison;
-import opentree.synthesis.filtering.FilterCriterion;
-import opentree.synthesis.filtering.Directive;
-import opentree.synthesis.filtering.SourcePropertySetTest;
-import opentree.synthesis.ranking.RelationshipRanker;
-import opentree.synthesis.ranking.SourcePropertyPrioritizedRankingCriterion;
-
+import opentree.DraftTreePathExpander;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
@@ -61,25 +34,17 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.Traversal;
-import org.neo4j.server.plugins.Source;
-import org.neo4j.server.rest.repr.OTRepresentationConverter;
-import org.neo4j.server.rest.repr.Representation;
-
-import scala.actors.threadpool.Arrays;
-
-import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class GraphExplorer extends GraphBase {
     //static Logger _LOG = Logger.getLogger(GraphExplorer.class);
-    private SpeciesEvaluator se;
+    //private SpeciesEvaluator se;
     private ChildNumberEvaluator cne;
-    private TaxaListEvaluator tle;
-    private boolean sinkLostChildren;
+    //private TaxaListEvaluator tle;
+    //private boolean sinkLostChildren;
     private HashSet<Long> knownIdsInTree;
     public boolean verbose = true; // used for controlling logging for plugins
     public boolean newickLabelsAreIDs = false;
@@ -90,42 +55,48 @@ public class GraphExplorer extends GraphBase {
         verbose = false;
     }
     
+    /*
     public void setNewickLabelsToIDs() {
         newickLabelsAreIDs = true;
     }
+    */
     
     public void turnOffInternalNewickLabels() {
         newickLabelInternalNodes = false;
     }
     
+    // only used in main
     public GraphExplorer(String graphname) {
         super(graphname);
-        setDefaultParameters();
         finishInitialization();
     }
     
+    // used in plugins
     public GraphExplorer(GraphDatabaseService gdb) {
         super(gdb);
-        setDefaultParameters();
         finishInitialization();
     }
     
+    /*
     public GraphExplorer(GraphDatabaseAgent gdb) {
         super(gdb);
         setDefaultParameters();
         finishInitialization();
     }
+    */
     
     private void finishInitialization() {
         cne = new ChildNumberEvaluator();
         cne.setChildThreshold(100);
-        se = new SpeciesEvaluator();
-        tle = new TaxaListEvaluator();
+        //se = new SpeciesEvaluator();
+        //tle = new TaxaListEvaluator();
     }
     
+    /*
     private void setDefaultParameters() {
         sinkLostChildren = false;
     }
+    */
     
     /* -------------------- DEPRECATED info: collapsing children based on graph decisions ----------------------- */
     
@@ -136,19 +107,6 @@ public class GraphExplorer extends GraphBase {
      * meaning deep and imprecise) assignment of "lost child" taxa.
      */
     
-    // appends '_ottNNNNN' to name, and ensures it is newick-compliant
-    public String getOttName (Node curNode) {
-        String name;
-    
-        try {
-         name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
-        } catch(Exception e) {
-            name = String.valueOf(curNode.getProperty("name"));
-        }
-        // make name newick-valid
-        name = GeneralUtils.newickName(name);
-        return (name);
-    }
 
     /* --------------------- end info: collapsing children based on taxonomy ---------------------- */
     
@@ -160,22 +118,25 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param sinkLostChildren
      */
+    /*
     public void setSinkLostChildren(boolean sinkLostChildren) {
         this.sinkLostChildren = sinkLostChildren;
         if (sinkLostChildren) {
             this.knownIdsInTree = new HashSet<Long>();
         }
     }
+    */
     
     /**
      * Just check the status of the sinkLostChildren option.
      * 
      * @return sinkLostChildren
      */
+    /*
     public boolean sinkLostChildrenActive() {
         return sinkLostChildren;
     }
-    
+    */
     
     public void printLicaNames(String nodeid) {
         Node gn = graphDb.getNodeById(Long.valueOf(nodeid));
@@ -201,10 +162,11 @@ public class GraphExplorer extends GraphBase {
      * @param tips
      * @return
      */
+    /*
     private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips) {
         return getTreeTipRootPathMap(tips, null);
     }
-    
+    */
     
     private Map<Node, ArrayList<Node>> getTreeTipRootPathTaxonomyMap(Iterable<Node> tips) {
         return getTreeTipRootPathTaxonomyMap(tips, null);
@@ -242,7 +204,9 @@ public class GraphExplorer extends GraphBase {
                 }
             }
             if (graphPathToRoot.size() < 1) {
-                throw new UnsupportedOperationException("The node " + curTip + " does not seem to be in the draft tree.");
+                String ret = "The node " + curTip + " does not seem to be in the draft tree.";
+                ret += "; `node_id` is: " + curTip.getProperty("ot_node_id");
+                throw new UnsupportedOperationException(ret);
             }
             treeTipRootPathMap.put(curTip, graphPathToRoot);
         }
@@ -254,7 +218,7 @@ public class GraphExplorer extends GraphBase {
         return treeTipRootPathMap;
     }
     
-    
+    /*
     public Node getTaxonomyMRCA(Iterable<Node> nodeset) {
         Node mrca = null;
         ArrayList<Node> holder = null;
@@ -288,48 +252,7 @@ public class GraphExplorer extends GraphBase {
         }
         return mrca;
     }
-    
-    
-    /**
-     * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
-     * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
-     * won't record the path.
-     * 
-     * @param tips
-     * @param stopNode
-     * @return
-     */
-    // verbose is used because plugins call this code
-    private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips, Node stopNode) {
-        
-        if (stopNode != null) {
-            if (verbose) System.out.println("setting stop node to " + stopNode);
-        }
-        
-        // TODO: check if there is only 1 tip, and if it is the same as the mrca. if so, throw UnsupportedOperationException
-        
-        // TODO: probably more efficient to use neo4j paths directly instead of java collections to hold the paths
-        HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<Node, ArrayList<Node>>();
-        // populate the tip hash with the paths to the root of the tree
-        for (Node curTip : tips) {
-            
-            ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
-            for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curTip).nodes()) {
-                
-                if (stopNode != null && m.equals(stopNode)) { // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
-                    //System.out.println("found stop node " + stopNode);
-                    break;
-                }
-                graphPathToRoot.add(0, m);
-            }
-            
-            if (graphPathToRoot.size() < 1) {
-                throw new UnsupportedOperationException("The node " + curTip + " does not seem to be in the draft tree.");
-            }
-            treeTipRootPathMap.put(curTip, graphPathToRoot);
-        }
-        return treeTipRootPathMap;
-    }
+    */
     
     
     /**
@@ -339,6 +262,7 @@ public class GraphExplorer extends GraphBase {
      * @param tips
      * @return
      */
+    /*
     public Node getDraftTreeMRCAForNodes(Iterable<Node> tips, boolean taxonomy) {
         //Map<Node, ArrayList<Node>> treeTipRootPathMap = null;
         if (taxonomy == false) {
@@ -347,48 +271,16 @@ public class GraphExplorer extends GraphBase {
             return mrca;
         } else {
             //treeTipRootPathMap = getTreeTipRootPathTaxonomyMap(tips);
-            Node mrca = getTaxonomyMRCA(tips); // redirect to new method
-            return mrca;
+            //Node mrca = getTaxonomyMRCA(tips); // redirect to new method
+            return null;
         }
     }
+    */
     
     
-    // Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
-    // Doesn't calculate all paths.
-    public Node getDraftTreeMRCA(Iterable<Node> nodeset) {
-        Node mrca = null;
-        ArrayList<Node> holder = null;
-        int index = 10000000;
-        for (Node curNode : nodeset) {
-            if (holder != null) {
-                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
-                    int foo = holder.indexOf(m);
-                    if (foo != -1) { // first match. 
-                        if (foo < index) {
-                            index = foo; // if hit is more rootward than previous hit, record that.
-                        }
-                        break; // subsequent matches are not informative. bail.
-                    }
-                }
-            } else { // first pass. get full path to root. ideally we would get the shortest path...
-                ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
-                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
-                    graphPathToRoot.add(0, m);
-                }
-                holder = graphPathToRoot;
-            }
-        }
-        if (!holder.isEmpty()) {
-            if (index == 10000000) { // only a single node passed in, but it *is* in the synthetic tree
-                mrca = holder.get(holder.size() - 1);
-            } else {
-                mrca = holder.get(index);
-            }
-        }
-        return mrca;
-    }
     
     
+    /*
     public JadeNode extractTaxonomySubtreeForTipNodes(Iterable<Node> tips) {
         Node mrca = getDraftTreeMRCAForNodes(tips, true);
         System.out.println("identified mrca " + mrca);
@@ -453,16 +345,16 @@ public class GraphExplorer extends GraphBase {
         
         return jn;
     }
-    
+    */
     
     /**
-     * Get a subtree out of the draft tree topology for the indicated tips. If taxonomy is true
-     * it will traverse only taxonomy relationships *** taxonomy does not appear to be relevant here
+     * Get a subtree out of the draft tree topology for the indicated tips. 
      * @param tips
      * @return draftSubtree
      */
     // TODO: detect if some nodes are ancestors of other nodes
     // verbose is used because plugins call this code
+    /*
     public JadeNode extractDraftSubtreeForTipNodes(List<Node> tips) {
         
         if (tips.size() < 2) {
@@ -470,16 +362,16 @@ public class GraphExplorer extends GraphBase {
         }
         
         // get the mrca. should check if the mrca is equal to one of the query nodes
-        Node mrca = getDraftTreeMRCAForNodes(tips, false);
+        Node mrca = getDraftTreeMRCA(tips);
         
         if (verbose) System.out.println("identified mrca " + mrca);
         
         // get all the paths from the tips to the mrca
         Map<Node, ArrayList<Node>> treeTipToMRCAPathMap = getTreeTipRootPathMap(tips, mrca);
         
-        HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<Node, JadeNode>();
-        HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<JadeNode, Node>();
-        HashMap<JadeNode, LinkedList<Node>> treeTipGraphMRCADescendantsMap = new HashMap<JadeNode, LinkedList<Node>>();
+        HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<>();
+        HashMap<JadeNode, Node> treeNodeGraphNodeMap = new HashMap<>();
+        HashMap<JadeNode, LinkedList<Node>> treeTipGraphMRCADescendantsMap = new HashMap<>();
         
         for (Node tipNode : treeTipToMRCAPathMap.keySet()) {
             
@@ -499,14 +391,14 @@ public class GraphExplorer extends GraphBase {
         }
         
         // initialize containers
-        HashMap<JadeNode, LinkedList<JadeNode>> treeNodeTreeTipDescendantsMap = new HashMap<JadeNode, LinkedList<JadeNode>>();
-        LinkedList<JadeNode> stack = new LinkedList<JadeNode>();
+        HashMap<JadeNode, LinkedList<JadeNode>> treeNodeTreeTipDescendantsMap = new HashMap<>();
+        LinkedList<JadeNode> stack = new LinkedList<>();
         
         // set start conditions (add root to stack)
         JadeNode root = new JadeNode();
         stack.add(root);
         if (verbose) System.out.println("adding root node to stack");
-        treeNodeTreeTipDescendantsMap.put(root, new LinkedList<JadeNode>(graphNodeTreeNodeMap.values()));
+        treeNodeTreeTipDescendantsMap.put(root, new LinkedList<>(graphNodeTreeNodeMap.values()));
         
         while (stack.size() > 0) {
             if (verbose) System.out.println(stack.size() + " nodes in stack");
@@ -516,7 +408,7 @@ public class GraphExplorer extends GraphBase {
             //System.out.println("processing node from stack named '" + treeNode.getName() + "'");
             
             // get all the children of the tree leaves (which may be deep graph nodes)
-            LinkedList<Node> allDescendantGraphTips = new LinkedList<Node>();
+            LinkedList<Node> allDescendantGraphTips = new LinkedList<>();
             for (JadeNode treeTip : treeNodeTreeTipDescendantsMap.get(treeNode)) {
                 //System.out.println(treeTip.getName());
                 allDescendantGraphTips.addAll(treeTipGraphMRCADescendantsMap.get(treeTip));
@@ -524,7 +416,7 @@ public class GraphExplorer extends GraphBase {
             
             // get the mrca from the graph and record it
             //    Node graphNode = LicaUtil.getDraftTreeLICA(allDescendantGraphTips);
-            Node graphNode = getDraftTreeMRCAForNodes(allDescendantGraphTips,false);
+            Node graphNode = getDraftTreeMRCA(allDescendantGraphTips);
             treeNode.assocObject("graphNode", graphNode);
             if (graphNode.hasProperty("name")) {
                 treeNode.setName(getOttName(graphNode));
@@ -534,7 +426,7 @@ public class GraphExplorer extends GraphBase {
             if (verbose) System.out.println("inferred node mapping in graph is " + graphNode + " name = '" + treeNode.getName() + "'");
             
             // make a container to hold mrca tipsets for nodes to be added as children of this tree node
-            HashMap<Node, LinkedList<JadeNode>> childNodeTreeTipDescendantsMap = new HashMap<Node, LinkedList<JadeNode>>();
+            HashMap<Node, LinkedList<JadeNode>> childNodeTreeTipDescendantsMap = new HashMap<>();
             
             // for each leaf descendant of the current node
             for (JadeNode curDescendantTreeNode : treeNodeTreeTipDescendantsMap.get(treeNode)) {
@@ -560,11 +452,11 @@ public class GraphExplorer extends GraphBase {
                     ancestorName = (String) curDeepestAncestor.getProperty("name");
                     System.out.println("\t\tdeepest remaining ancestor: " + ancestorName);
                 }
-                 */
+                 
                 // make a new entry in the nodes to be added if we haven't seen this ancestor yet
                 if (! childNodeTreeTipDescendantsMap.containsKey(curDeepestAncestor)) {
                     //    System.out.println("\t\tthis ancestor is new.");
-                    childNodeTreeTipDescendantsMap.put(curDeepestAncestor, new LinkedList<JadeNode>());
+                    childNodeTreeTipDescendantsMap.put(curDeepestAncestor, new LinkedList<>());
                 }
                 
                 // queue this leaf to be added under the appropriate ancestor
@@ -669,7 +561,7 @@ public class GraphExplorer extends GraphBase {
         
         return root;
     }
-    
+    */
     
     /**
      * Given a taxonomic name, construct a json object of the subgraph of MRCACHILDOF relationships that are rooted at the specified node. Names that appear in
@@ -964,7 +856,7 @@ public class GraphExplorer extends GraphBase {
                 }
             }
             // get all the childids even if they aren't in the tree, this is the postorder part
-            HashSet<Long> childndids = new HashSet<Long>();
+            HashSet<Long> childndids = new HashSet<>();
             
             // System.out.println(inode.getNewick(false));
             for (int i = 0; i < inode.getChildCount(); i++) {
@@ -1332,6 +1224,7 @@ public class GraphExplorer extends GraphBase {
      * @param test this will just run through the motions but won't store the synthesis 
      * @throws Exception 
      */
+    /*
     public boolean synthesizeAndStoreDraftTreeBranches(Node startNode, Iterable<String> preferredSourceIds, boolean test) throws Exception {
         
         // build the list of ids, have to use generic objects. not used currently
@@ -1369,7 +1262,7 @@ public class GraphExplorer extends GraphBase {
         }
         
         String tempSynthTreeName = DRAFTTREENAME;
-    /*
+    
         int jj = 0;
         while (!done) {
             String terp = tempSynthTreeName;
@@ -1386,7 +1279,7 @@ public class GraphExplorer extends GraphBase {
             }
             jj++;
         }
-    */
+    
         // define the synthesis protocol
         SynthesisExpander draftSynthesisMethod = new SynthesisExpander();
         
@@ -1553,9 +1446,7 @@ public class GraphExplorer extends GraphBase {
             TLongArrayList deadnodes = new TLongArrayList(draftSynthesisMethod.getDeadNodes());
             // System.out.println("dead nodes " + deadnodes);
             // should do this cleaner
-            /*
-             * This cleans up dead nodes
-             */
+            //This cleans up dead nodes
             System.out.println("cleaning dead nodes");
             TLongHashSet vd = new TLongHashSet();
             int actual = 0;
@@ -1591,9 +1482,7 @@ public class GraphExplorer extends GraphBase {
                 }
             }
             System.out.println("number of actual deadnodes:" + actual);
-            /*
-             * end the cleaning
-             */
+            // end the cleaning
             
             System.out.println("Synthesis traversal complete. Results:\n");
             System.out.println("\n" + draftSynthesisMethod.getReport());
@@ -1606,7 +1495,7 @@ public class GraphExplorer extends GraphBase {
             tx.finish();
         }
 
-        //* ============================== add missing children
+        // ============================== add missing children
         tx = graphDb.beginTx();
         try {
             // uncommented for testing with new synth method
@@ -1618,56 +1507,14 @@ public class GraphExplorer extends GraphBase {
         } finally {
             tx.finish();
         }
-        // ============================== end add missing children */
+        // ============================== end add missing children
 
         System.out.println("exiting the sythesis");
         return true;
     }
+    */
     
     
-    /**
-     * Return a List<Node> containing the nodes on the path to the root along the draft tree branches. Will be screwy
-     * if there are multiple draft tree branches bearing the current draft tree name.
-     * 
-     * @param startNode
-     * @return path to root
-     */
-    private List<Long> getDraftTreePathToRoot(Node startNode) {
-        
-        ArrayList<Long> path = new ArrayList<Long>();
-        
-        // testing
-        //    System.out.println("getting path to root");
-        
-        Node curParent = startNode;
-        boolean atRoot = false;
-        while (!atRoot) {
-            
-            // testing
-            //    System.out.println("looking for parents of " + curParent.toString());
-            
-            Iterable<Relationship> parentRels = curParent.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING);
-            atRoot = true; // assume we have hit the root until proven otherwise
-            for (Relationship m : parentRels) {
-                
-                // testing
-                //    System.out.println("current rel name = " + m.getProperty("name") + "; drafttreename = " + DRAFTTREENAME);
-                
-                if (String.valueOf(m.getProperty("name")).equals(DRAFTTREENAME)) {
-                    
-                    atRoot = false; // if we found an acceptable relationship to a parent then we're not done yet
-                    curParent = m.getEndNode();
-                    
-                    // testing
-                    //    System.out.println("found a parent! " + curParent.toString());
-                    
-                    path.add(curParent.getId());
-                    break;
-                }
-            }
-        }
-        return path;
-    }
     
     
     /**
@@ -1676,6 +1523,7 @@ public class GraphExplorer extends GraphBase {
      * @param descNodes
      * @return licaNode
      */
+    /*
     private Node getLICAForDraftTreeNodes(Iterable<Node> descNodes) {
         
         if (!descNodes.iterator().hasNext()) {
@@ -1728,13 +1576,14 @@ public class GraphExplorer extends GraphBase {
         // return the lica
         return graphDb.getNodeById(referencePathNodeIds.get(i));
     }
-    
+    */
     
     /**
      * Used to add missing external nodes to the draft tree stored in the graph.
      * @param startNode
      * @param taxRootNode
      */
+    /*
     private void addMissingChildrenToDraftTreeWhile (Node startNode, Node taxRootNode) {
         // to be stored as the 'supporting_sources' property of newly created rels
         String[] supportingSources = new String[1];
@@ -1896,14 +1745,41 @@ public class GraphExplorer extends GraphBase {
             }
         }
     }
-    
+    */
     
     // ====================================== extracting Synthetic trees from the db ==========================================
     
+    /**
+     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
+     * External function that uses the ottid to find the root node in the db.
+     * 
+     * This includes mapping the relationships based on a list that is input
+     * 
+     * @param startNode
+     * @param synthTreeName
+     * @param rellist
+     * @throws OttIdNotFoundException 
+     */
+    /*
+    public JadeTree extractDraftTreeMap(Node startNode, String synthTreeName, HashMap<Long,Integer> rellist) {
+        
+        // empty parameters for initial recursion
+        JadeNode parentJadeNode = null;
+        Relationship incomingRel = null;
+        
+        return new JadeTree(extractStoredSyntheticTreeRecurMap(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, rellist));
+    }
+    */
     
     
     // extract a specific synthetic tree by name
     // if startNode is null, will return the whole tree (if present)
+    /**
+     * @param startNode
+     * @param synthTreeName
+     * @return JadeTree
+     */
+    /*
     public JadeTree extractDraftTreeByName(Node startNode, String synthTreeName) {
         
         // empty parameters for initial recursion
@@ -1921,129 +1797,7 @@ public class GraphExplorer extends GraphBase {
         
         return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, synthTreeName));
     }
-
-    
-    /**
-     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
-     * External function that uses the ottid to find the root node in the db.
-     * 
-     * This includes mapping the relationships based on a list that is input
-     * 
-     * @param startNode
-     * @param synthTreeName
-     * @param rellist
-     * @throws OttIdNotFoundException 
-     */
-    public JadeTree extractDraftTreeMap(Node startNode, String synthTreeName, HashMap<Long,Integer> rellist) {
-        
-        // empty parameters for initial recursion
-        JadeNode parentJadeNode = null;
-        Relationship incomingRel = null;
-        
-        return new JadeTree(extractStoredSyntheticTreeRecurMap(startNode, parentJadeNode, incomingRel, DRAFTTREENAME, rellist));
-    }
-    
-    
-    /**
-     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
-     * External function that uses the ottid to find the root node in the db.
-     * 
-     * @param nodeId
-     * @throws OttIdNotFoundException 
-     */
-    public JadeTree extractDraftTree(Node startNode, String synthTreeName) {
-        
-        // empty parameters for initial recursion
-        System.out.println("Attempting to extract draft tree name: '" + synthTreeName + "'");
-        JadeNode parentJadeNode = null;
-        Relationship incomingRel = null;
-        
-        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, synthTreeName));
-    }
-    
-    
-    /**
-     * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
-     * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
-     * 
-     * @param nodeId
-     */
-    private JadeNode extractStoredSyntheticTreeRecur(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName) {
-        
-        JadeNode curNode = new JadeNode();
-        
-        // testing
-        //System.out.println("child graph node: " + curGraphNode.getId());
-        //if (parentJadeNode != null) {
-        //    System.out.println("parent jade node: " + parentJadeNode.toString());
-        //}
-        
-        // set the names for the newick string
-        if (curGraphNode.hasProperty("name")) {
-            if (nodeIsTerminal(curGraphNode)) {
-                if (newickLabelsAreIDs) {
-                    curNode.setName(("ott").concat(String.valueOf(curGraphNode.getProperty("tax_uid"))));
-                } else {
-                    curNode.setName(getOttName(curGraphNode));
-                }
-            } else {
-                if (newickLabelInternalNodes) {
-                    if (newickLabelsAreIDs) {
-                        curNode.setName(("ott").concat(String.valueOf(curGraphNode.getProperty("tax_uid"))));
-                    } else {
-                        curNode.setName(getOttName(curGraphNode));
-                    }
-                }
-            }
-        }
-        curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
-        
-        // add the current node to the tree we're building
-        if (parentJadeNode != null) {
-            boolean done = false;
-            while (!done) {
-                for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
-                    
-                    if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
-                        //curNode.assocObject("supporting_sources", (String [] ) synthChildRel.getProperty("supporting_sources"));
-                        //if (verbose) System.out.println("Supporting sources for node [" + curGraphNode.getId() + "]: " + Arrays.toString((String [] ) synthChildRel.getProperty("supporting_sources")));
-                        done = true;
-                    }
-                }
-                //if (curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).hasProperty("supporting_sources")) {
-                //    curNode.assocObject("supporting_sources", (String [] ) curGraphNode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getProperty("supporting_sources"));
-                //}
-            }
-            parentJadeNode.addChild(curNode);
-            if (incomingRel.hasProperty("branch_length")) {
-                curNode.setBL((Double) incomingRel.getProperty("branch_length"));
-            }
-        }
-        
-        // get the immediate synth children of the current node
-        LinkedList<Relationship> synthChildRels = new LinkedList<Relationship>();
-        for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
-            
-            //System.out.println("Current rel name = " + String.valueOf(synthChildRel.getProperty("name")));
-            
-            // TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
-            if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
-                // currently just filtering on name
-                synthChildRels.add(synthChildRel);
-                //System.out.println("Current rel matches synth tree '" + synthTreeName + "'");
-            }
-        }
-        
-        // recursively add the children to the tree we're building
-        for (Relationship synthChildRel : synthChildRels) {
-            extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName);
-        }
-        
-        return curNode;
-    }
-    
-    
-    
+    */
     
     
     /**
@@ -2054,6 +1808,7 @@ public class GraphExplorer extends GraphBase {
      * 
      * @param nodeId
      */
+    /*
     private JadeNode extractStoredSyntheticTreeRecurMap(Node curGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String synthTreeName, HashMap<Long,Integer> rellist) {
         
         JadeNode curNode = new JadeNode();
@@ -2112,7 +1867,7 @@ public class GraphExplorer extends GraphBase {
         
         return curNode;
     }
-    
+    */
     
     // =============================== Synthesis methods using source metadata decisions ONLY ===============================
     
@@ -2127,6 +1882,7 @@ public class GraphExplorer extends GraphBase {
      * @param sourcesArray
      * @throws MultipleHitsException 
      */
+    /*
     @Deprecated
     public JadeTree sourceSynthesis(Node startNode, LinkedList<String> sourcesArray, boolean useTaxonomy) throws TaxonNotFoundException, MultipleHitsException {
         
@@ -2144,7 +1900,7 @@ public class GraphExplorer extends GraphBase {
         }
         return new JadeTree(root);
     }
-    
+    */
     
     /**
      * This is the preorder function for constructing newick trees given a list of sources. This ONLY considers the sources, not
@@ -2160,7 +1916,7 @@ public class GraphExplorer extends GraphBase {
      * @return
      */
     
-    
+    /*
     @Deprecated
     private JadeNode sourceSynthesisRecur(Node curGraphNode, JadeNode parentJadeNode, LinkedList<String> sourcesArray, Relationship incomingRel, boolean useTaxonomy) {
         
@@ -2247,12 +2003,12 @@ public class GraphExplorer extends GraphBase {
             return null;
         }
         
-        /* @Deprecated
+        @Deprecated
         HashSet<Long> putativeLostChildIds = null;
         if (sinkLostChildrenStrict) {
             // will be used to record children that may be lost during conflict tie-breaking
             putativeLostChildIds = new HashSet<Long>();
-        } */
+        }
         
         // compare all candidate nodes to choose which to remove/keep
         HashSet<Long> nodesToExclude = new HashSet<Long>();
@@ -2279,11 +2035,11 @@ public class GraphExplorer extends GraphBase {
                     if (candNodeRankingMap.get(cid_i) < candNodeRankingMap.get(cid_j)) {
                         nodesToExclude.add(cid_j);
                         
-                        /* @Deprecated
+                        @Deprecated
                         if (sinkLostChildrenStrict) {
                             // record eventual descendants that may be lost by this choice
                             putativeLostChildIds.addAll(descIds_j);
-                        } */
+                        }
                         
                     } else {
                         
@@ -2291,14 +2047,14 @@ public class GraphExplorer extends GraphBase {
                         nodesToExclude.add(cid_i);
                         break;
                         
-                        /* @Deprecated
+                        @Deprecated
                         if (sinkLostChildrenStrict) {
                             // record eventual descendants that may be lost by this choice
                             putativeLostChildIds.addAll(descIds_i);
                         } else {
                             // we're excluding node i, so don't bother seeing if it is better than remaining nodes
                             break;
-                        } */
+                        }
                     }
                 }
             }
@@ -2310,7 +2066,7 @@ public class GraphExplorer extends GraphBase {
             return null;
         }
         
-        /* @Deprecated
+        @Deprecated
         if (sinkLostChildrenStrict) {
 
             // get ids of all descendants of accepted candidates
@@ -2338,7 +2094,7 @@ public class GraphExplorer extends GraphBase {
                     knownIdsInTree.add(childId);
                 }
             }
-        } */
+        }
         
         // continue recursion
         for (Long cid : candidateNodeIds) {
@@ -2353,6 +2109,7 @@ public class GraphExplorer extends GraphBase {
         // satisfy java's desire for an explicit return
         return null;
     }
+    */
     
     // ==================================== Synthesis methods using graph decisions ONLY ===================================
     
@@ -2370,6 +2127,7 @@ public class GraphExplorer extends GraphBase {
      * @param useBranchAndBound
      * @param syntheticTreeName
      */
+    /*
     @Deprecated
     public JadeTree graphSynthesis(Node startNode, boolean useTaxonomy, boolean useBranchAndBound, String syntheticTreeName) {
         
@@ -2395,7 +2153,7 @@ public class GraphExplorer extends GraphBase {
         // return the tree wrapped in a JadeTree object
         return new JadeTree(root);
     }
-    
+    */
     
     /**
      * This is the preorder function for constructing a newick tree based ONLY on decisions using actual graph properties (e.g. number of tips, etc.),
@@ -2415,6 +2173,7 @@ public class GraphExplorer extends GraphBase {
      * @return JadeNode containing the synthetic tree hierarchy
      */
     // TODO: need to be able to ignore taxonomy
+    /*
     @Deprecated
     private JadeNode graphSynthesisRecur(Node curGraphNode, Node parentGraphNode, JadeNode parentJadeNode, Relationship incomingRel, String altName, boolean useTaxonomy,
             boolean useBranchAndBound, boolean recordSyntheticRels, String synthTreeName) {
@@ -2533,11 +2292,8 @@ public class GraphExplorer extends GraphBase {
             total += storedmrcas.get(nd).size();
         }
         
-        /*
-         * If the totalmrcas is not complete then we search for a more complete one despite lower scores
-         * 
-         * This is a specific knapsack problem
-         */
+        // If the totalmrcas is not complete then we search for a more complete one despite lower scores
+        //This is a specific knapsack problem
         if (totalmrcas - total != 0) {
             System.out.println("more extensive search needed, some tips may be missing");
             System.out.println("before: " + totalmrcas + " " + total);
@@ -2556,7 +2312,7 @@ public class GraphExplorer extends GraphBase {
                 for (Integer i : testindices) {
                     temptestnodes.add(testnodesal.get(i));
                 }
-            }/* else {
+            } else {
                 System.out.println("Exhaustive Pairs");
                 TreeMakingExhaustivePairs tmep = new TreeMakingExhaustivePairs();
                 ArrayList<Long> testnodesal = new ArrayList<Long>(originaltest);
@@ -2564,7 +2320,7 @@ public class GraphExplorer extends GraphBase {
                 for (Integer i : testindices) {
                     temptestnodes.add(testnodesal.get(i));
                 }
-            }*/
+            }
             for (Long nd : temptestnodes) {
                 ntotal += storedmrcas.get(nd).size();
             }
@@ -2591,6 +2347,7 @@ public class GraphExplorer extends GraphBase {
         
         return null;
     }
+    */
     
     // ========================== Methods for re-adding missing children to synthetic trees/subgraphs =============================
     
@@ -2696,6 +2453,7 @@ public class GraphExplorer extends GraphBase {
     // NOTE: this isn't as useful anymore, since the curator gives trees IDs 1, 2, etc. for each study
     //    If all studies have just one tree, each will have the treeID '1'
     //    i.e. treeIDs are no longer unique
+    /*
     @Deprecated
     public ArrayList<String> getTreeIDList() {
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
@@ -2708,12 +2466,13 @@ public class GraphExplorer extends GraphBase {
         }
         return sourceArrayList;
     }
-    
+    */
     
     /**
      * Get the list of sources that have been loaded in the graph
      * @returns array of strings that are the values of the "source" property of nodes stored in sourceMetaIndex
      */
+    /*
     public ArrayList<String> getSourceList() {
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         ArrayList<String> sourceArrayList = new ArrayList<String>(hits.size());
@@ -2729,9 +2488,10 @@ public class GraphExplorer extends GraphBase {
         }
         return sourceArrayList;
     }
-    
+    */
     
     // This doesn't seem to be used anywhere (JWB)
+    /*
     public ArrayList<String> getDetailedSourceList() {
         IndexHits<Node> hits = sourceMetaIndex.query("source", "*");
         ArrayList<String> sourceList = new ArrayList<String>();
@@ -2749,14 +2509,15 @@ public class GraphExplorer extends GraphBase {
         }
         return sourceList;
     }
-    
+    */
     
     // TODO: we should store an index of synthesis "name" -> root node. Here we'll just rely on the fact that
     //      the root of the synthesis tree will be "life"...
+    /*
     private Node getSynthesisRoot(String treeID) throws TaxonNotFoundException {
         return getGraphRootNode();
     }
-    
+    */
     
     /**
      * @returns a JadeTree representation of the synthesis tree with the specified treeID
@@ -2764,11 +2525,12 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSyntheticTree(String treeID, int maxDepth) throws TreeNotFoundException, TaxonNotFoundException {
         Node rootnode = getSynthesisRoot(treeID);
         return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
     }
-    
+    */
     
     /**
      * @returns a JadeTree representation of a subtree of the synthesis tree with the specified treeID
@@ -2783,7 +2545,7 @@ public class GraphExplorer extends GraphBase {
         return reconstructSyntheticTreeHelper(treeID, rootnode, maxDepth);
     }
     
-    
+    /*
     public String findSourceNameFromTreeID(String treeID) throws TreeNotFoundException {
         Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
         assert metadataNode != null;
@@ -2791,7 +2553,7 @@ public class GraphExplorer extends GraphBase {
         //_LOG.debug("Found source = \"" + s + "\" for treeID = \"" + treeID + "\"");
         return s;
     }
-    
+    */
     
     public Node findTreeMetadataNodeFromTreeID(String treeID) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeID(treeID);
@@ -2808,7 +2570,7 @@ public class GraphExplorer extends GraphBase {
         return null;
     }
     
-    
+    /*
     public Node findTreeMetadataNodeFromTreeSourceName (String sourcename) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeSourceName(sourcename);
         //    Node metadataNode = null;    // not used
@@ -2823,7 +2585,7 @@ public class GraphExplorer extends GraphBase {
         assert false; // if we find a rootnode, we should be able to get the metadata...
         return null;
     }
-    
+    */
     
     public Node getRootNodeByTreeID(String treeID) throws TreeNotFoundException {
         IndexHits<Node> hits = sourceRootIndex.get("rootnodeForID", treeID);
@@ -2862,11 +2624,13 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSourceByTreeID(String treeID, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = graphDb.getNodeById(subtreeNodeID);
         Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
+    */
     
     /**
      * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
@@ -2877,12 +2641,14 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSource(String sourcename, long subtreeNodeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = graphDb.getNodeById(subtreeNodeID);
         Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
-
+    */
+    
     /**
      * This will recreate the original source from the graph. At this point this is just a demonstration that it can be done.
      * 
@@ -2892,11 +2658,13 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSource(String sourcename, int maxDepth) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeSourceName(sourcename);
         Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
+    */
     
     /**
      * @returns the source tree with the specified treeID
@@ -2904,15 +2672,17 @@ public class GraphExplorer extends GraphBase {
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
+    /*
     public JadeTree reconstructSourceByTreeID(String treeID, int maxDepth) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeID(treeID);
         Node metadataNode = findTreeMetadataNodeFromTreeID(treeID);
         return reconstructSourceTreeHelper(metadataNode, rootnode, maxDepth);
     }
-    
+    */
     
     
     // just get the stored original newick string (rather than reconstructing it). mostly for testing pruposes.
+    /*
     public String originalNewickBySourceName(String sourcename) throws TreeNotFoundException {
         String tree;
         Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
@@ -2920,14 +2690,14 @@ public class GraphExplorer extends GraphBase {
         tree = (String) metadataNode.getProperty("newick");
         return (tree);
     }
-    
+    */
     
     /**
      * @param maxDepth is the max number of edges between the root and an included node
      *        if non-negative this can be used to prune off subtrees that exceed the threshold
      *        distance from the root. If maxDepth is negative, no threshold is applied
      */
-    
+    /*
     private JadeTree reconstructSourceTreeHelper(Node metadataNode, Node rootnode, int maxDepth) {
         JadeNode root = new JadeNode();
 //        System.out.println("Hiya!");
@@ -3055,6 +2825,7 @@ public class GraphExplorer extends GraphBase {
         tree.setHasBranchLengths(printlengths);
         return tree;
     }
+    */
     
     public static boolean hasIncomingRel(Node subtreeRoot, RelType relType, String treeID) {
         for (Relationship rel : subtreeRoot.getRelationships(Direction.INCOMING, relType)) {
@@ -3072,6 +2843,7 @@ public class GraphExplorer extends GraphBase {
      * This will get information and taxonomy for a tree and the taxonomy
      *      
      **/
+    /*
     public void getInformationAndMonophylyTreeVsTaxonomy(String sourcename) throws TreeNotFoundException {
         Node rootnode = getRootNodeByTreeSourceName(sourcename);
         Node metadataNode = findTreeMetadataNodeFromTreeSourceName(sourcename);
@@ -3199,6 +2971,7 @@ public class GraphExplorer extends GraphBase {
             }
         }
     }
+    */
     
     // this is the deprecated version
     // get all unique sources supporting a node in the synthetic tree. sorted in alphabetical order.
@@ -3322,6 +3095,7 @@ public class GraphExplorer extends GraphBase {
      * @param sources
      * @throws MultipleHitsException 
      */
+    /*
     @Deprecated
     public void constructNewickTaxaListTieBreaker(HashSet<Long> innodes, String[] sources) throws TaxonNotFoundException, MultipleHitsException {
         Node lifeNode = findTaxNodeByName("life");
@@ -3383,15 +3157,18 @@ public class GraphExplorer extends GraphBase {
             e.printStackTrace();
         }
     }
+    */
     
+    // this will have had to check that the node is taxonomic beforehand
     public boolean nodeIsTerminal(Node n) {
-            boolean terminal = false;
-            if (!n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
-                terminal = true;
-            }
-            return terminal;
+        boolean terminal = false;
+        if (!n.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
+            terminal = true;
+        }
+        return terminal;
     }
     
+    /*
     public int getNumberSynthesisTips(Node startNode) {
         int tcount = 0;
         int ncount = 0;
@@ -3437,9 +3214,10 @@ public class GraphExplorer extends GraphBase {
         System.out.println("number of edges supported both by tax and tree: " + bothtaxtree);
         return tcount;
     }
-    
+    */
     
     // From a given node, return all taxonomic descendants which are tips
+    /*
     public ArrayList<Node> getTaxonomyDescendantTips(Node startNode) {
             ArrayList<Node> tips = new ArrayList<Node>();
             TraversalDescription TAXCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.TAXCHILDOF, Direction.INCOMING);
@@ -3450,42 +3228,45 @@ public class GraphExplorer extends GraphBase {
             }
             return tips;
     }
-        
+    */
     
     // From a given node, return all taxonomic descendants which are tips
+    /*
     public ArrayList<Node> getSynthesisDescendantTips(Node startNode) {
-            ArrayList<Node> tips = new ArrayList<Node>();
-            HashSet<Node> tipSet = new HashSet<Node>();
-            TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
-            for (Node curnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
-                if (curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING) == false) { // tip
-                    tips.add(curnode);
-                    tipSet.add(curnode);
-                }
+        ArrayList<Node> tips = new ArrayList<Node>();
+        HashSet<Node> tipSet = new HashSet<Node>();
+        TraversalDescription SYNTHCHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
+        for (Node curnode : SYNTHCHILDOF_TRAVERSAL.breadthFirst().traverse(startNode).nodes()) {
+            if (curnode.hasRelationship(RelType.SYNTHCHILDOF, Direction.INCOMING) == false) { // tip
+                tips.add(curnode);
+                tipSet.add(curnode);
             }
-            System.out.println("Counted " + tipSet.size() + " unique tips.");
-            return tips;
+        }
+        System.out.println("Counted " + tipSet.size() + " unique tips.");
+        return tips;
     }
-    
+    */
     
     // unlike above, this looks at STREE support (including taxonomy), not sources from synthesis alone
+    /*
     public ArrayList<String> getSupportingTreeSources (Node startNode) {
-            HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
-            if (startNode.hasRelationship(RelType.STREECHILDOF, Direction.OUTGOING)) {
-                for (Relationship rel : startNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
-                    if (rel.hasProperty("source")) {
-                        sourceSet.add((String) rel.getProperty(RelProperty.SOURCE.propertyName));
-                    }
+        HashSet<String> sourceSet = new HashSet<String>(); // only want unique sources
+        if (startNode.hasRelationship(RelType.STREECHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : startNode.getRelationships(RelType.STREECHILDOF, Direction.OUTGOING)) {
+                if (rel.hasProperty("source")) {
+                    sourceSet.add((String) rel.getProperty(RelProperty.SOURCE.propertyName));
                 }
             }
-            if (startNode.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
-                sourceSet.add("taxonomy");
-            }
-            ArrayList<String> sources = new ArrayList<String>(sourceSet);
-            return sources;
+        }
+        if (startNode.hasRelationship(RelType.TAXCHILDOF, Direction.INCOMING)) {
+            sourceSet.add("taxonomy");
+        }
+        ArrayList<String> sources = new ArrayList<String>(sourceSet);
+        return sources;
     }
+    */
     
-    
+    /*
     // not useful: assumes only 1 such node, assumes hardcoded constant
     public Node getSynthesisMetaNode() {
         IndexHits<Node> hits = synthMetaIndex.query("name", DRAFTTREENAME);
@@ -3496,8 +3277,9 @@ public class GraphExplorer extends GraphBase {
         hits.close();
         return nd;
     }
-    
+    */
     // is the node in the current synthetic tree?
+    /*
     public boolean nodeIsInSyntheticTree (Node startNode) {
         boolean inTree = false;
         if (startNode.hasRelationship(RelType.SYNTHCHILDOF)) {
@@ -3505,21 +3287,184 @@ public class GraphExplorer extends GraphBase {
         }
         return inTree;
     }
+    */
     
+    /**
+     * Return a List<Node> containing the nodes on the path to the root along the draft tree branches
+     * 
+     * @param startNode graph node
+     * @param treeID synthetic tree identifier
+     * @return path to root
+     */
+    /*
+    public List<Node> getDraftTreePathToRoot(Node startNode, String treeID) {
+        ArrayList<Node> path = new ArrayList<>();
+        Node curParent = startNode;
+        boolean atRoot = false;
+        while (!atRoot) {
+            Iterable<Relationship> parentRels = curParent.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING);
+            atRoot = true; // assume we have hit the root until proven otherwise
+            for (Relationship m : parentRels) {
+                if (String.valueOf(m.getProperty("name")).equals(treeID)) {
+                    atRoot = false; // if we found an acceptable relationship to a parent then we're not done yet
+                    curParent = m.getEndNode();
+                    path.add(curParent);
+                    break;
+                }
+            }
+        }
+        return path;
+    }
+    */
+    
+    /**
+     * Internal method to get an array of arrays representing the rootward paths of a given set of nodes,
+     * used to calculate mrca and associated procedures. stopNode allows to set an mrca beyond which the traversal
+     * won't record the path.
+     * 
+     * @param tips
+     * @param stopNode
+     * @return
+     */
+    // verbose is used because plugins call this code
+    /*
+    private Map<Node, ArrayList<Node>> getTreeTipRootPathMap(Iterable<Node> tips, Node stopNode, String treeID) {
+        
+        if (stopNode != null) {
+            if (verbose) System.out.println("Setting stop node to " + stopNode);
+        }
+        // TODO: check if there is only 1 tip, and if it is the same as the mrca. if so, throw UnsupportedOperationException
+        // TODO: probably more efficient to use neo4j paths directly instead of java collections to hold the paths
+        HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<>();
+        // populate the tip hash with the paths to the root of the tree
+        for (Node curTip : tips) { 
+            ArrayList<Node> graphPathToRoot = new ArrayList<>();
+            for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                    .traverse(curTip).nodes()) {
+                // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
+                if (stopNode != null && m.equals(stopNode)) {
+                    //System.out.println("found stop node " + stopNode);
+                    break;
+                }
+                graphPathToRoot.add(0, m);
+            }
+            if (graphPathToRoot.size() < 1) {
+                String ret = "The node " + curTip + " does not seem to be in the draft tree.";
+                ret += "; `node_id` is: " + curTip.getProperty("ot_node_id");
+                throw new UnsupportedOperationException(ret);
+            }
+            treeTipRootPathMap.put(curTip, graphPathToRoot);
+        }
+        
+        return treeTipRootPathMap;
+    }
+    */
+    
+    // Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
+    // Doesn't calculate all paths.
+    /**
+     * Get the MRCA of one or more nodes (interpreted as tips in some theoretical tree) 
+     * according to the topology of the draft tree. If only one tip is provided, then 
+     * the tip itself is returned.
+     * @param nodeset
+     * @return
+     */
+    /*
+    public Node getDraftTreeMRCA (Iterable<Node> nodeset) {
+        Node mrca = null;
+        ArrayList<Node> holder = null;
+        int index = 10000000;
+        for (Node curNode : nodeset) {
+            if (holder != null) {
+                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
+                    int foo = holder.indexOf(m);
+                    if (foo != -1) { // first match. 
+                        if (foo < index) {
+                            index = foo; // if hit is more rootward than previous hit, record that.
+                        }
+                        break; // subsequent matches are not informative. bail.
+                    }
+                }
+            } else { // first pass. get full path to root. ideally we would get the shortest path...
+                ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
+                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING)).traverse(curNode).nodes()) {
+                    graphPathToRoot.add(0, m);
+                }
+                holder = graphPathToRoot;
+            }
+        }
+        if (!holder.isEmpty()) {
+            if (index == 10000000) { // only a single node passed in, but it *is* in the synthetic tree
+                mrca = holder.get(holder.size() - 1);
+            } else {
+                mrca = holder.get(index);
+            }
+        }
+        return mrca;
+    }
+    */
+    
+    /*
+        // TODO: update to allow multiple synth trees
+    // return all sources used in the construction of a synthetic tree
+    public ArrayList<String> getSynthesisSourceList () {
+        ArrayList<String> sourceList = new ArrayList<>();
+        
+        Node meta = getSynthesisMetaNode();
+        if (meta != null) {
+            String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
+            // sourceList.addAll(java.util.Arrays.asList(sourcePrimList));
+            for (int i = 0; i < sourcePrimList.length; i++) {
+                sourceList.add(sourcePrimList[i]);
+            }
+        }
+        return (sourceList);
+    }
+    */
+    
+    /*
+    // appends '_ottNNNNN' to name, and ensures it is newick-compliant
+    public String getOttName (Node curNode) {
+        String name;
+        try {
+            name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+        } catch(Exception e) {
+            name = String.valueOf(curNode.getProperty("name"));
+        }
+        // make name newick-valid
+        name = GeneralUtils.newickName(name);
+        return name;
+    }
+    */
     
     // ================================= current methods ====================================
     
+    // check if user-provided synth_id is in the db
+    /**
+     * @param treeID is the synthetic tree 'tree_id' identifier
+     * @return true if in tree, false if not
+     */
+    public boolean checkExistingSynthTreeID (String treeID) {
+        boolean good = false;
+        Node test = getSynthesisMetaNodeByName(treeID);
+        if (test != null) {
+            good = true;
+        }
+        return good;
+    }
+    
+    
     // synth tree ids are returned sorted, so assumes a certain numbering scheme
     public ArrayList<String> getSynthTreeIDs () {
-        HashSet<String> trees = new HashSet<String>();
+        HashSet<String> trees = new HashSet<>();
         IndexHits<Node> hits  = synthMetaIndex.query("name", "*");
         for (Node hit : hits) {
-            if (hit.hasProperty("tree_id")) { // temp
+            if (hit.hasProperty("tree_id")) {
                 trees.add((String) hit.getProperty("tree_id"));
             }
         }
         hits.close();
-        ArrayList<String> synthTreeList = new ArrayList<String>(trees);
+        ArrayList<String> synthTreeList = new ArrayList<>(trees);
         Collections.sort(synthTreeList);
         return (synthTreeList);
     }
@@ -3572,23 +3517,6 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    // TODO: update to allow multiple synth trees
-    // return all sources used in the construction of a synthetic tree
-    public ArrayList<String> getSynthesisSourceList () {
-        ArrayList<String> sourceList = new ArrayList<String>();
-        
-        Node meta = getSynthesisMetaNode();
-        if (meta != null) {
-            String [] sourcePrimList = (String []) meta.getProperty("sourcenames");
-            // sourceList.addAll(java.util.Arrays.asList(sourcePrimList));
-            for (int i = 0; i < sourcePrimList.length; i++) {
-                sourceList.add(sourcePrimList[i]);
-            }
-        }
-        return (sourceList);
-    }
-    
-    
     /**
      * @return a JadeTree representation of a subtree of the synthesis tree with the specified treeID
      * @param treeID the synthetic tree identifier
@@ -3605,28 +3533,6 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    private List<Node> getPathToRoot (Node startNode, RelType relType, String nameToFilterBy) {
-        ArrayList<Node> path = new ArrayList<>();
-        Node curNode = startNode;
-        while (true) {
-            Node nextNode = null;
-            Iterable<Relationship> parentRels = curNode.getRelationships(relType, Direction.OUTGOING);
-            for (Relationship m : parentRels) {
-                if (String.valueOf(m.getProperty("name")).equals(nameToFilterBy)) {
-                    nextNode = m.getEndNode();
-                    break;
-                }
-            }
-            if (nextNode != null) {
-                path.add(nextNode);
-                curNode = nextNode;
-            } else {
-                return path;
-            }
-        }
-    }
-    
-    
     // is the node in the specified synthetic tree?
     public boolean nodeIsInSyntheticTree (Node startNode, String treeID) {
         boolean inTree = false;
@@ -3638,6 +3544,43 @@ public class GraphExplorer extends GraphBase {
         }
         return inTree;
     }
+    
+    
+    // return a map of all taxonomic information stored at node. a 'blob'
+    public HashMap<String, Object> getTaxonBlob (Node n) {
+        
+        HashMap<String, Object> results = new HashMap<>();
+        
+        if (n.hasProperty(NodeProperty.NAME.propertyName)) {
+            results.put("name", n.getProperty(NodeProperty.NAME.propertyName));
+            results.put("unique_name", n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
+            results.put("rank", n.getProperty(NodeProperty.TAX_RANK.propertyName));
+            results.put("ott_id", Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName)));
+            
+            // taxonomic sources
+            // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
+            List<String> taxList = new ArrayList<>(Arrays.asList(String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName)).split(",")));
+            results.put("tax_sources", taxList);
+        }
+        return results;
+    }
+    
+    
+    // TODO: add in support
+    public HashMap<String, Object> getNodeBlob (Node n, String treeID) {
+        
+        HashMap<String, Object> results = new HashMap<>();
+        
+        results.put("node_id", n.getProperty("ot_node_id"));
+        if (n.hasProperty("name")) {
+            results.put("taxon", getTaxonBlob(n));
+        }
+        results.put("num_tips", getNumTipDescendants(n, treeID));
+        
+        
+        return results;
+    }
+    
     
     // annotations are stored in outgoing rels
     // this works for a single node
@@ -3702,7 +3645,7 @@ public class GraphExplorer extends GraphBase {
         addCorePropertiesToJadeNode(root, rootnode, treeID);
         
         List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
-        root.assocObject("path_to_root", pathToRoot); // TODO: add supported by sources to this
+        root.assocObject("path_to_root", pathToRoot);
         root.assocObject("treeID", treeID);
         
         HashMap<String, Object> rootProps = getSynthMetadataAndUniqueSources(rootnode, 
@@ -3798,7 +3741,7 @@ public class GraphExplorer extends GraphBase {
         }
         
         // this basically replaces (neo4j) nodeid from before
-        jNd.assocObject("ot_node_id", nd.getProperty("ot_node_id"));
+        jNd.assocObject("node_id", nd.getProperty("ot_node_id"));
         
         if (nd.hasProperty("unique_name")) {
             jNd.assocObject("unique_name", nd.getProperty("unique_name"));
@@ -3812,10 +3755,80 @@ public class GraphExplorer extends GraphBase {
             jNd.assocObject("tax_rank", nd.getProperty("tax_rank"));
         }
         if (nd.hasProperty("tax_uid")) {
-            jNd.assocObject("ott_id", nd.getProperty("tax_uid"));
+            jNd.assocObject("ott_id", Long.valueOf((String) nd.getProperty("tax_uid")));
+        }
+        jNd.assocObject("tip_descendants", getNumTipDescendants(nd, treeID));
+    }
+    
+    
+    
+    /**
+     * Creates and returns a JadeTree object containing the structure defined by the SYNTHCHILDOF relationships present below a given node.
+     * External function that uses the ottid to find the root node in the db.
+     * 
+     * @param startNode
+     * @param synthTreeName
+     * @param labelFormat
+     * @return JadeTree
+     */
+    public JadeTree extractDraftTree (Node startNode, String synthTreeName, String labelFormat) {
+        
+        // empty parameters for initial recursion
+        System.out.println("Attempting to extract draft tree name: '" + synthTreeName + "'");
+        JadeNode parentJadeNode = null;
+        Relationship incomingRel = null;
+        
+        return new JadeTree(extractStoredSyntheticTreeRecur(startNode, parentJadeNode, incomingRel, synthTreeName, labelFormat));
+    }
+    
+    
+    /**
+     * Recursively creates a JadeNode hierarchy containing the tree structure defined by the SYNTHCHILDOF relationships present below a given node,
+     * and returns the root JadeNode. Internal function that requires a Neo4j Node object for the start node.
+     */
+    private JadeNode extractStoredSyntheticTreeRecur (Node curGraphNode, JadeNode parentJadeNode,
+        Relationship incomingRel, String synthTreeName, String labelFormat) {
+        
+        JadeNode curNode = new JadeNode();
+        
+        // set the names for the newick string
+        curNode.setName(getNodeLabel(curGraphNode, labelFormat));
+        curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+        
+        // add the current node to the tree we're building
+        if (parentJadeNode != null) {
+            boolean done = false;
+            while (!done) {
+                // better way to do this:
+                // for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID)).traverse(curTip).nodes())
+                for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.OUTGOING, RelType.SYNTHCHILDOF)) {
+                    if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
+                        done = true;
+                    }
+                }
+            }
+            parentJadeNode.addChild(curNode);
+            if (incomingRel.hasProperty("branch_length")) {
+                curNode.setBL((Double) incomingRel.getProperty("branch_length"));
+            }
         }
         
-        jNd.assocObject("tip_descendants", getNumTipDescendants(nd, treeID));
+        // get the immediate synth children of the current node
+        LinkedList<Relationship> synthChildRels = new LinkedList<>();
+        for (Relationship synthChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.SYNTHCHILDOF)) {
+            
+            // TODO: here is where we would filter synthetic trees using metadata (or in the traversal itself)
+            if (synthTreeName.equals(String.valueOf(synthChildRel.getProperty("name")))) {
+                // currently just filtering on name
+                synthChildRels.add(synthChildRel);
+                //System.out.println("Current rel matches synth tree '" + synthTreeName + "'");
+            }
+        }
+        // recursively add the children to the tree we're building
+        for (Relationship synthChildRel : synthChildRels) {
+            extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName, labelFormat);
+        }
+        return curNode;
     }
     
     
@@ -3834,48 +3847,22 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    public HashMap<String, Object> getNodeTaxInfo (Node n) {
-        
-        HashMap<String, Object> results = new HashMap<>();
-        String name = "";
-        String uniqueName = "";
-        String rank = "";
-        Long ottId = null;
-        String nodeID = String.valueOf(n.getProperty(NodeProperty.OT_NODE_ID.propertyName));
-        
-        if (n.hasProperty(NodeProperty.NAME.propertyName)) {
-            name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
-            uniqueName = String.valueOf(n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-            rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
-            ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
-            
-            // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
-            String taxStr = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
-            HashMap<String, String> taxSources = stringToMap(taxStr);
-            results.put("tax_sources", taxSources);
-        }
-        
-        results.put("ot_node_id", nodeID);
-        results.put("name", name);
-        results.put("unique_name", uniqueName);
-        results.put("rank", rank);
-        if (ottId != null) {
-            results.put("ott_id", ottId);
-        } else {
-            results.put("ott_id", "null"); // services cannot have null values
-        }
+    public HashMap<String, Object> getNodeBlob (String nodeID, String treeID) throws TaxonNotFoundException {
+        Node qnode = findGraphNodeByOTTNodeID(nodeID);
+        HashMap<String, Object> results = getNodeBlob(qnode, treeID);
         return results;
     }
     
     
+    // basically parse the source string into component
     public HashMap<String, String> getSourceMapIndSource (String source, String treeID) {
         HashMap<String, String> res = stringToMap((String) getSourceMapNodeByName(treeID).getProperty(source));
         return res;
     }
     
     
+    // lots of stuff stored like this bc neo4j cannot have nested properties
     public HashMap<String, String> stringToMap (String source) {
-        
         HashMap<String, String> res = new HashMap<>();
         /// format will be: git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree1,study_id:ot_157
         String [] props = source.split(",");
@@ -3889,9 +3876,9 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    // Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
+// Assumes all query nodes are in the synthetic tree (i.e. should be determined earlier).
     // Doesn't calculate all paths.
-    public Node getDraftTreeMRCA(Iterable<Node> nodeset, String treeID) {
+    public Node getDraftTreeMRCA (Iterable<Node> nodeset, String treeID) {
         Node mrca = null;
         ArrayList<Node> holder = null;
         int index = 10000000;
@@ -3908,8 +3895,9 @@ public class GraphExplorer extends GraphBase {
                     }
                 }
             } else { // first pass. get full path to root. ideally we would get the shortest path...
-                ArrayList<Node> graphPathToRoot = new ArrayList<Node>();
-                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID)).traverse(curNode).nodes()) {
+                ArrayList<Node> graphPathToRoot = new ArrayList<>();
+                for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                        .traverse(curNode).nodes()) {
                     graphPathToRoot.add(0, m);
                 }
                 holder = graphPathToRoot;
@@ -3926,6 +3914,148 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    public Node getDraftTreeMRTA (Node startNode, String treeID) {
+        Node mrta = null;
+        for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                        .traverse(startNode).nodes()) {
+            if (m.hasProperty(NodeProperty.TAX_UID.propertyName)) {
+                mrta = m;
+                break;
+            }
+        }
+        return mrta;
+    }
+    
+    
+    // valid label formats are: `name`, `id`, or `name_and_id`
+    public String getNodeLabel (Node curNode, String labelFormat) {
+        String name = "";
+        
+        // taxonomy node
+        if (curNode.hasProperty("name")) {
+            if ("name".equals(labelFormat)) {
+                name = String.valueOf(curNode.getProperty("name"));
+            } else if ("id".equals(labelFormat)) {
+                name = String.valueOf(curNode.getProperty("ot_node_id"));
+            } else if ("name_and_id".equals(labelFormat)) {
+                name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
+            }
+        } else {
+            name = String.valueOf(curNode.getProperty("ot_node_id"));
+        }
+        // make name newick-compliant
+        name = GeneralUtils.newickName(name);
+        return name;
+    }
+    
+    
+    // all nodes confirmed to be in specified tree before coming here
+    // completely new version. seems to handle knuckles well
+    // TODO: associate synthesis data
+    public JadeNode getInducedSubtree (List<Node> nodeset, String treeID, String labelFormat) {
+        
+        if (nodeset.size() < 2) {
+            throw new UnsupportedOperationException("Cannot extract a tree with < 2 tips.");
+        }
+        
+        HashMap<Node, ArrayList<Node>> treeTipRootPathMap = new HashMap<>();
+        Node mrca = getDraftTreeMRCA(nodeset, treeID);
+        
+        // only want nodes along the path that are mrcas of the query
+        HashSet<Node> uniqueMRCAs = new HashSet<>();
+        
+        // populate the tip hash with the paths to the root of the tree
+        for (Node curTip : nodeset) { 
+            // queries (mostly terminals, probably) all need to retained, obviously
+            uniqueMRCAs.add(curTip);
+            ArrayList<Node> graphPathToRoot = new ArrayList<>();
+            for (Node m : Traversal.description().expand(new DraftTreePathExpander(Direction.OUTGOING, treeID))
+                    .traverse(curTip).nodes()) {
+                // stop recording paths at the stop node (allows us to specify an mrca beyond which we don't go)
+                if (mrca != null && m.equals(mrca)) {
+                    graphPathToRoot.add(m); // want to record mrca node
+                    break;
+                }
+                graphPathToRoot.add(m); // don't want it reversed as in previous function
+            }
+            if (graphPathToRoot.size() < 1) { // probably not possible (nodes have to be in tree, at least 2)
+                String ret = "The node " + curTip + " does not seem to be in the draft tree.";
+                ret += "; `node_id` is: " + curTip.getProperty("ot_node_id");
+                throw new UnsupportedOperationException(ret);
+            }
+            // collect pairwise mrcas here instead of looping again
+            if (!treeTipRootPathMap.isEmpty()) {
+                for (Node n : treeTipRootPathMap.keySet()) {
+                    ArrayList<Node> existingNodes = treeTipRootPathMap.get(n);
+                    for (int i = 0; i < graphPathToRoot.size(); i++) { // only record first match
+                        if (existingNodes.contains(graphPathToRoot.get(i))) {
+                            uniqueMRCAs.add(graphPathToRoot.get(i));
+                            break;
+                        }
+                    }
+                }
+            }
+            treeTipRootPathMap.put(curTip, graphPathToRoot);
+        }
+        
+        // remove from each path any node not in the mrca set
+        for (ArrayList<Node> value : treeTipRootPathMap.values()) {
+            value.retainAll(uniqueMRCAs);
+        }
+        
+        HashMap<Node, JadeNode> graphNodeTreeNodeMap = new HashMap<>();
+        HashSet<Node> addedNodes = new HashSet<>();
+        
+        JadeNode root = new JadeNode(); // add names, etc.
+        root.assocObject("graphNode", mrca);
+        
+        root.setName(getNodeLabel(mrca, labelFormat));
+        addedNodes.add(mrca); // collect processed graph nodes
+        graphNodeTreeNodeMap.put(mrca, root);
+        
+        // build the root
+        for (ArrayList<Node> futureTreeNodes : treeTipRootPathMap.values()) {
+            Node curGraphParent = mrca;
+            Collections.reverse(futureTreeNodes); // ack. do want it in the other order. fix later
+            for (int i = 0; i < futureTreeNodes.size(); i++) {
+                Node workingGraphNode = futureTreeNodes.get(i);
+                if (!addedNodes.contains(workingGraphNode)) { // skip existing nodes
+                    JadeNode childTreeNode = new JadeNode();
+                    childTreeNode.assocObject("graphNode", workingGraphNode);
+                    childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat));
+                    // add child node to current parent
+                    JadeNode parent = graphNodeTreeNodeMap.get(curGraphParent);
+                    parent.addChild(childTreeNode);
+                    addedNodes.add(workingGraphNode);
+                    graphNodeTreeNodeMap.put(workingGraphNode, childTreeNode);
+                }
+                curGraphParent = workingGraphNode;
+            }
+        }
+        return root;
+    }
+    
+    
+    public List<Node> getPathToRoot (Node startNode, RelType relType, String nameToFilterBy) {
+        ArrayList<Node> path = new ArrayList<>();
+        Node curNode = startNode;
+        while (true) {
+            Node nextNode = null;
+            Iterable<Relationship> parentRels = curNode.getRelationships(relType, Direction.OUTGOING);
+            for (Relationship m : parentRels) {
+                if (String.valueOf(m.getProperty("name")).equals(nameToFilterBy)) {
+                    nextNode = m.getEndNode();
+                    break;
+                }
+            }
+            if (nextNode != null) {
+                path.add(nextNode);
+                curNode = nextNode;
+            } else {
+                return path;
+            }
+        }
+    }
     
 }
 

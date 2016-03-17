@@ -1,42 +1,26 @@
 package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.set.hash.TLongHashSet;
 import jade.deprecated.MessageLogger;
 import jade.tree.deprecated.*;
-
-//import java.lang.StringBuffer;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map.Entry;
-
 import opentree.constants.RelType;
-
-import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
-
 import opentree.exceptions.TreeIngestException;
-
-import org.neo4j.graphalgo.GraphAlgoFactory;
-import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.Traversal;
 import org.opentree.exceptions.AmbiguousTaxonException;
-
 import scala.actors.threadpool.Arrays;
 import org.opentree.graphdb.GraphDatabaseAgent;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -160,6 +144,7 @@ public class GraphImporter extends GraphBase {
      * @param test don't add to the database
      * @throws Exception 
      */
+    /*
     public void addSetTreeToGraphWIdsSet(String sourceName, boolean allTreesHaveAllTaxa, boolean runTestOnly, MessageLogger msgLogger) throws Exception {
 
         this.runTestOnly = runTestOnly;
@@ -183,7 +168,8 @@ public class GraphImporter extends GraphBase {
         }
         loadTree();
     }
-
+    */
+    
     // map to deepest exemplified taxon, set tip names to uid
     public JadeTree relabelDeepest () throws Exception {
         for (JadeNode curLeaf : inputJadeTreeLeaves) {
@@ -261,6 +247,7 @@ public class GraphImporter extends GraphBase {
      *        this we could just randomly choose one of the edges that is connected
      *        to the root node that is in the index
      */
+    /*
     public void addSetTreeToGraph(String focalgroup, String sourceName, boolean allTreesHaveAllTaxa, MessageLogger msgLogger) throws Exception {
 
         this.runTestOnly = false;
@@ -284,7 +271,7 @@ public class GraphImporter extends GraphBase {
         }
         loadTree();
     }
-    
+    */
 
     /**
      * Searches the graph for nodes matching the names of the input tree leaves, and uses the `focalgroup` string to disambiguate when
@@ -293,6 +280,7 @@ public class GraphImporter extends GraphBase {
      * @throws TaxonNotFoundException 
      * @throws MultipleHitsException 
      */
+    /*
     private void matchTaxaUsingNames(String focalgroup) throws MultipleHitsException, TaxonNotFoundException {
         
         Node focalnode = findTaxNodeByName(focalgroup);
@@ -348,12 +336,14 @@ public class GraphImporter extends GraphBase {
         }
         gatherInfoForLicaSearches();
     }
+    */
     
     /**
      * Searches the graph for taxa identified using the ottIds stored in the input tree leaves. Will throw exceptions if it
      * cannot find taxa or finds multiple taxa with the same uid.
      * @throws TaxonNotFoundException
      */
+    /*
     private void matchTaxaUsingTaxUIDs() throws TaxonNotFoundException {
         
         // gather information for each leaf in the input tree prior to starting the import
@@ -383,13 +373,15 @@ public class GraphImporter extends GraphBase {
         }
         gatherInfoForLicaSearches();
     }
-
+    */
+    
     /**
      * Uses the exact taxon mappings to find the deepest exemplified taxonomic ancestors that each tip could
      * represent, and remaps the tip taxa. This implements the assumption that input trees cannot inform
      * relationships among taxa which they do not contain. This should improve the results of synthesis methods.
      * @throws Exception 
      */
+    /*
     private void remapTipsToDeepestExemplifiedTaxa() throws Exception {
         
         // preserve the original taxon mappings so we can use these to generate sets of outgroup ids for each tip
@@ -442,6 +434,7 @@ public class GraphImporter extends GraphBase {
             tx.finish();
         }
     }
+    */
     
     /**
      * Gets the deepest taxonomic ancestor that the given inNode can exemplify, using the DeepestTaxAncestorEvaluator class.
@@ -523,21 +516,20 @@ public class GraphImporter extends GraphBase {
      * Initiates the recursive tree-loading procedure. Called by the public methods for loading trees; exists only to avoid code duplication.
      * @throws TreeIngestException
      */
+    /*
     private void loadTree() throws TreeIngestException {
 
         tx = graphDb.beginTx();
-        
         if (runTestOnly == false) { // actually load the tree into the db
             postOrderAddProcessedTreeToGraph(inputTree.getRoot());
         } else { // just test the loading process
             postOrderAddProcessedTreeToGraphNoAdd(inputTree.getRoot());
         }
-        
         tx.success();
-        
         System.out.println("Committing nodes: " + nNodesToCommit);
         tx.finish();
     }
+    */
     
     /**
      * Finish ingest a tree into the GoL. This is called after the names in the tree
@@ -557,6 +549,7 @@ public class GraphImporter extends GraphBase {
      *        a TreeIngestException, or rollback the db modifications.
      *        
      */
+    /*
     @SuppressWarnings("unchecked")
     private void postOrderAddProcessedTreeToGraph(JadeNode curJadeNode) throws TreeIngestException {
 
@@ -627,7 +620,7 @@ public class GraphImporter extends GraphBase {
             TLongArrayList nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode = new TLongArrayList();
 
             // begin alternative block 1
-/*            // summarize the lica mapping information as we recursive move up the tree to the root
+            // summarize the lica mapping information as we recursive move up the tree to the root
             for (JadeNode child : curJadeNode.getChildren()) {
                 graphNodesMappedToDescendantLeavesOfThisJadeNode.addAll((List<Node>) child.getObject("graph_nodes_mapped_to_descendant_leaves"));
                 nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.addAll((long[]) child.getObject("exclusive_mrca"));
@@ -637,7 +630,7 @@ public class GraphImporter extends GraphBase {
                     graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphDb.getNodeById(descIter.next()));
                 }
             }
-            // end alternative block 1  */
+            // end alternative block 1  
 
             // begin alternative block 2
              // gather lica mapping information independently for each node as we see it. this is slightly slower than recording this
@@ -658,7 +651,7 @@ public class GraphImporter extends GraphBase {
                     graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.add(graphDb.getNodeById(descId));
                 }
             }
-            // end alternative block 2  */
+            // end alternative block 2  
 
             curJadeNode.assocObject("graph_nodes_mapped_to_descendant_leaves", graphNodesMappedToDescendantLeavesOfThisJadeNode);
             curJadeNode.assocObject("exclusive_mrca", nodeIdsFor_graphNodesDescendedFrom_graphNodesMappedToDescendantLeavesOfThisJadeNode.toArray());
@@ -787,6 +780,7 @@ public class GraphImporter extends GraphBase {
         }
         //System.out.println("done with node " + Arrays.toString(namesList.toArray()));
     }
+    */
 
     /**
      * Finish ingest a tree into the GoL. This is called after the names in the tree
@@ -807,6 +801,7 @@ public class GraphImporter extends GraphBase {
      *        
      */
 //    @SuppressWarnings("unchecked")
+    /*
     private void postOrderAddProcessedTreeToGraphNoAdd(JadeNode inode) throws TreeIngestException {
     // postorder traversal via recursion
         for (int i = 0; i < inode.getChildCount(); i++) {
@@ -863,7 +858,7 @@ public class GraphImporter extends GraphBase {
             }
         }
     }
-    
+    */
     
     /**
      * This should be called from within postOrderaddProcessedTreeToGraph to create relationships between nodes that have already
@@ -1056,6 +1051,7 @@ public class GraphImporter extends GraphBase {
      * @throws Exception 
      * @throws MultipleHitsException 
      */
+    /*
     public void deleteAllTreesAndReprocess() throws Exception {
         IndexHits<Node> hits  = sourceMetaIndex.query("source", "*");
         System.out.println(hits.size());
@@ -1080,11 +1076,6 @@ public class GraphImporter extends GraphBase {
             }
         }
     }
-        
-    /**
-     * @param args
-     */
-    public static void main(String[] args) {
-        System.out.println("Something!");
-    }
+    */
+    
 }

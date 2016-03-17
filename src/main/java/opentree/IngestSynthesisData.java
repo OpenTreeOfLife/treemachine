@@ -46,35 +46,39 @@ public class IngestSynthesisData extends GraphBase {
     private String synthTreeName; // get this from the json: "tree_id": "a synthesis version id"
     private String rootTaxonID;
     private String taxonomyVersion;
+    private String graphName;
     JSONObject jsonObject; // for annotations
     
     JSONObject nodeMetaData;// nodeMetaData = (JSONObject) jsonObject.get("nodes");
-    
-    
     
     private JadeTree inputJadeTree;
     //private HashMap<String, String> sourceMap; // probably do not need this
     private HashMap<String, HashMap<String, String> > taxNodeInfo;
     
-    //private HashMap<String, Node> taxUIDToNodeMap;
+    private HashMap<String, Node> taxUIDToNodeMap;
     //private HashMap<String, String> childNodeIDToParentNodeIDMap;
     
-    public IngestSynthesisData(String graphname) {
-        super(graphname);
+    public IngestSynthesisData(String graphFileName) {
+        super(graphFileName);
+        graphName = graphFileName;
     }
     
     // these probably are not needed until > 1 tree will be served
+    /*
     public IngestSynthesisData(EmbeddedGraphDatabase eg) {
         super(eg);
     }
-    
+    */
+    /*
     public IngestSynthesisData(GraphDatabaseAgent gdb) {
         super(gdb);
     }
-    
+    */
+    /*
     public IngestSynthesisData(GraphDatabaseService gs) {
         super(gs);
     }
+    */
     
     private void initilaize() {
         inputJadeTree = new JadeTree();
@@ -83,10 +87,10 @@ public class IngestSynthesisData extends GraphBase {
         synthTreeName = "";
         rootTaxonID = "";
         taxNodeInfo = new HashMap<>();
-        
-        //taxUIDToNodeMap = new HashMap<String, Node>();
+        taxUIDToNodeMap = new HashMap<>();
         //childNodeIDToParentNodeIDMap = new HashMap<String, String>();
     }
+    
     
     public void buildDB (String newickFile, String jsonFile, String taxFile, boolean isNewGraph) throws TreeIngestException, IOException {
         /*
@@ -107,17 +111,17 @@ public class IngestSynthesisData extends GraphBase {
         */
         initilaize();
         
-        newGraph = isNewGraph;
-        if (newGraph) {
-            System.out.println("Constructing new graph db");
-        } else {
-            System.out.println("Adding to existing graph db");
-        }
-        
         readAnnotations(jsonFile);
         
         synthTreeName = (String) jsonObject.get("tree_id");
         System.out.println("synthTreeName = " + synthTreeName);
+        
+        newGraph = isNewGraph;
+        if (newGraph) {
+            System.out.println("Constructing new graph db.");
+        } else {
+            System.out.println("Adding to existing graph db.");
+        }
         
         // annotations currently does not prepend 'ott' to "root_ott_id"
         rootTaxonID = "ott" + String.valueOf(jsonObject.get("root_ott_id"));
@@ -126,8 +130,11 @@ public class IngestSynthesisData extends GraphBase {
         
         readNewick(newickFile);
         collectOTTIDs(); // don't think i need this anymore...
-        readTaxonomyTSV(taxFile);
+        //readTaxonomyTSV(taxFile);
+        processTaxonomyTSV2(taxFile);
+        //processTaxonomyTSV(taxFile);
         
+        nNodesToCommit = 0; // reset after taxonomy nodes
         tx = graphDb.beginTx();
         postOrderAddTreeToGraph(inputJadeTree.getRoot());
         tx.success();
@@ -137,6 +144,7 @@ public class IngestSynthesisData extends GraphBase {
         
         setRootMetadata();
     }
+    
     
     private void readNewick (String newickFile) {
         System.out.println("Reading tree from file: " + newickFile);
@@ -175,22 +183,23 @@ public class IngestSynthesisData extends GraphBase {
     }
     
     
-    // Reads a taxonomy file with rows formatted as:
-    //     uid, parent_uid, name, rank, sourceinfo, uniqname, flags
-    // store taxonomy info only for taxa appearing in the tree
-    private void readTaxonomyTSV (String fileName) {
-        
-        ArrayList<String> templines = new ArrayList<String>();
+    // doesn't store templines in an arraylist, so should be better on memory?
+    private void processTaxonomyTSV2 (String fileName) {
         
         int count = 0;
+        int taxCount = 0;
         long start = 0;
         long time = 0;
+        
         System.out.println("Reading taxonomy from file: " + fileName);
+        
+        tx = graphDb.beginTx();
+        System.out.println("Creating taxonomic nodes.");
+        
+        start = System.nanoTime();
         try {
-            
             BufferedReader br = new BufferedReader(new FileReader(fileName));
             String str = "";
-            
             while ((str = br.readLine()) != null) {
                 if (!str.trim().equals("")) {
                     if (str.startsWith("uid")) {
@@ -198,7 +207,204 @@ public class IngestSynthesisData extends GraphBase {
                         continue;
                     }
                     count += 1;
-                    
+                    // does taxon appear in tree?
+                    if (ottIDs.contains(str.substring(0, str.indexOf("\t")))) {
+                        
+                        if (nNodesToCommit % commitFrequency == 0 && nNodesToCommit > 0) {
+                            System.out.println("Committing nodes " + (nNodesToCommit - commitFrequency + 1) + " through " + nNodesToCommit);
+                            tx.success();
+                            tx.finish();
+                            tx = graphDb.beginTx();
+                        }
+
+                        // increment for the transaction frequency
+                        nNodesToCommit++;
+                        taxCount++;
+
+                        Node newGraphNode = graphDb.createNode();
+
+                        StringTokenizer st = new StringTokenizer(str, "|");
+                        String tid = null;
+                        String pid = null; // don't want to keep
+                        String name = null;
+                        String rank = null;
+                        String srce = null;
+                        String unique_name = null;
+                        String flag = null; // don't want to keep
+                        try {
+                            tid = st.nextToken().trim();
+                            pid = st.nextToken().trim();
+                            name = st.nextToken().trim();
+                            rank = st.nextToken().trim();
+                            srce = st.nextToken().trim();
+                            unique_name = st.nextToken().trim();
+                            flag = st.nextToken().trim();
+                        } catch (NoSuchElementException ex) {
+                            throw new NoSuchElementException("The taxonomy file appears to be missing some fields.");
+                        }
+                        String otNodeID = "ott" + tid;
+
+                        newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+
+                        newGraphNode.setProperty(NodeProperty.NAME.propertyName, name);
+                        newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, tid);
+                        newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, rank);
+                        newGraphNode.setProperty(NodeProperty.TAX_SOURCE.propertyName, srce);
+                        String uName = unique_name;
+                        if ("".equals(uName)) {
+                            uName = name;
+                        }
+                        newGraphNode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uName);
+
+                        // add to indices
+                        graphNodeIndex.add(newGraphNode, NodeProperty.NAME.propertyName, name);
+                        graphTaxUIDNodeIndex.add(newGraphNode, NodeProperty.TAX_UID.propertyName, tid);
+                        graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+
+                        // add to map for later retrieval
+                        taxUIDToNodeMap.put(otNodeID, newGraphNode);
+                    }
+                }
+            }
+            br.close();
+            
+        } catch (IOException ioe) {}
+        
+        // get remaining
+        tx.success();
+        System.out.println("Committing nodes: " + nNodesToCommit);
+        tx.finish();
+        
+        time = System.nanoTime() - start;
+        System.out.println("Read " + count + " taxa; retained " + taxCount + ".");
+        System.out.println("Processed taxa in: " + time / 1000000000.0 + " seconds.");
+    }
+    
+    
+    // this version creates taxonomy nodes as they are read, rather than keeping all in memory
+    private void processTaxonomyTSV (String fileName) {
+        
+        ArrayList<String> templines = new ArrayList<>();
+        
+        int count = 0;
+        long start = 0;
+        long time = 0;
+        
+        System.out.println("Reading taxonomy from file: " + fileName);
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(fileName));
+            String str = "";
+            while ((str = br.readLine()) != null) {
+                if (!str.trim().equals("")) {
+                    if (str.startsWith("uid")) {
+                        //System.out.println("Skipping taxonomy header");
+                        continue;
+                    }
+                    count += 1;
+                    // does taxon appear in tree?
+                    if (ottIDs.contains(str.substring(0, str.indexOf("\t")))) {
+                        templines.add(str);
+                    }
+                }
+            }
+            br.close();
+            
+        } catch (IOException ioe) {}
+        System.out.println("Read " + count + " taxa; retained " + templines.size() + ".");
+        
+        start = System.nanoTime();
+        
+        tx = graphDb.beginTx();
+        System.out.println("Creating taxonomic nodes.");
+        // process lines
+        for (int i = 0; i < templines.size(); i++) {
+            // make taxonomic nodes here
+            if (nNodesToCommit % commitFrequency == 0 && nNodesToCommit > 0) {
+                System.out.println("Committing nodes " + (nNodesToCommit - commitFrequency + 1) + " through " + nNodesToCommit);
+                tx.success();
+                tx.finish();
+                tx = graphDb.beginTx();
+            }
+            
+            // increment for the transaction frequency
+            nNodesToCommit++;
+            
+            Node newGraphNode = graphDb.createNode();
+            
+            StringTokenizer st = new StringTokenizer(templines.get(i), "|");
+            String tid = null;
+            String pid = null; // don't want to keep
+            String name = null;
+            String rank = null;
+            String srce = null;
+            String unique_name = null;
+            String flag = null; // don't want to keep
+            try {
+                tid = st.nextToken().trim();
+                pid = st.nextToken().trim();
+                name = st.nextToken().trim();
+                rank = st.nextToken().trim();
+                srce = st.nextToken().trim();
+                unique_name = st.nextToken().trim();
+                flag = st.nextToken().trim();
+            } catch (NoSuchElementException ex) {
+                throw new NoSuchElementException("The taxonomy file appears to be missing some fields.");
+            }
+            String otNodeID = "ott" + tid;
+            
+            newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+            
+            newGraphNode.setProperty(NodeProperty.NAME.propertyName, name);
+            newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, tid);
+            newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, rank);
+            newGraphNode.setProperty(NodeProperty.TAX_SOURCE.propertyName, srce);
+            String uName = unique_name;
+            if ("".equals(uName)) {
+                uName = name;
+            }
+            newGraphNode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uName);
+            
+            // add to indices
+            graphNodeIndex.add(newGraphNode, NodeProperty.NAME.propertyName, name);
+            graphTaxUIDNodeIndex.add(newGraphNode, NodeProperty.TAX_UID.propertyName, tid);
+            graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+            
+            // add to map for later retrieval
+            taxUIDToNodeMap.put(otNodeID, newGraphNode);
+        }
+        tx.success();
+        System.out.println("Committing nodes: " + nNodesToCommit);
+        tx.finish();
+        
+        time = System.nanoTime() - start;
+        System.out.println("Processed taxa in: " + time / 1000000000.0 + " seconds.");
+    }
+    
+    
+    
+    
+    // Abandoning this version, as keeps too much stuff in memory
+    // Reads a taxonomy file with rows formatted as:
+    //     uid, parent_uid, name, rank, sourceinfo, uniqname, flags
+    // store taxonomy info only for taxa appearing in the tree
+    private void readTaxonomyTSV (String fileName) {
+        
+        ArrayList<String> templines = new ArrayList<>();
+        
+        int count = 0;
+        long start = 0;
+        long time = 0;
+        System.out.println("Reading taxonomy from file: " + fileName);
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(fileName));
+            String str = "";
+            while ((str = br.readLine()) != null) {
+                if (!str.trim().equals("")) {
+                    if (str.startsWith("uid")) {
+                        //System.out.println("Skipping taxonomy header");
+                        continue;
+                    }
+                    count += 1;
                     // does taxon appear in tree?
                     if (ottIDs.contains(str.substring(0, str.indexOf("\t")))) {
                         templines.add(str);
@@ -213,7 +419,6 @@ public class IngestSynthesisData extends GraphBase {
         start = System.nanoTime();
         // process lines
         for (int i = 0; i < templines.size(); i++) {
-            
             StringTokenizer st = new StringTokenizer(templines.get(i), "|");
             String tid = null;
             String pid = null; // don't want to keep
@@ -222,7 +427,6 @@ public class IngestSynthesisData extends GraphBase {
             String srce = null;
             String unique_name = null;
             String flag = null; // don't want to keep
-            
             try {
                 tid = st.nextToken().trim();
                 pid = st.nextToken().trim();
@@ -240,14 +444,11 @@ public class IngestSynthesisData extends GraphBase {
             taxonInfo.put("srce", srce);
             taxonInfo.put("unique_name", unique_name);
             taxonInfo.put("tid", tid);
-
             String ottID = "ott" + tid;
             taxNodeInfo.put(ottID, taxonInfo);
         }
-        
         time = System.nanoTime() - start;
         System.out.println("Processed taxa in: " + time / 1000000000.0 + " seconds.");
-        
         System.out.println("Stored " + taxNodeInfo.size() + " taxa from taxonomy TSV.");
     }
     
@@ -354,41 +555,52 @@ public class IngestSynthesisData extends GraphBase {
             postOrderAddTreeToGraph(curJadeNode.getChild(i));
         }
         
-        Node newGraphNode = graphDb.createNode();
-        
         String otNodeID = curJadeNode.getName();
         
-        //newGraphNode.setProperty("ot_node_id", curJadeNode.getName());
-        newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, otNodeID);
-        if (verbose) {
-            System.out.print("Added " + newGraphNode + ": " + otNodeID);
-            if (curJadeNode.isTheRoot()) {
-                System.out.print("\n");
-            } else {
-                System.out.print(". Parent node: " + curJadeNode.getParent().getName() + "\n");
-            }
-        }
+        Node newGraphNode = null;
         
-        curJadeNode.assocObject("gid", newGraphNode.getId());
+        // taxonomy node; will already exist
+        if (curJadeNode.getName().startsWith("ott")) {
+            newGraphNode = taxUIDToNodeMap.get(otNodeID);
+        } else {
+            // have to create this one
+            newGraphNode = graphDb.createNode();
+            
+            //nNodesToCommit++;
+            
+            //newGraphNode.setProperty("ot_node_id", curJadeNode.getName());
+            newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+            if (verbose) {
+                System.out.print("Added " + newGraphNode + ": " + otNodeID);
+                if (curJadeNode.isTheRoot()) {
+                    System.out.print("\n");
+                } else {
+                    System.out.print(". Parent node: " + curJadeNode.getParent().getName() + "\n");
+                }
+            }
+            graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+        }
         
         // taxonomy node; add info from hashmap
-        if (curJadeNode.getName().startsWith("ott")) {
-            HashMap<String, String> taxDat = taxNodeInfo.get(otNodeID);
-            newGraphNode.setProperty(NodeProperty.NAME.propertyName, taxDat.get("name"));
-            newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
-            newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, taxDat.get("rank"));
-            newGraphNode.setProperty(NodeProperty.TAX_SOURCE.propertyName, taxDat.get("srce"));
-            String uName = taxDat.get("unique_name");
-            if ("".equals(uName)) {
-                uName = taxDat.get("name");
-            }
-            newGraphNode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uName);
-            
-            graphNodeIndex.add(newGraphNode, NodeProperty.NAME.propertyName, taxDat.get("name"));
-            graphTaxUIDNodeIndex.add(newGraphNode, NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
-        }
+//        if (curJadeNode.getName().startsWith("ott")) {
+//            HashMap<String, String> taxDat = taxNodeInfo.get(otNodeID);
+//            newGraphNode.setProperty(NodeProperty.NAME.propertyName, taxDat.get("name"));
+//            newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
+//            newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, taxDat.get("rank"));
+//            newGraphNode.setProperty(NodeProperty.TAX_SOURCE.propertyName, taxDat.get("srce"));
+//            String uName = taxDat.get("unique_name");
+//            if ("".equals(uName)) {
+//                uName = taxDat.get("name");
+//            }
+//            newGraphNode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uName);
+//            
+//            graphNodeIndex.add(newGraphNode, NodeProperty.NAME.propertyName, taxDat.get("name"));
+//            graphTaxUIDNodeIndex.add(newGraphNode, NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
+//        }
         
-        graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+        //graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+        
+        curJadeNode.assocObject("gid", newGraphNode.getId());
         
         // add relationships 
         //System.out.print("   Child nodes:");
@@ -504,5 +716,7 @@ public class IngestSynthesisData extends GraphBase {
         String tax = "name:ott,version:" + taxonomyVersion;
         metaNode.setProperty("taxonomy", tax);
     }
+    
+    
 }
 

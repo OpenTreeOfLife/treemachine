@@ -1,7 +1,6 @@
 package opentree;
 
 import gnu.trove.list.array.TLongArrayList;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -10,12 +9,10 @@ import java.util.HashMap;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 import org.apache.commons.lang3.ArrayUtils;
-
 import opentree.constants.NodeProperty;
 import opentree.constants.RelProperty;
 import opentree.constants.RelType;
 import opentree.constants.SourceProperty;
-
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Direction;
@@ -106,6 +103,7 @@ public class GraphInitializer extends GraphBase {
      * @param taxonomyversion version of the taxonomy being used
      * @throws TaxonNotFoundException 
      */
+    /*
     public void addInitialTaxonomyTableIntoGraph(String filename, String synonymfile, String taxonomyversion) throws TaxonNotFoundException {
         
         initContainersForTaxLoading();
@@ -249,13 +247,15 @@ public class GraphInitializer extends GraphBase {
         // taxonomy structure is done. now add the MRCA_CHILDOF and STREE_CHILDOF relationships
         initMrcaAndStreeRelsTax();
     }
-    
+    */
+    /*
     private void addParentRelationshipForTaxUID(String taxUID) {
         Relationship rel = taxUIDToNodeMap.get(taxUID).createRelationshipTo(taxUIDToNodeMap.get(childNodeIDToParentNodeIDMap.get(taxUID)), RelType.TAXCHILDOF);
         rel.setProperty(RelProperty.CHILD_TAX_UID.propertyName, taxUID);
         rel.setProperty(RelProperty.PARENT_TAX_UID.propertyName, childNodeIDToParentNodeIDMap.get(taxUID));
         rel.setProperty(RelProperty.SOURCE.propertyName, "ottol");
     }
+    */
     
     /**
      * Called during taxonomy loading to process each line of input from the taxonomy file
@@ -304,7 +304,7 @@ public class GraphInitializer extends GraphBase {
         Node tnode = graphDb.createNode();
         tnode.setProperty(NodeProperty.NAME.propertyName, name);
         tnode.setProperty(NodeProperty.TAX_UID.propertyName, tid);
-        tnode.setProperty(NodeProperty.TAX_PARENT_UID.propertyName, pid);
+        //tnode.setProperty(NodeProperty.TAX_PARENT_UID.propertyName, pid);
         tnode.setProperty(NodeProperty.TAX_RANK.propertyName, rank);
         tnode.setProperty(NodeProperty.TAX_SOURCE.propertyName, srce);
         tnode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uniqname.equals("") ? name : uniqname);
@@ -334,6 +334,7 @@ public class GraphInitializer extends GraphBase {
         taxUIDToNodeMap.put(tid, tnode);
 
         // synonym processing
+        /*
         if (synFileExists) {
             if (synonymHash.get(tid) != null) {
                 ArrayList<ArrayList<String>> syns = synonymHash.get(tid);
@@ -354,7 +355,8 @@ public class GraphInitializer extends GraphBase {
                     synNodeIndex.add(tnode, NodeProperty.NAME.propertyName, synName);
                 }
             }
-        }        
+        }
+        */
     }
     
     /**
@@ -367,6 +369,7 @@ public class GraphInitializer extends GraphBase {
      * 
      * @throws TaxonNotFoundException 
      */
+    /*
     private void initMrcaAndStreeRelsTax() throws TaxonNotFoundException {
         Node startnode = getGraphRootNode();
 
@@ -415,6 +418,7 @@ public class GraphInitializer extends GraphBase {
         }
         //NOTE: outmrcas don't exist for taxchild of nodes because they are assumed to be the whole thing
     }
+    */
     
     /**
      * for initial taxonomy to tree processing.  adds a mrca->long[]  property
@@ -425,6 +429,7 @@ public class GraphInitializer extends GraphBase {
      *
      * @param dbnode should be a node in the graph-of-life (has incoming MRCACHILDOF relationship)
      */
+    /*
     private void postorderAddMRCAsTax(Node dbnode) {
         //traversal incoming and record all the names
         for (Relationship rel: dbnode.getRelationships(Direction.INCOMING,RelType.MRCACHILDOF)) {
@@ -446,4 +451,5 @@ public class GraphInitializer extends GraphBase {
             dbnode.setProperty(NodeProperty.NESTED_MRCA.propertyName, nested_mrcas.toArray());
         }
     }
+    */
 }

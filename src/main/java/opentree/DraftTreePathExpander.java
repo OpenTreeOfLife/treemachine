@@ -1,4 +1,4 @@
-package opentree.synthesis;
+package opentree;
 
 import java.util.ArrayList;
 import opentree.constants.GeneralConstants;
