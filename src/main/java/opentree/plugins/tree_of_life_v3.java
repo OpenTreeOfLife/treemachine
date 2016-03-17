@@ -11,7 +11,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
 import opentree.GraphExplorer;
-import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
@@ -31,7 +30,8 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 // Graph of Life Services 
 public class tree_of_life_v3 extends ServerPlugin {
     
-    // not currently advertized, but should be
+    // not currently advertized, but should be. well, not until multiple trees gets the go ahead
+    /*
     @Description("Returns brief summary information about the draft synthetic tree(s) "
         + "currently contained within the graph database.") 
     @PluginTarget(GraphDatabaseService.class)
@@ -75,7 +75,7 @@ public class tree_of_life_v3 extends ServerPlugin {
 
         return OTRepresentationConverter.convert(graphInfo);
     }
-    
+    */
     
     
     // NEW: add treeid as a optional argument, default to most recent
@@ -157,7 +157,7 @@ public class tree_of_life_v3 extends ServerPlugin {
 
             if (returnSourceList) {
                 Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
-                draftTreeInfo.put("sources", Arrays.asList((String[]) meta.getProperty("sources")));
+                draftTreeInfo.put("source_list", Arrays.asList((String[]) meta.getProperty("sources")));
 
                 HashMap<String, Object> sourceMap = new HashMap<>();
                 for (String key : sourceMapNode.getPropertyKeys()) {
@@ -196,7 +196,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         Long ottID,
         
         @Description("Include the ancestral lineage of the node in the draft tree. If "
-            + "this argument is `true`, then a list of all the ancestors of this node "
+            + "this argument is \"true\", then a list of all the ancestors of this node "
             + "in the draft tree, down to the root of the tree itself, will be included "
             + "in the results. Higher list indices correspond to more incluive (i.e. "
             + "deeper) ancestors, with the immediate parent of the specified node "
@@ -238,7 +238,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (n != null) {
                 qNode = n;
             } else {
-                String ret = "Could not find any graph nodes corresponding to the `ott_id` provided.";
+                String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided.";
                 throw new TaxonNotFoundException(ret);
             }
         } else if (nodeID != null) {
@@ -250,7 +250,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (n != null) {
                 qNode = n;
             } else {
-                String ret = "Could not find any graph nodes corresponding to the `node_id` provided.";
+                String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided.";
                 throw new TaxonNotFoundException(ret);
             }
         }
@@ -420,7 +420,7 @@ public class tree_of_life_v3 extends ServerPlugin {
 
         if (tips.size() < 1) {
             String ret = "Could not find any graph nodes corresponding to the arg "
-                + "`node_ids` provided.";
+                + "\"node_ids\" provided.";
             throw new IllegalArgumentException(ret);
         } else {
             HashMap<String, Object> res = new HashMap<>();
@@ -478,7 +478,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "ott_ids", optional = true)
         long[] ottIDs,
         
-        @Description("Label format. Valid formats: `name`, `id`, or `name_and_id` (default)")
+        @Description("Label format. Valid formats: \"name\", \"id\", or \"name_and_id\" (default)")
         @Parameter(name = "label_format", optional = true)
         String labFormat
         
@@ -508,7 +508,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         } else {
             if (!labFormat.matches("name|id|name_and_id")) {
                 String ret = "Invalid 'label_format' arg: '" + labFormat + "'. "
-                    + "Valid formats: `name`, `id`, or `name_and_id` (default).";
+                    + "Valid formats: \"name\", \"id\", or \"name_and_id\" (default).";
                 throw new IllegalArgumentException(ret);
             } else {
                 labelFormat = labFormat;
@@ -619,9 +619,20 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "ott_id", optional = true)
         Long ottID,
         
-        @Description("Label format. Valid formats: `name`, `id`, or `name_and_id` (default)")
+        @Description("Label format. Newick only (ignored for arguson format). "
+            + "Valid formats: \"name\", \"id\", or \"name_and_id\" (default)")
         @Parameter(name = "label_format", optional = true)
-        String labFormat
+        String labFormat,
+        
+        @Description("Tree format. Valid formats: \"newick\" (default), or \"arguson\"")
+        @Parameter(name = "format", optional = true)
+        String tFormat,
+        
+        @Description("An integer controlling the max number of edges between the leaves and "
+            + "the root node. A negative number specifies that no depth limit will be applied. "
+            + "The default is 5.")
+        @Parameter(name = "height_limit", optional = true)
+        Integer hLimit
         
         ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
     {
@@ -643,7 +654,13 @@ public class tree_of_life_v3 extends ServerPlugin {
         }
         
         HashMap<String, Object> responseMap = new HashMap<>();
+        
+        // so. very. clunky. what a terrible design...
+        int newickDepth = -1; // negative is no limit
+        int argusonDepth = 5;
+        
         String labelFormat = null;
+        String treeFormat = null;
         
         // temporary, for hiding the multitree stuff
         String synthID = null;
@@ -655,16 +672,38 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
         
-        
+        // set node label format
         if (labFormat == null) {
             labelFormat = "name_and_id";
         } else {
             if (!labFormat.matches("name|id|name_and_id")) {
                 String ret = "Invalid 'label_format' arg: '" + labFormat + "'. "
-                    + "Valid formats: `name`, `id`, or `name_and_id` (default).";
+                    + "Valid formats: \"name\", \"id\", or \"name_and_id\" (default).";
                 throw new IllegalArgumentException(ret);
             } else {
                 labelFormat = labFormat;
+            }
+        }
+        
+        // set output tree format
+        if (tFormat == null) {
+            treeFormat = "newick";
+        } else {
+            if (!tFormat.matches("newick|arguson")) {
+                String ret = "Invalid 'format' arg: '" + tFormat + "'. "
+                    + "Valid formats: \"name\", \"id\", or \"name_and_id\" (default).";
+                throw new IllegalArgumentException(ret);
+            } else {
+                labelFormat = labFormat;
+            }
+        }
+        
+        // set depth limit
+        if (hLimit != null) {
+            if ("newick".equals(treeFormat)) {
+                newickDepth = hLimit;
+            } else {
+                argusonDepth = hLimit;
             }
         }
         
@@ -690,13 +729,13 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (n != null) {
                 qNode = n;
             } else {
-                String ret = "Could not find any graph nodes corresponding to the `ott_id` provided.";
+                String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided.";
                 throw new TaxonNotFoundException(ret);
             }
             // check that startNode is indeed in the synthetic tree
             if (!ge.nodeIsInSyntheticTree(qNode, synthTreeID)) {
                 ge.shutdownDB();
-                String ret = "Queried `ott_id`: " + ottID + " is in the graph, but "
+                String ret = "Queried \"ott_id\": " + ottID + " is in the graph, but "
                     + "not in the draft tree: " + synthTreeID;
                 throw new IllegalArgumentException(ret);
             }
@@ -709,19 +748,20 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (n != null) {
                 qNode = n;
             } else {
-                String ret = "Could not find any graph nodes corresponding to the `node_id` provided.";
+                String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided.";
                 throw new TaxonNotFoundException(ret);
             }
             // check that startNode is indeed in the synthetic tree
             if (!ge.nodeIsInSyntheticTree(qNode, synthTreeID)) {
                 ge.shutdownDB();
-                String ret = "Queried `node_id`: " + nodeID + " is in the graph, but "
+                String ret = "Queried \"node_id\": " + nodeID + " is in the graph, but "
                     + "not in the draft tree: " + synthTreeID;
                 throw new IllegalArgumentException(ret);
             }
         }
         
         // check that the returned tree is not too large
+        // this needs to be changed since truncated trees can now be returned.
         Integer numMRCA = ge.getNumTipDescendants(qNode, synthTreeID);
         
         if (numMRCA > maxNumTips) {
@@ -735,13 +775,17 @@ public class tree_of_life_v3 extends ServerPlugin {
         // get the subtree for export
         JadeTree tree = null;
         try {
-            tree = ge.extractDraftTree(qNode, synthTreeID, labelFormat);
+            if (newickDepth == -1) {
+                tree = ge.extractDraftTree(qNode, synthTreeID, labelFormat);
+            } else {
+                tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat);
+            }
         } finally {
             ge.shutdownDB();
         }
         
         responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
-        //responseMap.put("synth_id", synthTreeID);
+        responseMap.put("newickDepth", newickDepth);
         return responseMap;
     }
     

@@ -76,6 +76,8 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "include_lineage":true}'
 
 
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
+
 
 
 
@@ -92,11 +94,13 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -
   "newick" : "(Gavia_stellata_ott1057044,((Gavia_arctica_ott1085739,Gavia_pacifica_ott651474)mrcaott651474ott1085739,(Gavia_immer_ott1057518,Gavia_adamsii_ott90560)mrcaott90560ott1057518)mrcaott90560ott651474)Gavia_ott803675;",
   "synth_id" : "opentree4.1"
 }
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "label_format":"name"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "label_format":"id"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "label_format":"name_and_id"}'
 
 
-
-
-
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "height_limit":3}'
 
 
 
