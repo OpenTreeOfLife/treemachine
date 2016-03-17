@@ -635,13 +635,15 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
     {
-        return OTRepresentationConverter.convert(doSubtree(graphDb, nodeID, ottID, labFormat));
+        return OTRepresentationConverter.convert(doSubtree(graphDb, nodeID, ottID, labFormat, tFormat, hLimit));
     }
 
     public HashMap<String, Object> doSubtree(GraphDatabaseService graphDb,
                                              String nodeID,
                                              Long ottID,
-                                             String labFormat)
+                                             String labFormat,
+                                             String tFormat,
+                                             Integer hLimit)
         throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
     {
         if (nodeID == null && ottID == null) {
