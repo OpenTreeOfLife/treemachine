@@ -32,6 +32,8 @@ import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
 
 import opentree.plugins.tree_of_life_v3;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // Tree of Life Services 
 public class tree_of_life extends ServerPlugin {
@@ -268,10 +270,8 @@ public class tree_of_life extends ServerPlugin {
 
         */
 
-        // Problem with the newick: the nodes are labeled with name_id where the id is a v3-style node id.
-        // Convert them all?
-
         Map<String, Object> result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id");
+        result.put("newick", trimNewick((String)result.get("newick")));
         result.put("node_ids_not_in_tree", new long[0]);
         result.put("node_ids_not_in_graph", new long[0]);
         result.put("ott_ids_not_in_tree", new long[0]);
@@ -282,18 +282,12 @@ public class tree_of_life extends ServerPlugin {
     }
 
     
-    // TODO: add relevant sources; need design input
     @Description("Return a complete subtree of the draft tree descended from some specified node. "
         + "The draft tree version is specified by the `synth_id` arg (defaults to most recent). "
         + "The node to use as the start node must specified using *either* a node id or an ott id, "
         + "**but not both**. If the specified node is not found an error will be returned.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation subtree (@Source GraphDatabaseService graphDb,
-        
-//        @Description("Synthetic tree identifier (defaults to most recent).")
-//        @Parameter(name = "synth_id", optional = true)
-//        String synthID,
-        
         @Description("The `node_id` of the node of interest. This argument may not be "
             + "combined with `ott_id`.")
         @Parameter(name = "node_id", optional = true)
@@ -331,9 +325,16 @@ public class tree_of_life extends ServerPlugin {
             stringNodeId = longIdToStringId((long)nodeID);
 
         Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id");
+        result.put("newick", trimNewick((String)result.get("newick")));
         result.put("tree_id", "unclear");
 
         return OTRepresentationConverter.convert(result);
+    }
+
+    static Pattern v3nodeid = Pattern.compile(")mrcaott[0-9]+ott[0-9]+");
+
+    String trimNewick(String newick) {
+        return v3nodeid.matcher(newick).replaceAll(")");
     }
 
     // Mapping between v2-style node ids (longs) and v3-style node ids (strings)
