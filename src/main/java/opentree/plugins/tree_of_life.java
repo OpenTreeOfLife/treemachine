@@ -1,3 +1,5 @@
+/** This is an adapter that emulates the v2 API methods using v3 API calls */
+
 package opentree.plugins;
 
 import java.util.ArrayList;
@@ -31,8 +33,8 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 
 import opentree.plugins.tree_of_life_v3;
 
-// Graph of Life Services 
-public class tree_of_life_v2 extends ServerPlugin {
+// Tree of Life Services 
+public class tree_of_life extends ServerPlugin {
     
     tree_of_life_v3 v3 = new tree_of_life_v3();
 
@@ -52,46 +54,69 @@ public class tree_of_life_v2 extends ServerPlugin {
         
         ) throws TaxonNotFoundException, MultipleHitsException {
 
-        HashMap<String, Object> result = v3.doAbout(graphDb, source_list);
+        /*
+          /v2/tree_of_life/about 
+            in: 
+              study_list : boolean   e.g. true
+            out: 
+              date : string 
+              num_tips : integer   e.g. 2424255
+              num_source_studies : integer 
+              taxonomy_version : string 
+              root_node_id : nodeid-integer   e.g. 1
+              root_ott_id : ottid-integer 
+              root_taxon_name : string   e.g. "cellular organisms"
+              study_list : list-of 
+                  git_sha : sha-string 
+                  tree_id : treeid-string 
+                  study_id : studyid-string 
+              tree_id : synthid-string   e.g. "opentree4.0"
 
-        return OTRepresentationConverter.convert(result);
+          /v3/tree_of_life/about 
+            in: 
+              study_list : boolean   e.g. true
+            out: 
+              date_created : string 
+              num_source_studies : integer 
+              num_trees : integer 
+              taxonomy_version : string
+              filtered_flags : ...
+              root : node-blob
+              study_list : list-of 
+                  git_sha : sha-string 
+                  tree_id : treeid-string 
+                  study_id : studyid-string 
+              source_id_map : ...
+              synth_id : synthid-string   e.g. "opentree4.0"
+        */
+
+        // Does default value of source_list flip from v2 to v3?
+
+        Map<String, Object> result = v3.doAbout(graphDb, source_list);
+        Map<String, Object> root = (Map<String, Object>)result.get("root");
+        Map<String, Object> res = new HashMap<>();
+        res.put("date", result.get("date_created"));
+        res.put("num_tips", root.get("num_tips"));
+        res.put("num_source_studies", result.get("num_source_studies"));
+        res.put("taxonomy_version", result.get("taxonomy_version"));
+        res.put("root_node_id", stringIdToLongId((String)(root.get("node_id"))));
+        res.put("root_taxon_name", root.get("name"));
+        res.put("root_ott_id", root.get("ott_id"));
+
+        // Map over result study_list (strings), getting blobs from
+        // the source_id_map.
+        // res.put("study_list", map ... root.get("study_list"));    // worry about @ vs. _ ?
+
+        Map<String, Object> sourceIdMap = (Map<String, Object>)(result.get("source_id_map"));
+        List<Object> trees = new ArrayList<>();
+        for (String sourceid : (List<String>)(root.get("study_list")))
+            trees.add(sourceIdMap.get(sourceid));
+
+        res.put("tree_id", result.get("synth_id"));
+
+        return OTRepresentationConverter.convert(res);
     }
 
-    @Description("Returns summary information about a node in the graph. The node "
-        + "of interest may be specified using *either* a `node_id`, or an `ott_id`, "
-        + "**but not both**. If the specified node is not in the graph, an exception "
-        + "will be thrown.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation node_info (
-        @Source GraphDatabaseService graphDb,
-        
-        @Description("The `node_id` of the node of interest. This argument may not be "
-            + "combined with `ott_id`.")
-        @Parameter(name = "node_id", optional = true)
-        String nodeID,
-        
-        @Description("The `ott_id` of the node of interest. This argument may not be "
-            + "combined with `node_id`.")
-        @Parameter(name = "ott_id", optional = true)
-        Long ottID,
-        
-        @Description("Include the ancestral lineage of the node in the draft tree. If "
-            + "this argument is `true`, then a list of all the ancestors of this node "
-            + "in the draft tree, down to the root of the tree itself, will be included "
-            + "in the results. Higher list indices correspond to more incluive (i.e. "
-            + "deeper) ancestors, with the immediate parent of the specified node "
-            + "occupying position 0 in the list.")
-        @Parameter(name = "include_lineage", optional = true)
-        Boolean includeLineage
-        
-        ) throws IllegalArgumentException, TaxonNotFoundException {
-        
-        HashMap<String, Object> result = v3.doNodeInfo(graphDb, nodeID, ottID, includeLineage);
-
-        return OTRepresentationConverter.convert(result);
-    }
-
-    
     @Description("Get the MRCA of a set of nodes on a the most current draft tree. Accepts "
         + "any combination of node ids and ott ids as input. Returns information about "
         + "the most recent common ancestor (MRCA) node as well as the most recent "
@@ -158,11 +183,7 @@ public class tree_of_life_v2 extends ServerPlugin {
 
             */
 
-        String[] newNodeIDs = new String[nodeIDs.length];
-        for (int i = 0; i < nodeIDs.length; ++i)
-            newNodeIDs[i] = longIdToStringId(nodeIDs[i]);
-
-        Map<String, Object> result = v3.doMrca(graphDb, newNodeIDs, ottIDs);
+        Map<String, Object> result = v3.doMrca(graphDb, longIdsToStringIds(nodeIDs), ottIDs);
         Map<String, Object> mrca = (Map<String, Object>)result.get("mrca");
         Map<String, Object> nearest = (Map<String, Object>)result.get("nearest_taxon");
 
@@ -215,19 +236,47 @@ public class tree_of_life_v2 extends ServerPlugin {
         
         @Description("A set of open tree node ids")
         @Parameter(name = "node_ids", optional = true)
-        String[] nodeIDs,
+        long[] nodeIDs,
         
         @Description("A set of ott ids")
         @Parameter(name = "ott_ids", optional = true)
-        long[] ottIDs,
-        
-        @Description("Label format. Valid formats: `name`, `id`, or `name_and_id` (default)")
-        @Parameter(name = "label_format", optional = true)
-        String labFormat
+        long[] ottIDs
         
         ) throws IllegalArgumentException
     {
-        HashMap<String, Object> result = v3.doInducedSubtree(graphDb, nodeIDs, ottIDs, labFormat);
+
+        /*
+            /v2/tree_of_life/induced_subtree 
+              in: 
+                node_ids : list-of nodeid-integer 
+                ott_ids : list-of ottid-integer 
+              out: 
+                newick : newick-string 
+                node_ids_not_in_tree : list-of nodeid-integer 
+                node_ids_not_in_graph : list-of nodeid-integer 
+                ott_ids_not_in_tree : list-of ottid-integer 
+                ott_ids_not_in_graph : list-of ottid-integer 
+                tree_id : synthid-string 
+
+            /v3/tree_of_life/induced_subtree 
+              in: 
+                node_ids : list-of nodeid-string   e.g. ["mrcaott3504ott396446","mrcaott320ott55033"]
+                ott_ids : list-of ottid-integer 
+                label_format : string   e.g. "name"  -- name, id, name_and_id, original_name 
+              out: 
+                newick : newick-string 
+
+        */
+
+        // Problem with the newick: the nodes are labeled with name_id where the id is a v3-style node id.
+        // Convert them all?
+
+        Map<String, Object> result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id");
+        result.put("node_ids_not_in_tree", new long[0]);
+        result.put("node_ids_not_in_graph", new long[0]);
+        result.put("ott_ids_not_in_tree", new long[0]);
+        result.put("ott_ids_not_in_graph", new long[0]);
+        // Put nothing for tree_id and hope no one notices?
 
         return OTRepresentationConverter.convert(result);
     }
@@ -248,25 +297,50 @@ public class tree_of_life_v2 extends ServerPlugin {
         @Description("The `node_id` of the node of interest. This argument may not be "
             + "combined with `ott_id`.")
         @Parameter(name = "node_id", optional = true)
-        String nodeID,
+        Long nodeID,
         
         @Description("The `ott_id` of the node of interest. This argument may not be "
             + "combined with `node_id`.")
         @Parameter(name = "ott_id", optional = true)
-        Long ottID,
-        
-        @Description("Label format. Valid formats: `name`, `id`, or `name_and_id` (default)")
-        @Parameter(name = "label_format", optional = true)
-        String labFormat
+        Long ottID
         
         ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
     {
-        return OTRepresentationConverter.convert(v3.doSubtree(graphDb, nodeID, ottID, labFormat));
+        /*
+            /v2/tree_of_life/subtree 
+              in: 
+                node_id : nodeid-integer   e.g. 72276
+                ott_id : ottid-integer 
+                tree_id : synthid-string   e.g. "opentree4.0"
+              out: 
+                newick : newick-string 
+                tree_id : synthid-string 
+
+            /v3/tree_of_life/subtree 
+              in: 
+                node_id : nodeid-string   e.g. "mrcaott320ott55033"
+                ott_id : ottid-integer 
+                format : string   e.g. "newick"  -- for arguson. review 
+                label_format : ...
+              out: 
+                newick : string
+         */
+
+        String stringNodeId = null;
+        if (nodeID != null)
+            stringNodeId = longIdToStringId((long)nodeID);
+
+        Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id");
+        result.put("tree_id", "unclear");
+
+        return OTRepresentationConverter.convert(result);
     }
 
-    final long idLimit = 10000000L;
+    // Mapping between v2-style node ids (longs) and v3-style node ids (strings)
 
-    String longIdToStringId(long id) {
+    static final long idLimit = 10000000L;
+
+    static String longIdToStringId(long id) {
         if (id < idLimit)
             return String.format("ott%s", id);
         else
@@ -275,7 +349,15 @@ public class tree_of_life_v2 extends ServerPlugin {
                                  id / idLimit);
     }
 
-    long stringIdToLongId(String id) {
+    static String[] longIdsToStringIds(long[] nodeIDs) {
+        String[] newNodeIDs = new String[nodeIDs.length];
+        for (int i = 0; i < nodeIDs.length; ++i)
+            newNodeIDs[i] = longIdToStringId(nodeIDs[i]);
+        return newNodeIDs;
+    }
+
+
+    static long stringIdToLongId(String id) {
         if (id.startsWith("ott"))
             return Long.parseLong(id.substring(3));
         else if (id.startsWith("mrcaott")) {
