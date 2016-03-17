@@ -30,7 +30,7 @@ status = 0
 
 status += \
 simple_test("/v2/tree_of_life/mrca",
-            {u'ott_ids': [1084532, 3826]}, # two families in Asteraceae
+            {u'ott_ids': [1084532, 3826]}, # two families in Asterales
             check_blob(mrca_result_fields))
 
 sys.exit(status)
