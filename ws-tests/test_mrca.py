@@ -1,4 +1,12 @@
+import sys
+from check import *
 
-from check_mrca import check_mrca
+status = 0
 
-check_mrca({u"node_ids":[u"ott501678", u"ott267845"], u"ott_ids":[292466,10101010]})
+status += \
+simple_test("/v3/tree_of_life/mrca",
+            {u'node_ids': [u"ott3504", u"ott396446"]},
+            check_blob([field(u'mrca', check_node_blob),
+                        opt_field(u'nearest_taxon', check_taxon_blob)]))
+
+sys.exit(status)
