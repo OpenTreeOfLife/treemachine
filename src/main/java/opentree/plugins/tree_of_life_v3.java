@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
+import java.util.HashSet;
 import opentree.GraphExplorer;
 import opentree.constants.RelType;
 import org.opentree.exceptions.MultipleHitsException;
@@ -279,34 +280,33 @@ public class tree_of_life_v3 extends ServerPlugin {
                 HashMap<String, Object> nodeBlob = ge.getNodeBlob(qNode, synthTreeID);
                 nodeIfo.putAll(nodeBlob);
                 
-                HashMap<String, Object> props = ge.getSynthMetadata(qNode, synthTreeID);
+                HashSet<String> uniqueSources = new HashSet<>();
+                HashMap<String, Object> props = ge.getSynthMetadataAndUniqueSources(qNode, synthTreeID, uniqueSources);
                 treeInfo.putAll(props);
-                
-                // source to meta map
-                HashMap<String, Object> sourceMap = new HashMap<>();
-                for (String key : props.keySet()) {
-                    HashMap<String, Object> ind = (HashMap<String, Object>) props.get(key);
-                    for (String src : ind.keySet()) {
-                        HashMap<String, String> fsrc = ge.getSourceMapIndSource(src, synthTreeID);
-                        sourceMap.put(src, fsrc);
-                    }
-                }
-                treeInfo.put("source_id_map", sourceMap);
                 
                 if (includeLineage != null && includeLineage == true) {
                     LinkedList<HashMap<String, Object>> lineage = new LinkedList<>();
                     List<Node> nodeList = ge.getPathToRoot(qNode, RelType.SYNTHCHILDOF, synthTreeID);
-
+                    // need to collect supporting sources here, add them to the list from the focal node
                     for (Node cn : nodeList) {
-                        HashMap<String, Object> indTaxInfo = ge.getTaxonBlob(cn);
-                        lineage.add(indTaxInfo);
+                        HashMap<String, Object> indInfo = ge.getNodeBlob(cn, synthTreeID);
+                        HashMap<String, Object> indProps = ge.getSynthMetadataAndUniqueSources(cn, synthTreeID, uniqueSources);
+                        indInfo.putAll(indProps);
+                        
+                        lineage.add(indInfo);
                     }
                     treeInfo.put("lineage", lineage);
                 }
+                
+                // source to meta map
+                HashMap<String, Object> sourceMap = new HashMap<>();
+                for (String ind : uniqueSources) {
+                    HashMap<String, String> formatSource = ge.getSourceMapIndSource(ind, synthTreeID);
+                    sourceMap.put(ind, formatSource);
+                }
+                treeInfo.put("source_id_map", sourceMap);
                 //treeInfo.put("synth_id", synthTreeID);
                 nodeIfo.putAll(treeInfo);
-                
-                //nodeIfo.put("synth_data", treeInfo);
             }
         }
         ge.shutdownDB();
@@ -598,10 +598,9 @@ public class tree_of_life_v3 extends ServerPlugin {
     
     
     // TODO: add relevant sources; need design input
-    @Description("Return a complete subtree of the draft tree descended from some specified node. "
-        + "The draft tree version is specified by the `synth_id` arg (defaults to most recent). "
-        + "The node to use as the start node must specified using *either* a node id or an ott id, "
-        + "**but not both**. If the specified node is not found an error will be returned.")
+    @Description("Return a subtree of the draft tree descended from some node specified "
+        + "using *either* a node id or an ott id, **but not both**. If the specified node "
+        + "is not found an error will be returned.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation subtree (@Source GraphDatabaseService graphDb,
         
@@ -624,7 +623,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "label_format", optional = true)
         String labFormat,
         
-        @Description("Tree format. Valid formats: \"newick\" (default), or \"arguson\"")
+        @Description("Tree format. Valid formats: \"newick\" (default) or \"arguson\"")
         @Parameter(name = "format", optional = true)
         String tFormat,
         
@@ -636,13 +635,15 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
     {
-        return OTRepresentationConverter.convert(doSubtree(graphDb, nodeID, ottID, labFormat));
+        return OTRepresentationConverter.convert(doSubtree(graphDb, nodeID, ottID, labFormat, tFormat, hLimit));
     }
 
     public HashMap<String, Object> doSubtree(GraphDatabaseService graphDb,
                                              String nodeID,
                                              Long ottID,
-                                             String labFormat)
+                                             String labFormat,
+                                             String tFormat,
+                                             Integer hLimit)
         throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
     {
         if (nodeID == null && ottID == null) {
@@ -658,7 +659,8 @@ public class tree_of_life_v3 extends ServerPlugin {
         // so. very. clunky. what a terrible design...
         int newickDepth = -1; // negative is no limit
         int argusonDepth = 5;
-        
+        Integer maxNumTipsNewick = 25000; // TODO: is this the best value? Test this. ***
+        Integer maxNumTipsArguson = 25000; // splitting out since will likely have to be much smaller
         String labelFormat = null;
         String treeFormat = null;
         
@@ -670,9 +672,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         Node qNode = null;
         String synthTreeID = null;
         
-        Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
-        
-        // set node label format
+        // set node label format. never gets sent to arguson, though...
         if (labFormat == null) {
             labelFormat = "name_and_id";
         } else {
@@ -691,10 +691,10 @@ public class tree_of_life_v3 extends ServerPlugin {
         } else {
             if (!tFormat.matches("newick|arguson")) {
                 String ret = "Invalid 'format' arg: '" + tFormat + "'. "
-                    + "Valid formats: \"name\", \"id\", or \"name_and_id\" (default).";
+                    + "Valid formats: \"newick\" (default) or \"arguson\".";
                 throw new IllegalArgumentException(ret);
             } else {
-                labelFormat = labFormat;
+                treeFormat = tFormat;
             }
         }
         
@@ -720,6 +720,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             synthTreeID = ge.getMostRecentSynthTreeID();
         }
         
+        // get start node
         if (ottID != null) {
             Node n = null;
             try {
@@ -760,17 +761,31 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         
+        
+        
+        
+        
         // check that the returned tree is not too large
         // this needs to be changed since truncated trees can now be returned.
+        // this can at least be considered a maxiumum possible size
         Integer numMRCA = ge.getNumTipDescendants(qNode, synthTreeID);
         
-        if (numMRCA > maxNumTips) {
-            ge.shutdownDB();
-            String ret = "Requested tree (" + numMRCA + " tip) is larger than currently "
-                + "allowed by this service (" + maxNumTips + " tips). For larger trees, "
-                + "please download the full tree directly from: http://files.opentreeoflife.org/trees/";
-            throw new IllegalArgumentException(ret);
+        
+        
+        
+        if ("newick".equals(treeFormat)) {
+            if (numMRCA > maxNumTipsNewick && newickDepth == -1) {
+                ge.shutdownDB();
+                String ret = "Requested tree (" + numMRCA + " tips) is larger than currently "
+                    + "allowed by this service (" + maxNumTipsNewick + " tips). For larger trees, "
+                    + "please download the full tree directly from: http://files.opentreeoflife.org/trees/";
+                throw new IllegalArgumentException(ret);
+            }
         }
+        
+        
+        
+        
         
         // get the subtree for export
         JadeTree tree = null;
