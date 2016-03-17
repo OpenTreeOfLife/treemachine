@@ -7,9 +7,9 @@ from opentreetesting import config
 
 # Returns 1 for failure, 0 for success
 
-def simple_test(url, input, check):
+def simple_test(path, input, check):
     DOMAIN = config('host', 'apihost')
-    SUBMIT_URI = DOMAIN + '/v3/tree_of_life/about'
+    url = DOMAIN + path
     try:
         print 'checking', url
         output = get_obj_from_http(url, verb='POST', data=input)
