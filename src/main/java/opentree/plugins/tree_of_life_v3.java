@@ -142,7 +142,7 @@ public class tree_of_life_v3 extends ServerPlugin {
 
             if (returnSourceList) {
                 Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
-                draftTreeInfo.put("sources", Arrays.asList((String[]) meta.getProperty("sources")));
+                draftTreeInfo.put("source_list", Arrays.asList((String[]) meta.getProperty("sources")));
 
                 HashMap<String, Object> sourceMap = new HashMap<>();
                 for (String key : sourceMapNode.getPropertyKeys()) {
