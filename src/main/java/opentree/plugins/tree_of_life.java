@@ -324,7 +324,7 @@ public class tree_of_life extends ServerPlugin {
         if (nodeID != null)
             stringNodeId = longIdToStringId((long)nodeID);
 
-        Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id");
+        Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id", "newick", -1);
         result.put("newick", trimNewick((String)result.get("newick")));
         result.put("tree_id", "unclear");
 
