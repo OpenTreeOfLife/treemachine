@@ -28,14 +28,14 @@ def check_node_result(result, node_id_key):
 
     if u'taxon' in result:
         taxon = check_result_type(result, u'taxon', dict)
-        check_taxon(taxon, u'Alseuosmia banksii')
+        check_taxon(taxon, u'Alseuosmia banksii', [])
         if u'nearest_taxon' in result:
             sys.stderr.write('both taxon and nearest_taxon are present')
             lose()
         nearest_taxon = None
     elif u'nearest_taxon' in result:
         nearest_taxon = check_result_type(result, u'nearest_taxon', dict)
-        check_taxon(nearest_taxon, None)
+        check_taxon(nearest_taxon, None, [u'node_id'])
         taxon = None
     else:
         sys.stderr.write('neither taxon nor nearest_taxon is present\n')
@@ -63,7 +63,7 @@ def check_node_expectation(parameters, result, node_id_key, want_name):
 # Check the fields of a taxon blob (value of 'taxon' or
 # 'nearest_taxon' result).
 
-def check_taxon(taxon, status):
+def check_taxon(taxon, status, extras):
     tax_sources = check_result_type(taxon, u'tax_sources', list)
     if tax_sources != None:
         for source in tax_sources:
@@ -79,7 +79,7 @@ def check_taxon(taxon, status):
     if u'unique_name' in taxon:
         check_result_type(taxon, u'unique_name', unicode)
 
-    check_result_keys(taxon, ['ott_id', 'name', 'rank', 'tax_sources', 'unique_name'])
+    check_result_keys(taxon, extras + ['ott_id', 'name', 'rank', 'tax_sources', 'unique_name'])
 
 # Make sure nothing weird returned in result
 def check_result_keys(result, valid_keys):
