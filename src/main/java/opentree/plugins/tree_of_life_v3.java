@@ -675,6 +675,9 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
             } catch (TaxonNotFoundException e) {
+                String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided.";
+                throw new IllegalArgumentException(ret);
+                //throw new TaxonNotFoundException(ret);
             }
             if (n != null) {
                 qNode = n;

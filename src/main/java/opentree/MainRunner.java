@@ -140,10 +140,10 @@ public class MainRunner {
             Map.Entry entry = (Map.Entry)baseIter.next();
             
             if (!(entry.getValue() instanceof JSONObject) && !(entry.getValue() instanceof JSONArray)) {
-                System.out.println("Dealing with simple property: " + entry.getKey());
+                //System.out.println("Dealing with simple property: " + entry.getKey());
                 baseProperties.put((String) entry.getKey(), entry.getValue());
             } else if (entry.getValue() instanceof JSONArray) {
-                System.out.println("Property '" + entry.getKey() + "' is an array.");
+                //System.out.println("Property '" + entry.getKey() + "' is an array.");
             }
             /*
             if (entry.getValue() instanceof String) {
@@ -167,11 +167,11 @@ public class MainRunner {
         // Filtered flags //
         List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
         System.out.println("flagList is of size: " + flagList.size() + ".");
-        System.out.println("flagList: " + flagList);
+        //System.out.println("flagList: " + flagList);
         
         
         String[] feeoo = flagList.toArray(new String[flagList.size()]);
-        System.out.println("flagList: " + Arrays.toString(feeoo));
+        //System.out.println("flagList: " + Arrays.toString(feeoo));
 
         // Source IDs (properties in sourceIDMap below) //
         List<String> sourceList = (ArrayList<String>) jsonObject.get("sources");
@@ -225,7 +225,25 @@ public class MainRunner {
         
         System.out.println("tree_id = " + jsonObject.get("tree_id"));
         */
-
+        
+        /*
+        Iterator j = nodes.keySet().iterator();
+        while (j.hasNext()) {
+            String temp = (String) j.next();
+            JSONObject terp = (JSONObject) nodes.get(temp);
+            if (terp.size() > 3) {
+                System.out.println(temp + " (size = " + terp.size() + "):");
+                Iterator k = terp.entrySet().iterator();
+                while (k.hasNext()) {
+                    Map.Entry entry = (Map.Entry)k.next();
+                    System.out.println("   " + entry.getKey() + ": " + entry.getValue());
+                    System.out.println("      " + entry.getKey() + ": " + entry.getValue().toString());
+                }
+            }
+            //System.out.println("  terp = " + terp);
+            Iterator it = terp.entrySet().iterator();
+        }
+        */
         //Set<String> glurp = nodes.keySet();
         boolean doit = false;
         if (doit) {
@@ -258,14 +276,87 @@ public class MainRunner {
                 }
             }
         }
-        JSONObject terp = (JSONObject) nodes.get("mrcaott115048ott550672");
-        System.out.println("terp: " + terp.toString());
-        System.out.println("terp is of size: " + terp.size());
         
-        HashMap<String, String> res = getAnnotations(terp);
+        
+        /*
+        "mrcaott115048ott550672": {
+            "terminal": {
+                "pg_2673@tree6219": "node1074603"
+            }, 
+            "conflicts_with": {
+                "pg_2675@tree6221": [
+                    "node1074864"
+                ]
+            }, 
+            "supported_by": {
+                "pg_2838@tree6594": "node1147487", 
+                "pg_2674@tree6220": "node1074624"
+            }
+        }
+        "mrcaott71333ott304274": {
+            "conflicts_with": {
+                "pg_2709@tree6290": [
+                    "node1092685", 
+                    "node1092686", 
+                    "node1092687", 
+                    "node1092688"
+                ]
+            }, 
+            "supported_by": {
+                "pg_2696@tree6249": "node1083494"
+            }
+        }
+        "mrcaott16974ott848212": {
+            "terminal": {
+                "pg_2820@tree6566": "ott614361"
+            }, 
+            "conflicts_with": {
+                "pg_2690@tree6243": [
+                    "node1082297"
+                ], 
+                "pg_1087@tree2115": [
+                    "node524759"
+                ]
+            }, 
+            "supported_by": {
+                "pg_1087@tree2114": "node524620"
+            }, 
+            "partial_path_of": {
+                "pg_548@tree798": "node340049", 
+                "pg_2057@tree4240": "node787657"
+            }
+        }
+        */
+        
+        /*
+        HashMap<String, String> res = new HashMap<>();
+        JSONObject terp = (JSONObject) nodes.get("mrcaott115048ott550672");
+        System.out.println("mrcaott115048ott550672: " + terp.toString());
+        System.out.println("size: " + terp.size());
+        res = getAnnotations(terp);
+        System.out.println();
+        terp = (JSONObject) nodes.get("mrcaott71333ott304274");
+        System.out.println("mrcaott71333ott304274: " + terp.toString());
+        System.out.println("size: " + terp.size());
+        res = getAnnotations(terp);
+        System.out.println();
+        terp = (JSONObject) nodes.get("mrcaott16974ott848212");
+        System.out.println("mrcaott16974ott848212: " + terp.toString());
+        System.out.println(" size: " + terp.size());
+        res = getAnnotations(terp);
+        System.out.println();
+        terp = (JSONObject) nodes.get("mrcaott107ott448");
+        System.out.println("mrcaott16974ott848212: " + terp.toString());
+        System.out.println(" size: " + terp.size());
+        res = getAnnotations(terp);
+        */
+        
+        
+        /*
         for (Map.Entry<String, String> entry : res.entrySet()) {
             System.out.println(entry.getKey() + " : " + entry.getValue());
         }
+        */
         /*
         Iterator it = terp.entrySet().iterator();
         while (it.hasNext()) {
@@ -310,9 +401,7 @@ public class MainRunner {
                 String str = "";
                 for (int i=0; i < info.size(); i++) {
                     JSONArray terp = (JSONArray) info.get(i);
-                    if (str != "") {
-                        str += ",";
-                    }
+                    if (str != "") { str += ","; }
                     str += terp.get(0) + ":" + terp.get(1);
                 }
                 res.put((String)entry.getKey(), str);
@@ -321,17 +410,33 @@ public class MainRunner {
             } else {
                 JSONObject info = (JSONObject) indNodeInfo.get(entry.getKey());
                 
-                boolean ok = false;
-                if (ok) {
+                
+                //List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
+                //String[] flist = flagList.toArray(new String[flagList.size()]);
+                //System.out.println("source_id_map toJSONString: " + sourceIDMap.toJSONString());
+                
+                if (!(entry.getValue() instanceof JSONArray)) {
+                    System.out.println("Property '" + entry.getKey() + 
+                        "': " + entry.getValue());
+                    System.out.println("   " + entry.getValue().toString().replaceAll("[\\{\\}\"]", ""));
+                    
+                    //if ("conflicts_with".equals((String)entry.getKey())) {
+                        //String foo = entry.getValue().toString().replaceAll("[\\{\\}\"]", "").replace("],", "&").replaceAll("[\\[\\]]", "");
+                        
+                        String foo = entry.getValue().toString();
+                        foo = foo.replaceAll("[\\{\\}\"]", "").replace("],", "&").replaceAll("[\\[\\]]", "");
+                        
+                        System.out.println("   " + foo);
+                    //}
+                    /*
                     String str = "";
                     for (int i=0; i < info.size(); i++) {
                         JSONArray terp = (JSONArray) info.get(i);
-                        if (str != "") {
-                            str += ",";
-                        }
+                        if (str != "") { str += ","; }
                         str += terp.get(0) + ":" + terp.get(1);
                     }
                     res.put((String)entry.getKey(), str);
+                    */
                 } else {
                     System.out.println("Property '" + entry.getKey() + "': " + entry.getValue());
                 }
@@ -364,7 +469,6 @@ public class MainRunner {
     }
     
     
-    /*
     public int getmdn(String [] args) {
         
         if (args.length != 3) {
@@ -390,7 +494,7 @@ public class MainRunner {
         return 0;
     }
     
-    
+    /*
     public int getmapn(String [] args) {
         
         if (args.length != 3) {
@@ -4382,12 +4486,11 @@ public class MainRunner {
                 cmdReturnCode = mr.ingestSynthesisData(args);
             } else if (command.compareTo("goo") == 0) {
                 cmdReturnCode = mr.goo(args);
-            }
-            
-            /*
-             else if (command.compareTo("getmdn") == 0) {
+            } else if (command.compareTo("getmdn") == 0) {
                 cmdReturnCode = mr.getmdn(args);
-            } else if (command.compareTo("getnodeottid") == 0) {
+            } 
+            /* 
+            else if (command.compareTo("getnodeottid") == 0) {
                 cmdReturnCode = mr.getnodeOTTID(args);
             } else if (command.compareTo("getnodename") == 0) {
                 cmdReturnCode = mr.getnodeName(args);

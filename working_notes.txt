@@ -27,6 +27,12 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info
 
 # example from issue
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott3504ott396446"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott3504ott396446", "include_lineage":true}'
+
+
+# this one has conflicts_with
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott16974ott848212"}'
+
 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "include_lineage":true}'
