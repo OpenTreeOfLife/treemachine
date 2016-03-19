@@ -3603,19 +3603,19 @@ public class GraphExplorer extends GraphBase {
                             // note: conflicts_with is the only non-key-value pair (instead is an array)
                             // add other properties here if needed ('resolves'?)
                             
-                            if (!"conflicts_with".equals(key)) {
-                                HashMap<String, String> mapProp = stringToMap((String) rel.getProperty(key));
-                                results.put(key, mapProp);
-                                for (String i : mapProp.keySet()) {
-                                    uniqueSources.add(i);
-                                }
-                            } else {
+                            if ("conflicts_with".equals(key) || "resolved_by".equals(key)) {
                                 HashMap <String, ArrayList<String>> arrayProp = stringToMapArray((String) rel.getProperty(key));
                                 results.put(key, arrayProp);
                                 for (String i : arrayProp.keySet()) {
                                     uniqueSources.add(i);
                                 }
-                            }
+                            } else {
+                                HashMap<String, String> mapProp = stringToMap((String) rel.getProperty(key));
+                                results.put(key, mapProp);
+                                for (String i : mapProp.keySet()) {
+                                    uniqueSources.add(i);
+                                }
+                            } 
                         }
                     }
                 }
