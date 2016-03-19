@@ -109,7 +109,7 @@ public class graph extends ServerPlugin {
         Map<String, Object> taxon = (Map<String, Object>)result.get("taxon");
 
         Map<String, Object> res = new HashMap<>();
-        res.put("node_id", v2.stringIdToLongId(result.get("node_id")));
+        res.put("node_id", v3.stringIdToLongId(result.get("node_id")));
         res.put("num_tips", result.get("num_tips")); // ???
         res.put("in_synth_tree", Boolean.TRUE);
         res.put("num_synth_tips", result.get("num_tips"));
