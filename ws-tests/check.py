@@ -124,6 +124,11 @@ taxon_blob_fields = [field(u'ott_id', check_integer),
 
 check_taxon_blob = check_blob(taxon_blob_fields)
 
+check_extended_taxon_blob = check_blob(taxon_blob_fields +
+                                       [field(u'flags', check_list(check_string)),
+                                        field(u'synonyms', check_list(check_string)),
+                                        field(u'is_suppressed', check_boolean)])
+
 check_single_support_blob = check_dict(check_source_id, check_string)
 
 check_multi_support_blob = check_dict(check_source_id, check_list(check_string))
