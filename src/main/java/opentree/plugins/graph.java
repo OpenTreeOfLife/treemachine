@@ -82,7 +82,7 @@ public class graph extends ServerPlugin {
                     study_id : studyid-string 
               tree_sources : list-of source-tree-blob 
               tree_id : synthid-string 
-              draft_tree_lineage : list-of taxon-blob 
+              draft_tree_lineage : list-of v2-lineage-taxon-blob 
               ott_id : ottid-integer   -- the string "null" if not a taxon node 
               name : taxon-name-string 
               rank : rank-string 
@@ -114,9 +114,8 @@ public class graph extends ServerPlugin {
         res.put("num_tips", result.get("num_tips")); // ???
         res.put("in_synth_tree", Boolean.TRUE);
         res.put("num_synth_tips", result.get("num_tips"));
-        // res.put("synth_sources", ...);
-        // res.put("tree_sources", ...);
-        // res.put("draft_tree_lineage", ...);   map over lineage
+        // res.put("synth_sources", ...);  list of {git_sha, tree_id, study_id} - from supported_by ?
+        // res.put("tree_sources", ...);   same as synth_sources ...
 
         if (taxon != null) {
             res.put("ott_id", taxon.get("ott_id"));
@@ -125,6 +124,49 @@ public class graph extends ServerPlugin {
             res.put("tax_source", String.join(",", (List<String>)taxon.get("tax_sources")));
         }
 
+        res.put("tree_id", tree_of_life.treeId);
+
+        /*
+          "draft_tree_lineage" : [ {
+            "unique_name" : "Mutisieae",
+            "name" : "Mutisieae",
+            "rank" : "tribe",
+            "ott_id" : 557775,
+            "node_id" : 656644
+          }, {
+            "unique_name" : "",
+            "name" : "",
+            "rank" : "",
+            "ott_id" : "null",
+            "node_id" : 3446538
+          },
+        */
+
+        if (includeLineage != null && includeLineage.booleanValue()) {
+            // We have a list of v3 node-blobs
+            List<Object> lineage = (List<Object>)result.get("lineage");
+            // We want a list of v2 taxonlike-blobs
+            List<Object> v2lineage = new ArrayList<>();
+            for (Object nodeBlobAsObj : lineage) {
+                Map<String, Object> nodeBlob = (Map<String, Object>)nodeBlobAsObj;
+                Map<String, Object> taxonlike = new HashMap<>();
+                taxonlike.put("node_id", nodeBlob.get("node_id"));
+                Map<String, Object> ltaxon = (Map<String, Object>)nodeBlob.get("taxon");
+                if (ltaxon != null) {
+                    taxonlike.put("ott_id", ltaxon.get("ott_id"));
+                    taxonlike.put("name", ltaxon.get("name"));
+                    taxonlike.put("rank", ltaxon.get("rank"));
+                    taxonlike.put("unique_name", ltaxon.get("unique_name"));
+                } else {
+                    taxonlike.put("ott_id", "null");
+                    taxonlike.put("name", "");
+                    taxonlike.put("rank", "");
+                    taxonlike.put("unique_name", "");
+                }
+                v2lineage.add(taxonlike);
+            }
+            res.put("draft_tree_lineage", v2lineage);
+        }
         return OTRepresentationConverter.convert(res);
     }
 

@@ -40,6 +40,8 @@ public class tree_of_life extends ServerPlugin {
     
     tree_of_life_v3 v3 = new tree_of_life_v3();
 
+    public static String treeId = "unclear"; // gets set when someone calls about method
+
     @Description("Returns summary information about the tree of life, "
         + "including information about the list of source "
         + "trees and the taxonomy used to build it.")
@@ -90,16 +92,23 @@ public class tree_of_life extends ServerPlugin {
 
         // Does default value of source_list flip from v2 to v3?
 
+        if (source_list == null)
+            source_list = Boolean.TRUE;
+
         Map<String, Object> result = v3.doAbout(graphDb, source_list);
-        Map<String, Object> root = (Map<String, Object>)result.get("root");
+        Map<String, Object> root = (Map<String, Object>)result.get("root"); // node blob
         Map<String, Object> res = new HashMap<>();
         res.put("date", result.get("date_created"));
         res.put("num_tips", root.get("num_tips"));
         res.put("num_source_studies", result.get("num_source_studies"));
         res.put("taxonomy_version", result.get("taxonomy_version"));
         res.put("root_node_id", stringIdToLongId((String)(root.get("node_id"))));
-        res.put("root_taxon_name", root.get("name"));
-        res.put("root_ott_id", root.get("ott_id"));
+
+        Map<String, Object> rootTaxon = (Map<String, Object>)root.get("taxon"); // node blob
+        if (rootTaxon != null) {
+            res.put("root_ott_id", rootTaxon.get("ott_id"));
+            res.put("root_taxon_name", rootTaxon.get("name"));
+        }
 
         // Map over result study_list (strings), getting blobs from
         // the source_id_map.
@@ -114,7 +123,8 @@ public class tree_of_life extends ServerPlugin {
             for (String sourceid : sources)
                 trees.add(sourceIdMap.get(sourceid));
 
-        res.put("tree_id", result.get("synth_id"));
+        treeId = (String)result.get("synth_id");
+        res.put("tree_id", treeId);
 
         return OTRepresentationConverter.convert(res);
     }
@@ -198,7 +208,7 @@ public class tree_of_life extends ServerPlugin {
         res.put("invalid_ott_ids", empty);
         res.put("node_ids_not_in_tree", empty);
         res.put("ott_ids_not_in_tree", empty);
-        res.put("tree_id", "unclear");
+        res.put("tree_id", treeId);
 
         Map<String, Object> taxon = (Map<String, Object>)mrca.get("taxon");
         if (taxon != null) {
@@ -288,7 +298,7 @@ public class tree_of_life extends ServerPlugin {
         result.put("node_ids_not_in_graph", empty);
         result.put("ott_ids_not_in_tree", empty);
         result.put("ott_ids_not_in_graph", empty);
-        result.put("tree_id", "unclear");
+        result.put("tree_id", treeId);
 
         return OTRepresentationConverter.convert(result);
     }
@@ -338,7 +348,7 @@ public class tree_of_life extends ServerPlugin {
 
         Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id", "newick", -1);
         result.put("newick", trimNewick((String)result.get("newick")));
-        result.put("tree_id", "unclear");
+        result.put("tree_id", treeId);
 
         return OTRepresentationConverter.convert(result);
     }
