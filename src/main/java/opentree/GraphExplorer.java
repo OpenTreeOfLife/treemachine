@@ -3599,11 +3599,23 @@ public class GraphExplorer extends GraphBase {
                     // loop over properties
                     for (String key : rel.getPropertyKeys()) {
                         if (!"name".equals(key) && !"tip_descendants".equals(key)) {
-                            HashMap<String, String> mapProp = stringToMap((String) rel.getProperty(key));
-                            results.put(key, mapProp);
-                            for (String i : mapProp.keySet()) {
-                                uniqueSources.add(i);
-                            }
+                            
+                            // note: conflicts_with is the only non-key-value pair (instead is an array)
+                            // add other properties here if needed ('resolves'?)
+                            
+                            if ("conflicts_with".equals(key) || "resolved_by".equals(key)) {
+                                HashMap <String, ArrayList<String>> arrayProp = stringToMapArray((String) rel.getProperty(key));
+                                results.put(key, arrayProp);
+                                for (String i : arrayProp.keySet()) {
+                                    uniqueSources.add(i);
+                                }
+                            } else {
+                                HashMap<String, String> mapProp = stringToMap((String) rel.getProperty(key));
+                                results.put(key, mapProp);
+                                for (String i : mapProp.keySet()) {
+                                    uniqueSources.add(i);
+                                }
+                            } 
                         }
                     }
                 }
@@ -3761,7 +3773,6 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    
     public JadeTree extractDepthLimitedSubtree (String treeID, String startOTNodeID, int maxDepth, String labelFormat) throws TaxonNotFoundException {
         Node rootnode = findGraphNodeByOTTNodeID(startOTNodeID);
         return reconstructDepthLimitedSubtree(treeID, rootnode, maxDepth, labelFormat);
@@ -3802,8 +3813,6 @@ public class GraphExplorer extends GraphBase {
         
         return tree;
     }
-    
-    
     
     
     /**
@@ -3905,15 +3914,40 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    // conflicts_with is weird, not key-value pair but array
+    // pg_2594@tree6014:node1021750,node1021751,node1021752,node1021753,node1021754&pg_1337@tree6167:node1053387
+    public HashMap<String, ArrayList<String>> stringToMapArray (String source) {
+        HashMap<String, ArrayList<String>> res = new HashMap<>();
+        String [] props = source.split("&");
+        for (String s : props) {
+            String[] indsrc = s.split(":");
+            String srcname = indsrc[0];
+            String[] nodes = indsrc[1].split(",");
+            //List<String> nodes = new
+            //Arrays.asList((String[]) meta.getProperty("sources")))
+            
+            // taxonomic sources
+            // will have format: "silva:0,ncbi:1,worms:1,gbif:0,irmng:0"
+            //List<String> taxList = new ArrayList<>(Arrays.asList(String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName)).split(",")));
+            //List<String> taxList = new ArrayList<>(Arrays.asList((String[])indsrc[1].split(",")));
+            ArrayList<String> nodelist = new ArrayList<>(Arrays.asList(nodes));
+            //Arrays.asList(nodes);
+            
+            res.put(srcname, nodelist);
+        }
+        return res;
+    }
+    
+    
     // lots of stuff stored like this bc neo4j cannot have nested properties
     public HashMap<String, String> stringToMap (String source) {
         HashMap<String, String> res = new HashMap<>();
-        /// format will be: git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree1,study_id:ot_157
+        // format will be: git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree1,study_id:ot_157
         String [] props = source.split(",");
         for (String s : props) {
-            String[] terp = s.split(":");
-            if (terp.length == 2) {
-                res.put(terp[0], terp[1]);
+            String[] indsrc = s.split(":");
+            if (indsrc.length == 2) {
+                res.put(indsrc[0], indsrc[1]);
             }
         }
         return res;

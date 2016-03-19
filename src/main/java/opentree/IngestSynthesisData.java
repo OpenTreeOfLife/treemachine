@@ -520,6 +520,7 @@ public class IngestSynthesisData extends GraphBase {
         
         // store root ot_node_id here for fast retrieval
         metadatanode.setProperty("root_ot_node_id", synthRootNode.getProperty("ot_node_id"));
+        System.out.println("Adding synthid '" + synthTreeName + "' to metaindex!");
         synthMetaIndex.add(metadatanode, "name", synthTreeName);
         
         // put sources in separate node for easier retrieval. points to metadatanode
@@ -652,20 +653,36 @@ public class IngestSynthesisData extends GraphBase {
             while (it.hasNext()) {
                 Map.Entry entry = (Map.Entry)it.next();
                 String prop = (String) entry.getKey();
+                
+                String val = entry.getValue().toString();
+                // arrays originally like this:
+                // {"pg_2594@tree6014":["node1021750","node1021751","node1021752","node1021753","node1021754"],"pg_1337@tree6167":["node1053387"]}
+                // will be of the form:
+                // pg_2594@tree6014:node1021750,node1021751,node1021752,node1021753,node1021754&pg_1337@tree6167:node1053387
+                // that is, sources are delimited by an '&'. ugly, yes, butwhatyougonnado?
+                // non-arrays will be same as before
+                val = val.replaceAll("[\\{\\}\"]", "").replace("],", "&").replaceAll("[\\[\\]]", "");
+                
+                res.put(prop, val);
+                
+                // old version where everything was in nested arrays
+                /*
                 JSONArray info = (JSONArray) indNodeInfo.get(prop);
                 String str = "";
                 for (int i=0; i < info.size(); i++) {
                     JSONArray terp = (JSONArray) info.get(i);
-                    if (str != "") {
-                        str += ",";
-                    }
+                    if (str != "") { str += ","; }
                     str += terp.get(0) + ":" + terp.get(1);
                 }
                 res.put(prop, str);
+                */
+                
+                
+                
             }
         }
         
-        // add taxonomy 'support'
+        // add taxonomy 'support'. this is NOT in the annotations, but needed by things e.g. browser
         if (otNodeID.startsWith("ott")) {
             String taxSupport = "taxonomy:" + taxonomyVersion;
             if (res.containsKey("supported_by")) {
@@ -693,9 +710,8 @@ public class IngestSynthesisData extends GraphBase {
         JSONObject sourceIDMap = (JSONObject) jsonObject.get("source_id_map");
         //System.out.println("source_id_map length: " + sourceIDMap.size());
         
-        HashMap<String, String> res = new HashMap<>();
+        //HashMap<String, String> res = new HashMap<>();
         Iterator srcIter = sourceIDMap.keySet().iterator();
-        
         while (srcIter.hasNext()) {
             String srcID = (String) srcIter.next();
             JSONObject indSrc = (JSONObject) sourceIDMap.get(srcID);
@@ -703,10 +719,7 @@ public class IngestSynthesisData extends GraphBase {
             String str = "";
             while (iter.hasNext()) {
                 Map.Entry entry = (Map.Entry)iter.next();
-                
-                if (str != "") {
-                    str += ",";
-                }
+                if (str != "") { str += ","; }
                 str += entry.getKey() + ":" + (String) entry.getValue();
             }
             metaNode.setProperty(srcID, str);
