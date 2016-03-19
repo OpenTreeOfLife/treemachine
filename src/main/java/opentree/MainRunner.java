@@ -14,9 +14,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -24,6 +27,7 @@ import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
 import opentree.exceptions.TreeIngestException;
 import org.apache.commons.lang3.StringUtils;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -114,51 +118,357 @@ public class MainRunner {
         return duplicate;
     }
     
-    /*
-    // @returns 0 for success, 1 for poorly formed command, -1 for failure to complete well-formed command
-    public int taxonomyLoadParser(String [] args) throws TaxonNotFoundException {
-        if (args.length < 4) {
-            System.out.println("arguments should be: filename (optional:synfilename) taxonomyversion graphdbfolder");
-            return 1;
-        }
+    
+    public int goo (String [] args) {
         
-        String filename = args[1];
-        String graphname = "";
-        String synfilename = "";
-        String taxonomyversion = "";
-        if (args.length == 5) {
-            synfilename = args[2];
-            taxonomyversion = args[3];
-            graphname = args[4];
-            System.out.println("initializing taxonomy from " + filename + " with synonyms in " + synfilename + " to "
-                    + graphname + " for taxonomy '" + taxonomyversion + "'.");
-        } else if (args.length == 4) {
-            taxonomyversion = args[2];
-            graphname = args[3];
-            System.out.println("initializing taxonomy from " + filename + " to " + graphname + " for taxonomy '" + taxonomyversion + "'.");
-        } else {
-            System.out.println("you have the wrong number of arguments. should be : filename (optional:synonym) taxonomyversion graphdbfolder");
-            return 1;
-        }
+        String fileName = args[1];
+        JSONParser jsonParser = new JSONParser();
+        JSONObject jsonObject = null;
         
-        // check if graph already exists. abort if it does to prevent overwriting.
-        File f = new File(graphname);
-        if (f.exists()) {
-            System.err.println("Directory '" + graphname + "' already exists. Exiting...");
-            return -1;
-        }
-        
-        GraphInitializer tl = new GraphInitializer(graphname);
         try {
-            tl.addInitialTaxonomyTableIntoGraph(filename, synfilename, taxonomyversion);
-        } finally {
-            tl.shutdownDB();
+            FileReader fileReader = new FileReader(fileName);
+            jsonObject = (JSONObject) jsonParser.parse(fileReader);
+            fileReader.close();
+        } catch (FileNotFoundException e) {
+        } catch (IOException | ParseException e) {
+            e.printStackTrace();
         }
+        
+        Map<String, Object> baseProperties = new HashMap<>();
+        Iterator baseIter = jsonObject.entrySet().iterator();
+        while (baseIter.hasNext()) {
+            Map.Entry entry = (Map.Entry)baseIter.next();
+            
+            if (!(entry.getValue() instanceof JSONObject) && !(entry.getValue() instanceof JSONArray)) {
+                //System.out.println("Dealing with simple property: " + entry.getKey());
+                baseProperties.put((String) entry.getKey(), entry.getValue());
+            } else if (entry.getValue() instanceof JSONArray) {
+                //System.out.println("Property '" + entry.getKey() + "' is an array.");
+            }
+            /*
+            if (entry.getValue() instanceof String) {
+                System.out.println(entry.getKey() + " is of class String.");
+            } else if (entry.getValue() instanceof Long) {
+                System.out.println(entry.getKey() + " is of class Long.");
+            }
+            */
+            //System.out.println("Value of '" + entry.getKey() + " is of class: " + entry.getValue().getClass());
+        }
+        
+        System.out.println("baseProperties is of length: " + baseProperties.size());
+        
+        /*
+        String date = (String) jsonObject.get("date_completed");
+        System.out.println("Date: " + date);
+        long num_tips = (long) jsonObject.get("num_tips");
+        System.out.println("num_tips: " + num_tips);
+        */
+        
+        // Filtered flags //
+        List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
+        System.out.println("flagList is of size: " + flagList.size() + ".");
+        //System.out.println("flagList: " + flagList);
+        
+        
+        String[] feeoo = flagList.toArray(new String[flagList.size()]);
+        //System.out.println("flagList: " + Arrays.toString(feeoo));
+
+        // Source IDs (properties in sourceIDMap below) //
+        List<String> sourceList = (ArrayList<String>) jsonObject.get("sources");
+        System.out.println("sourceList is of size: " + sourceList.size() + ".");
+
+        JSONObject nodes = (JSONObject) jsonObject.get("nodes");
+        System.out.println("Nodes length: " + nodes.size());
+        //System.out.println("Node keys: " + nodes.keySet());
+
+
+        // Soure ID Map //
+        HashMap<String, HashMap<String, String> > sourceMap = new HashMap<>();
+        JSONObject sourceIDMap = (JSONObject) jsonObject.get("source_id_map");
+
+        System.out.println("source_id_map length: " + sourceIDMap.size());
+        //System.out.println("source_id_map is of class: " + sourceIDMap.getClass());
+        //System.out.println("source_id_map toJSONString: " + sourceIDMap.toJSONString());
+        //System.out.println("source_id_map toString: " + sourceIDMap.toString());
+        
+        /*
+        Iterator srcIter = sourceIDMap.keySet().iterator();
+        
+        while (srcIter.hasNext()) {
+            String srcID = (String) srcIter.next();
+            JSONObject indSrc = (JSONObject) sourceIDMap.get(srcID);
+            HashMap<String, String> srcProps = new HashMap <>();
+            Iterator iter = indSrc.entrySet().iterator();
+            String res0 = "";
+            String res = "study_id:" + indSrc.get("study_id");
+            res += "&tree_id:" + indSrc.get("tree_id");
+            res += "&git_sha:" + indSrc.get("git_sha");
+            while (iter.hasNext()) {
+                Map.Entry entry = (Map.Entry)iter.next();
+                //System.out.println("    Key: " + entry.getKey() + "; value: " + entry.getValue());
+                //System.out.println("      Value is of class: " + entry.getValue().getClass());
+                srcProps.put((String) entry.getKey(), (String) entry.getValue());
+                
+                if (res0 == "") {
+                    res0 = entry.getKey() + ":" + (String) entry.getValue();
+                } else {
+                    res0 += "&" + entry.getKey() + ":" + (String) entry.getValue();
+                }
+                
+            }
+            System.out.println("Source '" + srcID + "' has " + srcProps.size() + " properties.");
+            System.out.println("    " + res0);
+            System.out.println("    " + res);
+            System.out.println("    " + indSrc.toString());
+            sourceMap.put(srcID, srcProps);
+        }
+        
+        System.out.println("tree_id = " + jsonObject.get("tree_id"));
+        */
+        
+        /*
+        Iterator j = nodes.keySet().iterator();
+        while (j.hasNext()) {
+            String temp = (String) j.next();
+            JSONObject terp = (JSONObject) nodes.get(temp);
+            if (terp.size() > 3) {
+                System.out.println(temp + " (size = " + terp.size() + "):");
+                Iterator k = terp.entrySet().iterator();
+                while (k.hasNext()) {
+                    Map.Entry entry = (Map.Entry)k.next();
+                    System.out.println("   " + entry.getKey() + ": " + entry.getValue());
+                    System.out.println("      " + entry.getKey() + ": " + entry.getValue().toString());
+                }
+            }
+            //System.out.println("  terp = " + terp);
+            Iterator it = terp.entrySet().iterator();
+        }
+        */
+        //Set<String> glurp = nodes.keySet();
+        boolean doit = false;
+        if (doit) {
+            System.out.println("Node keys: ");
+            Iterator j = nodes.keySet().iterator();
+            while (j.hasNext()) {
+                String temp = (String) j.next();
+                System.out.println(temp);
+                JSONObject terp = (JSONObject) nodes.get(temp);
+                
+                //System.out.println("  terp = " + terp);
+
+                Iterator it = terp.entrySet().iterator();
+
+                while (it.hasNext()) {
+                    Map.Entry entry = (Map.Entry)it.next();
+                    System.out.println("  " + entry.getKey() + ":");
+                    //System.out.println("  " + entry.getKey() + ": value: " + entry.getValue());
+                    List<String> floo = (ArrayList<String>) jsonObject.get(entry.getKey());
+                    
+                    JSONArray msg = (JSONArray) terp.get(entry.getKey());
+                    
+                    //System.out.println("    " + entry.getKey() + " is of class: " + msg.getClass() +
+                    //    " and of length: " + msg.size());
+                    
+                    for (int i=0; i < msg.size(); i++) {
+                        JSONArray foo = (JSONArray) msg.get(i);
+                        System.out.println("    " + foo.get(0) + ", " + foo.get(1));
+                    }
+                }
+            }
+        }
+        
+        
+        /*
+        "mrcaott115048ott550672": {
+            "terminal": {
+                "pg_2673@tree6219": "node1074603"
+            }, 
+            "conflicts_with": {
+                "pg_2675@tree6221": [
+                    "node1074864"
+                ]
+            }, 
+            "supported_by": {
+                "pg_2838@tree6594": "node1147487", 
+                "pg_2674@tree6220": "node1074624"
+            }
+        }
+        "mrcaott71333ott304274": {
+            "conflicts_with": {
+                "pg_2709@tree6290": [
+                    "node1092685", 
+                    "node1092686", 
+                    "node1092687", 
+                    "node1092688"
+                ]
+            }, 
+            "supported_by": {
+                "pg_2696@tree6249": "node1083494"
+            }
+        }
+        "mrcaott16974ott848212": {
+            "terminal": {
+                "pg_2820@tree6566": "ott614361"
+            }, 
+            "conflicts_with": {
+                "pg_2690@tree6243": [
+                    "node1082297"
+                ], 
+                "pg_1087@tree2115": [
+                    "node524759"
+                ]
+            }, 
+            "supported_by": {
+                "pg_1087@tree2114": "node524620"
+            }, 
+            "partial_path_of": {
+                "pg_548@tree798": "node340049", 
+                "pg_2057@tree4240": "node787657"
+            }
+        }
+        */
+        
+        /*
+        HashMap<String, String> res = new HashMap<>();
+        JSONObject terp = (JSONObject) nodes.get("mrcaott115048ott550672");
+        System.out.println("mrcaott115048ott550672: " + terp.toString());
+        System.out.println("size: " + terp.size());
+        res = getAnnotations(terp);
+        System.out.println();
+        terp = (JSONObject) nodes.get("mrcaott71333ott304274");
+        System.out.println("mrcaott71333ott304274: " + terp.toString());
+        System.out.println("size: " + terp.size());
+        res = getAnnotations(terp);
+        System.out.println();
+        terp = (JSONObject) nodes.get("mrcaott16974ott848212");
+        System.out.println("mrcaott16974ott848212: " + terp.toString());
+        System.out.println(" size: " + terp.size());
+        res = getAnnotations(terp);
+        System.out.println();
+        terp = (JSONObject) nodes.get("mrcaott107ott448");
+        System.out.println("mrcaott16974ott848212: " + terp.toString());
+        System.out.println(" size: " + terp.size());
+        res = getAnnotations(terp);
+        */
+        
+        
+        /*
+        for (Map.Entry<String, String> entry : res.entrySet()) {
+            System.out.println(entry.getKey() + " : " + entry.getValue());
+        }
+        */
+        /*
+        Iterator it = terp.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry entry = (Map.Entry)it.next();
+            JSONArray msg = (JSONArray) terp.get(entry.getKey());
+            System.out.println("  " + entry.getKey() + " (size: " + msg.size() + "):");
+            //System.out.println("  " + entry.getKey() + ": value: " + entry.getValue());
+            String res = ""; String[] res1 = new String[msg.size()];
+            for (int i=0; i < msg.size(); i++) {
+                JSONArray foo = (JSONArray) msg.get(i);
+                System.out.println("    " + foo.get(0) + ", " + foo.get(1));
+                if (res != "") { res += ","; }
+                res += foo.get(0) + ":" + foo.get(1);
+                res1[i] = foo.get(0) + ":" + foo.get(1);
+            }
+            System.out.println("    " + entry.getKey() + ": " + res);
+            System.out.println("    " + entry.getKey() + ": " + msg.toString());
+            System.out.println("    " + entry.getKey() + ": " + res1);
+            System.out.println("    " + entry.getKey() + ": " + Arrays.toString(res1));
+        }
+        */
         return 0;
     }
-    */
     
-    /*
+    public HashMap<String, String> getAnnotations (JSONObject indNodeInfo) {
+        HashMap<String, String> res = new HashMap<>();
+        Iterator it = indNodeInfo.entrySet().iterator();
+        
+        //if (!(entry.getValue() instanceof JSONObject) && !(entry.getValue() instanceof JSONArray)) {
+        //    System.out.println("Dealing with simple property: " + entry.getKey());
+        //    baseProperties.put((String) entry.getKey(), entry.getValue());
+        //} else if (entry.getValue() instanceof JSONArray) {
+        //    System.out.println("Property '" + entry.getKey() + "' is an array.");
+        //}
+        
+        while (it.hasNext()) {
+            Map.Entry entry = (Map.Entry)it.next();
+            
+            // don't think this will ever be the case anymore
+            if (entry.getValue() instanceof JSONArray) {
+                JSONArray info = (JSONArray) indNodeInfo.get(entry.getKey());
+                String str = "";
+                for (int i=0; i < info.size(); i++) {
+                    JSONArray terp = (JSONArray) info.get(i);
+                    if (str != "") { str += ","; }
+                    str += terp.get(0) + ":" + terp.get(1);
+                }
+                res.put((String)entry.getKey(), str);
+            
+            // object instead. all outer things are objects now
+            } else {
+                JSONObject info = (JSONObject) indNodeInfo.get(entry.getKey());
+                
+                
+                //List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
+                //String[] flist = flagList.toArray(new String[flagList.size()]);
+                //System.out.println("source_id_map toJSONString: " + sourceIDMap.toJSONString());
+                
+                if (!(entry.getValue() instanceof JSONArray)) {
+                    System.out.println("Property '" + entry.getKey() + 
+                        "': " + entry.getValue());
+                    System.out.println("   " + entry.getValue().toString().replaceAll("[\\{\\}\"]", ""));
+                    
+                    //if ("conflicts_with".equals((String)entry.getKey())) {
+                        //String foo = entry.getValue().toString().replaceAll("[\\{\\}\"]", "").replace("],", "&").replaceAll("[\\[\\]]", "");
+                        
+                        String foo = entry.getValue().toString();
+                        foo = foo.replaceAll("[\\{\\}\"]", "").replace("],", "&").replaceAll("[\\[\\]]", "");
+                        
+                        System.out.println("   " + foo);
+                    //}
+                    /*
+                    String str = "";
+                    for (int i=0; i < info.size(); i++) {
+                        JSONArray terp = (JSONArray) info.get(i);
+                        if (str != "") { str += ","; }
+                        str += terp.get(0) + ":" + terp.get(1);
+                    }
+                    res.put((String)entry.getKey(), str);
+                    */
+                } else {
+                    System.out.println("Property '" + entry.getKey() + "': " + entry.getValue());
+                }
+            }
+        }
+        return res;
+    }
+    
+    
+    public int subtree (String [] args) throws TaxonNotFoundException {
+        
+        String nodeId = args[1];
+        String graphDb = args[2];
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        
+        String treeID = "opentree4.1";
+        String labelFormat = "name_and_id";
+        int maxDepth = 3;
+        
+        if (args.length == 4) {
+            maxDepth = Integer.parseInt(args[3]);
+        }
+        JadeTree tree = ge.extractDepthLimitedSubtree(treeID, nodeId, maxDepth, labelFormat);
+        ge.shutdownDB();
+        
+        System.out.println(tree.getRoot().getNewick(false) + ";");
+        
+        return 0;
+    }
+    
+    
     public int getmdn(String [] args) {
         
         if (args.length != 3) {
@@ -184,7 +494,7 @@ public class MainRunner {
         return 0;
     }
     
-    
+    /*
     public int getmapn(String [] args) {
         
         if (args.length != 3) {
@@ -307,24 +617,7 @@ public class MainRunner {
     }
     
     
-    public HashMap<String, String> getAnnotations (JSONObject indNodeInfo) {
-        HashMap<String, String> res = new HashMap<>();
-        Iterator it = indNodeInfo.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry entry = (Map.Entry)it.next();
-            JSONArray info = (JSONArray) indNodeInfo.get(entry.getKey());
-            String str = "";
-            for (int i=0; i < info.size(); i++) {
-                JSONArray terp = (JSONArray) info.get(i);
-                if (str != "") {
-                    str += ",";
-                }
-                str += terp.get(0) + ":" + terp.get(1);
-            }
-            res.put((String)entry.getKey(), str);
-        }
-        return res;
-    }
+    
     */
     
     
@@ -4158,7 +4451,9 @@ public class MainRunner {
             
             else if (command.compareTo("taxtree") == 0) {
                 cmdReturnCode = mr.getTaxonomyTreeExport(args);
-            } 
+            } else if (command.compareTo("subtree") == 0) {
+                cmdReturnCode = mr.subtree(args);
+            }
             /*
             else if (command.compareTo("getmrca") == 0) {
                 cmdReturnCode = mr.getMRCA(args);
@@ -4189,14 +4484,13 @@ public class MainRunner {
                 
             } else if (command.compareTo("ingestsynth") == 0) {
                 cmdReturnCode = mr.ingestSynthesisData(args);
-            } 
-            
-            /*
-            else if (command.compareTo("goo") == 0) {
+            } else if (command.compareTo("goo") == 0) {
                 cmdReturnCode = mr.goo(args);
             } else if (command.compareTo("getmdn") == 0) {
                 cmdReturnCode = mr.getmdn(args);
-            } else if (command.compareTo("getnodeottid") == 0) {
+            } 
+            /* 
+            else if (command.compareTo("getnodeottid") == 0) {
                 cmdReturnCode = mr.getnodeOTTID(args);
             } else if (command.compareTo("getnodename") == 0) {
                 cmdReturnCode = mr.getnodeName(args);

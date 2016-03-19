@@ -27,6 +27,12 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info
 
 # example from issue
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott3504ott396446"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott3504ott396446", "include_lineage":true}'
+
+
+# this one has conflicts_with
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott16974ott848212"}'
+
 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "include_lineage":true}'
@@ -103,10 +109,11 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "height_limit":3}'
 
 
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/subtree -H "content-type:application/json" -d '{"node_id":"ott81461", "label_format":"name_and_id", "height_limit":3}'
 
 
-
-
+# metazoa; good size to play with (full tree is too large)
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/jon" -d '{"node_id":"ott691846", "label_format":"name_and_id", "height_limit":3}'
 
 
 
