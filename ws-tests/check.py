@@ -76,7 +76,7 @@ def check_blob(fields):
         for name in x:
             if name in checks:
                 check = checks[name]
-                if not check(x[name], where + ' in ' + name):
+                if not check(x[name], name + ' in ' + where):
                     win = False
             else:
                 print "** unexpected field '%s' found among %s %s" % (name, x.keys(), where)
@@ -93,6 +93,7 @@ def check_list(check):
         if not isinstance(x, list):
             print '** expected list but got', x, where
             return False
+        where = 'list in ' + where
         for y in x:
             if not check(y, where):
                 return False
