@@ -110,14 +110,17 @@ public class tree_of_life extends ServerPlugin {
         List<String> sources = (List<String>)root.get("study_list");
         if (sources == null)
             sources = (List<String>)root.get("studies"); // temporary accomodation...
-        for (String sourceid : sources)
-            trees.add(sourceIdMap.get(sourceid));
+        if (sources != null)
+            for (String sourceid : sources)
+                trees.add(sourceIdMap.get(sourceid));
 
         res.put("tree_id", result.get("synth_id"));
 
         return OTRepresentationConverter.convert(res);
     }
 
+    private static final List<Integer> empty = new ArrayList<>();
+    
     @Description("Get the MRCA of a set of nodes on a the most current draft tree. Accepts "
         + "any combination of node ids and ott ids as input. Returns information about "
         + "the most recent common ancestor (MRCA) node as well as the most recent "
@@ -191,34 +194,44 @@ public class tree_of_life extends ServerPlugin {
         Map<String, Object> res = new HashMap<>();
         String nodeId = (String)(mrca.get("node_id"));
         res.put("mrca_node_id", stringIdToLongId(nodeId));
-        res.put("invalid_node_ids", new long[0]);
-        res.put("invalid_ott_ids", new long[0]);
-        res.put("node_ids_not_in_tree", new long[0]);
-        res.put("ott_ids_not_in_tree", new long[0]);
+        res.put("invalid_node_ids", empty);
+        res.put("invalid_ott_ids", empty);
+        res.put("node_ids_not_in_tree", empty);
+        res.put("ott_ids_not_in_tree", empty);
         res.put("tree_id", "unclear");
 
-        if (nodeId.startsWith("ott")) {
-            res.put("ott_id", Long.parseLong(nodeId.substring(3)));
-            Map<String, Object> taxon = (Map<String, Object>)mrca.get("taxon");
-            res.put("mrca_name", taxon.get("name"));
+        Map<String, Object> taxon = (Map<String, Object>)mrca.get("taxon");
+        if (taxon != null) {
+            res.put("ott_id", taxon.get("ott_id"));
+            String name = (String)taxon.get("name");
+            res.put("mrca_name", name);
             res.put("mrca_rank", taxon.get("rank"));
-            // Maybe change to "" when equal
-            res.put("mrca_unique_name", taxon.get("unique_name"));
+            String uname = (String)taxon.get("unique_name");
+            if (uname.equals(name))
+                res.put("mrca_unique_name", "");
+            else
+                res.put("mrca_unique_name", uname);
+            res.put("nearest_taxon_mrca_node_id", nodeId);
+        } else {
+            res.put("ott_id", "null");
+            res.put("mrca_name", "");
+            res.put("mrca_rank", "");
+            res.put("mrca_unique_name", "");
         }
-
         if (nearest != null) {
-            res.put("nearest_taxon_mrca_ott_id", nearest.get("ott_id"));
+            // What's in all these fields when nearest_taxon == taxon ?
+            Object ottId = nearest.get("ott_id");
+            res.put("nearest_taxon_mrca_ott_id", ottId);
             res.put("nearest_taxon_mrca_name", nearest.get("name"));
             res.put("nearest_taxon_mrca_rank", nearest.get("rank"));
             res.put("nearest_taxon_mrca_unique_name", nearest.get("unique_name"));
-            // Omit nearest_taxon_mrca_node_id and hope no one notices!
+            // this relies on our kludgey node id representation!
+            res.put("nearest_taxon_mrca_node_id", ottId);
         }
 
         return OTRepresentationConverter.convert(res);
     }
 
-    
-    
     @Description("Return a tree with tips corresponding to the nodes identified in the "
         + "input set, that is consistent with topology of the most current draft tree. This "
         + "tree is equivalent to the minimal subtree induced on the draft tree by the set "
@@ -271,11 +284,11 @@ public class tree_of_life extends ServerPlugin {
 
         Map<String, Object> result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id");
         result.put("newick", trimNewick((String)result.get("newick")));
-        result.put("node_ids_not_in_tree", new long[0]);
-        result.put("node_ids_not_in_graph", new long[0]);
-        result.put("ott_ids_not_in_tree", new long[0]);
-        result.put("ott_ids_not_in_graph", new long[0]);
-        // Put nothing for tree_id and hope no one notices?
+        result.put("node_ids_not_in_tree", empty);
+        result.put("node_ids_not_in_graph", empty);
+        result.put("ott_ids_not_in_tree", empty);
+        result.put("ott_ids_not_in_graph", empty);
+        result.put("tree_id", "unclear");
 
         return OTRepresentationConverter.convert(result);
     }

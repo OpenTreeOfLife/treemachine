@@ -134,8 +134,6 @@ check_single_support_blob = check_dict(check_source_id, check_string)
 
 check_multi_support_blob = check_dict(check_source_id, check_list(check_string))
 
-check_node_blob = check_blob(node_blob_fields)
-
 check_source_tree_blob = check_blob([field(u'git_sha', check_string),
                                      field(u'tree_id', check_string),
                                      field(u'study_id', check_string)])

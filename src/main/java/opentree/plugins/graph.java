@@ -104,21 +104,22 @@ public class graph extends ServerPlugin {
 
         String stringNodeID = null;
         if (nodeID != null)
-            ;//stringNodeID = tree_of_life.longIdToStringId(nodeID);
+            stringNodeID = tree_of_life.longIdToStringId(nodeID);
         Map<String, Object> result = v3.doNodeInfo(graphDb, stringNodeID, ottID, includeLineage);
         Map<String, Object> taxon = (Map<String, Object>)result.get("taxon");
 
         Map<String, Object> res = new HashMap<>();
-        res.put("node_id", tree_of_life.stringIdToLongId((String)result.get("node_id")));
+        String canonicalId = (String)result.get("node_id");
+        res.put("node_id", tree_of_life.stringIdToLongId(canonicalId));
         res.put("num_tips", result.get("num_tips")); // ???
         res.put("in_synth_tree", Boolean.TRUE);
         res.put("num_synth_tips", result.get("num_tips"));
         // res.put("synth_sources", ...);
         // res.put("tree_sources", ...);
         // res.put("draft_tree_lineage", ...);   map over lineage
-        String nodeId = (String)(res.get("node_id"));
-        if (nodeId.startsWith("ott")) {
-            res.put("ott_id", Long.parseLong(nodeId.substring(3)));
+
+        if (taxon != null) {
+            res.put("ott_id", taxon.get("ott_id"));
             res.put("name", taxon.get("name"));
             res.put("rank", taxon.get("rank"));
             res.put("tax_source", String.join(",", (List<String>)taxon.get("tax_sources")));
