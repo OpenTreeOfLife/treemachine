@@ -134,16 +134,6 @@ check_single_support_blob = check_dict(check_source_id, check_string)
 
 check_multi_support_blob = check_dict(check_source_id, check_list(check_string))
 
-node_blob_fields = [field(u'node_id', check_string),
-                    opt_field(u'taxon', check_taxon_blob),
-                    field(u'num_tips', check_integer),
-                    opt_field(u'supported_by', check_single_support_blob),
-                    opt_field(u'resolves', check_single_support_blob),
-                    opt_field(u'resolved_by', check_multi_support_blob),
-                    opt_field(u'conflicts_with', check_multi_support_blob),
-                    opt_field(u'partial_path_of', check_single_support_blob),
-                    opt_field(u'terminal', check_single_support_blob)]
-
 check_node_blob = check_blob(node_blob_fields)
 
 check_source_tree_blob = check_blob([field(u'git_sha', check_string),

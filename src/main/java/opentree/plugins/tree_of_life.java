@@ -107,7 +107,10 @@ public class tree_of_life extends ServerPlugin {
 
         Map<String, Object> sourceIdMap = (Map<String, Object>)(result.get("source_id_map"));
         List<Object> trees = new ArrayList<>();
-        for (String sourceid : (List<String>)(root.get("study_list")))
+        List<String> sources = (List<String>)root.get("study_list");
+        if (sources == null)
+            sources = (List<String>)root.get("studies"); // temporary accomodation...
+        for (String sourceid : sources)
             trees.add(sourceIdMap.get(sourceid));
 
         res.put("tree_id", result.get("synth_id"));
@@ -345,6 +348,7 @@ public class tree_of_life extends ServerPlugin {
     }
 
     public static String[] longIdsToStringIds(long[] nodeIDs) {
+        if (nodeIDs == null) return null;
         String[] newNodeIDs = new String[nodeIDs.length];
         for (int i = 0; i < nodeIDs.length; ++i)
             newNodeIDs[i] = longIdToStringId(nodeIDs[i]);
