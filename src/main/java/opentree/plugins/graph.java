@@ -104,7 +104,7 @@ public class graph extends ServerPlugin {
 
         String stringNodeID = null;
         if (nodeID != null)
-            stringNodeID = tree_of_life.longIdToStringId(nodeID);
+            ;//stringNodeID = tree_of_life.longIdToStringId(nodeID);
         Map<String, Object> result = v3.doNodeInfo(graphDb, stringNodeID, ottID, includeLineage);
         Map<String, Object> taxon = (Map<String, Object>)result.get("taxon");
 

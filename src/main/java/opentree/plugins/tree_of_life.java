@@ -46,10 +46,6 @@ public class tree_of_life extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public Representation about (@Source GraphDatabaseService graphDb,
         
-//        @Description("Synthetic tree identifier (defaults to most recent).")
-//        @Parameter(name = "synth_id", optional = true)
-//        String synthID,
-        
         @Description("Return a list of source studies.")
         @Parameter(name = "include_source_list", optional = true)
         Boolean source_list
@@ -331,17 +327,15 @@ public class tree_of_life extends ServerPlugin {
         return OTRepresentationConverter.convert(result);
     }
 
-    static Pattern v3nodeid = Pattern.compile(")mrcaott[0-9]+ott[0-9]+");
+    private static final Pattern v3nodeid = Pattern.compile("\\)mrcaott[0-9]+ott[0-9]+");
 
-    String trimNewick(String newick) {
+    private String trimNewick(String newick) {
         return v3nodeid.matcher(newick).replaceAll(")");
     }
 
-    // Mapping between v2-style node ids (longs) and v3-style node ids (strings)
+    private static final long idLimit = 10000000L;
 
-    static final long idLimit = 10000000L;
-
-    static String longIdToStringId(long id) {
+    public static String longIdToStringId(long id) {
         if (id < idLimit)
             return String.format("ott%s", id);
         else
@@ -350,7 +344,7 @@ public class tree_of_life extends ServerPlugin {
                                  id / idLimit);
     }
 
-    static String[] longIdsToStringIds(long[] nodeIDs) {
+    public static String[] longIdsToStringIds(long[] nodeIDs) {
         String[] newNodeIDs = new String[nodeIDs.length];
         for (int i = 0; i < nodeIDs.length; ++i)
             newNodeIDs[i] = longIdToStringId(nodeIDs[i]);
@@ -358,7 +352,7 @@ public class tree_of_life extends ServerPlugin {
     }
 
 
-    static long stringIdToLongId(String id) {
+    public static long stringIdToLongId(String id) {
         if (id.startsWith("ott"))
             return Long.parseLong(id.substring(3));
         else if (id.startsWith("mrcaott")) {
@@ -369,5 +363,4 @@ public class tree_of_life extends ServerPlugin {
         } else
             return -1;
     }
-
 }
