@@ -132,7 +132,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             // root node info - collect into separate object ('blob')
             HashMap<String, Object> rootInfo = ge.getNodeBlob((String)meta.getProperty("root_ot_node_id"), synthTreeID);
             // have to do this separately, as for all other nodes this is stored in outgoing rel
-            rootInfo.put("num_tips", meta.getProperty("num_tips"));
+            //rootInfo.put("num_tips", meta.getProperty("num_tips"));
             draftTreeInfo.put("root", rootInfo);
             
             // tree constituents
