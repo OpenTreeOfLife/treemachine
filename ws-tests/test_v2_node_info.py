@@ -35,6 +35,7 @@ check_taxonlike_blob = check_blob([field(u'node_id', check_integer),
 status += \
 simple_test("/v2/graph/node_info",
             {u'ott_id': 396446,
+             u'study_list': False,
              u'include_lineage': True},
             check_blob(basic_node_info_results +
                        [field(u'draft_tree_lineage', check_list(check_taxonlike_blob))]))

@@ -146,7 +146,8 @@ public class graph extends ServerPlugin {
                 // Transfer a sourceblob from the v3 map to the v2 list
                 v2SourceList.add(sourceIdMap.get(sourceId));
             }
-        res.put("study_list", v2SourceList);
+        res.put("synth_sources", v2SourceList);
+        res.put("tree_sources", v2SourceList);
 
         /*
           "draft_tree_lineage" : [ {
