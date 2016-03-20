@@ -49,8 +49,8 @@ public class tree_of_life extends ServerPlugin {
     public Representation about (@Source GraphDatabaseService graphDb,
         
         @Description("Return a list of source studies.")
-        @Parameter(name = "include_source_list", optional = true)
-        Boolean source_list
+        @Parameter(name = "include_study_list", optional = true)
+        Boolean study_list
         
         ) throws TaxonNotFoundException, MultipleHitsException {
 
@@ -82,20 +82,22 @@ public class tree_of_life extends ServerPlugin {
               taxonomy_version : string
               filtered_flags : ...
               root : node-blob
-              study_list : list-of 
-                  git_sha : sha-string 
-                  tree_id : treeid-string 
-                  study_id : studyid-string 
-              source_id_map : ...
+              source_list : list-of source-id-string
+              source_id_map : dict
+                 source-id-string ->
+                 blob
+                    git_sha : sha-string 
+                    tree_id : treeid-string 
+                    study_id : studyid-string 
               synth_id : synthid-string   e.g. "opentree4.0"
         */
 
-        // Does default value of source_list flip from v2 to v3?
+        // Default value of v2 study_list is true, while default value of v3 source_list is false.
+        // Meaning is actually tree_list, not study_list.
+        if (study_list == null)
+            study_list = Boolean.TRUE;
 
-        if (source_list == null)
-            source_list = Boolean.TRUE;
-
-        Map<String, Object> result = v3.doAbout(graphDb, source_list);
+        Map<String, Object> result = v3.doAbout(graphDb, study_list);
         Map<String, Object> root = (Map<String, Object>)result.get("root"); // node blob
         Map<String, Object> res = new HashMap<>();
         res.put("date", result.get("date_created"));
@@ -114,17 +116,22 @@ public class tree_of_life extends ServerPlugin {
         // the source_id_map.
         // res.put("study_list", map ... root.get("study_list"));    // worry about @ vs. _ ?
 
-        Map<String, Object> sourceIdMap = (Map<String, Object>)(result.get("source_id_map"));
-        List<Object> trees = new ArrayList<>();
-        List<String> sources = (List<String>)root.get("study_list");
-        if (sources == null)
-            sources = (List<String>)root.get("studies"); // temporary accomodation...
-        if (sources != null)
-            for (String sourceid : sources)
-                trees.add(sourceIdMap.get(sourceid));
-
         treeId = (String)result.get("synth_id");
         res.put("tree_id", treeId);
+
+        // Iterate over members of the v3 source_list.
+        // Look each one up in the v3 source_id_map.
+        // Accumulate values from source_id_map.
+        if (study_list.booleanValue()) {
+            Map<String, Object> sourceIdMap = (Map<String, Object>)result.get("source_id_map");
+            List<Object> v2SourceList = new ArrayList<>();
+            for (Object sourceIdAsObj : (List<Object>)result.get("source_list")) {
+                String sourceId = (String)sourceIdAsObj;
+                // Transfer a sourceblob from the v3 map to the v2 list
+                v2SourceList.add(sourceIdMap.get(sourceId));
+            }
+            res.put("study_list", v2SourceList);
+        }
 
         return OTRepresentationConverter.convert(res);
     }

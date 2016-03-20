@@ -114,8 +114,6 @@ public class graph extends ServerPlugin {
         res.put("num_tips", result.get("num_tips")); // ???
         res.put("in_synth_tree", Boolean.TRUE);
         res.put("num_synth_tips", result.get("num_tips"));
-        // res.put("synth_sources", ...);  list of {git_sha, tree_id, study_id} - from supported_by ?
-        // res.put("tree_sources", ...);   same as synth_sources ...
 
         if (taxon != null) {
             res.put("ott_id", taxon.get("ott_id"));
@@ -125,6 +123,26 @@ public class graph extends ServerPlugin {
         }
 
         res.put("tree_id", tree_of_life.treeId);
+
+        // res.put("synth_sources", ...);  list of {git_sha, tree_id, study_id} - from supported_by ?
+        // res.put("tree_sources", ...);   same as synth_sources ...
+
+        // Iterate over trees in the v3 support/conflict maps.
+        // Look each one up in the v3 source_id_map.
+        // Accumulate values from source_id_map.
+        Map<String, Object> sourceIdMap = (Map<String, Object>)result.get("source_id_map");
+        List<Object> v2SourceList = new ArrayList<>();
+        for (String sourceIdAsObj : ((Map<String, Object>)(result.get("supported_by"))).keySet()) {
+            String sourceId = (String)sourceIdAsObj;
+            // Transfer a sourceblob from the v3 map to the v2 list
+            v2SourceList.add(sourceIdMap.get(sourceId));
+        }
+        for (String sourceIdAsObj : ((Map<String, Object>)(result.get("partial_path_of"))).keySet()) {
+            String sourceId = (String)sourceIdAsObj;
+            // Transfer a sourceblob from the v3 map to the v2 list
+            v2SourceList.add(sourceIdMap.get(sourceId));
+        }
+        res.put("study_list", v2SourceList);
 
         /*
           "draft_tree_lineage" : [ {
@@ -139,7 +157,7 @@ public class graph extends ServerPlugin {
             "rank" : "",
             "ott_id" : "null",
             "node_id" : 3446538
-          },
+          }, ...
         */
 
         if (includeLineage != null && includeLineage.booleanValue()) {
@@ -150,8 +168,8 @@ public class graph extends ServerPlugin {
             for (Object nodeBlobAsObj : lineage) {
                 Map<String, Object> nodeBlob = (Map<String, Object>)nodeBlobAsObj;
                 Map<String, Object> taxonlike = new HashMap<>();
-                taxonlike.put("node_id", nodeBlob.get("node_id"));
-                Map<String, Object> ltaxon = (Map<String, Object>)nodeBlob.get("taxon");
+                taxonlike.put("node_id", tree_of_life.stringIdToLongId((String)(nodeBlob.get("node_id"))));
+                Map<String, Object> ltaxon = (Map<String, Object>)(nodeBlob.get("taxon"));
                 if (ltaxon != null) {
                     taxonlike.put("ott_id", ltaxon.get("ott_id"));
                     taxonlike.put("name", ltaxon.get("name"));
