@@ -49,7 +49,7 @@ public class tree_of_life extends ServerPlugin {
     public Representation about (@Source GraphDatabaseService graphDb,
         
         @Description("Return a list of source studies.")
-        @Parameter(name = "include_study_list", optional = true)
+        @Parameter(name = "study_list", optional = true)
         Boolean study_list
         
         ) throws TaxonNotFoundException, MultipleHitsException {

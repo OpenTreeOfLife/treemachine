@@ -132,16 +132,20 @@ public class graph extends ServerPlugin {
         // Accumulate values from source_id_map.
         Map<String, Object> sourceIdMap = (Map<String, Object>)result.get("source_id_map");
         List<Object> v2SourceList = new ArrayList<>();
-        for (String sourceIdAsObj : ((Map<String, Object>)(result.get("supported_by"))).keySet()) {
-            String sourceId = (String)sourceIdAsObj;
-            // Transfer a sourceblob from the v3 map to the v2 list
-            v2SourceList.add(sourceIdMap.get(sourceId));
-        }
-        for (String sourceIdAsObj : ((Map<String, Object>)(result.get("partial_path_of"))).keySet()) {
-            String sourceId = (String)sourceIdAsObj;
-            // Transfer a sourceblob from the v3 map to the v2 list
-            v2SourceList.add(sourceIdMap.get(sourceId));
-        }
+        Object supportedBy = result.get("supported_by");
+        if (supportedBy != null)
+            for (String sourceIdAsObj : ((Map<String, Object>)supportedBy).keySet()) {
+                String sourceId = (String)sourceIdAsObj;
+                // Transfer a sourceblob from the v3 map to the v2 list
+                v2SourceList.add(sourceIdMap.get(sourceId));
+            }
+        Object partialPathOf = result.get("partial_path_of");
+        if (partialPathOf != null)
+            for (String sourceIdAsObj : ((Map<String, Object>)partialPathOf).keySet()) {
+                String sourceId = (String)sourceIdAsObj;
+                // Transfer a sourceblob from the v3 map to the v2 list
+                v2SourceList.add(sourceIdMap.get(sourceId));
+            }
         res.put("study_list", v2SourceList);
 
         /*
