@@ -3550,6 +3550,13 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    public HashMap<String, Object> getNodeBlob (String nodeID, String treeID) throws TaxonNotFoundException {
+        Node qnode = findGraphNodeByOTTNodeID(nodeID);
+        HashMap<String, Object> results = getNodeBlob(qnode, treeID);
+        return results;
+    }
+    
+    
     // TODO: add in support
     public HashMap<String, Object> getNodeBlob (Node n, String treeID) {
         
@@ -3561,8 +3568,27 @@ public class GraphExplorer extends GraphBase {
         }
         results.put("num_tips", getNumTipDescendants(n, treeID));
         
-        
         return results;
+    }
+    
+    
+    
+    // if node doesn't have an outgoing synth rel it is a root
+    public Integer getNumTipDescendants (Node nd, String treeID) {
+        Integer numTips = null;
+        if (nd.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                    if (rel.hasProperty("tip_descendants")) {
+                        numTips = (Integer) rel.getProperty("tip_descendants");
+                    }
+                }
+            }
+        } else {
+            Node meta = getSynthesisMetaNodeByName(treeID);
+            numTips = (int) (long) meta.getProperty("num_tips");
+        }
+        return numTips;
     }
     
     
@@ -3882,28 +3908,6 @@ public class GraphExplorer extends GraphBase {
             extractStoredSyntheticTreeRecur(synthChildRel.getStartNode(), curNode, synthChildRel, synthTreeName, labelFormat);
         }
         return curNode;
-    }
-    
-    
-    public Integer getNumTipDescendants (Node nd, String treeID) {
-        Integer numTips = null;
-        if (nd.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-            for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-                if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
-                    if (rel.hasProperty("tip_descendants")) {
-                        numTips = (Integer) rel.getProperty("tip_descendants");
-                    }
-                }
-            }
-        }
-        return numTips;
-    }
-    
-    
-    public HashMap<String, Object> getNodeBlob (String nodeID, String treeID) throws TaxonNotFoundException {
-        Node qnode = findGraphNodeByOTTNodeID(nodeID);
-        HashMap<String, Object> results = getNodeBlob(qnode, treeID);
-        return results;
     }
     
     
