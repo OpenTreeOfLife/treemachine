@@ -81,8 +81,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     
     // NEW: add treeid as a optional argument, default to most recent
     @Description("Returns summary information about the most recent draft tree of life, "
-        + "including information about the list of source "
-        + "trees and the taxonomy used to build it.")
+        + "including information about the list of source trees and the taxonomy used to build it.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation about (@Source GraphDatabaseService graphDb,
         
@@ -133,7 +132,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             // root node info - collect into separate object ('blob')
             HashMap<String, Object> rootInfo = ge.getNodeBlob((String)meta.getProperty("root_ot_node_id"), synthTreeID);
             // have to do this separately, as for all other nodes this is stored in outgoing rel
-            rootInfo.put("num_tips", meta.getProperty("num_tips"));
+            //rootInfo.put("num_tips", meta.getProperty("num_tips"));
             draftTreeInfo.put("root", rootInfo);
             
             // tree constituents
@@ -159,8 +158,6 @@ public class tree_of_life_v3 extends ServerPlugin {
         }
         return OTRepresentationConverter.convert(draftTreeInfo);
     }
-    
-    
     
     
     @Description("Returns summary information about a node in the graph. The node "
@@ -291,10 +288,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     }
     
     
-    
-
-    
-    @Description("Get the MRCA of a set of nodes on a the most current draft tree. Accepts "
+    @Description("Get the MRCA of a set of nodes on the most current draft tree. Accepts "
         + "any combination of node ids and ott ids as input. Returns information about "
         + "the most recent common ancestor (MRCA) node as well as the most recent "
         + "taxonomic ancestor (MRTA) node (the smallest taxon in the synthetic tree that "
@@ -550,7 +544,6 @@ public class tree_of_life_v3 extends ServerPlugin {
                 res.put("node_ids_not_in_tree", nodesIDsNotInTree);
             }
             
-            
             res.put("newick", ge.getInducedSubtree(tips, synthTreeID, labelFormat).getNewick(false) + ";");
             return OTRepresentationConverter.convert(res);
         }
@@ -752,7 +745,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         }
         
         responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
-        responseMap.put("newickDepth", newickDepth);
+        //responseMap.put("newickDepth", newickDepth);
         return OTRepresentationConverter.convert(responseMap);
     }
     
