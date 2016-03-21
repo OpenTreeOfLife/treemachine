@@ -131,8 +131,6 @@ public class tree_of_life_v3 extends ServerPlugin {
 
             // root node info - collect into separate object ('blob')
             HashMap<String, Object> rootInfo = ge.getNodeBlob((String)meta.getProperty("root_ot_node_id"), synthTreeID);
-            // have to do this separately, as for all other nodes this is stored in outgoing rel
-            //rootInfo.put("num_tips", meta.getProperty("num_tips"));
             draftTreeInfo.put("root", rootInfo);
             
             // tree constituents
@@ -706,47 +704,62 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         
-        
-        
-        
-        
-        // check that the returned tree is not too large
-        // this needs to be changed since truncated trees can now be returned.
-        // this can at least be considered a maxiumum possible size
-        Integer numMRCA = ge.getNumTipDescendants(qNode, synthTreeID);
-        
-        
-        
+        JadeTree tree = null;
         
         if ("newick".equals(treeFormat)) {
-            if (numMRCA > maxNumTipsNewick && newickDepth == -1) {
-                ge.shutdownDB();
-                String ret = "Requested tree (" + numMRCA + " tips) is larger than currently "
-                    + "allowed by this service (" + maxNumTipsNewick + " tips). For larger trees, "
-                    + "please download the full tree directly from: http://files.opentreeoflife.org/trees/";
-                throw new IllegalArgumentException(ret);
-            }
-        }
-        
-        
-        
-        
-        
-        // get the subtree for export
-        JadeTree tree = null;
-        try {
+            // early exit without have to build a tree
             if (newickDepth == -1) {
-                tree = ge.extractDraftTree(qNode, synthTreeID, labelFormat);
+                Integer nTips = ge.getNumTipDescendants(qNode, synthTreeID);
+                if (nTips > maxNumTipsNewick) {
+                     ge.shutdownDB();
+                    throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsNewick));
+                }
             } else {
-                tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat);
+                // still don't have to build tree, but have to do traversal
+                Integer nTips = ge.getSubtreeNumTips(synthTreeID, qNode, newickDepth);
+                if (nTips > maxNumTipsNewick) {
+                    ge.shutdownDB();
+                    throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsNewick));
+                }
             }
-        } finally {
-            ge.shutdownDB();
+            
+            try {
+                tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat);
+            } finally {
+                ge.shutdownDB();
+            }
+            responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
+            
+        } else {
+            Integer nTips = ge.getSubtreeNumTips(synthTreeID, qNode, argusonDepth);
+            if (nTips > maxNumTipsArguson) {
+                ge.shutdownDB();
+                throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsArguson));
+            }
+            // arguson. construct newick first to see if not too large
+            tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, argusonDepth, "id");
+            if (tree.getExternalNodeCount() > maxNumTipsArguson) {
+                throw new IllegalArgumentException(treeTooBigError(tree.getExternalNodeCount(), maxNumTipsArguson));
+            } else {
+                
+                // construct arguson
+                
+                
+                
+                
+            }
         }
         
-        responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
-        //responseMap.put("newickDepth", newickDepth);
+        
         return OTRepresentationConverter.convert(responseMap);
+    }
+    
+    
+    private String treeTooBigError (int ntips, int maxTips) {
+        String ret = "Requested tree (" + ntips + " tips) is larger than currently "
+            + "allowed by this service (" + maxTips + " tips). For larger trees, "
+            + "please download the full tree directly from: http://files.opentreeoflife.org/trees/";
+        return ret;
     }
     
     
