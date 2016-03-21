@@ -3515,24 +3515,56 @@ public class GraphExplorer extends GraphBase {
     }
     
     
-    
-    
     // TODO: add in support. currently done in service itself
+    // doing this in overloaded function below
     public HashMap<String, Object> getNodeBlob (Node n, String treeID) {
-        
         HashMap<String, Object> results = new HashMap<>();
-        
         results.put("node_id", n.getProperty("ot_node_id"));
         if (n.hasProperty("name")) {
             results.put("taxon", getTaxonBlob(n));
         }
         results.put("num_tips", getNumTipDescendants(n, treeID));
-        
         return results;
     }
     
     
+    // uniqueSources is passed along to pick up unique sources so results do not have to be reread
+    public HashMap<String, Object> getNodeBlob (Node nd, String treeID, HashSet<String> uniqueSources) {
+        HashMap<String, Object> results = new HashMap<>();
+        results.put("node_id", nd.getProperty("ot_node_id"));
+        if (nd.hasProperty("name")) {
+            results.put("taxon", getTaxonBlob(nd));
+        }
+        results.put("num_tips", getNumTipDescendants(nd, treeID));
+        // support/conflict/etc. properties
+        HashMap<String, Object> props = getSynthMetadataAndUniqueSources(nd, treeID, uniqueSources);
+        results.putAll(props);
+        return results;
+    }
     
+    
+    public HashMap<String, Object> getSourceIDMap (HashSet<String> uniqueSources, String treeID) {
+        HashMap<String, Object> sourceIDMap = new HashMap<>();
+        for (String ind : uniqueSources) {
+            HashMap<String, String> formatSource = getSourceMapIndSource(ind, treeID);
+            sourceIDMap.put(ind, formatSource);
+        }
+        return sourceIDMap;
+    }
+    
+    
+    // get lineage back to root of synthetic tree from some internal node
+    public LinkedList<HashMap<String, Object>> getLineage (Node nd, String treeID, HashSet<String> uniqueSources) {
+        LinkedList<HashMap<String, Object>> lineage = new LinkedList<>();
+        List<Node> nodeList = getPathToRoot(nd, RelType.SYNTHCHILDOF, treeID);
+        for (Node cn : nodeList) {
+            HashMap<String, Object> indInfo = getNodeBlob(cn, treeID);
+            HashMap<String, Object> indProps = getSynthMetadataAndUniqueSources(cn, treeID, uniqueSources);
+            indInfo.putAll(indProps);
+            lineage.add(indInfo);
+        }
+        return lineage;
+    }
     
     
     // if node doesn't have an outgoing synth rel it is a root
@@ -3672,6 +3704,127 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    public HashMap<String, Object> getArgusonData (Node startNode, String treeID, int maxDepth) {
+        HashMap<String, Object> results = new HashMap<>();
+        HashSet<String> uniqueSources = new HashSet<>();
+        JadeTree tree = reconstructDepthLimitedSubtree(treeID, startNode, maxDepth, "id");
+        JadeNode root = tree.getRoot();
+        root.assocObject("graph_node", startNode);
+        results = processArgusonTree(root, treeID, uniqueSources);
+        LinkedList<HashMap<String, Object>> lineage = getLineage(startNode, treeID, uniqueSources);
+        results.put("lineage", lineage);
+        HashMap<String, Object> sourceMap = getSourceIDMap(uniqueSources, treeID);
+        results.put("source_id_map", sourceMap);
+        return results;
+    }
+    
+    
+    // recursive traversal
+    // each jade node has a graph node property
+    private HashMap<String, Object> processArgusonTree (JadeNode inNode, String treeID, HashSet<String> uniqueSources) {
+        HashMap<String, Object> res = new HashMap<>();
+        Node gNode = (Node) inNode.getObject("graph_node");
+        HashMap<String, Object> nodeBlob = getNodeBlob(gNode, treeID, uniqueSources);
+        
+        res.putAll(nodeBlob);
+        
+        ArrayList<Object> children = new ArrayList<>();
+        for (int i = 0; i < inNode.getChildCount(); i++) {
+            children.add(processArgusonTree(inNode.getChild(i), treeID, uniqueSources));
+        }
+        if (children.size() > 0) {
+            res.put("children", children);
+        }
+        return res;
+    }
+    
+    
+    private JadeTree reconstructSyntheticTreeHelper2 (String treeID, Node rootnode, int maxDepth) {
+        
+        HashSet<String> uniqueSources = new HashSet<>();
+        
+        JadeNode root = new JadeNode();
+        addCorePropertiesToJadeNode(root, rootnode, treeID);
+        
+        List<Node> pathToRoot = getPathToRoot(rootnode, RelType.SYNTHCHILDOF, treeID);
+        root.assocObject("path_to_root", pathToRoot);
+        root.assocObject("treeID", treeID);
+        
+        HashMap<String, Object> rootProps = getSynthMetadataAndUniqueSources(rootnode, treeID, uniqueSources);
+        root.assocObject("annotations", rootProps);
+        
+        // really just to update uniqueSources with path_to_root nodes
+        for (Node n : pathToRoot) { HashMap<String, Object> temp = getSynthMetadataAndUniqueSources(n, treeID, uniqueSources); }
+        
+        //boolean printlengths = false;
+        HashMap<Node, JadeNode> node2JadeNode = new HashMap<>();
+        node2JadeNode.put(rootnode, root);
+        TraversalDescription synthEdgeTraversal = Traversal.description().relationships(RelType.SYNTHCHILDOF, Direction.INCOMING);
+        
+        synthEdgeTraversal = synthEdgeTraversal.depthFirst();
+        if (maxDepth >= 0) { synthEdgeTraversal = synthEdgeTraversal.evaluator(Evaluators.toDepth(maxDepth)); }
+        HashSet<Node> internalNodes = new HashSet<>();
+        ArrayList<Node> unnamedChildNodes = new ArrayList<>();
+        ArrayList<Node> namedChildNodes = new ArrayList<>();
+        
+        for (Path path : synthEdgeTraversal.traverse(rootnode)) {
+            Relationship furshestRel = path.lastRelationship();
+            if (furshestRel != null && furshestRel.hasProperty("name")) {
+                String rn = (String) furshestRel.getProperty("name");
+                if (rn.equals(treeID)) {
+                    Node parNode = furshestRel.getEndNode();
+                    Node childNode = furshestRel.getStartNode();
+                    internalNodes.add(parNode);
+                    JadeNode jChild = new JadeNode();
+                    if (childNode.hasProperty("name")) {
+                        namedChildNodes.add(childNode);
+                    } else {
+                        unnamedChildNodes.add(childNode);
+                    }
+                    addCorePropertiesToJadeNode(jChild, childNode, treeID);
+                    HashMap<String, Object> indProps = getSynthMetadataAndUniqueSources(childNode, treeID, uniqueSources);
+                    jChild.assocObject("annotations", indProps);
+                    node2JadeNode.get(parNode).addChild(jChild);
+                    node2JadeNode.put(childNode, jChild);
+                }
+            }
+        }
+        if (internalNodes.isEmpty()) {
+            root.assocObject("has_children", false);
+        }
+        for (Node ucn : unnamedChildNodes) {
+            if (!internalNodes.contains(ucn)) {
+                ArrayList<String> subNameList = getNamesOfRepresentativeDescendants(ucn, RelType.SYNTHCHILDOF, treeID);
+                String [] dnA = subNameList.toArray(new String[subNameList.size()]);
+                JadeNode cjn = node2JadeNode.get(ucn);
+                cjn.assocObject("descendantNameList", dnA);
+                Boolean hc = hasIncomingRel(ucn, RelType.SYNTHCHILDOF, treeID);
+                cjn.assocObject("has_children", hc);
+            }
+        }
+        for (Node ncn : namedChildNodes) {
+            if (!internalNodes.contains(ncn)) {
+                JadeNode cjn = node2JadeNode.get(ncn);
+                Boolean hc = hasIncomingRel(ncn, RelType.SYNTHCHILDOF, treeID);
+                cjn.assocObject("has_children", hc);
+            }
+        }
+        
+        // get source id map for all unique sources
+        HashMap<String, Object> sourceMap = new HashMap<>();
+        for (String ind : uniqueSources) {
+            HashMap<String, String> formatSource = getSourceMapIndSource(ind, treeID);
+            sourceMap.put(ind, formatSource);
+        }
+        if (!sourceMap.isEmpty()) {
+            root.assocObject("sourceMap", sourceMap);
+        }
+        JadeTree tree = new JadeTree(root);
+        root.assocObject("nodedepth", root.getNodeMaxDepth());
+        return tree;
+    }
+    
+    
     // this is what is used for the old arguson
     /**
      * @return a JadeTree representation of a subtree of the synthesis tree
@@ -3793,6 +3946,21 @@ public class GraphExplorer extends GraphBase {
     }
     
     
+    // annotations are stored in the tree-specific outgoing relationship
+    public Relationship getOutgoingRel (Node nd, String treeID) {
+        Relationship rel = null;
+        if (nd.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship outrel : nd.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (outrel.getProperty("name") == treeID) {
+                    rel = outrel;
+                    break;
+                }
+            }
+        }
+        return rel;
+    }
+    
+    
     // a quick way to get tree size without building that actual tree
     public Integer getSubtreeNumTips (String treeID, Node rootnode, int maxDepth) {
         
@@ -3855,6 +4023,7 @@ public class GraphExplorer extends GraphBase {
                     Node childNode = furshestRel.getStartNode();
                     JadeNode jChild = new JadeNode();
                     jChild.setName(getNodeLabel(childNode, labelFormat));
+                    jChild.assocObject("graph_node", childNode);
                     node2JadeNode.get(parNode).addChild(jChild);
                     node2JadeNode.put(childNode, jChild);
                 }

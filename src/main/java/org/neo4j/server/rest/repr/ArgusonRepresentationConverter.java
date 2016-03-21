@@ -23,9 +23,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
     
     /**
      * Return an Representation object capable of serializing arguson description of `inNode`
-     * 
      * This implementation does not return branch lengths.
-     * 
      * @param inNode
      * @return arguson description of inNode
      */
@@ -79,7 +77,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 if (inNode.getObject("node_id") != null) {
                     serializer.putString("node_id", (String) inNode.getObject("node_id"));
                 }
-                ArrayList<Representation> children = new ArrayList<Representation>();
+                ArrayList<Representation> children = new ArrayList<>();
                 for (int i = 0; i < inNode.getChildCount(); i++) {
                     children.add(ArgusonRepresentationConverter.getArgusonRepresentationForJadeNode(inNode.getChild(i)));
                 }
@@ -116,7 +114,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 // add in metadata for pathToRoot (requested by jimallman)
                 List<Node> pathToRoot = (List<Node>) inNode.getObject("path_to_root");
                 if (pathToRoot != null) {
-                    LinkedList<Representation> pathToRootRepresentation = new LinkedList<Representation>();
+                    LinkedList<Representation> pathToRootRepresentation = new LinkedList<>();
 
                     for (Node m : pathToRoot) {
                         pathToRootRepresentation.add(ArgusonRepresentationConverter.getNodeRepresentationWithMetadata(m, treeID));
@@ -130,7 +128,7 @@ public class ArgusonRepresentationConverter extends MappingRepresentation {
                 
                 String[] dnl = (String[]) inNode.getObject("descendantNameList");
                 if (dnl != null) {
-                    LinkedList<String> dnlList = new LinkedList<String>();
+                    LinkedList<String> dnlList = new LinkedList<>();
                     for (int i = 0; i < dnl.length; i++) {
                         dnlList.add(dnl[i]);
                     }

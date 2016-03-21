@@ -134,19 +134,13 @@ public class tree_of_life_v3 extends ServerPlugin {
             draftTreeInfo.put("root", rootInfo);
             
             // tree constituents
-            //draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
             draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
             draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
 
             if (returnSourceList) {
                 Node sourceMapNode = ge.getSourceMapNodeByName(synthTreeID);
                 draftTreeInfo.put("source_list", Arrays.asList((String[]) meta.getProperty("sources")));
-
-                HashMap<String, Object> sourceMap = new HashMap<>();
-                for (String key : sourceMapNode.getPropertyKeys()) {
-                    HashMap<String, String> formatSource = ge.stringToMap((String) sourceMapNode.getProperty(key));
-                    sourceMap.put(key, formatSource);
-                }
+                HashMap<String, Object> sourceMap = ge.getSourceIDMap(new HashSet<>((ArrayList<String>)sourceMapNode.getPropertyKeys()), synthTreeID);
                 draftTreeInfo.put("source_id_map", sourceMap);
             }
             draftTreeInfo.put("filtered_flags", Arrays.asList((String[]) meta.getProperty("filtered_flags")));
@@ -198,7 +192,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         HashMap<String, Object> nodeIfo = new HashMap<>();
         
         Node qNode = null;
-        String synthTreeID = null; // will loop if there are multiple
+        String synthTreeID = null; // when multi-tree is supported this will loop if there are multiple
         
         GraphExplorer ge = new GraphExplorer(graphDb);
         
@@ -207,80 +201,51 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
             } catch (TaxonNotFoundException e) {
-            }
-            if (n != null) {
-                qNode = n;
-            } else {
                 String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided.";
                 throw new TaxonNotFoundException(ret);
             }
+            qNode = n;
+            
         } else if (nodeID != null) {
             Node n = null;
             try {
                 n = ge.findGraphNodeByOTTNodeID(nodeID);
             } catch (TaxonNotFoundException e) {
-            }
-            if (n != null) {
-                qNode = n;
-            } else {
                 String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided.";
                 throw new TaxonNotFoundException(ret);
             }
+            qNode = n;
         }
         
-        //nodeIfo.put("node_id", qNode.getProperty("ot_node_id"));
+        // temporary, for hiding the multitree stuff
+        String synthID = null;
         
-        // get all taxonomic information
-        //HashMap<String, Object> taxInfo = ge.getTaxonBlob(qNode);
-        //nodeIfo.put("taxon", taxInfo);
-        
-        
-        // Relationship tr = curnode.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING);
-        
-        // loop over all synth trees this node is in. for the moment, there will only be one (well, ready for more...)
-        if (qNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-            
-    // NOTE:
-    // this will behave as expected if there is only 1 tree in the graph
-    // when multiple trees are finally served this will need to be reverted to earlier version
-    
-            for (Relationship rel : qNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
-                HashMap<String, Object> treeInfo = new HashMap<>();
-                
-                synthTreeID = (String) rel.getProperty("name");
-                
-                HashMap<String, Object> nodeBlob = ge.getNodeBlob(qNode, synthTreeID);
-                nodeIfo.putAll(nodeBlob);
-                
-                HashSet<String> uniqueSources = new HashSet<>();
-                HashMap<String, Object> props = ge.getSynthMetadataAndUniqueSources(qNode, synthTreeID, uniqueSources);
-                treeInfo.putAll(props);
-                
-                if (includeLineage != null && includeLineage == true) {
-                    LinkedList<HashMap<String, Object>> lineage = new LinkedList<>();
-                    List<Node> nodeList = ge.getPathToRoot(qNode, RelType.SYNTHCHILDOF, synthTreeID);
-                    // need to collect supporting sources here, add them to the list from the focal node
-                    for (Node cn : nodeList) {
-                        HashMap<String, Object> indInfo = ge.getNodeBlob(cn, synthTreeID);
-                        HashMap<String, Object> indProps = ge.getSynthMetadataAndUniqueSources(cn, synthTreeID, uniqueSources);
-                        indInfo.putAll(indProps);
-                        
-                        lineage.add(indInfo);
-                    }
-                    treeInfo.put("lineage", lineage);
-                }
-                
-                // source to meta map
-                HashMap<String, Object> sourceMap = new HashMap<>();
-                for (String ind : uniqueSources) {
-                    HashMap<String, String> formatSource = ge.getSourceMapIndSource(ind, synthTreeID);
-                    sourceMap.put(ind, formatSource);
-                }
-                treeInfo.put("source_id_map", sourceMap);
-                //treeInfo.put("synth_id", synthTreeID);
-                nodeIfo.putAll(treeInfo);
+        // get synthetic tree identifier
+        if (synthID != null) {
+            synthTreeID = synthID;
+            if (!ge.checkExistingSynthTreeID(synthID)) {
+                ge.shutdownDB();
+                String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
+                    + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
+                throw new IllegalArgumentException(ret);
             }
+        } else { // default to most recent
+            synthTreeID = ge.getMostRecentSynthTreeID();
         }
+        
+        // single-tree version
+        HashSet<String> uniqueSources = new HashSet<>();
+        HashMap<String, Object> nodeBlob = ge.getNodeBlob(qNode, synthTreeID, uniqueSources);
+        nodeIfo.putAll(nodeBlob);
+        
+        if (includeLineage != null && includeLineage == true) {
+            LinkedList<HashMap<String, Object>> lineage = ge.getLineage(qNode, synthTreeID, uniqueSources);
+            nodeIfo.put("lineage", lineage);
+        }
+        HashMap<String, Object> sourceMap = ge.getSourceIDMap(uniqueSources, synthTreeID);
+        //nodeIfo.put("synth_id", synthTreeID);
+        nodeIfo.put("source_id_map", sourceMap);
+        
         ge.shutdownDB();
         return OTRepresentationConverter.convert(nodeIfo);
     }
@@ -670,13 +635,8 @@ public class tree_of_life_v3 extends ServerPlugin {
                 throw new IllegalArgumentException(ret);
                 //throw new TaxonNotFoundException(ret);
             }
-            if (n != null) {
-                qNode = n;
-            } else {
-                String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided.";
-                throw new TaxonNotFoundException(ret);
-            }
-            // check that startNode is indeed in the synthetic tree
+            qNode = n;
+            // check that startNode is indeed in the synthetic tree. for later with multi-trees
             if (!ge.nodeIsInSyntheticTree(qNode, synthTreeID)) {
                 ge.shutdownDB();
                 String ret = "Queried \"ott_id\": " + ottID + " is in the graph, but "
@@ -688,13 +648,10 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphNodeByOTTNodeID(nodeID);
             } catch (TaxonNotFoundException e) {
-            }
-            if (n != null) {
-                qNode = n;
-            } else {
                 String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided.";
                 throw new TaxonNotFoundException(ret);
             }
+            qNode = n;
             // check that startNode is indeed in the synthetic tree
             if (!ge.nodeIsInSyntheticTree(qNode, synthTreeID)) {
                 ge.shutdownDB();
@@ -722,7 +679,6 @@ public class tree_of_life_v3 extends ServerPlugin {
                     throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsNewick));
                 }
             }
-            
             try {
                 tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat);
             } finally {
@@ -736,18 +692,12 @@ public class tree_of_life_v3 extends ServerPlugin {
                 ge.shutdownDB();
                 throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsArguson));
             }
-            // arguson. construct newick first to see if not too large
-            tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, argusonDepth, "id");
-            if (tree.getExternalNodeCount() > maxNumTipsArguson) {
-                throw new IllegalArgumentException(treeTooBigError(tree.getExternalNodeCount(), maxNumTipsArguson));
-            } else {
-                
-                // construct arguson
-                
-                
-                
-                
-            }
+            
+            // construct arguson
+            HashSet<String> uniqueSources = new HashSet<>();
+            HashMap<String, Object> res = ge.getArgusonData(qNode, synthTreeID, argusonDepth);
+            responseMap.putAll(res);
+            
         }
         
         
@@ -755,6 +705,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     }
     
     
+    // should have a bunch of generic error writers for those that occur a lot
     private String treeTooBigError (int ntips, int maxTips) {
         String ret = "Requested tree (" + ntips + " tips) is larger than currently "
             + "allowed by this service (" + maxTips + " tips). For larger trees, "
