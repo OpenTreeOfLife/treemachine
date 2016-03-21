@@ -203,9 +203,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
             } catch (TaxonNotFoundException e) {
-                String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided ("
-                    + ottID + ").";
-                throw new IllegalArgumentException(ret);
+                throw new IllegalArgumentException(badOTTIDError(ottID));
             }
             qNode = n;
             
@@ -214,9 +212,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphNodeByOTTNodeID(nodeID);
             } catch (TaxonNotFoundException e) {
-                String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided ("
-                    + nodeID + ").";
-                throw new IllegalArgumentException(ret);
+                throw new IllegalArgumentException(badNodeIDError(nodeID));
             }
             qNode = n;
         }
@@ -635,9 +631,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
             } catch (TaxonNotFoundException e) {
-                String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided.";
-                throw new IllegalArgumentException(ret);
-                //throw new TaxonNotFoundException(ret);
+                throw new IllegalArgumentException(badOTTIDError(ottID));
             }
             qNode = n;
             // check that startNode is indeed in the synthetic tree. for later with multi-trees
@@ -652,8 +646,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphNodeByOTTNodeID(nodeID);
             } catch (TaxonNotFoundException e) {
-                String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided.";
-                throw new TaxonNotFoundException(ret);
+                throw new IllegalArgumentException(badNodeIDError(nodeID));
             }
             qNode = n;
             // check that startNode is indeed in the synthetic tree
@@ -664,8 +657,6 @@ public class tree_of_life_v3 extends ServerPlugin {
                 throw new IllegalArgumentException(ret);
             }
         }
-        
-        JadeTree tree = null;
         
         if ("newick".equals(treeFormat)) {
             // early exit without have to build a tree
@@ -683,6 +674,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                     throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsNewick));
                 }
             }
+            JadeTree tree = null;
             try {
                 tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat);
             } finally {
@@ -709,6 +701,18 @@ public class tree_of_life_v3 extends ServerPlugin {
         String ret = "Requested tree (" + ntips + " tips) is larger than currently "
             + "allowed by this service (" + maxTips + " tips). For larger trees, "
             + "please download the full tree directly from: http://files.opentreeoflife.org/trees/";
+        return ret;
+    }
+    
+    private String badOTTIDError (Long ottID) {
+        String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided ("
+            + ottID + ").";
+        return ret;
+    }
+    
+    private String badNodeIDError (String nodeID) {
+        String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided ("
+            + nodeID + ").";
         return ret;
     }
     
