@@ -3646,7 +3646,7 @@ public class GraphExplorer extends GraphBase {
         JadeNode root = tree.getRoot();
         root.assocObject("graph_node", startNode);
         results = processArgusonTree(root, treeID, uniqueSources);
-        LinkedList<HashMap<String, Object>> lineage = getLineage(startNode, treeID, uniqueSources);
+        LinkedList<HashMap<String, Object>> lineage = getLineageArguson(startNode, treeID, uniqueSources);
         results.put("lineage", lineage);
         HashMap<String, Object> sourceMap = getSourceIDMap(uniqueSources, treeID);
         results.put("source_id_map", sourceMap);
