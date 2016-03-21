@@ -81,6 +81,9 @@ def check_unique_name(x, where):
 
 
 def field(name, check):
+    if not isinstance(check, type(check_integer)):
+        print '** bad check function', check, 'for', name
+        return (name, (lambda x, where: False), True)
     return (name, check, True)
 
 def opt_field(name, check):
@@ -99,7 +102,11 @@ def check_blob(fields):
         for name in x:
             if name in checks:
                 check = checks[name]
-                if not check(x[name], name + ' in ' + where):
+                if where == '':
+                    wh = name
+                else:
+                    wh = name + ' in ' + where
+                if not check(x[name], wh):
                     win = False
             else:
                 print "** unexpected field '%s' found among %s %s" % (name, x.keys(), where)
@@ -123,6 +130,16 @@ def check_list(check):
         return True
     return do_check_list
 
+def check_nonempty_list(check):
+    ch = check_list(check)
+    def do_check_nonempty_list(x, where):
+        if x == []:
+            print '** expected nonempty list but got', x, where
+            return False
+        else:
+            return ch(x, where)
+    return do_check_nonempty_list
+
 # Check types of all keys and values in a dictionary
 
 def check_dict(check_key, check_val):
@@ -144,14 +161,14 @@ taxon_blob_fields = [field(u'ott_id', check_integer),
                      field(u'name', check_string),
                      field(u'rank', check_string),
                      field(u'unique_name', check_unique_name),
-                     field(u'tax_sources', check_list(check_string))]
+                     field(u'tax_sources', check_nonempty_list(check_string))]
 
 check_taxon_blob = check_blob(taxon_blob_fields)
 
 # treemachine only
 check_single_support_blob = check_dict(check_source_id, check_string)
 
-check_multi_support_blob = check_dict(check_source_id, check_list(check_string))
+check_multi_support_blob = check_dict(check_source_id, check_nonempty_list(check_string))
 
 node_blob_fields = [field(u'node_id', check_string),
                     opt_field(u'taxon', check_taxon_blob),
@@ -184,14 +201,19 @@ check_source_id_map = check_dict(check_source_id, check_source_blob)
 def check_arguson_blob(x, where):
     return really_check_arguson_blob(x, where)
 
-arguson_blob_fields = (node_blob_fields +
-                       [field(u'children', check_arguson_blob)])
+arguson_lineage_blob_fields = (node_blob_fields +
+                           [opt_field(u'descendant_name_list', check_nonempty_list(check_string))])
+
+check_arguson_lineage_blob = check_blob(arguson_lineage_blob_fields)
+
+arguson_blob_fields = (arguson_lineage_blob_fields +
+                       [opt_field(u'children', check_list(check_arguson_blob))])
 
 really_check_arguson_blob = check_blob(arguson_blob_fields)
 
-check_top_arguson_blob = (arguson_blob_fields +
-                          [field(u'source_id_map', check_source_id_map),
-                           field(u'lineage', check_list(check_node_blob))])
+check_top_arguson_blob = check_blob(arguson_blob_fields +
+                                    [field(u'source_id_map', check_source_id_map),
+                                          field(u'lineage', check_list(check_arguson_lineage_blob))])
 
 # taxomachine only
 extended_taxon_blob_fields = (taxon_blob_fields +
