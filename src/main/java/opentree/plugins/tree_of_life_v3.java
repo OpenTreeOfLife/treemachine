@@ -694,15 +694,10 @@ public class tree_of_life_v3 extends ServerPlugin {
                 ge.shutdownDB();
                 throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsArguson));
             }
-            
             // construct arguson
-            HashSet<String> uniqueSources = new HashSet<>();
             HashMap<String, Object> res = ge.getArgusonData(qNode, synthTreeID, argusonDepth);
-            responseMap.putAll(res);
-            
+            responseMap.put("arguson", res);;
         }
-        
-        
         return OTRepresentationConverter.convert(responseMap);
     }
     

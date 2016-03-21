@@ -97,6 +97,11 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info
 
 
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
+
+
+
+
 
 
 #501678,666104,316878,102710,536234
