@@ -7,18 +7,22 @@ from opentreetesting import config
 
 # Returns 1 for failure, 0 for success
 
-def simple_test(path, input, check):
+def simple_test(path, input, check, is_right=(lambda x:True)):
     DOMAIN = config('host', 'apihost')
     url = DOMAIN + path
     try:
-        print 'checking', url
+        # print 'checking', url
         output = get_obj_from_http(url, verb='POST', data=input)
         if isinstance(output, dict) and 'error' in output:
             # Should be 400, not 200
             print '** error', output
             return 1
         elif check(output, ''):
-            return 0
+            if is_right(output):
+                return 0
+            else:
+                print '** result is not right', output
+                return 1
         else:
             return 1
     except Exception, e:
@@ -33,11 +37,25 @@ def check_integer(x, where):
         print '** expected integer but got', x, where
         return False
 
+def check_float(x, where):
+    if isinstance(x, float):
+        return True
+    else:
+        print '** expected float but got', x, where
+        return False
+
 def check_string(x, where):
     if isinstance(x, unicode):
         return True
     else:
         print '** expected string but got', x, where
+        return False
+
+def check_boolean(x, where):
+    if x == True or x == False:
+        return True
+    else:
+        print '** expected boolean but got', x, where
         return False
 
 def check_source_id(x, where):
@@ -49,6 +67,18 @@ def check_source_id(x, where):
         return False
     else:
         return True
+
+# In v3, the unique_name should never be null
+def check_unique_name(x, where):
+    if not isinstance(x, unicode):
+        print '** expected string but got', x, where
+        return False
+    elif len(x) == 0:
+        print '** expected non-null unique_name but got null', where
+        return False
+    else:
+        return True
+
 
 def field(name, check):
     return (name, check, True)
@@ -69,7 +99,7 @@ def check_blob(fields):
         for name in x:
             if name in checks:
                 check = checks[name]
-                if not check(x[name], where + ' in ' + name):
+                if not check(x[name], name + ' in ' + where):
                     win = False
             else:
                 print "** unexpected field '%s' found among %s %s" % (name, x.keys(), where)
@@ -86,6 +116,7 @@ def check_list(check):
         if not isinstance(x, list):
             print '** expected list but got', x, where
             return False
+        where = 'list in ' + where
         for y in x:
             if not check(y, where):
                 return False
@@ -112,11 +143,12 @@ def check_dict(check_key, check_val):
 taxon_blob_fields = [field(u'ott_id', check_integer),
                      field(u'name', check_string),
                      field(u'rank', check_string),
-                     field(u'unique_name', check_string),
+                     field(u'unique_name', check_unique_name),
                      field(u'tax_sources', check_list(check_string))]
 
 check_taxon_blob = check_blob(taxon_blob_fields)
 
+# treemachine only
 check_single_support_blob = check_dict(check_source_id, check_string)
 
 check_multi_support_blob = check_dict(check_source_id, check_list(check_string))
@@ -148,6 +180,28 @@ def check_source_blob(x, where):
 
 check_source_id_map = check_dict(check_source_id, check_source_blob)
 
+# check_arguson_blob is recursive, so need to eta-convert to deal with circularity
+def check_arguson_blob(x, where):
+    return really_check_arguson_blob(x, where)
+
+arguson_blob_fields = (node_blob_fields +
+                       [field(u'children', check_arguson_blob)])
+
+really_check_arguson_blob = check_blob(arguson_blob_fields)
+
+check_top_arguson_blob = (arguson_blob_fields +
+                          [field(u'source_id_map', check_source_id_map),
+                           field(u'lineage', check_list(check_node_blob))])
+
+# taxomachine only
+extended_taxon_blob_fields = (taxon_blob_fields +
+                              [field(u'flags', check_list(check_string)),
+                               field(u'synonyms', check_list(check_string)),
+                               field(u'is_suppressed', check_boolean)])
+
+check_extended_taxon_blob = check_blob(extended_taxon_blob_fields)
+
 if False:
     pred = check_blob([field('value', check_integer)])
     print 'test:', pred(json.loads(sys.argv[1]), '')
+
