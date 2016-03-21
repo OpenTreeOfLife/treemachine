@@ -130,7 +130,9 @@ public class tree_of_life_v3 extends ServerPlugin {
             draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
 
             // root node info - collect into separate object ('blob')
-            HashMap<String, Object> rootInfo = ge.getNodeBlob((String)meta.getProperty("root_ot_node_id"), synthTreeID);
+            //HashMap<String, Object> rootInfo = ge.getNodeBlob((String)meta.getProperty("root_ot_node_id"), synthTreeID);
+            Node root = ge.findGraphNodeByOTTNodeID((String)meta.getProperty("root_ot_node_id"));
+            HashMap<String, Object> rootInfo = ge.getNodeBlob(root, synthTreeID, null);
             draftTreeInfo.put("root", rootInfo);
             
             // tree constituents
@@ -351,13 +353,13 @@ public class tree_of_life_v3 extends ServerPlugin {
         } else {
             HashMap<String, Object> res = new HashMap<>();
             Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
+            HashSet<String> uniqueSources = new HashSet<>();
             
-            //res.put("synth_id", synthTreeID);
-            
-            HashMap<String, Object> mrcaInfo = ge.getNodeBlob(mrca, synthTreeID);
+            HashMap<String, Object> mrcaInfo = ge.getNodeBlob(mrca, synthTreeID, uniqueSources);
             res.put("mrca", mrcaInfo);
-            
-            //res.put("node_id", mrca.getProperty("ot_node_id"));
+            HashMap<String, Object> sourceMap = ge.getSourceIDMap(uniqueSources, synthTreeID);
+            //nodeIfo.put("synth_id", synthTreeID);
+            res.put("source_id_map", sourceMap);
             
             if (!ottIdsNotInTree.isEmpty()) {
                 res.put("ott_ids_not_in_tree", ottIdsNotInTree);

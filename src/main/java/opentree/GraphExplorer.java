@@ -3725,9 +3725,7 @@ public class GraphExplorer extends GraphBase {
         HashMap<String, Object> res = new HashMap<>();
         Node gNode = (Node) inNode.getObject("graph_node");
         HashMap<String, Object> nodeBlob = getNodeBlob(gNode, treeID, uniqueSources);
-        
         res.putAll(nodeBlob);
-        
         ArrayList<Object> children = new ArrayList<>();
         for (int i = 0; i < inNode.getChildCount(); i++) {
             children.add(processArgusonTree(inNode.getChild(i), treeID, uniqueSources));
