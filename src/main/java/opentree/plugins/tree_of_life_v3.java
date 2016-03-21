@@ -203,8 +203,9 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
             } catch (TaxonNotFoundException e) {
-                String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided.";
-                throw new TaxonNotFoundException(ret);
+                String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided ("
+                    + ottID + ").";
+                throw new IllegalArgumentException(ret);
             }
             qNode = n;
             
@@ -213,8 +214,9 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphNodeByOTTNodeID(nodeID);
             } catch (TaxonNotFoundException e) {
-                String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided.";
-                throw new TaxonNotFoundException(ret);
+                String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided ("
+                    + nodeID + ").";
+                throw new IllegalArgumentException(ret);
             }
             qNode = n;
         }
