@@ -5,6 +5,7 @@ import jade.deprecated.MessageLogger;
 import jade.tree.deprecated.JadeNode;
 import jade.tree.deprecated.JadeTree;
 import jade.tree.deprecated.NexsonReader;
+import jade.tree.deprecated.TreeReader;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -386,7 +387,7 @@ public class MainRunner {
         }
         
         int treeCounter = 0;
-        ArrayList<JadeTree> jt = new ArrayList<JadeTree>();
+        ArrayList<JadeTree> jt = new ArrayList<>();
         MessageLogger messageLogger = new MessageLogger("nexson2newick:");
         try {
             BufferedReader br = new BufferedReader(new FileReader(filename));
@@ -424,6 +425,45 @@ public class MainRunner {
         }
         
         System.out.println("Sucessfully wrote " + treeCounter + " newick trees to file '" + outFilename + "'");        
+        return 0;
+    }
+    
+    
+    private JadeTree readNewick (String newickFile) {
+        String inputNewick = "";
+        System.out.println("Reading tree from file: " + newickFile);
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(newickFile));
+            inputNewick =  br.readLine();
+            br.close();
+        } catch (IOException ioe) {}
+        
+        TreeReader tr = new TreeReader();
+        JadeTree tree = tr.readTree(inputNewick);
+        return tree;
+    }
+    
+    
+    private void recursiveTreeTraversal (JadeNode curJadeNode) {
+        for (int i = 0; i < curJadeNode.getChildCount(); i++) {
+            recursiveTreeTraversal(curJadeNode.getChild(i));
+        }
+        String name = curJadeNode.getName();
+        
+        if ("ott1085739".equals(name)) {
+            int ntips = curJadeNode.getDescendantLeavesNumbers();
+            System.out.println("Hit \"Gavia arctica\". ntips = " + ntips);
+        }
+    }
+    
+    
+    public int test (String [] args) {
+        
+        // put stuff to test in me
+        String filename = args[1];
+        JadeTree tree = readNewick(filename);
+        JadeNode root = tree.getRoot();
+        recursiveTreeTraversal(root);
         return 0;
     }
     
@@ -471,7 +511,14 @@ public class MainRunner {
                 cmdReturnCode = mr.nodeInfo(args);
             } else if (command.compareTo("ingestsynth") == 0) {
                 cmdReturnCode = mr.ingestSynthesisData(args);
-            } else {
+            } 
+            
+            // test function
+            else if (command.compareTo("test") == 0) {
+                cmdReturnCode = mr.ingestSynthesisData(args);
+            }
+            
+            else {
                 System.err.println("Unrecognized command \"" + command + "\"");
                 cmdReturnCode = 2;
             }
