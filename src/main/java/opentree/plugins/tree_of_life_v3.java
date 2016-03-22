@@ -2,7 +2,6 @@ package opentree.plugins;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.LinkedList;
 import jade.tree.deprecated.JadeTree;
 import java.io.BufferedReader;
@@ -12,14 +11,11 @@ import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.HashSet;
 import opentree.GraphExplorer;
-import opentree.constants.RelType;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
@@ -31,55 +27,9 @@ import org.neo4j.server.rest.repr.OTRepresentationConverter;
 // Graph of Life Services 
 public class tree_of_life_v3 extends ServerPlugin {
     
-    // not currently advertized, but should be. well, not until multiple trees gets the go ahead
-    /*
-    @Description("Returns brief summary information about the draft synthetic tree(s) "
-        + "currently contained within the graph database.") 
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation draft_trees (@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
-
-        HashMap<String, Object> graphInfo = new HashMap<>();
-        
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
-        
-        if (synthTreeIDs.size() > 0) {
-            graphInfo.put("num_synth_trees", synthTreeIDs.size());
-            LinkedList<HashMap<String, Object>> trees = new LinkedList<>();
-            
-            // trying not to hardcode things here; arrays make it difficult
-            for (String treeID : synthTreeIDs) {
-                HashMap<String, Object> draftTreeInfo = new HashMap<>();
-                Node meta = ge.getSynthesisMetaNodeByName(treeID);
-                
-                draftTreeInfo.put("synth_id", treeID);
-                draftTreeInfo.put("date_completed", meta.getProperty("date_completed"));
-                draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
-                
-                // root node info
-                draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
-                draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
-                
-                // tree constituents
-                draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
-                draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
-                draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
-                draftTreeInfo.put("root_node_id", meta.getProperty("root_ot_node_id"));
-                
-                trees.add(draftTreeInfo);
-            }
-            graphInfo.put("synth_trees", trees);
-        } else {
-            ge.shutdownDB();
-            throw new IllegalArgumentException("Could not find any draft synthetic trees in the graph.");
-        }
-
-        return OTRepresentationConverter.convert(graphInfo);
-    }
-    */
+    // NEW: add treeid as a optional argument, default to most recent. not used at present
     
     
-    // NEW: add treeid as a optional argument, default to most recent
     @Description("Returns summary information about the most recent draft tree of life, "
         + "including information about the list of source trees and the taxonomy used to build it.")
     @PluginTarget(GraphDatabaseService.class)
@@ -343,11 +293,9 @@ public class tree_of_life_v3 extends ServerPlugin {
                 }
             }
         }
-
-        if (tips.size() < 1) {
-            String ret = "Could not find any graph nodes corresponding to the arg "
-                + "\"node_ids\" provided.";
-            throw new IllegalArgumentException(ret);
+        
+        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty()) {
+            throw new IllegalArgumentException(multipleBadNodeIDsError(ottIdsNotInTree, nodesIDsNotInTree));
         } else {
             HashMap<String, Object> res = new HashMap<>();
             Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
@@ -492,6 +440,10 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         
+        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty()) {
+            throw new IllegalArgumentException(multipleBadNodeIDsError(ottIdsNotInTree, nodesIDsNotInTree));
+        }
+        
         if (tips.size() < 2) {
             String ret = "Not enough valid node ids provided to construct a subtree "
                 + "(there must be at least two).";
@@ -566,7 +518,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         int argusonDepth = 5;
         Integer maxNumTipsNewick = 25000; // TODO: is this the best value? Test this. ***
         Integer maxNumTipsArguson = 25000; // splitting out since will likely have to be much smaller
-        String labelFormat = null;
+        String labelFormat = null; // only used for newick
         String treeFormat = null;
         
         // temporary, for hiding the multitree stuff
@@ -716,8 +668,82 @@ public class tree_of_life_v3 extends ServerPlugin {
         return ret;
     }
     
+    private String multipleBadNodeIDsError (ArrayList<Long> ottIdsNotInTree, ArrayList<String> nodesIDsNotInTree) {
+        String ret = "";
+        if (!ottIdsNotInTree.isEmpty()) {
+            ret = "The following \"ott_ids\" were not found: ";
+            for (int i = 0; i < ottIdsNotInTree.size(); i++) {
+                ret += ottIdsNotInTree.get(i);
+                if (i != ottIdsNotInTree.size() - 1) {
+                    ret += ", ";
+                }
+            }
+            ret += ". ";
+        }
+        if (!nodesIDsNotInTree.isEmpty()) {
+            ret += "The following \"node_ids\" were not found: ";
+            for (int i = 0; i < nodesIDsNotInTree.size(); i++) {
+                ret += nodesIDsNotInTree.get(i);
+                if (i != nodesIDsNotInTree.size() - 1) {
+                    ret += ", ";
+                }
+            }
+            ret += ". ";
+        }
+        return ret;
+    }
     
-    // TODO: Possibility of replacing tip label ottids with names?!?
+    
+    //-------------------------------------------------------------------------------------------//
+    
+    // not currently advertized, but should be. well, not until multiple trees gets the go ahead
+    /*
+    @Description("Returns brief summary information about the draft synthetic tree(s) "
+        + "currently contained within the graph database.") 
+    @PluginTarget(GraphDatabaseService.class)
+    public Representation draft_trees (@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
+
+        HashMap<String, Object> graphInfo = new HashMap<>();
+        
+        GraphExplorer ge = new GraphExplorer(graphDb);
+        ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
+        
+        if (synthTreeIDs.size() > 0) {
+            graphInfo.put("num_synth_trees", synthTreeIDs.size());
+            LinkedList<HashMap<String, Object>> trees = new LinkedList<>();
+            
+            // trying not to hardcode things here; arrays make it difficult
+            for (String treeID : synthTreeIDs) {
+                HashMap<String, Object> draftTreeInfo = new HashMap<>();
+                Node meta = ge.getSynthesisMetaNodeByName(treeID);
+                
+                draftTreeInfo.put("synth_id", treeID);
+                draftTreeInfo.put("date_completed", meta.getProperty("date_completed"));
+                draftTreeInfo.put("taxonomy_version", meta.getProperty("taxonomy_version"));
+                
+                // root node info
+                draftTreeInfo.put("root_taxon_name", meta.getProperty("root_taxon_name"));
+                draftTreeInfo.put("root_ott_id", meta.getProperty("root_ott_id"));
+                
+                // tree constituents
+                draftTreeInfo.put("num_tips", meta.getProperty("num_tips"));
+                draftTreeInfo.put("num_source_studies", meta.getProperty("num_source_studies"));
+                draftTreeInfo.put("num_source_trees", meta.getProperty("num_source_trees"));
+                draftTreeInfo.put("root_node_id", meta.getProperty("root_ot_node_id"));
+                
+                trees.add(draftTreeInfo);
+            }
+            graphInfo.put("synth_trees", trees);
+        } else {
+            ge.shutdownDB();
+            throw new IllegalArgumentException("Could not find any draft synthetic trees in the graph.");
+        }
+return OTRepresentationConverter.convert(graphInfo);
+    }
+    */
+    
+    // i think the functions below are to be deprecated
+    
     // is there a plan to do something with the "format" arg? if not, deprecate
     @Description("Returns a processed source tree (corresponding to a tree in some [study](#studies)) used "
         + "as input for the synthetic tree. Although the result of this service is a tree corresponding directly to a "
