@@ -161,7 +161,7 @@ public class GraphExplorer extends GraphBase {
      */
     public boolean nodeIsInSyntheticTree (Node nd, String treeID) {
         boolean inTree = false;
-        for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+        for (Relationship rel : nd.getRelationships(RelType.SYNTHCHILDOF)) {
             if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
                 inTree = true;
                 break;
