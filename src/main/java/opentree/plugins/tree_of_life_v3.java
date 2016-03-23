@@ -695,7 +695,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             HashMap<String, Object> res = ge.getArgusonData(qNode, synthTreeID, argusonDepth);
             responseMap.put("arguson", res);;
         }
-        return OTRepresentationConverter.convert(responseMap);
+        return responseMap;
     }
     
     
