@@ -21,12 +21,9 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.opentree.graphdb.GraphDatabaseAgent;
 
 public class IngestSynthesisData extends GraphBase {
     
@@ -622,7 +619,12 @@ public class IngestSynthesisData extends GraphBase {
             }
             
             // add number of tip descendants; could differ depending on taxonomy, filtering, etc.
-            int ntips = curJadeNode.getChild(i).getDescendantLeavesNumbers();
+            // JadeTree gives ntips of 1 for terminals, hence the ugliness below
+            int ntips = 0;
+            if (curJadeNode.getChild(i).isInternal()) {
+                ntips = curJadeNode.getChild(i).getDescendantLeavesNumbers();
+            }
+            
             newRel.setProperty("tip_descendants", ntips);
             synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
             

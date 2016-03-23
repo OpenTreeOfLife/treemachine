@@ -164,7 +164,7 @@ public class JadeNode {
      * @param bl should be true to include branch lengths
      * @return string with newick representation of the subtree rooted at this node
      */
-    public String getNewick(boolean bl) {
+    public String getNewick (boolean bl) {
         StringBuffer ret = new StringBuffer("");
         for (int i = 0; i < this.getChildCount(); i++) {
             if (i == 0) {
@@ -200,7 +200,7 @@ public class JadeNode {
      * @param bl should be true to include branch lengths
      * @return string with JSON representation of the subtree rooted at this node
      */
-    public String getJSON(boolean bl) {         
+    public String getJSON (boolean bl) {         
         StringBuffer ret = new StringBuffer("{");
         if (this.name != null) {
             ret.append(" \"name\": \"" + this.getName() + "\"");
@@ -263,8 +263,8 @@ public class JadeNode {
      * @return Returns all of the tips in the subtree rooted at `this`
      */
     public ArrayList<JadeNode> getTips() {
-        ArrayList<JadeNode> children = new ArrayList<JadeNode>();
-        Stack<JadeNode> nodes = new Stack<JadeNode>();
+        ArrayList<JadeNode> children = new ArrayList<>();
+        Stack<JadeNode> nodes = new Stack<>();
         nodes.push(this);
         while (nodes.isEmpty() == false) {
             JadeNode jt = nodes.pop();
