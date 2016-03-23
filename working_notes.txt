@@ -69,6 +69,12 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_s
 
 
 
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":5839486, "format":"arguson", "height_limit":2}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id":5839486, "format":"arguson", "height_limit":2}'
+
+
+curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"2","node_id":"ott5839486"}'
 
 
 
@@ -84,12 +90,18 @@ curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "
 curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "include_lineage":true}'
 
 
+# mrca here (mrcaott90560ott1057518) has no name
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott90560ott1057518"}'
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
 curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
 
 
 
 
-curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
 
 
 #501678,666104,316878,102710,536234

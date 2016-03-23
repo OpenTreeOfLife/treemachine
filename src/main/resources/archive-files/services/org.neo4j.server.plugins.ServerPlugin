@@ -1,5 +1,3 @@
-opentree.plugins.GetSASJsons
-opentree.plugins.GoLS
 opentree.plugins.graph
 opentree.plugins.tree_of_life
 opentree.plugins.tree_of_life_v3
