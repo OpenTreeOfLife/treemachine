@@ -128,7 +128,7 @@ public class IngestSynthesisData extends GraphBase {
         readNewick(newickFile);
         collectOTTIDs(); // don't think i need this anymore...
         //readTaxonomyTSV(taxFile);
-        processTaxonomyTSV2(taxFile);
+        processTaxonomyTSV(taxFile);
         //processTaxonomyTSV(taxFile);
         
         nNodesToCommit = 0; // reset after taxonomy nodes
@@ -181,7 +181,7 @@ public class IngestSynthesisData extends GraphBase {
     
     
     // doesn't store templines in an arraylist, so should be better on memory?
-    private void processTaxonomyTSV2 (String fileName) {
+    private void processTaxonomyTSV (String fileName) {
         
         int count = 0;
         int taxCount = 0;
@@ -217,9 +217,8 @@ public class IngestSynthesisData extends GraphBase {
                         // increment for the transaction frequency
                         nNodesToCommit++;
                         taxCount++;
-
                         Node newGraphNode = graphDb.createNode();
-
+                        
                         StringTokenizer st = new StringTokenizer(str, "|");
                         String tid = null;
                         String pid = null; // don't want to keep
@@ -240,9 +239,7 @@ public class IngestSynthesisData extends GraphBase {
                             throw new NoSuchElementException("The taxonomy file appears to be missing some fields.");
                         }
                         String otNodeID = "ott" + tid;
-
                         newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, otNodeID);
-
                         newGraphNode.setProperty(NodeProperty.NAME.propertyName, name);
                         newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, tid);
                         newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, rank);
@@ -264,10 +261,9 @@ public class IngestSynthesisData extends GraphBase {
                 }
             }
             br.close();
-            
         } catch (IOException ioe) {}
         
-        // get remaining
+        // commit remaining
         tx.success();
         System.out.println("Committing nodes: " + nNodesToCommit);
         tx.finish();
@@ -278,15 +274,272 @@ public class IngestSynthesisData extends GraphBase {
     }
     
     
+    private void readAnnotations (String fileName) {
+        JSONParser jsonParser = new JSONParser();
+        try {
+            FileReader fileReader = new FileReader(fileName);
+            jsonObject = (JSONObject) jsonParser.parse(fileReader);
+            fileReader.close();
+        } catch (IOException | ParseException e) {
+        }
+        nodeMetaData = (JSONObject) jsonObject.get("nodes");
+        System.out.println("nodeMetaData is of size: " + nodeMetaData.size());
+    }
+    
+    
+    // this will all come from the top leval of the json
+    private void setRootMetadata () {
+        
+        tx = graphDb.beginTx();
+        
+        System.out.println("Setting root metadata node");
+        
+        metadatanode = graphDb.createNode();
+        metadatanode.createRelationshipTo(synthRootNode, RelType.SYNTHMETADATAFOR);
+        
+        System.out.println("Metadatanode = " + metadatanode.getId());
+        
+        // *** TODO: loop over properties rather than add hard-coded ones (may change)
+        
+        Iterator baseIter = jsonObject.entrySet().iterator();
+        while (baseIter.hasNext()) {
+            Map.Entry entry = (Map.Entry)baseIter.next();
+            
+            if (!(entry.getValue() instanceof JSONObject) && !(entry.getValue() instanceof JSONArray)) {
+                System.out.println("Dealing with simple property: " + entry.getKey());
+                metadatanode.setProperty(entry.getKey().toString(), entry.getValue());
+                
+        // nested arrays are a problem, as neo4j doesn't store them as properties
+            } else if (entry.getValue() instanceof JSONArray) {
+                /*
+                String arrayName = entry.getKey().toString();
+                System.out.println("Property '" + entry.getKey() + "' is an array.");
+                List<String> arrList = (ArrayList<String>) jsonObject.get(arrayName);
+                String[] strArr = arrList.toArray(new String[arrList.size()]);
+                metadatanode.setProperty(arrayName, strArr);
+                */
+                //metadatanode.setProperty(entry.getKey().toString(), entry.getValue().toString());
+            }
+            /*
+            if (entry.getValue() instanceof String) {
+                System.out.println(entry.getKey() + " is of class String.");
+            } else if (entry.getValue() instanceof Long) {
+                System.out.println(entry.getKey() + " is of class Long.");
+            }
+            */
+            //System.out.println("Value of '" + entry.getKey() + " is of class: " + entry.getValue().getClass());
+        }
+        // TODO: deal with arrays better
+        List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
+        String[] flist = flagList.toArray(new String[flagList.size()]);
+        metadatanode.setProperty("filtered_flags", flist);
+        
+        List<String> sourceList = (ArrayList<String>) jsonObject.get("sources");
+        String[] slist = sourceList.toArray(new String[sourceList.size()]);
+        metadatanode.setProperty("sources", slist);
+        
+        // store root ot_node_id here for fast retrieval
+        metadatanode.setProperty("root_ot_node_id", synthRootNode.getProperty("ot_node_id"));
+        System.out.println("Adding synthid '" + synthTreeName + "' to metaindex!");
+        synthMetaIndex.add(metadatanode, "name", synthTreeName);
+        
+        // put sources in separate node for easier retrieval. points to metadatanode
+        Node sourceMeta = graphDb.createNode();
+        storeSourceMetaData(sourceMeta);
+        sourceMeta.createRelationshipTo(metadatanode, RelType.SOURCEMETADATAFOR);
+        
+        System.out.println("Sources node = " + sourceMeta.getId());
+        sourceMapIndex.add(sourceMeta, "name", synthTreeName);
+        tx.success();
+        tx.finish();
+    }
+    
+    
+    // recursive
+    // TODO: if newGraph == false, need to check existing nodes
+    // TODO: add tax nodes earlier, check existing here
+    private void postOrderAddTreeToGraph (JadeNode curJadeNode) throws TreeIngestException {
+        if (nNodesToCommit % commitFrequency == 0 && nNodesToCommit > 0) {
+            System.out.println("Committing nodes " + (nNodesToCommit - commitFrequency + 1) + " through " + nNodesToCommit);
+            tx.success();
+            tx.finish();
+            tx = graphDb.beginTx();
+        }
+        
+        // increment for the transaction frequency
+        nNodesToCommit++;
+        
+        // postorder traversal via recursion
+        for (int i = 0; i < curJadeNode.getChildCount(); i++) {
+            postOrderAddTreeToGraph(curJadeNode.getChild(i));
+        }
+        
+        String otNodeID = curJadeNode.getName();
+        Node newGraphNode = null;
+        
+        // taxonomy node; will already exist
+        if (curJadeNode.getName().startsWith("ott")) {
+            newGraphNode = taxUIDToNodeMap.get(otNodeID);
+        } else {
+            // have to create this one
+            newGraphNode = graphDb.createNode();
+            newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+            if (verbose) {
+                System.out.print("Added " + newGraphNode + ": " + otNodeID);
+                if (curJadeNode.isTheRoot()) {
+                    System.out.print("\n");
+                } else {
+                    System.out.print(". Parent node: " + curJadeNode.getParent().getName() + "\n");
+                }
+            }
+            graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+        }
+        
+        // taxonomy node; add info from hashmap
+//        if (curJadeNode.getName().startsWith("ott")) {
+//            HashMap<String, String> taxDat = taxNodeInfo.get(otNodeID);
+//            newGraphNode.setProperty(NodeProperty.NAME.propertyName, taxDat.get("name"));
+//            newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
+//            newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, taxDat.get("rank"));
+//            newGraphNode.setProperty(NodeProperty.TAX_SOURCE.propertyName, taxDat.get("srce"));
+//            String uName = taxDat.get("unique_name");
+//            if ("".equals(uName)) {
+//                uName = taxDat.get("name");
+//            }
+//            newGraphNode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uName);
+//            graphNodeIndex.add(newGraphNode, NodeProperty.NAME.propertyName, taxDat.get("name"));
+//            graphTaxUIDNodeIndex.add(newGraphNode, NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
+//        }
+        
+        //graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
+        
+        curJadeNode.assocObject("gid", newGraphNode.getId());
+        
+        for (int i = 0; i < curJadeNode.getChildCount(); i++) {
+            
+            Node childNode = graphDb.getNodeById((Long) curJadeNode.getChild(i).getObject("gid"));
+            Relationship newRel = childNode.createRelationshipTo(newGraphNode, RelType.SYNTHCHILDOF);
+            newRel.setProperty("name", synthTreeName);
+            
+            String childID = curJadeNode.getChild(i).getName();
+            HashMap<String, String> res = getAnnotations(childID);
+            for (Map.Entry<String, String> entry : res.entrySet()) {
+                newRel.setProperty(entry.getKey(), entry.getValue());
+            }
+            // add number of tip descendants; could differ depending on taxonomy, filtering, etc.
+            // JadeTree gives ntips of 1 for terminals, hence the ugliness below
+            int ntips = 0;
+            if (curJadeNode.getChild(i).isInternal()) {
+                ntips = curJadeNode.getChild(i).getDescendantLeavesNumbers();
+            }
+            
+            newRel.setProperty("tip_descendants", ntips);
+            synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
+            
+            if (verbose) {
+                System.out.println("   Created " + newRel + ": " + childNode + "(" + 
+                    childNode.getProperty("ot_node_id") + ")"
+                    + " -> " + newGraphNode + "(" + newGraphNode.getProperty("ot_node_id") + ")");
+            }
+        }
+        
+        if (curJadeNode.getName().equals(rootTaxonID)) {
+            System.out.println("This is the ROOT");
+            synthRootNode = newGraphNode;
+            System.out.println("Root node = " + synthRootNode.getId());
+        }
+    }
+    
+    
+    // convert to strings, because: neo4j does not support nested values
+    // taxonomy not annotated; add in here (maybe?)
+    private HashMap<String, String> getAnnotations (String otNodeID) {
+        
+        HashMap<String, String> res = new HashMap<>();
+        // will not have annotations if just taxonomy
+        if (nodeMetaData.containsKey(otNodeID)) {
+            JSONObject indNodeInfo = (JSONObject) nodeMetaData.get(otNodeID);
+            Iterator it = indNodeInfo.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry entry = (Map.Entry)it.next();
+                String prop = (String) entry.getKey();
+                String val = entry.getValue().toString();
+                // arrays originally like this:
+                // {"pg_2594@tree6014":["node1021750","node1021751","node1021752","node1021753","node1021754"],"pg_1337@tree6167":["node1053387"]}
+                // will be of the form:
+                // pg_2594@tree6014:node1021750,node1021751,node1021752,node1021753,node1021754&pg_1337@tree6167:node1053387
+                // that is, sources are delimited by an '&'. ugly, yes, butwhatyougonnado?
+                // non-arrays will be same as before
+                val = val.replaceAll("[\\{\\}\"]", "").replace("],", "&").replaceAll("[\\[\\]]", "");
+                res.put(prop, val);
+            }
+        }
+        
+        // add taxonomy 'support'. this is NOT in the annotations, but needed by things e.g. browser
+        if (otNodeID.startsWith("ott")) {
+            //String taxSupport = "taxonomy:" + taxonomyVersion;
+            // new version:
+            //        "supported_by" : {
+            //        "ott2.9draft12" : "ott12345"
+            //    }
+            String taxSupport = taxonomyVersion + ":" + otNodeID;
+            if (res.containsKey("supported_by")) {
+                taxSupport = res.get("supported_by") + "," + taxSupport;
+            }
+            res.put("supported_by", taxSupport);
+        }
+        return res;
+    }
+    
+    
+    /*
+    Will look like:
+    "pg_2044_tree4212": {
+        "git_sha":"c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f",
+        "tree_id":"tree4212",
+        "study_id":"pg_2044"
+    }
+    will become:
+    "pg_2044_tree4212" : "git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree4212,study_id:pg_2044"
+    */
+    // store source_id_map in node. hacky; will clean up later
+    private void storeSourceMetaData (Node metaNode) {
+        JSONObject sourceIDMap = (JSONObject) jsonObject.get("source_id_map");
+        
+        Iterator srcIter = sourceIDMap.keySet().iterator();
+        while (srcIter.hasNext()) {
+            String srcID = (String) srcIter.next();
+            JSONObject indSrc = (JSONObject) sourceIDMap.get(srcID);
+            Iterator iter = indSrc.entrySet().iterator();
+            String str = "";
+            while (iter.hasNext()) {
+                Map.Entry entry = (Map.Entry)iter.next();
+                if (str != "") { str += ","; }
+                str += entry.getKey() + ":" + (String) entry.getValue();
+            }
+            metaNode.setProperty(srcID, str);
+        }
+        // add taxonomy as a source
+        // temp; will come from json
+        //String tax = "name:ott,version:" + taxonomyVersion;
+        //metaNode.setProperty("taxonomy", tax);
+        
+        // new version:
+        //    "ott2.9draft12" : {
+        //        "taxonomy" : "ott2.9draft12"
+        //    }
+        String tax = "taxonomy:" + taxonomyVersion;
+        metaNode.setProperty(taxonomyVersion, tax);
+    }
+    
+    
+    // Old stuff
     // this version creates taxonomy nodes as they are read, rather than keeping all in memory
-    private void processTaxonomyTSV (String fileName) {
-        
+    private void processTaxonomyTSVOLD (String fileName) {
         ArrayList<String> templines = new ArrayList<>();
-        
         int count = 0;
         long start = 0;
         long time = 0;
-        
         System.out.println("Reading taxonomy from file: " + fileName);
         try {
             BufferedReader br = new BufferedReader(new FileReader(fileName));
@@ -378,16 +631,12 @@ public class IngestSynthesisData extends GraphBase {
     }
     
     
-    
-    
     // Abandoning this version, as keeps too much stuff in memory
     // Reads a taxonomy file with rows formatted as:
     //     uid, parent_uid, name, rank, sourceinfo, uniqname, flags
     // store taxonomy info only for taxa appearing in the tree
-    private void readTaxonomyTSV (String fileName) {
-        
+    private void readTaxonomyTSVOLD (String fileName) {
         ArrayList<String> templines = new ArrayList<>();
-        
         int count = 0;
         long start = 0;
         long time = 0;
@@ -409,10 +658,8 @@ public class IngestSynthesisData extends GraphBase {
                 }
             }
             br.close();
-            
         } catch (IOException ioe) {}
         System.out.println("Read " + count + " taxa; retained " + templines.size() + ".");
-        
         start = System.nanoTime();
         // process lines
         for (int i = 0; i < templines.size(); i++) {
@@ -448,290 +695,6 @@ public class IngestSynthesisData extends GraphBase {
         System.out.println("Processed taxa in: " + time / 1000000000.0 + " seconds.");
         System.out.println("Stored " + taxNodeInfo.size() + " taxa from taxonomy TSV.");
     }
-    
-    
-    private void readAnnotations (String fileName) {
-        JSONParser jsonParser = new JSONParser();
-        
-        try {
-            FileReader fileReader = new FileReader(fileName);
-            jsonObject = (JSONObject) jsonParser.parse(fileReader);
-            fileReader.close();
-        } catch (IOException | ParseException e) {
-        }
-        nodeMetaData = (JSONObject) jsonObject.get("nodes");
-        System.out.println("nodeMetaData is of size: " + nodeMetaData.size());
-    }
-    
-    
-    // this will all come from the top leval of the json
-    private void setRootMetadata () {
-        
-        tx = graphDb.beginTx();
-        
-        System.out.println("Setting root metadata node");
-        
-        metadatanode = graphDb.createNode();
-        metadatanode.createRelationshipTo(synthRootNode, RelType.SYNTHMETADATAFOR);
-        
-        System.out.println("Metadatanode = " + metadatanode.getId());
-        
-        // *** TODO: loop over properties rather than add hard-coded ones (may change)
-        
-        Iterator baseIter = jsonObject.entrySet().iterator();
-        while (baseIter.hasNext()) {
-            Map.Entry entry = (Map.Entry)baseIter.next();
-            
-            if (!(entry.getValue() instanceof JSONObject) && !(entry.getValue() instanceof JSONArray)) {
-                System.out.println("Dealing with simple property: " + entry.getKey());
-                metadatanode.setProperty(entry.getKey().toString(), entry.getValue());
-                
-        // nested arrays are a problem, as neo4j doesn't store them as properties
-            } else if (entry.getValue() instanceof JSONArray) {
-                /*
-                String arrayName = entry.getKey().toString();
-                System.out.println("Property '" + entry.getKey() + "' is an array.");
-                List<String> arrList = (ArrayList<String>) jsonObject.get(arrayName);
-                String[] strArr = arrList.toArray(new String[arrList.size()]);
-                metadatanode.setProperty(arrayName, strArr);
-                */
-                //metadatanode.setProperty(entry.getKey().toString(), entry.getValue().toString());
-            }
-            /*
-            if (entry.getValue() instanceof String) {
-                System.out.println(entry.getKey() + " is of class String.");
-            } else if (entry.getValue() instanceof Long) {
-                System.out.println(entry.getKey() + " is of class Long.");
-            }
-            */
-            //System.out.println("Value of '" + entry.getKey() + " is of class: " + entry.getValue().getClass());
-        }
-        // TODO: deal with arrays better
-        List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
-        String[] flist = flagList.toArray(new String[flagList.size()]);
-        metadatanode.setProperty("filtered_flags", flist);
-        
-        List<String> sourceList = (ArrayList<String>) jsonObject.get("sources");
-        String[] slist = sourceList.toArray(new String[sourceList.size()]);
-        metadatanode.setProperty("sources", slist);
-        
-        // store root ot_node_id here for fast retrieval
-        metadatanode.setProperty("root_ot_node_id", synthRootNode.getProperty("ot_node_id"));
-        System.out.println("Adding synthid '" + synthTreeName + "' to metaindex!");
-        synthMetaIndex.add(metadatanode, "name", synthTreeName);
-        
-        // put sources in separate node for easier retrieval. points to metadatanode
-        Node sourceMeta = graphDb.createNode();
-        storeSourceMetaData(sourceMeta);
-        sourceMeta.createRelationshipTo(metadatanode, RelType.SOURCEMETADATAFOR);
-        
-        System.out.println("Sources node = " + sourceMeta.getId());
-        
-        sourceMapIndex.add(sourceMeta, "name", synthTreeName);
-        
-        tx.success();
-        tx.finish();
-    }
-    
-    
-    // recursive
-    // TODO: if newGraph == false, need to check existing nodes
-    // TODO: add tax nodes earlier, check existing here
-    private void postOrderAddTreeToGraph (JadeNode curJadeNode) throws TreeIngestException {
-        if (nNodesToCommit % commitFrequency == 0 && nNodesToCommit > 0) {
-            System.out.println("Committing nodes " + (nNodesToCommit - commitFrequency + 1) + " through " + nNodesToCommit);
-            tx.success();
-            tx.finish();
-            tx = graphDb.beginTx();
-        }
-        
-        // increment for the transaction frequency
-        nNodesToCommit++;
-        
-        // postorder traversal via recursion
-        for (int i = 0; i < curJadeNode.getChildCount(); i++) {
-            postOrderAddTreeToGraph(curJadeNode.getChild(i));
-        }
-        
-        String otNodeID = curJadeNode.getName();
-        
-        Node newGraphNode = null;
-        
-        // taxonomy node; will already exist
-        if (curJadeNode.getName().startsWith("ott")) {
-            newGraphNode = taxUIDToNodeMap.get(otNodeID);
-        } else {
-            // have to create this one
-            newGraphNode = graphDb.createNode();
-            
-            //nNodesToCommit++;
-            
-            //newGraphNode.setProperty("ot_node_id", curJadeNode.getName());
-            newGraphNode.setProperty(NodeProperty.OT_NODE_ID.propertyName, otNodeID);
-            if (verbose) {
-                System.out.print("Added " + newGraphNode + ": " + otNodeID);
-                if (curJadeNode.isTheRoot()) {
-                    System.out.print("\n");
-                } else {
-                    System.out.print(". Parent node: " + curJadeNode.getParent().getName() + "\n");
-                }
-            }
-            graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
-        }
-        
-        // taxonomy node; add info from hashmap
-//        if (curJadeNode.getName().startsWith("ott")) {
-//            HashMap<String, String> taxDat = taxNodeInfo.get(otNodeID);
-//            newGraphNode.setProperty(NodeProperty.NAME.propertyName, taxDat.get("name"));
-//            newGraphNode.setProperty(NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
-//            newGraphNode.setProperty(NodeProperty.TAX_RANK.propertyName, taxDat.get("rank"));
-//            newGraphNode.setProperty(NodeProperty.TAX_SOURCE.propertyName, taxDat.get("srce"));
-//            String uName = taxDat.get("unique_name");
-//            if ("".equals(uName)) {
-//                uName = taxDat.get("name");
-//            }
-//            newGraphNode.setProperty(NodeProperty.NAME_UNIQUE.propertyName, uName);
-//            
-//            graphNodeIndex.add(newGraphNode, NodeProperty.NAME.propertyName, taxDat.get("name"));
-//            graphTaxUIDNodeIndex.add(newGraphNode, NodeProperty.TAX_UID.propertyName, taxDat.get("tid"));
-//        }
-        
-        //graphOTTNodeIDIndex.add(newGraphNode, NodeProperty.OT_NODE_ID.propertyName, otNodeID);
-        
-        curJadeNode.assocObject("gid", newGraphNode.getId());
-        
-        // add relationships 
-        //System.out.print("   Child nodes:");
-        for (int i = 0; i < curJadeNode.getChildCount(); i++) {
-            
-            Node childNode = graphDb.getNodeById((Long) curJadeNode.getChild(i).getObject("gid"));
-            Relationship newRel = childNode.createRelationshipTo(newGraphNode, RelType.SYNTHCHILDOF);
-            newRel.setProperty("name", synthTreeName);
-            
-            // TODO: add metadata properties (for childnode) here
-            // changing from storing in individual metadata nodes to within (outgoing) rels
-            // - ind. metadata nodes: doubles nodes and rels for each tree
-            
-            String childID = curJadeNode.getChild(i).getName();
-            HashMap<String, String> res = getAnnotations(childID);
-            for (Map.Entry<String, String> entry : res.entrySet()) {
-                newRel.setProperty(entry.getKey(), entry.getValue());
-            }
-            
-            // add number of tip descendants; could differ depending on taxonomy, filtering, etc.
-            // JadeTree gives ntips of 1 for terminals, hence the ugliness below
-            int ntips = 0;
-            if (curJadeNode.getChild(i).isInternal()) {
-                ntips = curJadeNode.getChild(i).getDescendantLeavesNumbers();
-            }
-            
-            newRel.setProperty("tip_descendants", ntips);
-            synthRelIndex.add(newRel, "draftTreeID", synthTreeName);
-            
-            if (verbose) {
-                System.out.println("   Created " + newRel + ": " + childNode + "(" + 
-                    childNode.getProperty("ot_node_id") + ")"
-                    + " -> " + newGraphNode + "(" + newGraphNode.getProperty("ot_node_id") + ")");
-            }
-        }
-        
-        if (curJadeNode.getName().equals(rootTaxonID)) {
-            System.out.println("This is the ROOT");
-            synthRootNode = newGraphNode;
-            System.out.println("Root node = " + synthRootNode.getId());
-        }
-    }
-    
-    
-    // convert to strings, because: neo4j does not support nested values
-    // taxonomy not annotated; add in here (maybe?)
-    private HashMap<String, String> getAnnotations (String otNodeID) {
-        
-        HashMap<String, String> res = new HashMap<>();
-        // will not have annotations if just taxonomy
-        if (nodeMetaData.containsKey(otNodeID)) {
-            JSONObject indNodeInfo = (JSONObject) nodeMetaData.get(otNodeID);
-            Iterator it = indNodeInfo.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry entry = (Map.Entry)it.next();
-                String prop = (String) entry.getKey();
-                
-                String val = entry.getValue().toString();
-                // arrays originally like this:
-                // {"pg_2594@tree6014":["node1021750","node1021751","node1021752","node1021753","node1021754"],"pg_1337@tree6167":["node1053387"]}
-                // will be of the form:
-                // pg_2594@tree6014:node1021750,node1021751,node1021752,node1021753,node1021754&pg_1337@tree6167:node1053387
-                // that is, sources are delimited by an '&'. ugly, yes, butwhatyougonnado?
-                // non-arrays will be same as before
-                val = val.replaceAll("[\\{\\}\"]", "").replace("],", "&").replaceAll("[\\[\\]]", "");
-                
-                res.put(prop, val);
-                
-                // old version where everything was in nested arrays
-                /*
-                JSONArray info = (JSONArray) indNodeInfo.get(prop);
-                String str = "";
-                for (int i=0; i < info.size(); i++) {
-                    JSONArray terp = (JSONArray) info.get(i);
-                    if (str != "") { str += ","; }
-                    str += terp.get(0) + ":" + terp.get(1);
-                }
-                res.put(prop, str);
-                */
-                
-                
-                
-            }
-        }
-        
-        // add taxonomy 'support'. this is NOT in the annotations, but needed by things e.g. browser
-        if (otNodeID.startsWith("ott")) {
-            String taxSupport = "taxonomy:" + taxonomyVersion;
-            if (res.containsKey("supported_by")) {
-                taxSupport = res.get("supported_by") + "," + taxSupport;
-            }
-            res.put("supported_by", taxSupport);
-        }
-        return res;
-    }
-    
-    
-    /*
-    Will look like:
-    "pg_2044_tree4212": {
-        "git_sha":"c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f",
-        "tree_id":"tree4212",
-        "study_id":"pg_2044"
-    }
-    will become:
-    "pg_2044_tree4212" : "git_sha:c6ce2f9067e9c74ca7b1f770623bde9b6de8bd1f,tree_id:tree4212,study_id:pg_2044"
-    */
-    // store source_id_map in node. hacky; will clean up later
-    private void storeSourceMetaData (Node metaNode) {
-        
-        JSONObject sourceIDMap = (JSONObject) jsonObject.get("source_id_map");
-        //System.out.println("source_id_map length: " + sourceIDMap.size());
-        
-        //HashMap<String, String> res = new HashMap<>();
-        Iterator srcIter = sourceIDMap.keySet().iterator();
-        while (srcIter.hasNext()) {
-            String srcID = (String) srcIter.next();
-            JSONObject indSrc = (JSONObject) sourceIDMap.get(srcID);
-            Iterator iter = indSrc.entrySet().iterator();
-            String str = "";
-            while (iter.hasNext()) {
-                Map.Entry entry = (Map.Entry)iter.next();
-                if (str != "") { str += ","; }
-                str += entry.getKey() + ":" + (String) entry.getValue();
-            }
-            metaNode.setProperty(srcID, str);
-        }
-        // add taxonomy as a source
-        // temp; will come from json
-        String tax = "name:ott,version:" + taxonomyVersion;
-        metaNode.setProperty("taxonomy", tax);
-    }
-    
     
 }
 
