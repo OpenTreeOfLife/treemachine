@@ -78,6 +78,11 @@ curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content
 
 
 
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/node_info -H "content-type:application/json" -d '{"ott_id":81461}'
+
+
 
 
 

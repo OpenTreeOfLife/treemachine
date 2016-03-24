@@ -482,7 +482,7 @@ public class IngestSynthesisData extends GraphBase {
             //        "supported_by" : {
             //        "ott2.9draft12" : "ott12345"
             //    }
-            String taxSupport = taxonomyVersion + ":" + otNodeID;
+            String taxSupport = "ott" + taxonomyVersion + ":" + otNodeID;
             if (res.containsKey("supported_by")) {
                 taxSupport = res.get("supported_by") + "," + taxSupport;
             }
@@ -528,8 +528,9 @@ public class IngestSynthesisData extends GraphBase {
         //    "ott2.9draft12" : {
         //        "taxonomy" : "ott2.9draft12"
         //    }
-        String tax = "taxonomy:" + taxonomyVersion;
-        metaNode.setProperty(taxonomyVersion, tax);
+        String tax = "taxonomy:" + "ott" + taxonomyVersion;
+        String pName = "ott" + taxonomyVersion;
+        metaNode.setProperty(pName, tax);
     }
     
     
