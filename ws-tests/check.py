@@ -184,14 +184,19 @@ check_source_id_map = check_dict(check_source_id, check_source_blob)
 def check_arguson_blob(x, where):
     return really_check_arguson_blob(x, where)
 
-arguson_blob_fields = (node_blob_fields +
-                       [field(u'children', check_arguson_blob)])
+lineage_blob_fields = (node_blob_fields +
+                       [opt_field(u'descendant_name_list', check_list(check_string))])
+
+check_lineage_blob = check_blob(lineage_blob_fields)
+
+arguson_blob_fields = (lineage_blob_fields +
+                       [opt_field(u'children', check_arguson_blob)])
 
 really_check_arguson_blob = check_blob(arguson_blob_fields)
 
-check_top_arguson_blob = (arguson_blob_fields +
-                          [field(u'source_id_map', check_source_id_map),
-                           field(u'lineage', check_list(check_node_blob))])
+check_top_arguson_blob = check_blob(arguson_blob_fields +
+                                    [field(u'source_id_map', check_source_id_map),
+                                     field(u'lineage', check_list(check_lineage_blob))])
 
 # taxomachine only
 extended_taxon_blob_fields = (taxon_blob_fields +
