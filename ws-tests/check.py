@@ -62,10 +62,26 @@ def check_source_id(x, where):
     if not isinstance(x, unicode):
         print '** expected string (source id) but got', x, where
         return False
-    elif not ('.' in x) and not ('@' in x):
+    elif '.' in x:
         # taxonomy id is ott2.9draft7 or similar.
+        return True
+    elif '@' in x:
         # source tree id is pg_123@tree456 or similar.
+        return True
+    else:
         print '** expected a source id but got', x, where
+        return False
+
+# XML id for a node in a source tree
+def check_sourcenode_id(x, where):
+    if not isinstance(x, unicode):
+        print '** expected string (source id) but got', x, where
+        return False
+    elif len(x) == 0:
+        print '** expected non-null source node id but got null', where
+        return False
+    elif x.startswith(u'ott'):
+        print '** suspicious source node id', x, where
         return False
     else:
         return True
@@ -101,7 +117,7 @@ def check_blob(fields):
         for name in x:
             if name in checks:
                 check = checks[name]
-                if not check(x[name], name + ' in ' + where):
+                if not check(x[name], more_where(name, where)):
                     win = False
             else:
                 print "** unexpected field '%s' found among %s %s" % (name, x.keys(), where)
@@ -118,12 +134,18 @@ def check_list(check):
         if not isinstance(x, list):
             print '** expected list but got', x, where
             return False
-        where = 'list in ' + where
+        where = more_where('list', where)
         for y in x:
             if not check(y, where):
                 return False
         return True
     return do_check_list
+
+def more_where(w, where):
+    if where == '':
+        return where
+    else:
+        return w + ' in ' + where
 
 # Check types of all keys and values in a dictionary
 

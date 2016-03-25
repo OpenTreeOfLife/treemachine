@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -279,7 +280,20 @@ public class GraphExplorer extends GraphBase {
         return results;
     }
     
-    
+    private static final Set<String> releasedFields = new HashSet<String>();
+    static {
+        for (String f :
+                 new String[]{"supported_by",
+                              "conflicts_with",
+                              "resolves",
+                              "resolved_by",
+                              "partial_path_of",
+                              "terminal"})
+            // excludes "name", "tip_descendants", maybe others
+
+            releasedFields.add(f);
+    }
+
     // annotations are stored in outgoing rels
     // same as above, except unique sources also collected (for source id map)
     // i.e. expect to loop over nodes
@@ -291,7 +305,7 @@ public class GraphExplorer extends GraphBase {
                 if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
                     // loop over properties
                     for (String key : rel.getPropertyKeys()) {
-                        if (!"name".equals(key) && !"tip_descendants".equals(key)) {
+                        if (releasedFields.contains(key)) {
                             
                             // note: conflicts_with is the only non-key-value pair (instead is an array)
                             // add other properties here if needed ('resolves'?)
