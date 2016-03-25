@@ -78,6 +78,20 @@ curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content
 
 
 
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/node_info -H "content-type:application/json" -d '{"ott_id":81461}'
+
+
+
+
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott93302"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"ott93302"}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/subtree -H "content-type:application/json" -d '{"node_id":"ott93302", "format":"arguson", "height_limit":2}'
+
 
 
 # mrca
