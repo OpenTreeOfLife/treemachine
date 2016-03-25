@@ -62,7 +62,9 @@ def check_source_id(x, where):
     if not isinstance(x, unicode):
         print '** expected string (source id) but got', x, where
         return False
-    elif not (x == u'taxonomy') and not ('_' in x):
+    elif not ('.' in x) and not ('@' in x):
+        # taxonomy id is ott2.9draft7 or similar.
+        # source tree id is pg_123@tree456 or similar.
         print '** expected a source id but got', x, where
         return False
     else:
@@ -161,7 +163,9 @@ node_blob_fields = [field(u'node_id', check_string),
                     opt_field(u'resolved_by', check_multi_support_blob),
                     opt_field(u'conflicts_with', check_multi_support_blob),
                     opt_field(u'partial_path_of', check_single_support_blob),
-                    opt_field(u'terminal', check_single_support_blob)]
+                    opt_field(u'terminal', check_single_support_blob),
+                    opt_field(u'was_constrained', check_boolean),
+                    opt_field(u'was_uncontested', check_boolean)]
 
 check_node_blob = check_blob(node_blob_fields)
 
@@ -169,14 +173,17 @@ check_source_tree_blob = check_blob([field(u'git_sha', check_string),
                                      field(u'tree_id', check_string),
                                      field(u'study_id', check_string)])
 
-check_taxonomy_blob = check_blob([field(u'version', check_string),
-                                  field(u'name', check_string)])
+check_taxonomy_blob = check_blob([field(u'taxonomy', check_string),
+                                  opt_field(u'version', check_string),
+                                  opt_field(u'name', check_string)])
+
+# dictionary describing one source, either a source tree or a taxonomy
 
 def check_source_blob(x, where):
-    if isinstance(x, dict) and u'version' in x:
-        return check_taxonomy_blob(x, where)
-    else:
+    if isinstance(x, dict) and u'tree_id' in x:
         return check_source_tree_blob(x, where)
+    else:
+        return check_taxonomy_blob(x, where)
 
 check_source_id_map = check_dict(check_source_id, check_source_blob)
 
