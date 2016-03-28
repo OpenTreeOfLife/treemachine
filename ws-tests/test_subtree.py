@@ -13,13 +13,13 @@ simple_test("/v3/tree_of_life/subtree",
 simple_test("/v3/tree_of_life/subtree",
             {u'node_id': u'ott217260'},
             check_blob([field(u'newick', check_string)]),
-            is_right=lambda x: not (u'mrca' in x))
+            is_right=lambda x: not (u'mrca' in x[u'newick']))
 
 # Test ability to generate mrca labels
 simple_test("/v3/tree_of_life/subtree",
             {u'node_id': u'ott217260', u'include_all_node_labels': True},
             check_blob([field(u'newick', check_string)]),
-            is_right=lambda x: u'mrca' in x)
+            is_right=lambda x: u'mrca' in x[u'newick'])
 
 status += \
 simple_test("/v3/tree_of_life/subtree",
