@@ -30,6 +30,7 @@ import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
+import org.neo4j.server.rest.repr.BadInputException;
 
 import opentree.plugins.tree_of_life_v3;
 import java.util.regex.Matcher;
@@ -52,7 +53,7 @@ public class tree_of_life extends ServerPlugin {
         @Parameter(name = "study_list", optional = true)
         Boolean study_list
         
-        ) throws TaxonNotFoundException, MultipleHitsException {
+        ) throws TaxonNotFoundException, MultipleHitsException, BadInputException {
 
         /*
           /v2/tree_of_life/about 
@@ -160,7 +161,7 @@ public class tree_of_life extends ServerPlugin {
         @Parameter(name = "ott_ids", optional = true)
         long[] ottIDs
         
-        ) throws IllegalArgumentException
+        ) throws IllegalArgumentException, BadInputException
     {
         // If there are any long node ids, error
         // or convert them to string node ids
@@ -273,7 +274,7 @@ public class tree_of_life extends ServerPlugin {
         @Parameter(name = "ott_ids", optional = true)
         long[] ottIDs
         
-        ) throws IllegalArgumentException
+        ) throws IllegalArgumentException, BadInputException
     {
 
         /*
@@ -299,7 +300,7 @@ public class tree_of_life extends ServerPlugin {
 
         */
 
-        Map<String, Object> result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id");
+        Map<String, Object> result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id", Boolean.FALSE);
         result.put("newick", trimNewick((String)result.get("newick")));
         result.put("node_ids_not_in_tree", empty);
         result.put("node_ids_not_in_graph", empty);
@@ -327,7 +328,7 @@ public class tree_of_life extends ServerPlugin {
         @Parameter(name = "ott_id", optional = true)
         Long ottID
         
-        ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException
+        ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException, BadInputException
     {
         /*
             /v2/tree_of_life/subtree 
@@ -353,7 +354,7 @@ public class tree_of_life extends ServerPlugin {
         if (nodeID != null)
             stringNodeId = longIdToStringId((long)nodeID);
 
-        Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id", "newick", -1);
+        Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id", "newick", -1, false);
         result.put("newick", trimNewick((String)result.get("newick")));
         result.put("tree_id", treeId);
 

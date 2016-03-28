@@ -2,21 +2,28 @@
 
 import sys, json
 import traceback
-from opentreetesting import get_obj_from_http
+from opentreetesting import test_http_json_method
 from opentreetesting import config
 
 # Returns 1 for failure, 0 for success
 
-def simple_test(path, input, check, is_right=(lambda x:True)):
+def simple_test(path, input, check=None, expected_status=200, is_right=(lambda x:True)):
     DOMAIN = config('host', 'apihost')
     url = DOMAIN + path
     try:
         # print 'checking', url
-        output = get_obj_from_http(url, verb='POST', data=input)
+        (win, output) = test_http_json_method(url, verb='POST', data=input,
+                                              expected_status=expected_status,
+                                              return_bool_data=True)
+        if not win:
+            # Error message already printed
+            return 1
         if isinstance(output, dict) and 'error' in output:
             # Should be 400, not 200
             print '** error', output
             return 1
+        elif check == None:
+            return 0
         elif check(output, ''):
             if is_right(output):
                 return 0

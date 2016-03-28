@@ -31,6 +31,7 @@ import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
+import org.neo4j.server.rest.repr.BadInputException;
 
 public class graph extends ServerPlugin {
     
@@ -63,7 +64,7 @@ public class graph extends ServerPlugin {
         @Parameter(name = "include_lineage", optional = true)
         Boolean includeLineage
         
-        ) throws IllegalArgumentException, TaxonNotFoundException {
+        ) throws IllegalArgumentException, TaxonNotFoundException, BadInputException {
         
         /*
           /v2/graph/node_info 

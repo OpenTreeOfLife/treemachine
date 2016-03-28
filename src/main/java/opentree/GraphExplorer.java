@@ -492,8 +492,12 @@ public class GraphExplorer extends GraphBase {
     
     
     public JadeTree reconstructDepthLimitedSubtree (String treeID, Node rootnode, int maxDepth, String labelFormat) {
+        return reconstructDepthLimitedSubtree(treeID, rootnode, maxDepth, labelFormat, true);
+    }
+
+    public JadeTree reconstructDepthLimitedSubtree (String treeID, Node rootnode, int maxDepth, String labelFormat, boolean idsForUnnamed) {
         JadeNode root = new JadeNode();
-        root.setName(getNodeLabel(rootnode, labelFormat));
+        root.setName(getNodeLabel(rootnode, labelFormat, idsForUnnamed));
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<>();
         node2JadeNode.put(rootnode, root);
         TraversalDescription synthEdgeTraversal = Traversal.description().
@@ -512,7 +516,7 @@ public class GraphExplorer extends GraphBase {
                     Node parNode = furshestRel.getEndNode();
                     Node childNode = furshestRel.getStartNode();
                     JadeNode jChild = new JadeNode();
-                    jChild.setName(getNodeLabel(childNode, labelFormat));
+                    jChild.setName(getNodeLabel(childNode, labelFormat, idsForUnnamed));
                     jChild.assocObject("graph_node", childNode);
                     node2JadeNode.get(parNode).addChild(jChild);
                     node2JadeNode.put(childNode, jChild);
@@ -620,7 +624,11 @@ public class GraphExplorer extends GraphBase {
      * @param labelFormat valid label formats are: `name`, `id`, or `name_and_id`
      * @return 
      */
-    public String getNodeLabel (Node curNode, String labelFormat) {
+    private String getNodeLabel (Node curNode, String labelFormat) {
+        return getNodeLabel(curNode, labelFormat, true);
+    }
+
+    private String getNodeLabel (Node curNode, String labelFormat, boolean idsForUnnamed) {
         String name = "";
         // taxonomy node
         if (curNode.hasProperty("name")) {
@@ -631,7 +639,7 @@ public class GraphExplorer extends GraphBase {
             } else if ("name_and_id".equals(labelFormat)) {
                 name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
             }
-        } else {
+        } else if (idsForUnnamed) {
             name = String.valueOf(curNode.getProperty("ot_node_id"));
         }
         // make name newick-compliant
@@ -647,7 +655,7 @@ public class GraphExplorer extends GraphBase {
      * @param labelFormat valid label formats are: `name`, `id`, or `name_and_id`
      * @return root the root of the constructed JadeTree
      */
-    public JadeNode getInducedSubtree (List<Node> nodeset, String treeID, String labelFormat) {
+    public JadeNode getInducedSubtree (List<Node> nodeset, String treeID, String labelFormat, boolean idsForUnnamed) {
         
         if (nodeset.size() < 2) {
             throw new UnsupportedOperationException("Cannot extract a tree with < 2 tips.");
@@ -704,7 +712,7 @@ public class GraphExplorer extends GraphBase {
         JadeNode root = new JadeNode(); // add names, etc.
         root.assocObject("graphNode", mrca);
         
-        root.setName(getNodeLabel(mrca, labelFormat));
+        root.setName(getNodeLabel(mrca, labelFormat, idsForUnnamed));
         addedNodes.add(mrca); // collect processed graph nodes
         graphNodeTreeNodeMap.put(mrca, root);
         
@@ -717,7 +725,7 @@ public class GraphExplorer extends GraphBase {
                 if (!addedNodes.contains(workingGraphNode)) { // skip existing nodes
                     JadeNode childTreeNode = new JadeNode();
                     childTreeNode.assocObject("graphNode", workingGraphNode);
-                    childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat));
+                    childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat, idsForUnnamed));
                     // add child node to current parent
                     JadeNode parent = graphNodeTreeNodeMap.get(curGraphParent);
                     parent.addChild(childTreeNode);

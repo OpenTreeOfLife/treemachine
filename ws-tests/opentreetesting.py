@@ -130,6 +130,9 @@ def get_obj_from_http(url,
         raise_for_status(resp)
     return resp.json()
 
+# Returns two results if return_bool_data.
+# Otherwise returns one result.
+
 def test_http_json_method(url,
                      verb='GET',
                      data=None,
@@ -171,7 +174,7 @@ def test_http_json_method(url,
         return fail_return
     if expected_response is not None:
         if not is_json:
-             return (True, resp.text, True) if return_bool_data else True
+             return (True, resp.text) if return_bool_data else True
         try:
             results = resp.json()
             if results != expected_response:
@@ -185,8 +188,8 @@ def test_http_json_method(url,
     elif _VERBOSITY_LEVEL > 1:
         debug('Full response: {r}\n'.format(r=resp.text))
     if not is_json:
-             return (True, resp.text, True) if return_bool_data else True
-    return (True, resp.json(), True) if return_bool_data else True
+             return (True, resp.text) if return_bool_data else True
+    return (True, resp.json()) if return_bool_data else True
 
 def raise_for_status(resp):
     try:

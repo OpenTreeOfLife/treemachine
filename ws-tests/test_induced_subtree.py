@@ -12,6 +12,6 @@ simple_test("/v3/tree_of_life/induced_subtree",
 status += \
 simple_test("/v3/tree_of_life/induced_subtree",
             {u"ott_ids":[292466, 501678, 267845, 666104, 316878, 102710, 176458]},
-            check_blob([field(u'newick', check_string)]))
+            expected_status=400)
 
 sys.exit(status)
