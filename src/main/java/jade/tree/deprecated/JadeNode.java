@@ -188,7 +188,8 @@ public class JadeNode {
 //            ret.append(GeneralUtils.cleanName(this.name));
             //This isn't working so I am just putting this in
             //ret.append(GeneralUtils.scrubName(this.name));
-            ret.append(this.name.replaceAll(this.offendingChars,"_"));
+            //ret.append(this.name.replaceAll(this.offendingChars,"_"));
+            ret.append(this.name);
         }
         return ret.toString();
     }
