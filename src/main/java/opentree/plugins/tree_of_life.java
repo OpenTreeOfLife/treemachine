@@ -301,7 +301,7 @@ public class tree_of_life extends ServerPlugin {
         */
 
         Map<String, Object> result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id", Boolean.FALSE);
-        result.put("newick", trimNewick((String)result.get("newick")));
+        result.put("newick", result.get("newick"));
         result.put("node_ids_not_in_tree", empty);
         result.put("node_ids_not_in_graph", empty);
         result.put("ott_ids_not_in_tree", empty);
@@ -354,17 +354,11 @@ public class tree_of_life extends ServerPlugin {
         if (nodeID != null)
             stringNodeId = longIdToStringId((long)nodeID);
 
-        Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id", "newick", -1, false);
-        result.put("newick", trimNewick((String)result.get("newick")));
+        Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id", "newick", -1, Boolean.FALSE);
+        result.put("newick", result.get("newick"));
         result.put("tree_id", treeId);
 
         return OTRepresentationConverter.convert(result);
-    }
-
-    private static final Pattern v3nodeid = Pattern.compile("\\)mrcaott[0-9]+ott[0-9]+");
-
-    private String trimNewick(String newick) {
-        return v3nodeid.matcher(newick).replaceAll(")");
     }
 
     private static final long idLimit = 10000000L;
