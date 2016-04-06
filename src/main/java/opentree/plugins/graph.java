@@ -1,29 +1,29 @@
+/** This is an adapter that emulates the v2 API methods using v3 API calls */
+
 package opentree.plugins;
 
+/// this is way more imports than we actually need
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-
+import java.util.LinkedList;
+import jade.tree.deprecated.JadeTree;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Arrays;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
-import opentree.constants.GeneralConstants;
-
-import java.net.URL;
-import java.net.URLConnection;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
+import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
-import org.opentree.utils.GeneralUtils;
-import org.opentree.graphdb.GraphDatabaseAgent;
-
+import org.opentree.exceptions.TreeNotFoundException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
@@ -31,268 +31,168 @@ import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
+import org.neo4j.server.rest.repr.BadInputException;
 
-// Graph of Life Services 
 public class graph extends ServerPlugin {
-	
-    @Description("Returns summary information about the entire graph database, including identifiers for the "
-        + "taxonomy and source trees used to build it.")
+    
+    tree_of_life_v3 v3 = new tree_of_life_v3();
+
+    @Description("Returns summary information about a node in the graph. The node "
+        + "of interest may be specified using *either* a `node_id`, or an `ott_id`, "
+        + "**but not both**. If the specified node is not in the graph, an exception "
+        + "will be thrown.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation about(@Source GraphDatabaseService graphDb) {
-
-        GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-        GraphExplorer ge = new GraphExplorer(gdb);
-        HashMap<String, Object> graphInfo = new HashMap<String, Object>();
-
-        Node root = ge.getGraphRootNode();
-
-        graphInfo.put("graph_root_node_id", root.getId());
-        graphInfo.put("graph_root_ott_id", Long.valueOf((String) root.getProperty(NodeProperty.TAX_UID.propertyName)));
-        graphInfo.put("graph_root_name", String.valueOf(root.getProperty(NodeProperty.NAME.propertyName)));
-        graphInfo.put("graph_taxonomy_version", ge.getTaxonomyVersion());
-        graphInfo.put("graph_num_tips", ((long[]) root.getProperty(NodeProperty.MRCA.propertyName)).length);
-
-        // *** do we want to return the _list_ of studies?
-        graphInfo.put("graph_num_source_trees", ge.getSourceList().size());
-
-        ge.shutdownDB();
-
-        return OTRepresentationConverter.convert(graphInfo);
-    }
-
-    // Possibility of replacing tip label ottids with names?!?
-    @Description("Returns a processed source tree (corresponding to a tree in some [study](#studies)) used "
-        + "as input for the synthetic tree. Although the result of this service is a tree corresponding directly to a "
-        + "tree in a study, the representation of the tree in the graph may differ slightly from its "
-        + "canonical representation in the study, due to changes made during tree import: 1) includes "
-        + "only the curator-designated ingroup clade, and 2) both unmapped and duplicate tips are pruned "
-        + "from the tree. The tree is returned in newick format, with terminal nodes labelled with ott ids.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation source_tree(
+    public Representation node_info (
         @Source GraphDatabaseService graphDb,
-        @Description("The study identifier. Will typically include a prefix (\"pg_\" or \"ot_\")") @Parameter(
-            name = "study_id", optional = false) String studyID,
-        @Description("The tree identifier for a given study.") @Parameter(
-            name = "tree_id", optional = false) String treeID,
-        @Description("The name of the return format. The only currently supported format is newick.") @Parameter(
-            name = "format", optional = true) String format) throws IllegalArgumentException {
-
-        HashMap<String, Object> responseMap = new HashMap<String, Object>();
-        String source = studyID + "_" + treeID;
-
-        String tree = getSourceTree(source);
-
-        if (tree == null) {
-            throw new IllegalArgumentException("Invalid source id '" + source + "' provided.");
-        } else {
-            responseMap.put("newick", tree);
-        }
         
-        return OTRepresentationConverter.convert(responseMap);
-    }
-
-
-    @Description("Returns summary information about a node in the graph. The node of interest may be specified "
-        + "using *either* a node id, or an ott id, **but not both**. If the specified node or ott id is not in "
-        + "the graph, an error will be returned.")
-    @PluginTarget(GraphDatabaseService.class)
-    public Representation node_info(
-        @Source GraphDatabaseService graphDb,
-        @Description("The node id of the node of interest. This argument may not be combined with `ott_id`.") @Parameter(
-            name = "node_id", optional = true) Long queryNodeId,
-        @Description("The ott id of the node of interest. This argument may not be combined with `node_id`.") @Parameter(
-            name = "ott_id", optional = true) Long queryOttId,
-        @Description("Include the ancestral lineage of the node in the draft tree. If this argument is `true`, then "
-            + "a list of all the ancestors of this node in the draft tree, down to the root of the tree itself, "
-            + "will be included in the results. Higher list indices correspond to more incluive (i.e. deeper) "
-            + "ancestors, with the immediate parent of the specified node occupying position 0 in the list.") 
-        @Parameter(name = "include_lineage", optional = true) Boolean includeLineage) throws IllegalArgumentException {
+        @Description("The `node_id` of the node of interest. This argument may not be "
+            + "combined with `ott_id`.")
+        @Parameter(name = "node_id", optional = true)
+        Long nodeID,
         
-        HashMap<String, Object> nodeIfo = new HashMap<String, Object>();
+        @Description("The `ott_id` of the node of interest. This argument may not be "
+            + "combined with `node_id`.")
+        @Parameter(name = "ott_id", optional = true)
+        Long ottID,
         
-        Long ottId = null;
-        String name = "";
-        String rank = "";
-        String taxSource = "";
-        Long nodeId = null;
-        boolean inSynthTree = false;
-        Integer numSynthTips = 0;
-        Integer numMRCA = 0;
-        LinkedList<HashMap<String, Object>> synthSources = new LinkedList<HashMap<String, Object>>();
-        LinkedList<HashMap<String, Object>> treeSources = new LinkedList<HashMap<String, Object>>();
+        @Description("Include the ancestral lineage of the node in the draft tree. If "
+            + "this argument is `true`, then a list of all the ancestors of this node "
+            + "in the draft tree, down to the root of the tree itself, will be included "
+            + "in the results. Higher list indices correspond to more incluive (i.e. "
+            + "deeper) ancestors, with the immediate parent of the specified node "
+            + "occupying position 0 in the list.")
+        @Parameter(name = "include_lineage", optional = true)
+        Boolean includeLineage
         
-        if (queryNodeId == null && queryOttId == null) {
-            throw new IllegalArgumentException("Must provide a \"node_id\" or \"ott_id\" argument.");
-        } else if (queryNodeId != null && queryOttId != null) {
-            throw new IllegalArgumentException("Provide only one \"node_id\" or \"ott_id\" argument.");
-        }
+        ) throws IllegalArgumentException, TaxonNotFoundException, BadInputException {
         
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        
-        if (queryOttId != null) {
-            Node n = null;
-            try {
-                n = ge.findGraphTaxNodeByUID(String.valueOf(queryOttId));
-            } catch (TaxonNotFoundException e) {
-            }
-            if (n != null) {
-                nodeId = n.getId();
-            } else {
-                throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ott id provided.");
-            }
+        /*
+          /v2/graph/node_info 
+            in: 
+              node_id : nodeid-integer   e.g. 656910
+              ott_id : ottid-integer   e.g. 810751
+              include_lineage : boolean 
+            out: 
+              node_id : nodeid-integer 
+              num_tips : integer   e.g. 388
+              num_synth_tips : integer   e.g. 388
+              in_synth_tree : boolean 
+              synth_sources : list-of source-tree-blob = 
+                    git_sha : sha-string 
+                    tree_id : treeid-string 
+                    study_id : studyid-string 
+              tree_sources : list-of source-tree-blob 
+              tree_id : synthid-string 
+              draft_tree_lineage : list-of v2-lineage-taxon-blob 
+              ott_id : ottid-integer   -- the string "null" if not a taxon node 
+              name : taxon-name-string 
+              rank : rank-string 
+              tax_source : string   e.g. "ncbi:9242,gbif:5289,irmng:104628"
 
-        } else if (queryNodeId != null) {
-            Node n = null;
-            try {
-                n = graphDb.getNodeById(queryNodeId);
-            } catch (NotFoundException e) {
+          /v3/tree_of_life/node_info
+            in: 
+              node_id : nodeid-string   e.g. "mrcaott3504ott396446"
+              ott_id : ottid-integer   e.g. 810751  -- mutually exclusive with node_id 
+              include_lineage : boolean   -- default false 
+            out: 
+              node_id : nodeid-string   -- canonical id, not nec same as argument 
+              num_tips : integer   e.g. 388  -- v2: num_synth_tips 
+              ... support/conflict fields ...
+              taxon : taxon-blob
+              lineage : list-of blob   -- not draft_tree_lineage 
+              source_id_map : dict   -- gives definitions of tree ids 
+        */
 
-            } catch (NullPointerException e) {
+        String stringNodeID = null;
+        if (nodeID != null)
+            stringNodeID = tree_of_life.longIdToStringId(nodeID);
+        Map<String, Object> result = v3.doNodeInfo(graphDb, stringNodeID, ottID, includeLineage);
+        Map<String, Object> taxon = (Map<String, Object>)result.get("taxon");
 
-            }
-            if (n != null) {
-                nodeId = queryNodeId;
-            } else {
-                throw new IllegalArgumentException("Could not find any graph nodes corresponding to the node id provided.");
-            }
+        Map<String, Object> res = new HashMap<>();
+        String canonicalId = (String)result.get("node_id");
+        res.put("node_id", tree_of_life.stringIdToLongId(canonicalId));
+        res.put("num_tips", result.get("num_tips")); // ???
+        res.put("in_synth_tree", Boolean.TRUE);
+        res.put("num_synth_tips", result.get("num_tips"));
+
+        if (taxon != null) {
+            res.put("ott_id", taxon.get("ott_id"));
+            res.put("name", taxon.get("name"));
+            res.put("rank", taxon.get("rank"));
+            res.put("tax_source", String.join(",", (List<String>)taxon.get("tax_sources")));
         }
 
-        if (nodeId != null) {
-            Node n = graphDb.getNodeById(nodeId);
-            if (n.hasProperty(NodeProperty.NAME.propertyName)) {
-                name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
-                rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
-                taxSource = String.valueOf(n.getProperty(NodeProperty.TAX_SOURCE.propertyName));
-                ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
+        res.put("tree_id", tree_of_life.treeId);
+
+        // res.put("synth_sources", ...);  list of {git_sha, tree_id, study_id} - from supported_by ?
+        // res.put("tree_sources", ...);   same as synth_sources ...
+
+        // Iterate over trees in the v3 support/conflict maps.
+        // Look each one up in the v3 source_id_map.
+        // Accumulate values from source_id_map.
+        Map<String, Object> sourceIdMap = (Map<String, Object>)result.get("source_id_map");
+        List<Object> v2SourceList = new ArrayList<>();
+        Object supportedBy = result.get("supported_by");
+        if (supportedBy != null)
+            for (String sourceIdAsObj : ((Map<String, Object>)supportedBy).keySet()) {
+                String sourceId = (String)sourceIdAsObj;
+                // Transfer a sourceblob from the v3 map to the v2 list
+                v2SourceList.add(sourceIdMap.get(sourceId));
             }
-            numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
-            if (ge.nodeIsInSyntheticTree(n)) {
-                inSynthTree = true;
-                numSynthTips = ge.getSynthesisDescendantTips(n).size(); // may be faster to just use stored MRCA
-                // get all the unique sources supporting this node
-                ArrayList<String> sSources = ge.getSynthesisSupportingSources(n);
-                ArrayList<String> tSources = ge.getSupportingTreeSources(n);
-                
-                for (String sStudy : sSources) {
-                    HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(sStudy);
-                    synthSources.add(indStudy);
+        Object partialPathOf = result.get("partial_path_of");
+        if (partialPathOf != null)
+            for (String sourceIdAsObj : ((Map<String, Object>)partialPathOf).keySet()) {
+                String sourceId = (String)sourceIdAsObj;
+                // Transfer a sourceblob from the v3 map to the v2 list
+                v2SourceList.add(sourceIdMap.get(sourceId));
+            }
+        res.put("synth_sources", v2SourceList);
+        res.put("tree_sources", v2SourceList);
+
+        /*
+          "draft_tree_lineage" : [ {
+            "unique_name" : "Mutisieae",
+            "name" : "Mutisieae",
+            "rank" : "tribe",
+            "ott_id" : 557775,
+            "node_id" : 656644
+          }, {
+            "unique_name" : "",
+            "name" : "",
+            "rank" : "",
+            "ott_id" : "null",
+            "node_id" : 3446538
+          }, ...
+        */
+
+        if (includeLineage != null && includeLineage.booleanValue()) {
+            // We have a list of v3 node-blobs
+            List<Object> lineage = (List<Object>)result.get("lineage");
+            // We want a list of v2 taxonlike-blobs
+            List<Object> v2lineage = new ArrayList<>();
+            for (Object nodeBlobAsObj : lineage) {
+                Map<String, Object> nodeBlob = (Map<String, Object>)nodeBlobAsObj;
+                Map<String, Object> taxonlike = new HashMap<>();
+                taxonlike.put("node_id", tree_of_life.stringIdToLongId((String)(nodeBlob.get("node_id"))));
+                Map<String, Object> ltaxon = (Map<String, Object>)(nodeBlob.get("taxon"));
+                if (ltaxon != null) {
+                    taxonlike.put("ott_id", ltaxon.get("ott_id"));
+                    taxonlike.put("name", ltaxon.get("name"));
+                    taxonlike.put("rank", ltaxon.get("rank"));
+                    taxonlike.put("unique_name", ltaxon.get("unique_name"));
+                } else {
+                    taxonlike.put("ott_id", "null");
+                    taxonlike.put("name", "");
+                    taxonlike.put("rank", "");
+                    taxonlike.put("unique_name", "");
                 }
-                
-                for (String tStudy : tSources) {
-                    HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(tStudy);
-                    treeSources.add(indStudy);
-                }
+                v2lineage.add(taxonlike);
             }
+            res.put("draft_tree_lineage", v2lineage);
         }
-        
-        // problem: can't pass null objects.
-        nodeIfo.put("name", name);
-        nodeIfo.put("rank", rank);
-        nodeIfo.put("tax_source", taxSource);
-        nodeIfo.put("node_id", nodeId);
-        // a hack, since OTRepresentationConverter apparently cannot use null values
-        if (ottId != null) {
-            nodeIfo.put("ott_id", ottId);
-        } else {
-            nodeIfo.put("ott_id", "null");
-        }
-        nodeIfo.put("in_synth_tree", inSynthTree);
-        nodeIfo.put("num_synth_tips", numSynthTips);
-        nodeIfo.put("num_tips", numMRCA);
-        nodeIfo.put("synth_sources", synthSources);
-        nodeIfo.put("tree_sources", treeSources);
-
-        if (includeLineage != null && includeLineage == true) {
-            LinkedList<HashMap<String, Object>> lineage = new LinkedList<HashMap<String, Object>>();
-            if (inSynthTree) {
-                Node n = graphDb.getNodeById(nodeId);
-                List<Long> nodeList = getDraftTreePathToRoot(n);
-                
-                for (Long node : nodeList) {
-                    HashMap<String, Object> info = new HashMap<String, Object>();
-                    addNodeInfo(graphDb.getNodeById(node), info);
-                    lineage.add(info);
-                }
-            }
-            nodeIfo.put("draft_tree_lineage", lineage);
-        }
-        // report treeID
-        Node meta = ge.getMostRecentSynthesisMetaNode();
-        nodeIfo.put("tree_id", meta.getProperty("name"));
-        
-        ge.shutdownDB();
-        
-        return OTRepresentationConverter.convert(nodeIfo);
+        return OTRepresentationConverter.convert(res);
     }
 
-
-    // fetch the processed input source tree newick from files.opentree.org
-    public String getSourceTree(String source) {
-        String tree = null;
-        String urlbase = "http://files.opentreeoflife.org/preprocessed/v4.0/trees/"
-            + source + ".tre";
-        System.out.println("Looking up study: " + urlbase);
-
-        try {
-            URL phurl = new URL(urlbase);
-            URLConnection conn = (URLConnection) phurl.openConnection();
-            conn.connect();
-            try (BufferedReader un = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                    tree = un.readLine();
-            }
-            return tree;
-        } catch (Exception e) {
-        }
-        return tree;
-    }
-
-
-    public List<Long> getDraftTreePathToRoot(Node startNode) {
-
-        ArrayList<Long> path = new ArrayList<Long>();
-        String synthTreeName = (String) GeneralConstants.DRAFT_TREE_NAME.value;
-
-        Node curParent = startNode;
-        boolean atRoot = false;
-        while (!atRoot) {
-            Iterable<Relationship> parentRels = curParent.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING);
-            atRoot = true; // assume we have hit the root until proven otherwise
-            for (Relationship m : parentRels) {
-                if (String.valueOf(m.getProperty("name")).equals(synthTreeName)) {
-                    atRoot = false;
-                    curParent = m.getEndNode();
-                    path.add(curParent.getId());
-                    break;
-                }
-            }
-        }
-        return path;
-    }
-
-
-    // add information from a node
-    private void addNodeInfo(Node n, HashMap<String, Object> results) {
-
-        String name = "";
-        String uniqueName = "";
-        String rank = "";
-        Long ottId = null;
-
-        if (n.hasProperty(NodeProperty.NAME.propertyName)) {
-            name = String.valueOf(n.getProperty(NodeProperty.NAME.propertyName));
-            uniqueName = String.valueOf(n.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-            rank = String.valueOf(n.getProperty(NodeProperty.TAX_RANK.propertyName));
-            ottId = Long.valueOf((String) n.getProperty(NodeProperty.TAX_UID.propertyName));
-        }
-
-        results.put("node_id", n.getId());
-        results.put("name", name);
-        results.put("unique_name", uniqueName);
-        results.put("rank", rank);
-        if (ottId != null) {
-            results.put("ott_id", ottId);
-        } else {
-            results.put("ott_id", "null");
-        }
-    }
+    
 }

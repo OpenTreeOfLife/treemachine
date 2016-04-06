@@ -1,0 +1,212 @@
+## build as (using version 6 of example files):
+java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar ingestsynth labelled_supertree.v6.tre annotations.v6.json taxonomy.v2.9dra
+ft12.tsv TEST.db
+
+
+## working calls (run local):
+
+
+## tree_of_life_v3
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1"}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"include_source_list":false}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/about  -H 'Content-Type: application/json' --data-binary '{"include_source_list":true}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/draft_trees
+
+## node_info moved from 'graph' (class was deprecated)
+# using node_id
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"ott81461"}'
+# using ott_id
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461}'
+# using both (not allowed)
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "node_id":"ott81461"}'
+
+# example from issue
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott3504ott396446"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott3504ott396446", "include_lineage":true}'
+
+
+# this one has conflicts_with
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott16974ott848212"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott71333ott304274"}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott16974ott848212"}'
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott71333ott304274"}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "include_lineage":true}'
+
+
+## subtree (Gavia)
+# using node_id
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+# using ott_id
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":803675}'
+# using both (not allowed)
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":803675, "node_id":"ott803675"}'
+# Aves
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":81461}'
+# Metazoa (too big)
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott691846"}'
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
+
+
+## working
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"node_ids":["ott501678","ott666104","ott316878","ott102710","ott536234","ott810751","ott81461"]}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/induced_subtree -H "content-type:application/json" -d '{"node_ids":["ott501678","ott666104","ott316878"], "ott_ids":[102710,536234,810751,81461,501678]}'
+
+{
+  "node_ids_not_in_tree" : [ "ott501678" ],
+  "newick" : "(((Setophaga_ott666104,(Selasphorus_calliope_ott536234)Trochilidae_ott810751)mrcaott246ott5481,(Clangula_ott316878,Perdix_ott102710)Galloanserae_ott5839486)Neognathae_ott241846)Aves_ott81461;",
+  "synth_id" : "opentree4.1"
+}
+
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"ott_id":5839486, "format":"arguson", "height_limit":2}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/subtree -H "content-type:application/json" -d '{"ott_id":5839486, "format":"arguson", "height_limit":2}'
+
+
+curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","maxDepth":"2","node_id":"ott5839486"}'
+
+
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/node_info -H "content-type:application/json" -d '{"ott_id":81461}'
+
+
+
+
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott93302"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"ott93302"}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/subtree -H "content-type:application/json" -d '{"node_id":"ott93302", "format":"arguson", "height_limit":2}'
+
+
+
+# mrca
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott292466", "ott501678", "ott267845"]}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"ott_ids":[292466, 501678, 267845]}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott501678", "ott267845"], "ott_ids":[292466,10101010]}'
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"ott_id":81461, "include_lineage":true}'
+
+
+# mrca here (mrcaott90560ott1057518) has no name
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/node_info -H "content-type:application/json" -d '{"node_id":"mrcaott90560ott1057518"}'
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/mrca -H "content-type:application/json" -d '{"node_ids":["ott1057518", "ott90560"]}'
+
+
+
+
+
+
+#501678,666104,316878,102710,536234
+#(((Stellula_calliope_ott536234)Stellula_ott501678,Dendroica_ott666104),(Perdix_ott102710,Clangula_ott316878))Neognathae_ott241846
+
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+{
+  "newick" : "(Gavia_stellata_ott1057044,((Gavia_arctica_ott1085739,Gavia_pacifica_ott651474)mrcaott651474ott1085739,(Gavia_immer_ott1057518,Gavia_adamsii_ott90560)mrcaott90560ott1057518)mrcaott90560ott651474)Gavia_ott803675;",
+  "synth_id" : "opentree4.1"
+}
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "label_format":"name"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "label_format":"id"}'
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "label_format":"name_and_id"}'
+
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675", "height_limit":3}'
+
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/subtree -H "content-type:application/json" -d '{"node_id":"ott81461", "label_format":"name_and_id", "height_limit":3}'
+
+
+# metazoa; good size to play with (full tree is too large)
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/jon" -d '{"node_id":"ott691846", "label_format":"name_and_id", "height_limit":3}'
+
+
+
+## 'v1' (GoLS) services
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeID
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getTaxonomyVersion -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1"}'
+
+## some nodes for testing
+# Aves (taxonomy): ott81461
+# Root node id (neo4j): 2659019
+
+# Aves
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","max_depth":"3","node_id":"ott81461"}'
+
+# Galloanserae
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"format":"arguson","max_depth":"3","node_id":"ott5839486"}'
+
+# mrca of chicken and dipper; should be Neognathae
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","node_ids":["ott267845", "ott153563"]}'
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getMRCA -H 'Content-Type: application/json' --data-binary '{"synth_id":"opentree4.1","ott_ids":[267845, 153563]}'
+
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForNodeID -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+
+# still need to fix "getDraftTreeForottId"
+
+## test call deplyed on test.opentreeoflife.org
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about -H "content-type:application/json"
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about
+
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getDraftTreeForNodeID -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+
+curl -X POST https://test.opentreeoflife.org/v3/tree_of_life/about
+
+
+curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"node_id":"ott803675"}'
+
+curl https://test.opentreeoflife.org/treemachine/v1/getSyntheticTree -H 'Content-Type: application/json' --data-binary '{"treeID":"opentree4.0","format":"arguson","maxDepth":"3","node_id":"ott5246093"}'
+
+
+
+
+curl -X POST http://localhost:7474/db/data/ext/GoLS/graphdb/getSynthesisSourceList
+
+{
+  "mrca_node_id" : "mrcaott123ott456",
+  “nearest_taxon”: {"node_id" : "ott34567",  # v2: an int
+          "unique_name" : "Neognathae",
+          "ott_id" : 241846,
+          "name" : "Neognathae",
+          "rank" : "superorder"},
+ 
+  "synth_id" : "opentree4.0",
+             
+  "node_ids_not_in_tree" : [ ],
+  "ott_ids_not_in_tree" : [ ]
+}
+
+java -jar target/treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar extractdraftsubtreeforottids 267845,153563,803675 terp.tre TEST.db
+
+curl -X POST http://localhost:7474/db/data/ext/tree_of_life_v3/graphdb/subtree -H "content-type:application/json" -d '{"node_id":"ott803675"}'
+{
+  "newick" : "(Gavia_stellata_ott1057044,((Gavia_arctica_ott1085739,Gavia_pacifica_ott651474),(Gavia_immer_ott1057518,Gavia_adamsii_ott90560)))Gavia_ott803675;",
+  "synth_id" : "opentree4.1"
+}
+

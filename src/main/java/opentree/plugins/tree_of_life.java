@@ -1,25 +1,28 @@
+/** This is an adapter that emulates the v2 API methods using v3 API calls */
+
 package opentree.plugins;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 import java.util.LinkedList;
-
 import jade.tree.deprecated.JadeTree;
-
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Arrays;
 import opentree.GraphExplorer;
 import opentree.constants.NodeProperty;
 import opentree.constants.RelType;
-import opentree.constants.GeneralConstants;
-
-import org.opentree.utils.GeneralUtils;
 import org.opentree.exceptions.MultipleHitsException;
 import org.opentree.exceptions.TaxonNotFoundException;
 import org.opentree.exceptions.TreeNotFoundException;
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
@@ -27,402 +30,366 @@ import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
-import org.opentree.graphdb.GraphDatabaseAgent;
+import org.neo4j.server.rest.repr.BadInputException;
 
-// Graph of Life Services 
+import opentree.plugins.tree_of_life_v3;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+// Tree of Life Services 
 public class tree_of_life extends ServerPlugin {
-	
-    @Description("Returns summary information about the current draft tree of life, including information "
-        + "about the list of source trees and the taxonomy used to build it.")
+    
+    tree_of_life_v3 v3 = new tree_of_life_v3();
+
+    public static String treeId = "unclear"; // gets set when someone calls about method
+
+    @Description("Returns summary information about the tree of life, "
+        + "including information about the list of source "
+        + "trees and the taxonomy used to build it.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation about (
-
-        @Source GraphDatabaseService graphDb,
-        @Description("Return a list of source studies")
+    public Representation about (@Source GraphDatabaseService graphDb,
+        
+        @Description("Return a list of source studies.")
         @Parameter(name = "study_list", optional = true)
-        Boolean study_list) throws TaxonNotFoundException, MultipleHitsException {
+        Boolean study_list
+        
+        ) throws TaxonNotFoundException, MultipleHitsException, BadInputException {
 
-        GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
-        GraphExplorer ge = new GraphExplorer(gdb);
-        HashMap<String, Object> draftTreeInfo = null;
-        Boolean returnStudyList = true; // default to true for now
-        
-        if (study_list != null && study_list == false) {
-            returnStudyList = false;
+        /*
+          /v2/tree_of_life/about 
+            in: 
+              study_list : boolean   e.g. true
+            out: 
+              date : string 
+              num_tips : integer   e.g. 2424255
+              num_source_studies : integer 
+              taxonomy_version : string 
+              root_node_id : nodeid-integer   e.g. 1
+              root_ott_id : ottid-integer 
+              root_taxon_name : string   e.g. "cellular organisms"
+              study_list : list-of 
+                  git_sha : sha-string 
+                  tree_id : treeid-string 
+                  study_id : studyid-string 
+              tree_id : synthid-string   e.g. "opentree4.0"
+
+          /v3/tree_of_life/about 
+            in: 
+              study_list : boolean   e.g. true
+            out: 
+              date_created : string 
+              num_source_studies : integer 
+              num_trees : integer 
+              taxonomy_version : string
+              filtered_flags : ...
+              root : node-blob
+              source_list : list-of source-id-string
+              source_id_map : dict
+                 source-id-string ->
+                 blob
+                    git_sha : sha-string 
+                    tree_id : treeid-string 
+                    study_id : studyid-string 
+              synth_id : synthid-string   e.g. "opentree4.0"
+        */
+
+        // Default value of v2 study_list is true, while default value of v3 source_list is false.
+        // Meaning is actually tree_list, not study_list.
+        if (study_list == null)
+            study_list = Boolean.TRUE;
+
+        Map<String, Object> result = v3.doAbout(graphDb, study_list);
+        Map<String, Object> root = (Map<String, Object>)result.get("root"); // node blob
+        Map<String, Object> res = new HashMap<>();
+        res.put("date", result.get("date_created"));
+        res.put("num_tips", root.get("num_tips"));
+        res.put("num_source_studies", result.get("num_source_studies"));
+        res.put("taxonomy_version", result.get("taxonomy_version"));
+        res.put("root_node_id", stringIdToLongId((String)(root.get("node_id"))));
+
+        Map<String, Object> rootTaxon = (Map<String, Object>)root.get("taxon"); // node blob
+        if (rootTaxon != null) {
+            res.put("root_ott_id", rootTaxon.get("ott_id"));
+            res.put("root_taxon_name", rootTaxon.get("name"));
         }
-        
-        // Most information will come from the synthesis metadata node
-        try {
-            Node meta = ge.getMostRecentSynthesisMetaNode();
-            if (meta != null) {
-    //		String [] sourceList = (String []) meta.getProperty("sourcenames");
-                ArrayList<String> sourceList = ge.getSynthesisSourceList();
-                Node startNode = gdb.getNodeById((Long) gdb.getGraphProperty("draftTreeRootNodeId"));
-                Integer numMRCA = ((long[]) startNode.getProperty(NodeProperty.MRCA.propertyName)).length;
-                Integer numStudies = sourceList.size();
-                draftTreeInfo = new HashMap<String, Object>();
-                
-                // general info
-                draftTreeInfo.put("tree_id", meta.getProperty("name"));
-                draftTreeInfo.put("date", meta.getProperty("date"));
-                
-                // currently comes from root node of graph. should bake into metadatanode of synth tree 
-                draftTreeInfo.put("taxonomy_version", ge.getTaxonomyVersion());
-                
-                // root node info
-                draftTreeInfo.put("root_node_id", startNode.getId());
-                draftTreeInfo.put("root_taxon_name", String.valueOf(startNode.getProperty(NodeProperty.NAME.propertyName)));
-                draftTreeInfo.put("root_ott_id", Long.valueOf((String) startNode.getProperty(NodeProperty.TAX_UID.propertyName)));
-                
-                // tree constituents
-                draftTreeInfo.put("num_tips", numMRCA);
-                draftTreeInfo.put("num_source_studies", numStudies);
-                if (returnStudyList) {
-                    LinkedList<HashMap<String, Object>> sources = new LinkedList<HashMap<String, Object>>();
-                    for (String study : sourceList) {
-                        HashMap<String, Object> indStudy = GeneralUtils.reformatSourceID(study);
-                        sources.add(indStudy);
-                    }
-                    draftTreeInfo.put("study_list", sources);
-                }
-            } else {
-                draftTreeInfo = new HashMap<String, Object>();
-                draftTreeInfo.put("error", "No synthetic tree found in the graph.");
-                return OTRepresentationConverter.convert(draftTreeInfo);
-            }	
-        } finally {
-                ge.shutdownDB();
+
+        // Map over result study_list (strings), getting blobs from
+        // the source_id_map.
+        // res.put("study_list", map ... root.get("study_list"));    // worry about @ vs. _ ?
+
+        treeId = (String)result.get("synth_id");
+        res.put("tree_id", treeId);
+
+        // Iterate over members of the v3 source_list.
+        // Look each one up in the v3 source_id_map.
+        // Accumulate values from source_id_map.
+        if (study_list.booleanValue()) {
+            Map<String, Object> sourceIdMap = (Map<String, Object>)result.get("source_id_map");
+            List<Object> v2SourceList = new ArrayList<>();
+            for (Object sourceIdAsObj : (List<Object>)result.get("source_list")) {
+                String sourceId = (String)sourceIdAsObj;
+                // Transfer a sourceblob from the v3 map to the v2 list
+                v2SourceList.add(sourceIdMap.get(sourceId));
+            }
+            res.put("study_list", v2SourceList);
         }
-        return OTRepresentationConverter.convert(draftTreeInfo);
+
+        return OTRepresentationConverter.convert(res);
     }
 
-
-    @Description("Get the MRCA of a set of nodes on the current draft tree. Accepts any combination of node ids and ott "
-        + "ids as input. Returns information about the most recent common ancestor (MRCA) node as well as the most recent "
-        + "taxonomic ancestor (MRTA) node (the smallest taxon that encompasses the query; the MRCA "
-        + "and MRTA may be the same node). Node ids that are not in the synthetic tree are dropped from the MRCA "
-        + "calculation. For a valid ott id that is not in the synthetic tree (i.e. it is not recovered as monophyletic "
-        + "from the source tree information), the taxonomic descendants of the node are used in the MRCA calculation. "
+    private static final List<Integer> empty = new ArrayList<>();
+    
+    @Description("Get the MRCA of a set of nodes on a the most current draft tree. Accepts "
+        + "any combination of node ids and ott ids as input. Returns information about "
+        + "the most recent common ancestor (MRCA) node as well as the most recent "
+        + "taxonomic ancestor (MRTA) node (the smallest taxon in the synthetic tree that "
+        + "encompasses the query; the MRCA and MRTA may be the same node). Both node ids and "
+        + "ott ids that are not in the synthetic tree are dropped from the MRCA calculation. "
         + "Returns any unmatched node ids / ott ids.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation mrca (@Source GraphDatabaseService graphDb,
         
-        @Description("A set of node ids")
+//        @Description("Synthetic tree identifier (defaults to most recent).")
+//        @Parameter(name = "synth_id", optional = true)
+//        String synthID,
+        
+        @Description("A set of open tree node ids")
         @Parameter(name = "node_ids", optional = true)
-        long[] nodeIds,
+        long[] nodeIDs,
         
         @Description("A set of ott ids")
         @Parameter(name = "ott_ids", optional = true)
-        long[] ottIds) throws IllegalArgumentException {
-
-        if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
-            throw new IllegalArgumentException("You must supply at least one node_id or ott_id.");
-        }
-
-        ArrayList<Node> tips = new ArrayList<Node>();
-
-        ArrayList<Long> invalidNodesIds = new ArrayList<Long>();
-        ArrayList<Long> invalidOttIds = new ArrayList<Long>();
-        ArrayList<Long> nodeIdsNotInSynth = new ArrayList<Long>();
-        ArrayList<Long> ottIdsNotInSynth = new ArrayList<Long>();
-
-        GraphExplorer ge = new GraphExplorer(graphDb);
-
-        // *** provided nodeIds MUST be in the synthesis tree
-        if (nodeIds != null && nodeIds.length > 0) {
-            for (long nodeId : nodeIds) {
-                Node n = null;
-                try {
-                    n = graphDb.getNodeById(nodeId);
-                } catch (NotFoundException e) {}
-                if (n != null) {
-                    if (ge.nodeIsInSyntheticTree(n)) {
-                        tips.add(n);
-                    } else {
-                        nodeIdsNotInSynth.add(nodeId);
-                    }
-                } else {
-                    invalidNodesIds.add(nodeId);
-                }
-            }
-        }
+        long[] ottIDs
         
-        // if ottIds are not in the synthesis tree, walk to taxonomic descendants, find MRCA of all
-        if (ottIds != null && ottIds.length > 0) {
-            for (long ottId : ottIds) {
-                Node n = null;
-                try {
-                    n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
-                } catch (TaxonNotFoundException e) {}
-                if (n != null) {
-                    if (ge.nodeIsInSyntheticTree(n)) {
-                        tips.add(n);
-                    } else { // if not in synth (i.e. not monophyletic), grab descendant tips, which *should* be in synth tree
-                        ottIdsNotInSynth.add(ottId);
-                        tips.addAll(ge.getTaxonomyDescendantTips(n));
-                    }
-                } else {
-                    invalidOttIds.add(ottId);
-                }
-            }
-        }
+        ) throws IllegalArgumentException, BadInputException
+    {
+        // If there are any long node ids, error
+        // or convert them to string node ids
 
-        if (tips.size() < 1) {
-            throw new IllegalArgumentException("Could not find any graph nodes corresponding to the ids provided.");
+        /**
+           /v2/tree_of_life/mrca 
+             in: 
+               node_ids : list-of nodeid-integer   e.g. [1,2,3]
+               ott_ids : list-of ottid-integer   e.g. [4,5,6]
+             out: 
+               mrca_node_id : nodeid-integer 
+               invalid_node_ids : list-of nodeid-integer 
+               invalid_ott_ids : list-of ottid-integer 
+               node_ids_not_in_tree : list-of nodeid-integer 
+               ott_ids_not_in_tree : list-of ottid-integer 
+               tree_id : synthid-string 
+               ott_id : ottid-integer 
+               mrca_name : taxon-name-string 
+               mrca_rank : rank-string 
+               mrca_unique_name : uniqname-string 
+               nearest_taxon_mrca_ott_id : ottid-integer 
+               nearest_taxon_mrca_name : taxon-name-string 
+               nearest_taxon_mrca_rank : rank-string 
+               nearest_taxon_mrca_unique_name : uniqname-string 
+               nearest_taxon_mrca_node_id : nodeid-integer 
+
+           /v3/tree_of_life/mrca 
+             in:
+               node_ids : list-of nodeid-string 
+               ott_ids : list-of ottid-integer 
+             out:
+               mrca
+                 node_id
+                 taxon
+                 num_tips
+                 (conflict info)
+               nearest_taxon
+                 ott_id
+                 name, rank, tax_sources, unique_name
+               ott_ids_not_in_tree
+
+            */
+
+        Map<String, Object> result = v3.doMrca(graphDb, longIdsToStringIds(nodeIDs), ottIDs);
+        Map<String, Object> mrca = (Map<String, Object>)result.get("mrca");
+        Map<String, Object> nearest = (Map<String, Object>)result.get("nearest_taxon");
+
+        Map<String, Object> res = new HashMap<>();
+        String nodeId = (String)(mrca.get("node_id"));
+        res.put("mrca_node_id", stringIdToLongId(nodeId));
+        res.put("invalid_node_ids", empty);
+        res.put("invalid_ott_ids", empty);
+        res.put("node_ids_not_in_tree", empty);
+        res.put("ott_ids_not_in_tree", empty);
+        res.put("tree_id", treeId);
+
+        Map<String, Object> taxon = (Map<String, Object>)mrca.get("taxon");
+        if (taxon != null) {
+            res.put("ott_id", taxon.get("ott_id"));
+            String name = (String)taxon.get("name");
+            res.put("mrca_name", name);
+            res.put("mrca_rank", taxon.get("rank"));
+            String uname = (String)taxon.get("unique_name");
+            if (uname.equals(name))
+                res.put("mrca_unique_name", "");
+            else
+                res.put("mrca_unique_name", uname);
+            res.put("nearest_taxon_mrca_node_id", nodeId);
         } else {
-            HashMap<String, Object> vals = new HashMap<String, Object>();
-            //Node mrca = ge.getDraftTreeMRCAForNodes(tips, false);
-            Node mrca = ge.getDraftTreeMRCA(tips);
-            Node mrta = mrca;
-
-            while (!mrta.hasProperty(NodeProperty.TAX_UID.propertyName)) {
-                mrta = mrta.getSingleRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING).getEndNode();
-            }
-            vals.put("mrca_node_id", mrca.getId());
-
-            String name = "";
-            String unique = "";
-            String rank = "";
-            Long ottID = null;
-
-            if (mrca.hasProperty(NodeProperty.TAX_UID.propertyName)) {
-                name = (String) mrca.getProperty(NodeProperty.NAME.propertyName);
-                unique = (String) mrca.getProperty(NodeProperty.NAME_UNIQUE.propertyName);
-                rank = (String) mrca.getProperty(NodeProperty.TAX_RANK.propertyName);
-                ottID = Long.valueOf((String)mrca.getProperty(NodeProperty.TAX_UID.propertyName));
-            }
-            vals.put("mrca_name", name);
-            vals.put("mrca_unique_name", unique);
-            vals.put("mrca_rank", rank);
-            // a hack, since OTRepresentationConverter apparently cannot use null values
-            if (ottID != null) {
-                vals.put("ott_id", ottID);
-            } else {
-                vals.put("ott_id", "null");
-            }
-
-            vals.put("nearest_taxon_mrca_name", mrta.getProperty(NodeProperty.NAME.propertyName));
-            vals.put("nearest_taxon_mrca_unique_name", mrta.getProperty(NodeProperty.NAME_UNIQUE.propertyName));
-            vals.put("nearest_taxon_mrca_rank", mrta.getProperty(NodeProperty.TAX_RANK.propertyName));
-            vals.put("nearest_taxon_mrca_ott_id", Long.valueOf((String)mrta.getProperty(NodeProperty.TAX_UID.propertyName)));
-            vals.put("nearest_taxon_mrca_node_id", mrta.getId());
-
-            // report 'bad' ids
-            vals.put("invalid_node_ids", invalidNodesIds);
-            vals.put("invalid_ott_ids", invalidOttIds);
-            vals.put("node_ids_not_in_tree", nodeIdsNotInSynth);
-            vals.put("ott_ids_not_in_tree", ottIdsNotInSynth);
-
-            // report treeID
-            Node meta = ge.getMostRecentSynthesisMetaNode();
-            vals.put("tree_id", meta.getProperty("name"));
-
-            ge.shutdownDB();
-            return OTRepresentationConverter.convert(vals);
+            res.put("ott_id", "null");
+            res.put("mrca_name", "");
+            res.put("mrca_rank", "");
+            res.put("mrca_unique_name", "");
         }
+        if (nearest != null) {
+            // What's in all these fields when nearest_taxon == taxon ?
+            Object ottId = nearest.get("ott_id");
+            res.put("nearest_taxon_mrca_ott_id", ottId);
+            res.put("nearest_taxon_mrca_name", nearest.get("name"));
+            res.put("nearest_taxon_mrca_rank", nearest.get("rank"));
+            res.put("nearest_taxon_mrca_unique_name", nearest.get("unique_name"));
+            // this relies on our kludgey node id representation!
+            res.put("nearest_taxon_mrca_node_id", ottId);
+        }
+
+        return OTRepresentationConverter.convert(res);
     }
-	
-	
-    @Description("Return a tree with tips corresponding to the nodes identified in the input set(s), that is "
-    + "consistent with topology of the current draft tree. This tree is equivalent to the minimal subtree "
-    + "induced on the draft tree by the set of identified nodes. Any combination of node ids and ott ids may "
-    + "be used as input. Nodes or ott ids that do not correspond to any found nodes in the graph, or which "
-    + "are in the graph but are absent from the synthetic tree, will be identified in the output (but will "
-    + "of course not be present in the resulting induced tree). Branch lengths in the result may be arbitrary, "
-    + "and the leaf labels of the tree may either be taxonomic names or (for nodes not corresponding directly "
-    + "to named taxa) node ids.\n\n**WARNING: there is currently a known bug if any of the input nodes is the "
-    + "parent of another, the returned tree may be incorrect.** Please avoid this input case.")
+
+    @Description("Return a tree with tips corresponding to the nodes identified in the "
+        + "input set, that is consistent with topology of the most current draft tree. This "
+        + "tree is equivalent to the minimal subtree induced on the draft tree by the set "
+        + "of identified nodes. Nodes ids that do not correspond to any found nodes in the "
+        + "graph, or which are in the graph but are absent from the particualr synthetic "
+        + "tree, will be identified in the output (but will of course not be present in "
+        + "the resulting induced tree). Branch lengths are not currently returned, and "
+        + "the leaf labels of the tree may either be taxonomic names or (for nodes not "
+        + "corresponding directly to named taxa) node ids.")
     @PluginTarget(GraphDatabaseService.class)
     public Representation induced_subtree (@Source GraphDatabaseService graphDb,
-
-        @Description("Node ids indicating nodes to be used as tips in the induced tree")
+        
+//        @Description("Synthetic tree identifier (defaults to most recent).")
+//        @Parameter(name = "synth_id", optional = true)
+//        String synthID,
+        
+        @Description("A set of open tree node ids")
         @Parameter(name = "node_ids", optional = true)
-        long[] nodeIds,
-
-        @Description("OTT ids indicating nodes to be used as tips in the induced tree")
+        long[] nodeIDs,
+        
+        @Description("A set of ott ids")
         @Parameter(name = "ott_ids", optional = true)
-        long[] ottIds) throws IllegalArgumentException {
+        long[] ottIDs
         
-        if ((nodeIds == null || nodeIds.length < 1) && (ottIds == null || ottIds.length < 1)) {
-            throw new IllegalArgumentException("You must supply at least two node or ott ids.");
-        }
-        
-        ArrayList<Node> tips = new ArrayList<Node>();
-        ArrayList<Long> invalidNodesIds = new ArrayList<Long>();
-        ArrayList<Long> invalidOttIds = new ArrayList<Long>();
-        ArrayList<Long> nodeIdsNotInSynth = new ArrayList<Long>();
-        ArrayList<Long> ottIdsNotInSynth = new ArrayList<Long>();
-        
-        Integer numQueryNodes = 0;
-        HashMap<String, Object> vals = null;
-        
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        
-        if (nodeIds != null && nodeIds.length > 0) {
-            numQueryNodes += nodeIds.length;
-            for (long nodeId : nodeIds) {
-                Node n = null;
-                try {
-                    n = graphDb.getNodeById(nodeId);
-                } catch (NotFoundException e) {
-                    
-                }
-                
-                if (n != null) {
-                    if (ge.nodeIsInSyntheticTree(n)) {
-                        tips.add(n);
-                    } else {
-                        nodeIdsNotInSynth.add(nodeId);
-                    }
-                } else {
-                    invalidNodesIds.add(nodeId);
-                }
-            }
-        }
+        ) throws IllegalArgumentException, BadInputException
+    {
 
-        if (ottIds != null && ottIds.length > 0) {
-            numQueryNodes += ottIds.length;
-            for (long ottId : ottIds) {
-                Node n = null;
-                try {
-                    n = ge.findGraphTaxNodeByUID(String.valueOf(ottId));
-                } catch (TaxonNotFoundException e) {
-                    
-                }
-                
-                if (n != null) {
-                    if (ge.nodeIsInSyntheticTree(n)) {
-                        tips.add(n);
-                    } else {
-                        ottIdsNotInSynth.add(ottId);
-                    }
-                } else {
-                    invalidOttIds.add(ottId);
-                }
-            }
-        }
-        
-        if (numQueryNodes < 2) { // too few nodes given
-            throw new IllegalArgumentException("Must supply 2 or more node or ott ids.");
-        }
-        
-        vals = new HashMap<String, Object>();
-        // 'bad' nodes
-        vals.put("node_ids_not_in_graph", invalidNodesIds);
-        vals.put("ott_ids_not_in_graph", invalidOttIds);
-        vals.put("node_ids_not_in_tree", nodeIdsNotInSynth);
-        vals.put("ott_ids_not_in_tree", ottIdsNotInSynth);
-        
-        // report treeID
-        Node meta = ge.getMostRecentSynthesisMetaNode();
-        vals.put("tree_id", meta.getProperty("name"));
-        
-        if (tips.size() < 2) {
-            throw new IllegalArgumentException("Not enough valid node or ott ids provided to construct a subtree (there must be at least two).");
-        } else {
-            vals.put("newick", ge.extractDraftSubtreeForTipNodes(tips).getNewick(false) + ";");
-            return OTRepresentationConverter.convert(vals);
-        }
+        /*
+            /v2/tree_of_life/induced_subtree 
+              in: 
+                node_ids : list-of nodeid-integer 
+                ott_ids : list-of ottid-integer 
+              out: 
+                newick : newick-string 
+                node_ids_not_in_tree : list-of nodeid-integer 
+                node_ids_not_in_graph : list-of nodeid-integer 
+                ott_ids_not_in_tree : list-of ottid-integer 
+                ott_ids_not_in_graph : list-of ottid-integer 
+                tree_id : synthid-string 
+
+            /v3/tree_of_life/induced_subtree 
+              in: 
+                node_ids : list-of nodeid-string   e.g. ["mrcaott3504ott396446","mrcaott320ott55033"]
+                ott_ids : list-of ottid-integer 
+                label_format : string   e.g. "name"  -- name, id, name_and_id, original_name 
+              out: 
+                newick : newick-string 
+
+        */
+
+        Map<String, Object> result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id", Boolean.FALSE);
+        result.put("newick", result.get("newick"));
+        result.put("node_ids_not_in_tree", empty);
+        result.put("node_ids_not_in_graph", empty);
+        result.put("ott_ids_not_in_tree", empty);
+        result.put("ott_ids_not_in_graph", empty);
+        result.put("tree_id", treeId);
+
+        return OTRepresentationConverter.convert(result);
     }
+
     
-    
-    @Description("Return a complete subtree of the draft tree descended from some specified node. The node to use as the "
-        + "start node may be specified using *either* a node id or an ott id, **but not both**. If the specified node "
-        + "is not in the synthetic tree (or is entirely absent from the graph), an error will be returned.")
+    @Description("Return a complete subtree of the draft tree descended from some specified node. "
+        + "The draft tree version is specified by the `synth_id` arg (defaults to most recent). "
+        + "The node to use as the start node must specified using *either* a node id or an ott id, "
+        + "**but not both**. If the specified node is not found an error will be returned.")
     @PluginTarget(GraphDatabaseService.class)
-    public Representation subtree (
-        
-        @Source GraphDatabaseService graphDb,
-        @Description("The identifier for the synthesis tree. We currently only support a single draft tree "
-            + "in the db at a time, so this argument is superfluous and may be safely ignored.")
-        @Parameter(name = "tree_id", optional = true)
-        String treeID,
-        
-        @Description("The node id of the node in the tree that should serve as the root of the tree returned. This "
-            + "argument may not be used in combination with `ott_id`.")
+    public Representation subtree (@Source GraphDatabaseService graphDb,
+        @Description("The `node_id` of the node of interest. This argument may not be "
+            + "combined with `ott_id`.")
         @Parameter(name = "node_id", optional = true)
-        Long subtreeNodeId,
+        Long nodeID,
         
-        @Description("The ott id of the node in the tree that should serve as the root of the tree returned. This "
-            + "argument may not be used in combination with `node_id`.")
+        @Description("The `ott_id` of the node of interest. This argument may not be "
+            + "combined with `node_id`.")
         @Parameter(name = "ott_id", optional = true)
-        Long subtreeOttId) throws TreeNotFoundException, IllegalArgumentException {
+        Long ottID
         
-        GraphExplorer ge = new GraphExplorer(graphDb);
-        HashMap<String, Object> responseMap = new HashMap<String, Object>();
+        ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException, BadInputException
+    {
+        /*
+            /v2/tree_of_life/subtree 
+              in: 
+                node_id : nodeid-integer   e.g. 72276
+                ott_id : ottid-integer 
+                tree_id : synthid-string   e.g. "opentree4.0"
+              out: 
+                newick : newick-string 
+                tree_id : synthid-string 
 
-        // set default param values
-        long startNodeID = -1;
-        Integer maxNumTips = 25000; // TODO: is this the best value? Test this. ***
-        String synthTreeID = (String)GeneralConstants.DRAFT_TREE_NAME.value; // don't use this.
+            /v3/tree_of_life/subtree 
+              in: 
+                node_id : nodeid-string   e.g. "mrcaott320ott55033"
+                ott_id : ottid-integer 
+                format : string   e.g. "newick"  -- for arguson. review 
+                label_format : ...
+              out: 
+                newick : string
+         */
 
-        // get start node
-        if (subtreeNodeId != null && subtreeOttId != null) {
-            throw new IllegalArgumentException("Provide only one \"node_id\" or \"ott_id\" argument.");
-        }
-        if (subtreeNodeId != null) {
-            startNodeID = subtreeNodeId;
-        } else if (subtreeOttId != null) {
-            try {
-                startNodeID = ge.findGraphTaxNodeByUID(String.valueOf(subtreeOttId)).getId();
-            } catch (MultipleHitsException e) {
-                
-            } catch (TaxonNotFoundException e) {
-                
-            }
-            if (startNodeID == -1) {
-                throw new IllegalArgumentException("Invalid \"ott_id\" argument.");
-            }
-        } else {
-            throw new IllegalArgumentException("Must provide a \"node_id\" or \"ott_id\" argument to indicate the location of the root "
-                + "node of the subtree.");
-        }
-        
-        // check that startNode is indeed in the synthetic tree
-        Node n = graphDb.getNodeById(startNodeID);
-        if (n == null) {
-            if (subtreeNodeId != null) {
-                throw new IllegalArgumentException("Invalid \"node_id\" argument.");
-            } else {
-                throw new IllegalArgumentException("Invalid \"ott_id\" argument.");
-            }
-        } else {
-            if (!ge.nodeIsInSyntheticTree(n)) {
-                if (subtreeNodeId != null) {
-                    throw new IllegalArgumentException("Provided \"node_id\" is in the graph, but not part of the current synthetic tree.");
-                } else {
-                    throw new IllegalArgumentException("Provided \"ott_id\" is in the graph, but not part of the current synthetic tree.");
-                }
-            }
-        }
-        
-        // check that the returned tree is not too large
-        Integer numMRCA = ((long[]) n.getProperty(NodeProperty.MRCA.propertyName)).length;
-        if (numMRCA > maxNumTips) {
-            throw new IllegalArgumentException("Requested tree is larger than currently allowed by this service (" + maxNumTips 
-                + " tips). For larger trees, please download the full tree directly from: http://files.opentreeoflife.org/trees/");
-        }
-        
-        // synthetic tree identifier. check against synth meta index, as the hope is to serve multiple trees at once
-        if (treeID != null) {
-            ArrayList<String> synthTreeIDs = ge.getSynthTreeIDs();
-            if (synthTreeIDs.contains(treeID)) {
-                synthTreeID = treeID;
-            } else {
-                throw new IllegalArgumentException("Unrecognized \"tree_id\" argument. Leave blank to default to the current synthetic tree.");
-            }
-        }
-        
-        // get the subtree for export
-        JadeTree tree = null;
-        try {
-            tree = ge.extractDraftTreeByName(n, synthTreeID);
-        } finally {
-            ge.shutdownDB();
-        }
-        
-        responseMap.put("newick", tree.getRoot().getNewick(false) + ";");
-        responseMap.put("tree_id", synthTreeID);
-        return OTRepresentationConverter.convert(responseMap);
+        String stringNodeId = null;
+        if (nodeID != null)
+            stringNodeId = longIdToStringId((long)nodeID);
+
+        Map<String, Object> result = v3.doSubtree(graphDb, stringNodeId, ottID, "name_and_id", "newick", -1, Boolean.FALSE);
+        result.put("newick", result.get("newick"));
+        result.put("tree_id", treeId);
+
+        return OTRepresentationConverter.convert(result);
+    }
+
+    private static final long idLimit = 10000000L;
+
+    public static String longIdToStringId(long id) {
+        if (id < idLimit)
+            return String.format("ott%s", id);
+        else
+            return String.format("mrcaott%sott%s",
+                                 id % idLimit,
+                                 id / idLimit);
+    }
+
+    public static String[] longIdsToStringIds(long[] nodeIDs) {
+        if (nodeIDs == null) return null;
+        String[] newNodeIDs = new String[nodeIDs.length];
+        for (int i = 0; i < nodeIDs.length; ++i)
+            newNodeIDs[i] = longIdToStringId(nodeIDs[i]);
+        return newNodeIDs;
+    }
+
+
+    public static long stringIdToLongId(String id) {
+        if (id.startsWith("ott"))
+            return Long.parseLong(id.substring(3));
+        else if (id.startsWith("mrcaott")) {
+            int i = id.indexOf("ott", 7);
+            if (i <= 0) return -1;
+            return Long.parseLong(id.substring(7,i))
+                + (idLimit * Long.parseLong(id.substring(i+3)));
+        } else
+            return -1;
     }
 }

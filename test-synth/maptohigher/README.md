@@ -1,2 +1,0 @@
-# maptohigher synthesis test
-
