@@ -326,38 +326,38 @@ public class tree_of_life_v3 extends ServerPlugin {
                 }
             }
         }
-        
-        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty()) {
-            throw new BadInputException(multipleBadNodeIDsError(ottIdsNotInTree, nodesIDsNotInTree));
-        } else {
-            HashMap<String, Object> res = new HashMap<>();
-            Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
-            HashSet<String> uniqueSources = new HashSet<>();
-            
-            HashMap<String, Object> mrcaInfo = ge.getNodeBlob(mrca, synthTreeID, uniqueSources);
-            res.put("mrca", mrcaInfo);
-            HashMap<String, Object> sourceMap = ge.getSourceIDMap(uniqueSources, synthTreeID);
-            //nodeIfo.put("synth_id", synthTreeID);
-            res.put("source_id_map", sourceMap);
-            
-            if (!ottIdsNotInTree.isEmpty()) {
-                res.put("ott_ids_not_in_tree", ottIdsNotInTree);
-            }
-            if (!nodesIDsNotInTree.isEmpty()) {
-                res.put("node_ids_not_in_tree", nodesIDsNotInTree);
-            }
-            
-            // now find the most recent taxonomic ancestor (in tree), if mrca is not a taxon
-            if (!mrca.hasProperty("name")) {
-                Node mrta = ge.getDraftTreeMRTA(mrca, synthTreeID);
 
-                HashMap<String, Object> mrtaInfo = ge.getTaxonBlob(mrta);
-                res.put("nearest_taxon", mrtaInfo);
-            }
-            
-            ge.shutdownDB();
-            return res;
+        HashMap<String, Object> res = new HashMap<>();
+        Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
+        HashSet<String> uniqueSources = new HashSet<>();
+
+        HashMap<String, Object> mrcaInfo = ge.getNodeBlob(mrca, synthTreeID, uniqueSources);
+        res.put("mrca", mrcaInfo);
+        HashMap<String, Object> sourceMap = ge.getSourceIDMap(uniqueSources, synthTreeID);
+        //nodeIfo.put("synth_id", synthTreeID);
+        res.put("source_id_map", sourceMap);
+
+        if (!ottIdsNotInTree.isEmpty()) {
+            res.put("ott_ids_not_in_tree", ottIdsNotInTree);
         }
+        if (!nodesIDsNotInTree.isEmpty()) {
+            res.put("node_ids_not_in_tree", nodesIDsNotInTree);
+        }
+
+        // now find the most recent taxonomic ancestor (in tree), if mrca is not a taxon
+        if (!mrca.hasProperty("name")) {
+            Node mrta = ge.getDraftTreeMRTA(mrca, synthTreeID);
+
+            HashMap<String, Object> mrtaInfo = ge.getTaxonBlob(mrta);
+            res.put("nearest_taxon", mrtaInfo);
+        }
+
+        ge.shutdownDB();
+
+        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty())
+            throw new BadIdsException(ottIdsNotInTree, nodesIDsNotInTree, res);
+
+        return res;
     }
     
     
@@ -490,28 +490,25 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         
-        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty()) {
-            throw new BadInputException(multipleBadNodeIDsError(ottIdsNotInTree, nodesIDsNotInTree));
-        }
-        
         if (tips.size() < 2) {
             String ret = "Not enough valid node ids provided to construct a subtree "
                 + "(there must be at least two).";
             throw new BadInputException(ret);
-        } else {
-            HashMap<String, Object> res = new HashMap<>();
-            
-            //res.put("synth_id", synthTreeID);
-            if (!ottIdsNotInTree.isEmpty()) {
-                res.put("ott_ids_not_in_tree", ottIdsNotInTree);
-            }
-            if (!nodesIDsNotInTree.isEmpty()) {
-                res.put("node_ids_not_in_tree", nodesIDsNotInTree);
-            }
-            
-            res.put("newick", ge.getInducedSubtree(tips, synthTreeID, labelFormat, idsForUnnamed).getNewick(false) + ";");
-            return res;
         }
+        HashMap<String, Object> res = new HashMap<>();
+            
+        //res.put("synth_id", synthTreeID);
+        if (!ottIdsNotInTree.isEmpty()) {
+            res.put("ott_ids_not_in_tree", ottIdsNotInTree);
+        }
+        if (!nodesIDsNotInTree.isEmpty()) {
+            res.put("node_ids_not_in_tree", nodesIDsNotInTree);
+        }
+        res.put("newick", ge.getInducedSubtree(tips, synthTreeID, labelFormat, idsForUnnamed).getNewick(false) + ";");
+            
+        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty())
+            throw new BadIdsException(ottIdsNotInTree, nodesIDsNotInTree, res);
+        return res;
     }
     
     
@@ -726,13 +723,13 @@ public class tree_of_life_v3 extends ServerPlugin {
     }
     
     private String badOTTIDError (Long ottID) {
-        String ret = "Could not find any graph nodes corresponding to the OTT id provided ("
+        String ret = "Could not find any synthetic tree nodes corresponding to the OTT id provided ("
             + ottID + ").";
         return ret;
     }
     
     private String badNodeIDError (String nodeID) {
-        String ret = "Could not find any graph nodes corresponding to the node id provided ("
+        String ret = "Could not find any synthetic tree nodes corresponding to the node id provided ("
             + nodeID + ").";
         return ret;
     }

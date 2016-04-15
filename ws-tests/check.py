@@ -17,6 +17,7 @@ def simple_test(path, input, check=None, expected_status=200, is_right=(lambda x
                                               return_bool_data=True)
         if not win:
             # Error message already printed
+            print '** http lose'
             return 1
         if isinstance(output, dict) and 'error' in output:
             # Should be 400, not 200

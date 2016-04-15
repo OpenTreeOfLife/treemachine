@@ -137,7 +137,8 @@ public class tree_of_life extends ServerPlugin {
         return OTRepresentationConverter.convert(res);
     }
 
-    private static final List<Integer> empty = new ArrayList<>();
+    // List of OTT or node ids
+    private static final List<Long> empty = new ArrayList<>();
     
     @Description("Get the MRCA of a set of nodes on a the most current draft tree. Accepts "
         + "any combination of node ids and ott ids as input. Returns information about "
@@ -205,49 +206,59 @@ public class tree_of_life extends ServerPlugin {
 
             */
 
-        Map<String, Object> result = v3.doMrca(graphDb, longIdsToStringIds(nodeIDs), ottIDs);
-        Map<String, Object> mrca = (Map<String, Object>)result.get("mrca");
-        Map<String, Object> nearest = (Map<String, Object>)result.get("nearest_taxon");
+        Map<String, Object> v2_result = new HashMap<>(); // the result we're returning
+        Map<String, Object> v3_result; // the result returned by the v3 method
+        try {
+            v3_result = v3.doMrca(graphDb, longIdsToStringIds(nodeIDs), ottIDs);
+            v2_result.put("node_ids_not_in_tree", empty);
+            v2_result.put("ott_ids_not_in_tree", empty);
+        } catch (BadIdsException e) {
+            v3_result = e.json;
+            v2_result.put("node_ids_not_in_tree", stringIdsToLongIds(e.nodeIds));
+            v2_result.put("ott_ids_not_in_tree", e.ottIds);
+        }
 
-        Map<String, Object> res = new HashMap<>();
+        v2_result.put("invalid_node_ids", empty);
+        v2_result.put("invalid_ott_ids", empty);
+        Map<String, Object> mrca = (Map<String, Object>)v3_result.get("mrca");
+        Map<String, Object> nearest = (Map<String, Object>)v3_result.get("nearest_taxon");
+
         String nodeId = (String)(mrca.get("node_id"));
-        res.put("mrca_node_id", stringIdToLongId(nodeId));
-        res.put("invalid_node_ids", empty);
-        res.put("invalid_ott_ids", empty);
-        res.put("node_ids_not_in_tree", empty);
-        res.put("ott_ids_not_in_tree", empty);
-        res.put("tree_id", treeId);
+        v2_result.put("mrca_node_id", stringIdToLongId(nodeId));
+        v2_result.put("tree_id", treeId);
 
         Map<String, Object> taxon = (Map<String, Object>)mrca.get("taxon");
         if (taxon != null) {
-            res.put("ott_id", taxon.get("ott_id"));
+            v2_result.put("ott_id", taxon.get("ott_id"));
             String name = (String)taxon.get("name");
-            res.put("mrca_name", name);
-            res.put("mrca_rank", taxon.get("rank"));
+            v2_result.put("mrca_name", name);
+            v2_result.put("mrca_rank", taxon.get("rank"));
             String uname = (String)taxon.get("unique_name");
             if (uname.equals(name))
-                res.put("mrca_unique_name", "");
+                v2_result.put("mrca_unique_name", "");
             else
-                res.put("mrca_unique_name", uname);
-            res.put("nearest_taxon_mrca_node_id", nodeId);
+                v2_result.put("mrca_unique_name", uname);
+            v2_result.put("nearest_taxon_mrca_node_id", stringIdToLongId(nodeId));
         } else {
-            res.put("ott_id", "null");
-            res.put("mrca_name", "");
-            res.put("mrca_rank", "");
-            res.put("mrca_unique_name", "");
+            v2_result.put("ott_id", "null");
+            v2_result.put("mrca_name", "");
+            v2_result.put("mrca_rank", "");
+            v2_result.put("mrca_unique_name", "");
         }
-        if (nearest != null) {
+        // Not sure what the old v2 API did in this situation, I think
+        // it just put random values, or no values at all
+        if (nearest == null) nearest = taxon;
+        {
             // What's in all these fields when nearest_taxon == taxon ?
             Object ottId = nearest.get("ott_id");
-            res.put("nearest_taxon_mrca_ott_id", ottId);
-            res.put("nearest_taxon_mrca_name", nearest.get("name"));
-            res.put("nearest_taxon_mrca_rank", nearest.get("rank"));
-            res.put("nearest_taxon_mrca_unique_name", nearest.get("unique_name"));
+            v2_result.put("nearest_taxon_mrca_ott_id", ottId);
+            v2_result.put("nearest_taxon_mrca_name", nearest.get("name"));
+            v2_result.put("nearest_taxon_mrca_rank", nearest.get("rank"));
+            v2_result.put("nearest_taxon_mrca_unique_name", nearest.get("unique_name"));
             // this relies on our kludgey node id representation!
-            res.put("nearest_taxon_mrca_node_id", ottId);
+            v2_result.put("nearest_taxon_mrca_node_id", ottId);
         }
-
-        return OTRepresentationConverter.convert(res);
+        return OTRepresentationConverter.convert(v2_result);
     }
 
     @Description("Return a tree with tips corresponding to the nodes identified in the "
@@ -300,15 +311,25 @@ public class tree_of_life extends ServerPlugin {
 
         */
 
-        Map<String, Object> result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id", Boolean.FALSE);
-        result.put("newick", result.get("newick"));
-        result.put("node_ids_not_in_tree", empty);
-        result.put("node_ids_not_in_graph", empty);
-        result.put("ott_ids_not_in_tree", empty);
-        result.put("ott_ids_not_in_graph", empty);
-        result.put("tree_id", treeId);
+        Map<String, Object> v2_result = new HashMap<>(); // the result we're returning
+        Map<String, Object> v3_result; // the result returned by the v3 method
+        try {
+            v3_result = v3.doInducedSubtree(graphDb, longIdsToStringIds(nodeIDs), ottIDs, "name_and_id", Boolean.FALSE);
+            v2_result.put("node_ids_not_in_tree", empty);
+            v2_result.put("ott_ids_not_in_tree", empty);
+        } catch (BadIdsException e) {
+            v3_result = e.json;
+            v2_result.put("node_ids_not_in_tree", stringIdsToLongIds(e.nodeIds));
+            v2_result.put("ott_ids_not_in_tree", e.ottIds);
+        }
 
-        return OTRepresentationConverter.convert(result);
+        v2_result.put("newick", v3_result.get("newick"));
+
+        v2_result.put("node_ids_not_in_graph", empty);
+        v2_result.put("ott_ids_not_in_graph", empty);
+        v2_result.put("tree_id", treeId);
+
+        return OTRepresentationConverter.convert(v2_result);
     }
 
     
@@ -380,7 +401,6 @@ public class tree_of_life extends ServerPlugin {
         return newNodeIDs;
     }
 
-
     public static long stringIdToLongId(String id) {
         if (id.startsWith("ott"))
             return Long.parseLong(id.substring(3));
@@ -392,4 +412,15 @@ public class tree_of_life extends ServerPlugin {
         } else
             return -1;
     }
+
+    public static List<Long> stringIdsToLongIds(List<String> ids) {
+        if (ids == null) return empty;
+        List<Long> newNodeIDs = new ArrayList<Long>();
+        for (String id : ids)
+            newNodeIDs.add(stringIdToLongId(id));
+        return newNodeIDs;
+    }
+
+
+
 }
