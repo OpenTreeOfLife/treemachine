@@ -238,14 +238,17 @@ public class tree_of_life extends ServerPlugin {
                 v2_result.put("mrca_unique_name", "");
             else
                 v2_result.put("mrca_unique_name", uname);
-            v2_result.put("nearest_taxon_mrca_node_id", nodeId);
+            v2_result.put("nearest_taxon_mrca_node_id", stringIdToLongId(nodeId));
         } else {
             v2_result.put("ott_id", "null");
             v2_result.put("mrca_name", "");
             v2_result.put("mrca_rank", "");
             v2_result.put("mrca_unique_name", "");
         }
-        if (nearest != null) {
+        // Not sure what the old v2 API did in this situation, I think
+        // it just put random values, or no values at all
+        if (nearest == null) nearest = taxon;
+        {
             // What's in all these fields when nearest_taxon == taxon ?
             Object ottId = nearest.get("ott_id");
             v2_result.put("nearest_taxon_mrca_ott_id", ottId);

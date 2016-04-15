@@ -220,7 +220,7 @@ def exit_if_api_is_readonly(fn):
 
 
 # Mimic the behavior of apache so that services can be tested without
-# having apache running.  See opentree/deploy/setup/opentree-shared.conf
+# having apache running.  See germinator/deploy/setup/opentree-shared.conf
 
 translations = [('/v2/study/', '/phylesystem/v1/study/'),
                 ('/cached/', '/phylesystem/default/cached/'),
