@@ -1,5 +1,7 @@
 package opentree.plugins;
 
+import java.util.Set;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -695,6 +697,8 @@ public class tree_of_life_v3 extends ServerPlugin {
             JadeTree tree = null;
             try {
                 tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat, idsForUnnamed);
+                Set<String> studies = ge.getSupportingStudies(tree, synthTreeID);
+                responseMap.put("supporting_studies", new ArrayList<String>(studies));
             } finally {
                 ge.shutdownDB();
             }

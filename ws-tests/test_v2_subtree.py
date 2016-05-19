@@ -2,6 +2,7 @@ import sys
 from check import *
 
 subtree_result_fields = [field(u'newick', check_string),
+                         field(u'supporting_studies', check_list(check_string)),
                          field(u'tree_id', check_string)] 
 
 status = 0
