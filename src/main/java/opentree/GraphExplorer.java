@@ -701,7 +701,7 @@ public class GraphExplorer extends GraphBase {
      * @param labelFormat valid label formats are: `name`, `id`, or `name_and_id`
      * @return root the root of the constructed JadeTree
      */
-    public JadeNode getInducedSubtree (List<Node> nodeset, String treeID, String labelFormat, boolean idsForUnnamed) {
+    public JadeTree getInducedSubtree (List<Node> nodeset, String treeID, String labelFormat, boolean idsForUnnamed) {
         
         if (nodeset.size() < 2) {
             throw new UnsupportedOperationException("Cannot extract a tree with < 2 tips.");
@@ -756,7 +756,7 @@ public class GraphExplorer extends GraphBase {
         HashSet<Node> addedNodes = new HashSet<>();
         
         JadeNode root = new JadeNode(); // add names, etc.
-        root.assocObject("graphNode", mrca);
+        root.assocObject("graph_node", mrca);
         
         root.setName(getNodeLabel(mrca, labelFormat, idsForUnnamed));
         addedNodes.add(mrca); // collect processed graph nodes
@@ -770,7 +770,7 @@ public class GraphExplorer extends GraphBase {
                 Node workingGraphNode = futureTreeNodes.get(i);
                 if (!addedNodes.contains(workingGraphNode)) { // skip existing nodes
                     JadeNode childTreeNode = new JadeNode();
-                    childTreeNode.assocObject("graphNode", workingGraphNode);
+                    childTreeNode.assocObject("graph_node", workingGraphNode);
                     childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat, idsForUnnamed));
                     // add child node to current parent
                     JadeNode parent = graphNodeTreeNodeMap.get(curGraphParent);
@@ -781,7 +781,7 @@ public class GraphExplorer extends GraphBase {
                 curGraphParent = workingGraphNode;
             }
         }
-        return root;
+        return new JadeTree(root);
     }
     
     

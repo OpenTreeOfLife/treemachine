@@ -6,7 +6,8 @@ status = 0
 status += \
 simple_test("/v3/tree_of_life/induced_subtree",
             {u'node_ids': [u"ott3504", u"ott396446"]},
-            check_blob([field(u'newick', check_string)]))
+            check_blob([field(u'newick', check_string),
+                        field(u'supporting_studies', check_list(check_string))]))
 
 # test that includes ottids that aren't in tree
 status += \
