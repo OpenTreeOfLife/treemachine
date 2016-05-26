@@ -1,5 +1,7 @@
 package opentree.plugins;
 
+import java.util.Set;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -504,8 +506,12 @@ public class tree_of_life_v3 extends ServerPlugin {
         if (!nodesIDsNotInTree.isEmpty()) {
             res.put("node_ids_not_in_tree", nodesIDsNotInTree);
         }
-        res.put("newick", ge.getInducedSubtree(tips, synthTreeID, labelFormat, idsForUnnamed).getNewick(false) + ";");
-            
+        JadeTree induced = ge.getInducedSubtree(tips, synthTreeID, labelFormat, idsForUnnamed);
+        res.put("newick", induced.getRoot().getNewick(false) + ";");
+
+        Set<String> studies = ge.getSupportingStudies(induced, synthTreeID);
+        res.put("supporting_studies", new ArrayList<String>(studies));
+
         if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty())
             throw new BadIdsException(ottIdsNotInTree, nodesIDsNotInTree, res);
         return res;
@@ -695,6 +701,8 @@ public class tree_of_life_v3 extends ServerPlugin {
             JadeTree tree = null;
             try {
                 tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat, idsForUnnamed);
+                Set<String> studies = ge.getSupportingStudies(tree, synthTreeID);
+                responseMap.put("supporting_studies", new ArrayList<String>(studies));
             } finally {
                 ge.shutdownDB();
             }

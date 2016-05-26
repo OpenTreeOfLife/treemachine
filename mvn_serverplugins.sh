@@ -1,1 +1,1 @@
-mvn -f pom.serverplugins.xml clean compile package jar:jar
+mvn $* -f pom.serverplugins.xml clean compile package jar:jar
