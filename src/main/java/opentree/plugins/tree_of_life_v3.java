@@ -588,8 +588,8 @@ public class tree_of_life_v3 extends ServerPlugin {
         // so. very. clunky. what a terrible design...
         int newickDepth = -1; // negative is no limit
         int argusonDepth = 5;
-        Integer maxNumTipsNewick = 25000; // TODO: is this the best value? Test this. ***
-        Integer maxNumTipsArguson = 25000; // splitting out since will likely have to be much smaller
+        Integer maxNumTipsNewick = 100000; // about 40 seconds
+        Integer maxNumTipsArguson = 25000; // splitting out since about 5x slower
         String labelFormat = null; // only used for newick
         String treeFormat = null;
         
