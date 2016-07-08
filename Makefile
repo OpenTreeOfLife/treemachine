@@ -12,11 +12,11 @@ SOURCES=$(shell echo `find src -name "*.java"`)
 $(PLUGIN): $(SOURCES)
 	./mvn_serverplugins.sh -q
 
-NEO=neo4j-1.9.5
+NEO=neo4j-community-1.9.5
 neo4j: $(NEO)
 $(NEO):
-	curl http://files.opentreeoflife.org/neo4j/$(NEO).tar.gz >$(NEO).tar.gz
-	tar xzf $(NEO).tar.gz
+	curl http://files.opentreeoflife.org/neo4j/$(NEO)-unix.tar.gz >$(NEO)-unix.tar.gz
+	tar xzf $(NEO)-unix.tar.gz
 
 run: .running
 
