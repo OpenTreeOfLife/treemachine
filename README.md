@@ -52,7 +52,8 @@ To compile the command-line version (which you can then use to build a database)
 sh mvn_cmdline.sh
 ```
 
-This creates `treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar` in the target directory.
+This creates `treemachine-0.0.1-SNAPSHOT-jar-with-dependencies.jar` in the
+target directory (and deletes the server plugin jar if it existed).
 
 ### Server plugins
 
@@ -61,6 +62,9 @@ To compile the server plugins for interacting with the graph over REST calls:
 ```
 sh mvn_serverplugins.sh
 ```
+
+This creates `treemachine-neo4j-plugins-0.0.1-SNAPSHOT.jar` in the target
+directory (and deletes the command-line jar if it existed).
 
 ## Usage
 
@@ -79,17 +83,24 @@ where:
 * `tsv_taxonomy` is the `taxonomy.tsv` file from the [Open Tree of Life Taxonomy (OTT)](https://tree.opentreeoflife.org/about/taxonomy-version/)
 * `DB_name` is the name for the generated DB
 
+
 ### Serving a DB with Neo4j
 
-Compile the server plugins (see 'Server plugins, above). Before starting neo4j, file `$(NEO4J_HOME)/conf/neo4j-server.properties` will have to be modified slightly. Typically,
-you'll just have to put the full path of the DB directory constructed by treemachine-LITE as the value for the
-`org.neo4j.server.database.location` setting.
+Compile the server plugins (see 'Server plugins, above). Before starting neo4j,
+you will need to modify file `$(NEO4J_HOME)/conf/neo4j-server.properties`. Put
+the full path of the DB directory constructed by treemachine-LITE as the value
+for the `org.neo4j.server.database.location` setting.
 
-After you have loaded content into your db, you can run the neo4j http server with the command (assuming that the neo4j directory is on your path, otherwise you can directly call `bin/neo4j` in the neo4j directory):
+After you have loaded content into your db, you can run the neo4j http server
+with the command :
 
 ```
 neo4j start
 ```
+
+assuming that the neo4j directory is on your path. Note that `neo4j` is in the
+`bin` directory of neo4j if you want to call it without modifying your path. 
+
 ### Running the tests
 
 To make sure everything is running ok, run the web service tests:
