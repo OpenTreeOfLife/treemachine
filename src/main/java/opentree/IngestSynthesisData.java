@@ -330,8 +330,14 @@ public class IngestSynthesisData extends GraphBase {
             //System.out.println("Value of '" + entry.getKey() + " is of class: " + entry.getValue().getClass());
         }
         // TODO: deal with arrays better
-        List<String> flagList = (ArrayList<String>) jsonObject.get("filtered_flags");
-        String[] flist = flagList.toArray(new String[flagList.size()]);
+	String[] flist;
+	Object flagListObj = jsonObject.get("filtered_flags");
+	if (flagListObj instanceof String)
+		flist = ((String)flagListObj).split(",");
+	else {
+		List<String> flagList = (List<String>)flagListObj;
+		flist = flagList.toArray(new String[flagList.size()]);
+	} 
         metadatanode.setProperty("filtered_flags", flist);
         
         List<String> sourceList = (ArrayList<String>) jsonObject.get("sources");
