@@ -64,7 +64,12 @@ sh mvn_serverplugins.sh
 ```
 
 This creates `treemachine-neo4j-plugins-0.0.1-SNAPSHOT.jar` in the target
-directory (and deletes the command-line jar if it existed).
+directory (and deletes the command-line jar if it existed). Then, copy the .jar
+file into the neo4j plugins directory:
+
+```
+cp -r target/treemachine-neo4j-plugins-0.0.1-SNAPSHOT.jar $(NEO4J_HOME)/plugins
+```
 
 ## Usage
 
@@ -99,7 +104,7 @@ neo4j start
 ```
 
 assuming that the neo4j directory is on your path. Note that `neo4j` is in the
-`bin` directory of neo4j if you want to call it without modifying your path. 
+`bin` directory of neo4j if you want to call it without modifying your path.
 
 ### Running the tests
 
