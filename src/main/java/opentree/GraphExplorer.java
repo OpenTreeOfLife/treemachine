@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -279,7 +280,20 @@ public class GraphExplorer extends GraphBase {
         return results;
     }
     
-    
+    private static final Set<String> releasedFields = new HashSet<String>();
+    static {
+        for (String f :
+                 new String[]{"supported_by",
+                              "conflicts_with",
+                              "resolves",
+                              "resolved_by",
+                              "partial_path_of",
+                              "terminal"})
+            // excludes "name", "tip_descendants", maybe others
+
+            releasedFields.add(f);
+    }
+
     // annotations are stored in outgoing rels
     // same as above, except unique sources also collected (for source id map)
     // i.e. expect to loop over nodes
@@ -291,7 +305,7 @@ public class GraphExplorer extends GraphBase {
                 if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
                     // loop over properties
                     for (String key : rel.getPropertyKeys()) {
-                        if (!"name".equals(key) && !"tip_descendants".equals(key)) {
+                        if (releasedFields.contains(key)) {
                             
                             // note: conflicts_with is the only non-key-value pair (instead is an array)
                             // add other properties here if needed ('resolves'?)
@@ -330,7 +344,7 @@ public class GraphExplorer extends GraphBase {
         HashSet<String> uniqueSources = new HashSet<>();
         JadeTree tree = reconstructDepthLimitedSubtree(treeID, startNode, maxDepth, "id");
         JadeNode root = tree.getRoot();
-        root.assocObject("graph_node", startNode);
+        // root.assocObject("graph_node", startNode);
         results = processArgusonTree(root, treeID, uniqueSources);
         LinkedList<HashMap<String, Object>> lineage = getLineageArguson(startNode, treeID, uniqueSources);
         results.put("lineage", lineage);
@@ -339,7 +353,52 @@ public class GraphExplorer extends GraphBase {
         return results;
     }
     
+    // Get study ids for all supported_by annotations for all nodes in jade tree
+
+    public Set<String> getSupportingStudies(JadeTree tree, String treeID) {
+        JadeNode root = tree.getRoot();
+        // root.assocObject("graph_node", startNode);
+        Set<String> studies = new HashSet<String>();
+        getSupportingStudies(root, treeID, studies);
+        return studies;
+    }
+
+    public void getSupportingStudies(JadeNode inNode, String treeID, Set<String> studies) {
+        Node gNode = (Node) inNode.getObject("graph_node"); // neo4j node
+        if (gNode == null)
+            throw new RuntimeException("no graph_node for jade node");
+        getSupportingStudies(gNode, treeID, studies);       // find study ids
+        int count = inNode.getChildCount();
+        for (int i = 0; i < count; ++i)
+            getSupportingStudies(inNode.getChild(i), treeID, studies);
+    }
+
+    // Get study ids for all supported_by annotations for this node
+
+    public void getSupportingStudies (Node curNode, String treeID, Set<String> studies) {
+        if (curNode.hasRelationship(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+            for (Relationship rel : curNode.getRelationships(RelType.SYNTHCHILDOF, Direction.OUTGOING)) {
+                if (String.valueOf(rel.getProperty("name")).equals(treeID)) {
+                    // crude to use getPropertyKeys() here, but I don't want to learn what the correct method is!
+                    for (String key : rel.getPropertyKeys()) {
+                        if (key.equals("supported_by")) {
+                            HashMap<String, String> mapProp = stringToMap((String) rel.getProperty(key));
+                            // maps "studyid@treeid" to "nodeid"
+                            for (String source : mapProp.keySet()) {
+                                HashMap<String, String> res =
+                                    stringToMap((String) getSourceMapNodeByName(treeID).getProperty(source));
+                                String id = res.get("study_id");
+                                if (id != null && !id.equals("null"))  // don't know what this is about
+                                    studies.add(id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     
+
     // like getLineage above, but need extra stuff for arguson
     public LinkedList<HashMap<String, Object>> getLineageArguson (Node nd, String treeID, HashSet<String> uniqueSources) {
         LinkedList<HashMap<String, Object>> lineage = new LinkedList<>();
@@ -478,8 +537,12 @@ public class GraphExplorer extends GraphBase {
     
     
     public JadeTree reconstructDepthLimitedSubtree (String treeID, Node rootnode, int maxDepth, String labelFormat) {
+        return reconstructDepthLimitedSubtree(treeID, rootnode, maxDepth, labelFormat, true);
+    }
+
+    public JadeTree reconstructDepthLimitedSubtree (String treeID, Node rootnode, int maxDepth, String labelFormat, boolean idsForUnnamed) {
         JadeNode root = new JadeNode();
-        root.setName(getNodeLabel(rootnode, labelFormat));
+        root.setName(getNodeLabel(rootnode, labelFormat, idsForUnnamed));
         HashMap<Node, JadeNode> node2JadeNode = new HashMap<>();
         node2JadeNode.put(rootnode, root);
         TraversalDescription synthEdgeTraversal = Traversal.description().
@@ -498,13 +561,14 @@ public class GraphExplorer extends GraphBase {
                     Node parNode = furshestRel.getEndNode();
                     Node childNode = furshestRel.getStartNode();
                     JadeNode jChild = new JadeNode();
-                    jChild.setName(getNodeLabel(childNode, labelFormat));
+                    jChild.setName(getNodeLabel(childNode, labelFormat, idsForUnnamed));
                     jChild.assocObject("graph_node", childNode);
                     node2JadeNode.get(parNode).addChild(jChild);
                     node2JadeNode.put(childNode, jChild);
                 }
             }
         }
+        root.assocObject("graph_node", rootnode); // JAR
         JadeTree tree = new JadeTree(root);
         return tree;
     }
@@ -606,7 +670,11 @@ public class GraphExplorer extends GraphBase {
      * @param labelFormat valid label formats are: `name`, `id`, or `name_and_id`
      * @return 
      */
-    public String getNodeLabel (Node curNode, String labelFormat) {
+    private String getNodeLabel (Node curNode, String labelFormat) {
+        return getNodeLabel(curNode, labelFormat, true);
+    }
+
+    private String getNodeLabel (Node curNode, String labelFormat, boolean idsForUnnamed) {
         String name = "";
         // taxonomy node
         if (curNode.hasProperty("name")) {
@@ -617,7 +685,7 @@ public class GraphExplorer extends GraphBase {
             } else if ("name_and_id".equals(labelFormat)) {
                 name = String.valueOf(curNode.getProperty("name")) + "_ott" + String.valueOf(curNode.getProperty("tax_uid"));
             }
-        } else {
+        } else if (idsForUnnamed) {
             name = String.valueOf(curNode.getProperty("ot_node_id"));
         }
         // make name newick-compliant
@@ -633,7 +701,7 @@ public class GraphExplorer extends GraphBase {
      * @param labelFormat valid label formats are: `name`, `id`, or `name_and_id`
      * @return root the root of the constructed JadeTree
      */
-    public JadeNode getInducedSubtree (List<Node> nodeset, String treeID, String labelFormat) {
+    public JadeTree getInducedSubtree (List<Node> nodeset, String treeID, String labelFormat, boolean idsForUnnamed) {
         
         if (nodeset.size() < 2) {
             throw new UnsupportedOperationException("Cannot extract a tree with < 2 tips.");
@@ -688,9 +756,9 @@ public class GraphExplorer extends GraphBase {
         HashSet<Node> addedNodes = new HashSet<>();
         
         JadeNode root = new JadeNode(); // add names, etc.
-        root.assocObject("graphNode", mrca);
+        root.assocObject("graph_node", mrca);
         
-        root.setName(getNodeLabel(mrca, labelFormat));
+        root.setName(getNodeLabel(mrca, labelFormat, idsForUnnamed));
         addedNodes.add(mrca); // collect processed graph nodes
         graphNodeTreeNodeMap.put(mrca, root);
         
@@ -702,8 +770,8 @@ public class GraphExplorer extends GraphBase {
                 Node workingGraphNode = futureTreeNodes.get(i);
                 if (!addedNodes.contains(workingGraphNode)) { // skip existing nodes
                     JadeNode childTreeNode = new JadeNode();
-                    childTreeNode.assocObject("graphNode", workingGraphNode);
-                    childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat));
+                    childTreeNode.assocObject("graph_node", workingGraphNode);
+                    childTreeNode.setName(getNodeLabel(workingGraphNode, labelFormat, idsForUnnamed));
                     // add child node to current parent
                     JadeNode parent = graphNodeTreeNodeMap.get(curGraphParent);
                     parent.addChild(childTreeNode);
@@ -713,7 +781,7 @@ public class GraphExplorer extends GraphBase {
                 curGraphParent = workingGraphNode;
             }
         }
-        return root;
+        return new JadeTree(root);
     }
     
     

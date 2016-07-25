@@ -11,8 +11,8 @@ branches:
         - master
 install:
     - ./mvn_cmdline.sh
-    - ./travis-config/setup_db.sh
+#    - ./travis-config/setup_db.sh
     - ./mvn_serverplugins.sh
-    - ./travis-config/setup_neo4j.sh
+#    - ./travis-config/setup_neo4j.sh
 script:
     - true # we are just testing the build right now. need to define java unit tests to be run here

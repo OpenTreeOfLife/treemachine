@@ -22,4 +22,7 @@ Probs
 *.db
 *-out
 .out_test*
+.running
+neo4j-community-1.9.5*
+
 *~

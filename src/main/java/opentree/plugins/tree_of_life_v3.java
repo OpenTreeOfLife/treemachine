@@ -1,5 +1,7 @@
 package opentree.plugins;
 
+import java.util.Set;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -23,6 +25,7 @@ import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.OTRepresentationConverter;
+import org.neo4j.server.rest.repr.BadInputException;
 
 // Graph of Life Services 
 public class tree_of_life_v3 extends ServerPlugin {
@@ -43,7 +46,22 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "include_source_list", optional = true)
         Boolean source_list
         
-        ) throws TaxonNotFoundException, MultipleHitsException {
+        ) throws TaxonNotFoundException, MultipleHitsException, BadInputException {
+
+        return OTRepresentationConverter.convert(doAbout(graphDb, source_list));
+    }
+
+    // There is no practical way to invoke a PluginTarget from
+    // ordinary Java code, so all the work of the API methods is done
+    // by 'doXXX' helper methods.  (There are a couple of reasons to
+    // call them from Java, such as implementing GET methods using the
+    // unmanaged plugin interface.)
+
+    // I'm not keen on the doXXX naming convention but couldn't come
+    // up with something better. -JAR
+
+    public HashMap<String, Object> doAbout(GraphDatabaseService graphDb, Boolean source_list)
+        throws TaxonNotFoundException, MultipleHitsException, BadInputException {
 
         GraphExplorer ge = new GraphExplorer(graphDb);
         HashMap<String, Object> draftTreeInfo = new HashMap<>();
@@ -64,7 +82,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             }
         } else { // default to most recent
             synthTreeID = ge.getMostRecentSynthTreeID();
@@ -100,7 +118,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         } finally {
             ge.shutdownDB();
         }
-        return OTRepresentationConverter.convert(draftTreeInfo);
+        return draftTreeInfo;
     }
     
     
@@ -131,14 +149,22 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "include_lineage", optional = true)
         Boolean includeLineage
         
-        ) throws IllegalArgumentException, TaxonNotFoundException {
+        ) throws BadInputException, TaxonNotFoundException {
         
+        return OTRepresentationConverter.convert(doNodeInfo(graphDb, nodeID, ottID, includeLineage));
+    }
+
+    public HashMap<String, Object> doNodeInfo(GraphDatabaseService graphDb,
+                                              String nodeID,
+                                              Long ottID,
+                                              Boolean includeLineage)
+        throws BadInputException, TaxonNotFoundException {
         if (nodeID == null && ottID == null) {
             String ret = "Must provide a \"node_id\" or \"ott_id\" argument.";
-            throw new IllegalArgumentException(ret);
+            throw new BadInputException(ret);
         } else if (nodeID != null && ottID != null) {
             String ret = "Provide only one \"node_id\" or \"ott_id\" argument.";
-            throw new IllegalArgumentException(ret);
+            throw new BadInputException(ret);
         }
         
         HashMap<String, Object> nodeIfo = new HashMap<>();
@@ -153,7 +179,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
             } catch (TaxonNotFoundException e) {
-                throw new IllegalArgumentException(badOTTIDError(ottID));
+                throw new BadInputException(badOTTIDError(ottID));
             }
             qNode = n;
             
@@ -162,7 +188,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphNodeByOTTNodeID(nodeID);
             } catch (TaxonNotFoundException e) {
-                throw new IllegalArgumentException(badNodeIDError(nodeID));
+                throw new BadInputException(badNodeIDError(nodeID));
             }
             qNode = n;
         }
@@ -177,7 +203,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             }
         } else { // default to most recent
             synthTreeID = ge.getMostRecentSynthTreeID();
@@ -197,7 +223,7 @@ public class tree_of_life_v3 extends ServerPlugin {
         nodeIfo.put("source_id_map", sourceMap);
         
         ge.shutdownDB();
-        return OTRepresentationConverter.convert(nodeIfo);
+        return nodeIfo;
     }
     
     
@@ -223,15 +249,24 @@ public class tree_of_life_v3 extends ServerPlugin {
         @Parameter(name = "ott_ids", optional = true)
         long[] ottIDs
         
-        ) throws IllegalArgumentException {
+        ) throws BadInputException {
+
+        return OTRepresentationConverter.convert(doMrca(graphDb, nodeIDs, ottIDs));
         
+    }
+
+    public HashMap<String, Object> doMrca(GraphDatabaseService graphDb,
+                                          String[] nodeIDs,
+                                          long[] ottIDs)
+        throws BadInputException
+    {
         ArrayList<Node> tips = new ArrayList<>();
         ArrayList<Long> ottIdsNotInTree = new ArrayList<>();
         ArrayList<String> nodesIDsNotInTree = new ArrayList<>();
         
         if ((nodeIDs == null || nodeIDs.length < 1) && (ottIDs == null || ottIDs.length < 1)) {
             String ret = "You must supply at least one node_id or ott_id.";
-            throw new IllegalArgumentException(ret);
+            throw new BadInputException(ret);
         }
         
         String synthTreeID = null;
@@ -248,7 +283,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             }
         } else { // default to most recent
             synthTreeID = ge.getMostRecentSynthTreeID();
@@ -293,38 +328,38 @@ public class tree_of_life_v3 extends ServerPlugin {
                 }
             }
         }
-        
-        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty()) {
-            throw new IllegalArgumentException(multipleBadNodeIDsError(ottIdsNotInTree, nodesIDsNotInTree));
-        } else {
-            HashMap<String, Object> res = new HashMap<>();
-            Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
-            HashSet<String> uniqueSources = new HashSet<>();
-            
-            HashMap<String, Object> mrcaInfo = ge.getNodeBlob(mrca, synthTreeID, uniqueSources);
-            res.put("mrca", mrcaInfo);
-            HashMap<String, Object> sourceMap = ge.getSourceIDMap(uniqueSources, synthTreeID);
-            //nodeIfo.put("synth_id", synthTreeID);
-            res.put("source_id_map", sourceMap);
-            
-            if (!ottIdsNotInTree.isEmpty()) {
-                res.put("ott_ids_not_in_tree", ottIdsNotInTree);
-            }
-            if (!nodesIDsNotInTree.isEmpty()) {
-                res.put("node_ids_not_in_tree", nodesIDsNotInTree);
-            }
-            
-            // now find the most recent taxonomic ancestor (in tree), if mrca is not a taxon
-            if (!mrca.hasProperty("name")) {
-                Node mrta = ge.getDraftTreeMRTA(mrca, synthTreeID);
 
-                HashMap<String, Object> mrtaInfo = ge.getTaxonBlob(mrta);
-                res.put("nearest_taxon", mrtaInfo);
-            }
-            
-            ge.shutdownDB();
-            return OTRepresentationConverter.convert(res);
+        HashMap<String, Object> res = new HashMap<>();
+        Node mrca = ge.getDraftTreeMRCA(tips, synthTreeID);
+        HashSet<String> uniqueSources = new HashSet<>();
+
+        HashMap<String, Object> mrcaInfo = ge.getNodeBlob(mrca, synthTreeID, uniqueSources);
+        res.put("mrca", mrcaInfo);
+        HashMap<String, Object> sourceMap = ge.getSourceIDMap(uniqueSources, synthTreeID);
+        //nodeIfo.put("synth_id", synthTreeID);
+        res.put("source_id_map", sourceMap);
+
+        if (!ottIdsNotInTree.isEmpty()) {
+            res.put("ott_ids_not_in_tree", ottIdsNotInTree);
         }
+        if (!nodesIDsNotInTree.isEmpty()) {
+            res.put("node_ids_not_in_tree", nodesIDsNotInTree);
+        }
+
+        // now find the most recent taxonomic ancestor (in tree), if mrca is not a taxon
+        if (!mrca.hasProperty("name")) {
+            Node mrta = ge.getDraftTreeMRTA(mrca, synthTreeID);
+
+            HashMap<String, Object> mrtaInfo = ge.getTaxonBlob(mrta);
+            res.put("nearest_taxon", mrtaInfo);
+        }
+
+        ge.shutdownDB();
+
+        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty())
+            throw new BadIdsException(ottIdsNotInTree, nodesIDsNotInTree, res);
+
+        return res;
     }
     
     
@@ -354,18 +389,35 @@ public class tree_of_life_v3 extends ServerPlugin {
         
         @Description("Label format. Valid formats: \"name\", \"id\", or \"name_and_id\" (default)")
         @Parameter(name = "label_format", optional = true)
-        String labFormat
+        String labFormat,
         
-        ) throws IllegalArgumentException {
+        @Description("Whether to use node id as newick label when node has no name.  Default false.")
+        @Parameter(name = "include_all_node_labels", optional = true)
+        Boolean idsForUnnamedBoxed
         
+        ) throws BadInputException
+    {
+        return OTRepresentationConverter.convert(doInducedSubtree(graphDb, nodeIDs, ottIDs, labFormat, idsForUnnamedBoxed));
+    }
+
+    public HashMap<String, Object> doInducedSubtree(GraphDatabaseService graphDb,
+                                                    String[] nodeIDs,
+                                                    long[] ottIDs,
+                                                    String labFormat,
+                                                    Boolean idsForUnnamedBoxed)
+        throws BadInputException
+    {
         ArrayList<Node> tips = new ArrayList<>();
         ArrayList<Long> ottIdsNotInTree = new ArrayList<>();
         ArrayList<String> nodesIDsNotInTree = new ArrayList<>();
         String labelFormat = null;
-        
+        boolean idsForUnnamed = false;
+        if (idsForUnnamedBoxed != null && idsForUnnamedBoxed.booleanValue())
+            idsForUnnamed = true;
+
         if ((nodeIDs == null || nodeIDs.length < 1) && (ottIDs == null || ottIDs.length < 1)) {
             String ret = "You must supply at least one node_id or ott_id.";
-            throw new IllegalArgumentException(ret);
+            throw new BadInputException(ret);
         }
         
         if (labFormat == null) {
@@ -374,7 +426,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (!labFormat.matches("name|id|name_and_id")) {
                 String ret = "Invalid 'label_format' arg: '" + labFormat + "'. "
                     + "Valid formats: \"name\", \"id\", or \"name_and_id\" (default).";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             } else {
                 labelFormat = labFormat;
             }
@@ -394,7 +446,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             }
         } else { // default to most recent
             synthTreeID = ge.getMostRecentSynthTreeID();
@@ -440,28 +492,29 @@ public class tree_of_life_v3 extends ServerPlugin {
             }
         }
         
-        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty()) {
-            throw new IllegalArgumentException(multipleBadNodeIDsError(ottIdsNotInTree, nodesIDsNotInTree));
-        }
-        
         if (tips.size() < 2) {
             String ret = "Not enough valid node ids provided to construct a subtree "
                 + "(there must be at least two).";
-            throw new IllegalArgumentException(ret);
-        } else {
-            HashMap<String, Object> res = new HashMap<>();
-            
-            //res.put("synth_id", synthTreeID);
-            if (!ottIdsNotInTree.isEmpty()) {
-                res.put("ott_ids_not_in_tree", ottIdsNotInTree);
-            }
-            if (!nodesIDsNotInTree.isEmpty()) {
-                res.put("node_ids_not_in_tree", nodesIDsNotInTree);
-            }
-            
-            res.put("newick", ge.getInducedSubtree(tips, synthTreeID, labelFormat).getNewick(false) + ";");
-            return OTRepresentationConverter.convert(res);
+            throw new BadInputException(ret);
         }
+        HashMap<String, Object> res = new HashMap<>();
+            
+        //res.put("synth_id", synthTreeID);
+        if (!ottIdsNotInTree.isEmpty()) {
+            res.put("ott_ids_not_in_tree", ottIdsNotInTree);
+        }
+        if (!nodesIDsNotInTree.isEmpty()) {
+            res.put("node_ids_not_in_tree", nodesIDsNotInTree);
+        }
+        JadeTree induced = ge.getInducedSubtree(tips, synthTreeID, labelFormat, idsForUnnamed);
+        res.put("newick", induced.getRoot().getNewick(false) + ";");
+
+        Set<String> studies = ge.getSupportingStudies(induced, synthTreeID);
+        res.put("supporting_studies", new ArrayList<String>(studies));
+
+        if (!ottIdsNotInTree.isEmpty() || !nodesIDsNotInTree.isEmpty())
+            throw new BadIdsException(ottIdsNotInTree, nodesIDsNotInTree, res);
+        return res;
     }
     
     
@@ -499,25 +552,44 @@ public class tree_of_life_v3 extends ServerPlugin {
             + "the root node. A negative number specifies that no depth limit will be applied. "
             + "The default is 5.")
         @Parameter(name = "height_limit", optional = true)
-        Integer hLimit
+        Integer hLimit,
+
+        @Description("Whether to use node id as newick label when node has no name.  Default false.")
+        @Parameter(name = "include_all_node_labels", optional = true)
+        Boolean idsForUnnamedBoxed
         
-        ) throws TreeNotFoundException, IllegalArgumentException, TaxonNotFoundException {
-        
+        ) throws TreeNotFoundException, BadInputException, TaxonNotFoundException
+    {
+        return OTRepresentationConverter.convert(doSubtree(graphDb, nodeID, ottID, labFormat, tFormat, hLimit, idsForUnnamedBoxed));
+    }
+
+    public HashMap<String, Object> doSubtree(GraphDatabaseService graphDb,
+                                             String nodeID,
+                                             Long ottID,
+                                             String labFormat,
+                                             String tFormat,
+                                             Integer hLimit,
+                                             Boolean idsForUnnamedBoxed)
+        throws TreeNotFoundException, BadInputException, TaxonNotFoundException
+    {
         if (nodeID == null && ottID == null) {
             String ret = "Must provide a \"node_id\" or \"ott_id\" argument.";
-            throw new IllegalArgumentException(ret);
+            throw new BadInputException(ret);
         } else if (nodeID != null && ottID != null) {
             String ret = "Provide only one \"node_id\" or \"ott_id\" argument.";
-            throw new IllegalArgumentException(ret);
+            throw new BadInputException(ret);
         }
-        
+        boolean idsForUnnamed = false;
+        if (idsForUnnamedBoxed != null && idsForUnnamedBoxed.booleanValue())
+            idsForUnnamed = true;
+
         HashMap<String, Object> responseMap = new HashMap<>();
         
         // so. very. clunky. what a terrible design...
         int newickDepth = -1; // negative is no limit
         int argusonDepth = 5;
-        Integer maxNumTipsNewick = 25000; // TODO: is this the best value? Test this. ***
-        Integer maxNumTipsArguson = 25000; // splitting out since will likely have to be much smaller
+        Integer maxNumTipsNewick = 100000; // about 40 seconds
+        Integer maxNumTipsArguson = 25000; // splitting out since about 5x slower
         String labelFormat = null; // only used for newick
         String treeFormat = null;
         
@@ -536,7 +608,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (!labFormat.matches("name|id|name_and_id")) {
                 String ret = "Invalid 'label_format' arg: '" + labFormat + "'. "
                     + "Valid formats: \"name\", \"id\", or \"name_and_id\" (default).";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             } else {
                 labelFormat = labFormat;
             }
@@ -549,7 +621,7 @@ public class tree_of_life_v3 extends ServerPlugin {
             if (!tFormat.matches("newick|arguson")) {
                 String ret = "Invalid 'format' arg: '" + tFormat + "'. "
                     + "Valid formats: \"newick\" (default) or \"arguson\".";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             } else {
                 treeFormat = tFormat;
             }
@@ -571,7 +643,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             }
         } else { // default to most recent
             synthTreeID = ge.getMostRecentSynthTreeID();
@@ -583,22 +655,22 @@ public class tree_of_life_v3 extends ServerPlugin {
             try {
                 n = ge.findGraphTaxNodeByUID(String.valueOf(ottID));
             } catch (TaxonNotFoundException e) {
-                throw new IllegalArgumentException(badOTTIDError(ottID));
+                throw new BadInputException(badOTTIDError(ottID));
             }
             qNode = n;
             // check that startNode is indeed in the synthetic tree. for later with multi-trees
             if (!ge.nodeIsInSyntheticTree(qNode, synthTreeID)) {
                 ge.shutdownDB();
-                String ret = "Queried \"ott_id\": " + ottID + " is in the graph, but "
+                String ret = "Queried OTT id " + ottID + " is in the graph, but "
                     + "not in the draft tree: " + synthTreeID;
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             }
         } else if (nodeID != null) {
             Node n = null;
             try {
                 n = ge.findGraphNodeByOTTNodeID(nodeID);
             } catch (TaxonNotFoundException e) {
-                throw new IllegalArgumentException(badNodeIDError(nodeID));
+                throw new BadInputException(badNodeIDError(nodeID));
             }
             qNode = n;
             // check that startNode is indeed in the synthetic tree
@@ -606,7 +678,7 @@ public class tree_of_life_v3 extends ServerPlugin {
                 ge.shutdownDB();
                 String ret = "Queried \"node_id\": " + nodeID + " is in the graph, but "
                     + "not in the draft tree: " + synthTreeID;
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             }
         }
         
@@ -616,19 +688,21 @@ public class tree_of_life_v3 extends ServerPlugin {
                 Integer nTips = ge.getNumTipDescendants(qNode, synthTreeID);
                 if (nTips > maxNumTipsNewick) {
                      ge.shutdownDB();
-                    throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsNewick));
+                    throw new BadInputException(treeTooBigError(nTips, maxNumTipsNewick));
                 }
             } else {
                 // still don't have to build tree, but have to do traversal
                 Integer nTips = ge.getSubtreeNumTips(synthTreeID, qNode, newickDepth);
                 if (nTips > maxNumTipsNewick) {
                     ge.shutdownDB();
-                    throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsNewick));
+                    throw new BadInputException(treeTooBigError(nTips, maxNumTipsNewick));
                 }
             }
             JadeTree tree = null;
             try {
-                tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat);
+                tree = ge.reconstructDepthLimitedSubtree(synthTreeID, qNode, newickDepth, labelFormat, idsForUnnamed);
+                Set<String> studies = ge.getSupportingStudies(tree, synthTreeID);
+                responseMap.put("supporting_studies", new ArrayList<String>(studies));
             } finally {
                 ge.shutdownDB();
             }
@@ -638,13 +712,13 @@ public class tree_of_life_v3 extends ServerPlugin {
             Integer nTips = ge.getSubtreeNumTips(synthTreeID, qNode, argusonDepth);
             if (nTips > maxNumTipsArguson) {
                 ge.shutdownDB();
-                throw new IllegalArgumentException(treeTooBigError(nTips, maxNumTipsArguson));
+                throw new BadInputException(treeTooBigError(nTips, maxNumTipsArguson));
             }
             // construct arguson
             HashMap<String, Object> res = ge.getArgusonData(qNode, synthTreeID, argusonDepth);
-            responseMap.put("arguson", res);;
+            responseMap.put("arguson", res);
         }
-        return OTRepresentationConverter.convert(responseMap);
+        return responseMap;
     }
     
     
@@ -657,13 +731,13 @@ public class tree_of_life_v3 extends ServerPlugin {
     }
     
     private String badOTTIDError (Long ottID) {
-        String ret = "Could not find any graph nodes corresponding to the \"ott_id\" provided ("
+        String ret = "Could not find any synthetic tree nodes corresponding to the OTT id provided ("
             + ottID + ").";
         return ret;
     }
     
     private String badNodeIDError (String nodeID) {
-        String ret = "Could not find any graph nodes corresponding to the \"node_id\" provided ("
+        String ret = "Could not find any synthetic tree nodes corresponding to the node id provided ("
             + nodeID + ").";
         return ret;
     }
@@ -671,24 +745,24 @@ public class tree_of_life_v3 extends ServerPlugin {
     private String multipleBadNodeIDsError (ArrayList<Long> ottIdsNotInTree, ArrayList<String> nodesIDsNotInTree) {
         String ret = "";
         if (!ottIdsNotInTree.isEmpty()) {
-            ret = "The following \"ott_ids\" were not found: ";
+            ret = "The following OTT ids were not found: [";
             for (int i = 0; i < ottIdsNotInTree.size(); i++) {
                 ret += ottIdsNotInTree.get(i);
                 if (i != ottIdsNotInTree.size() - 1) {
                     ret += ", ";
                 }
             }
-            ret += ". ";
+            ret += "]. ";
         }
         if (!nodesIDsNotInTree.isEmpty()) {
-            ret += "The following \"node_ids\" were not found: ";
+            ret += "The following node ids were not found: [";
             for (int i = 0; i < nodesIDsNotInTree.size(); i++) {
                 ret += nodesIDsNotInTree.get(i);
                 if (i != nodesIDsNotInTree.size() - 1) {
                     ret += ", ";
                 }
             }
-            ret += ". ";
+            ret += "]. ";
         }
         return ret;
     }
@@ -701,7 +775,7 @@ public class tree_of_life_v3 extends ServerPlugin {
     @Description("Returns brief summary information about the draft synthetic tree(s) "
         + "currently contained within the graph database.") 
     @PluginTarget(GraphDatabaseService.class)
-    public Representation draft_trees (@Source GraphDatabaseService graphDb) throws IllegalArgumentException {
+    public Representation draft_trees (@Source GraphDatabaseService graphDb) throws BadInputException {
 
         HashMap<String, Object> graphInfo = new HashMap<>();
         
@@ -736,9 +810,9 @@ public class tree_of_life_v3 extends ServerPlugin {
             graphInfo.put("synth_trees", trees);
         } else {
             ge.shutdownDB();
-            throw new IllegalArgumentException("Could not find any draft synthetic trees in the graph.");
+            throw new BadInputException("Could not find any draft synthetic trees in the graph.");
         }
-return OTRepresentationConverter.convert(graphInfo);
+        return graphInfo;
     }
     */
     
@@ -771,7 +845,7 @@ return OTRepresentationConverter.convert(graphInfo);
         @Parameter(name = "format", optional = true)
         String format
 
-        ) throws IllegalArgumentException {
+        ) throws BadInputException {
 
         HashMap<String, Object> responseMap = new HashMap<>();
         String source = studyID + "_" + treeID;
@@ -786,7 +860,7 @@ return OTRepresentationConverter.convert(graphInfo);
                 ge.shutdownDB();
                 String ret = "Could not find a synthetic tree corresponding to the 'synth_id' arg: '"
                     + synthTreeID + "'. Leave blank to default to the current synthetic tree.";
-                throw new IllegalArgumentException(ret);
+                throw new BadInputException(ret);
             }
         } else { // default to most recent
             synthTreeID = ge.getMostRecentSynthTreeID();
@@ -796,7 +870,7 @@ return OTRepresentationConverter.convert(graphInfo);
         String tree = getSourceTree(source, synthTreeID);
 
         if (tree == null) {
-            throw new IllegalArgumentException("Invalid source id '" + source + "' provided.");
+            throw new BadInputException("Invalid source id '" + source + "' provided.");
         } else {
             responseMap.put("newick", tree);
             responseMap.put("synth_id", synthTreeID);
