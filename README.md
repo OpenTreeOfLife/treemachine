@@ -6,7 +6,7 @@
 
 treemachine-LITE is a pared-down version of the original treemachine which was used to generate synthetic phylogenetic
 trees for the [Open Tree of Life project](http://opentreeoflife.org/). Synthetic analyses are now performed by other tools.
-The role of treemachine-LITE is simply to construct a neo4j database which is used to serve such trees.
+The role of treemachine-LITE is simply to construct a neo4j database and serve such trees.
 
 ## Installing dependencies
 
@@ -38,11 +38,11 @@ Alternately, there is a `make` target for neo4j:
 make neo4j
 ```
 
-You can move the neo4j directory wherever you like, but make sure that it is on your path.
+You can move the neo4j directory wherever you like.
 
 ## Compiling treemachine-LITE
 
-NOTE: The script for compiling the server plugins will delete the treemachine-LITE jar in the target directory (and the opposite is true - compiling the jar in the target dir will delete the server plugins). You can rebuild either just by running those scripts again.
+NOTE: The script for compiling the server plugins will delete any command-line jar in the target directory (and the opposite is true - compiling the command-line jar will delete the server plugins from the target directory). You can rebuild either just by running those scripts again.
 
 ### Command-line version
 
@@ -68,7 +68,7 @@ directory (and deletes the command-line jar if it existed). Then, copy the .jar
 file into the neo4j plugins directory:
 
 ```
-cp -r target/treemachine-neo4j-plugins-0.0.1-SNAPSHOT.jar $(NEO4J_HOME)/plugins
+cp -p target/treemachine-neo4j-plugins-0.0.1-SNAPSHOT.jar $(NEO4J_HOME)/plugins
 ```
 
 ## Usage
@@ -86,7 +86,7 @@ where:
 * `newick_tree` is the `labelled_supetree/labelled_supertree.tre` from the synthesis procedure
 * `json_annotations` is the `annotated_supertree/annotations.json` from the supertree procedure
 * `tsv_taxonomy` is the `taxonomy.tsv` file from the [Open Tree of Life Taxonomy (OTT)](https://tree.opentreeoflife.org/about/taxonomy-version/)
-* `DB_name` is the name for the generated DB
+* `DB_name` is the name for the directory that will hold the generated DB (you choose)
 
 
 ### Serving a DB with Neo4j
@@ -100,11 +100,10 @@ After you have loaded content into your db, you can run the neo4j http server
 with the command :
 
 ```
-neo4j start
+neo4j-community-1.9.5/bin/neo4j start
 ```
 
-assuming that the neo4j directory is on your path. Note that `neo4j` is in the
-`bin` directory of neo4j if you want to call it without modifying your path.
+If you add the neo4j-community-1.9.5/bin directory to your path, you can just say `neo4j start`.
 
 ### Running the tests
 
