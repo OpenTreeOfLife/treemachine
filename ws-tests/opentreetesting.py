@@ -222,6 +222,8 @@ def exit_if_api_is_readonly(fn):
 translations = [('/v2/study/', '/phylesystem/v1/study/'),
                 ('/cached/', '/phylesystem/default/cached/'),
                 # treemachine
+                ('/v2/graph/', '/db/data/ext/graph/graphdb/'),
+                ('/v2/tree_of_life/', '/db/data/ext/tree_of_life/graphdb/'),
                 ('/v3/tree_of_life/', '/db/data/ext/tree_of_life_v3/graphdb/'),
                 # taxomachine
                 ('/v2/tnrs/', '/db/data/ext/tnrs_v2/graphdb/'),
@@ -236,5 +238,7 @@ def translate(s):
     if config('host', 'translate', 'false') == 'true':
         for (src, dst) in translations:
             if src in s:
-                return s.replace(src, dst)
+                r = s.replace(src, dst)
+                # print ' translation:', r
+                return r
     return s
