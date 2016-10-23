@@ -24,7 +24,7 @@ brew install maven
 **jade and ot-base**
 Once Maven v.3 is installed, the treemachine-LITE dependencies themselves can be installed with:
 ```
-'mvn_install_dependencies.sh'
+mvn_install_dependencies.sh
 ```
 
 **neo4j**
