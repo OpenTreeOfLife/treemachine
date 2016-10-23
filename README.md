@@ -22,7 +22,10 @@ On Mac OS, Maven v.3 can be installed with [Homebrew](http://brew.sh):
 brew install maven
 ```
 **jade and ot-base**
-Once Maven v.3 is installed, the treemachine-LITE dependencies themselves can be installed using the script 'mvn_install_dependencies.sh'
+Once Maven v.3 is installed, the treemachine-LITE dependencies themselves can be installed with:
+```
+'mvn_install_dependencies.sh'
+```
 
 **neo4j**
 The DB constructed by treemachine-lite is meant to be served by neo4j. We are currently using `neo4j-community-v1.9.5`. To obtain and decompress neo4j:
